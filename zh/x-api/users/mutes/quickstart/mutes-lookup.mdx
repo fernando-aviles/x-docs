@@ -1,0 +1,211 @@
+---
+title: 静音用户查询
+sidebarTitle: 静音用户查询
+description: 获取你已设为静音的用户列表
+keywords: ["静音用户查询快速入门", "静音查询快速入门", "静音用户查询教程", "静音用户查询指南", "静音快速入门"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你使用 X API 获取你的已静音用户列表。
+
+<Note>
+  **先决条件**
+
+  在开始之前，你需要：
+
+  * 一个带有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 用户访问令牌（OAuth 1.0a 或 OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-your-muted-users">
+  ## 获取你静音的用户
+</div>
+
+<Steps>
+  <Step title="获取你的用户 ID">
+    你需要经过认证的用户 ID。你可以使用 [用户查找端点](/zh/x-api/users/lookup/introduction) 获取它，或者从你的 Access Token 中获取（其中的数字部分就是你的用户 ID）。
+  </Step>
+
+  <Step title="请求你静音的用户">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/muting?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # 使用分页获取已静音用户
+      for page in client.users.get_muting(
+          "123456789",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - 已静音")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // 使用分页获取已静音用户
+      const paginator = client.users.getMuting("123456789", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - 已静音`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应">
+    ```json
+    {
+      "data": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers",
+          "created_at": "2013-12-14T04:35:55.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "1710819323648428707"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 包含更多数据
+</div>
+
+使用扩展参数来获取相关数据，例如置顶帖子：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 使用扩展获取被静音的用户
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # 置顶帖子会出现在 page.includes.tweets 中
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 使用扩展获取被静音的用户
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // 置顶帖子会出现在 page.includes?.tweets 中
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 包含扩展的响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "username": "XDevelopers",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "id": "2244994945",
+      "name": "X Developers",
+      "pinned_tweet_id": "1430984356139470849"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-08-26T20:03:51.000Z",
+        "id": "1430984356139470849",
+        "text": "Help us build a better X Developer Platform!..."
+      }
+    ]
+  },
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+<div id="paginate-through-results">
+  ## 对结果进行分页
+</div>
+
+SDK 会自动完成分页处理。对于 cURL，请使用响应中的 `next_token`：
+
+```bash
+curl "https://api.x.com/2/users/123456789/muting?\
+max_results=100&\
+pagination_token=1710819323648428707" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="管理静音用户" icon="volume-xmark" href="/zh/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    静音和取消静音用户
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/users/get-muted-users">
+    完整的端点说明
+  </Card>
+</CardGroup>

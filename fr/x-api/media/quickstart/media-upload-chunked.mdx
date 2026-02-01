@@ -1,0 +1,368 @@
+---
+title: Téléversement de médias par segments
+sidebarTitle: Démarrage rapide
+description: Téléversez des vidéos et de gros fichiers multimédias à l’aide du téléversement par segments
+keywords: ["téléversement par segments", "téléversement de médias", "médias par segments", "téléversement vidéo", "téléversement de gros fichiers", "guide de téléversement par segments"]
+---
+
+Ce guide vous explique comment téléverser des vidéos et de gros fichiers multimédias à l’aide du flux de téléversement par segments.
+
+Pour les téléversements de vidéos ou de gros fichiers multimédias, vous devez :
+
+1. **INIT** — Initialiser le téléversement et obtenir un `media_id`
+2. **APPEND** — Téléverser chaque segment du fichier
+3. **FINALIZE** — Terminer le téléversement
+4. **STATUS** — (si nécessaire) Attendre la fin du traitement
+
+<Note>
+  Consultez [cet exemple de code](https://github.com/xdevplatform/large-video-upload-python) pour un exemple complet en Python.
+</Note>
+
+***
+
+<div id="step-1-initialize-upload-init">
+  ## Étape 1 : Initialiser le téléversement (INIT)
+</div>
+
+Initialisez la session de téléversement pour obtenir un `media_id` :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=INIT" \
+    -F "media_type=video/mp4" \
+    -F "total_bytes=1048576" \
+    -F "media_category=amplify_video"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Initialiser un téléversement en plusieurs segments
+  response = client.media.init_upload(
+      media_type="video/mp4",
+      total_bytes=1048576,
+      media_category="amplify_video"
+  )
+
+  media_id = response.data.id
+  print(f"ID du média : {media_id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Initialiser un téléversement en plusieurs segments
+  const response = await client.media.initUpload({
+    mediaType: "video/mp4",
+    totalBytes: 1048576,
+    mediaCategory: "amplify_video",
+  });
+
+  const mediaId = response.data?.id;
+  console.log(`ID du média : ${mediaId}`);
+  ```
+</CodeGroup>
+
+**Réponse :**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "expires_after_secs": 1295999
+  }
+}
+```
+
+***
+
+<div id="step-2-upload-chunks-append">
+  ## Étape 2 : Téléverser les segments (APPEND)
+</div>
+
+Téléversez chaque segment du fichier. Par exemple, divisez un fichier de 3 Mo en 3 segments :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=APPEND" \
+    -F "media_id=1880028106020515840" \
+    -F "segment_index=0" \
+    -F "media=@/path/to/chunk1.mp4"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Téléverser les segments
+  chunk_size = 1024 * 1024  # segments de 1 Mo
+
+  with open("video.mp4", "rb") as f:
+      segment_index = 0
+      while True:
+          chunk = f.read(chunk_size)
+          if not chunk:
+              break
+          
+          client.media.append_upload(
+              media_id=media_id,
+              segment_index=segment_index,
+              media=chunk
+          )
+          segment_index += 1
+          print(f"Segment {segment_index} téléversé")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+  import fs from "fs";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Téléverser les segments
+  const chunkSize = 1024 * 1024; // segments de 1 Mo
+  const fileBuffer = fs.readFileSync("video.mp4");
+
+  let segmentIndex = 0;
+  for (let offset = 0; offset < fileBuffer.length; offset += chunkSize) {
+    const chunk = fileBuffer.slice(offset, offset + chunkSize);
+    
+    await client.media.appendUpload({
+      mediaId,
+      segmentIndex,
+      media: chunk,
+    });
+    
+    console.log(`Segment ${segmentIndex + 1} téléversé`);
+    segmentIndex++;
+  }
+  ```
+</CodeGroup>
+
+<Info>
+  **Avantages du découpage :**
+
+  * Fiabilité améliorée sur les réseaux lents
+  * Les téléversements peuvent être mis en pause et repris
+  * Les segments ayant échoué peuvent être retentés individuellement
+</Info>
+
+***
+
+<div id="step-3-finalize-upload-finalize">
+  ## Étape 3 : Finaliser le téléversement (FINALIZE)
+</div>
+
+Terminez le téléversement une fois que tous les segments ont été envoyés :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=FINALIZE" \
+    -F "media_id=1880028106020515840"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Finaliser le téléversement
+  response = client.media.finalize_upload(media_id=media_id)
+
+  print(f"État du traitement : {response.data.processing_info.state}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Finaliser le téléversement
+  const response = await client.media.finalizeUpload({ mediaId });
+
+  console.log(`État du traitement : ${response.data?.processing_info?.state}`);
+  ```
+</CodeGroup>
+
+**Réponse :**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "size": 1048576,
+    "expires_after_secs": 86400,
+    "processing_info": {
+      "state": "pending",
+      "check_after_secs": 1
+    }
+  }
+}
+```
+
+<Note>
+  Si `processing_info` est renvoyé, passez à l&#39;étape 4 pour attendre la fin du traitement. Sinon, le média est prêt à être utilisé.
+</Note>
+
+***
+
+<div id="step-4-check-status-status">
+  ## Étape 4 : Vérifier l’état (STATUS)
+</div>
+
+Si `processing_info` a été renvoyé, sondez régulièrement l’API jusqu’à la fin du traitement :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/media/upload?command=STATUS&media_id=1880028106020515840" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  import time
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Attendre la fin du traitement
+  while True:
+      response = client.media.get_status(media_id=media_id)
+      state = response.data.processing_info.state
+      
+      if state == "succeeded":
+          print("Média prêt !")
+          break
+      elif state == "failed":
+          print("Le traitement a échoué")
+          break
+      else:
+          check_after = response.data.processing_info.check_after_secs
+          print(f"Traitement en cours... nouvelle vérification dans {check_after}s")
+          time.sleep(check_after)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Attendre la fin du traitement
+  while (true) {
+    const response = await client.media.getStatus({ mediaId });
+    const state = response.data?.processing_info?.state;
+    
+    if (state === "succeeded") {
+      console.log("Média prêt !");
+      break;
+    } else if (state === "failed") {
+      console.log("Le traitement a échoué");
+      break;
+    } else {
+      const checkAfter = response.data?.processing_info?.check_after_secs ?? 1;
+      console.log(`Traitement en cours... nouvelle vérification dans ${checkAfter}s`);
+      await new Promise((r) => setTimeout(r, checkAfter * 1000));
+    }
+  }
+  ```
+</CodeGroup>
+
+**États de traitement :** `pending` → `in_progress` → `succeeded` ou `failed`
+
+***
+
+<div id="step-5-create-post-with-media">
+  ## Étape 5 : Créer une Publication avec un média
+</div>
+
+Une fois le traitement terminé, créez une Publication avec ce média :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "text": "Check out this video!",
+      "media": {
+        "media_ids": ["1880028106020515840"]
+      }
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Créer une Publication avec un média
+  response = client.posts.create(
+      text="Check out this video!",
+      media={"media_ids": [media_id]}
+  )
+
+  print(f"Posted: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Créer une Publication avec un média
+  const response = await client.posts.create({
+    text: "Check out this video!",
+    media: { mediaIds: [mediaId] },
+  });
+
+  console.log(`Posted: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-categories">
+  ## Catégories de médias
+</div>
+
+| Catégorie | Description |
+|:---------|:------------|
+| `tweet_image` | Image pour une Publication |
+| `tweet_gif` | GIF animé pour une Publication |
+| `tweet_video` | Vidéo pour une Publication |
+| `amplify_video` | Vidéo Amplify |
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Bonnes pratiques" icon="book" href="/fr/x-api/media/quickstart/best-practices">
+    Contraintes et exigences relatives aux fichiers
+  </Card>
+
+  <Card title="Créer des Publications" icon="message" href="/fr/x-api/posts/manage-tweets/quickstart">
+    Publier avec des médias
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/media/media-upload-init">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

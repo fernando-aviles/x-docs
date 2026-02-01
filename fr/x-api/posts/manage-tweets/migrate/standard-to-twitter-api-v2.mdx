@@ -1,0 +1,159 @@
+---
+title: v1 vers v2
+sidebarTitle: v1 vers v2
+keywords: ["migration de v1.1 vers v2", "migration de la création de Tweet", "migration de la création de Tweet", "standard vers v2", "Tweets v1 vers v2", "guide de migration"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ## Standard v1.1 comparé à X API v2
+</div>
+
+Si vous avez travaillé avec les endpoints standard de la v1.1 [POST statuses/update](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update) et [POST statuses/destroy/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-destroy-id), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints standard et les endpoints de gestion des Publications de X API v2.
+
+* **Similarities**
+  * Authentification
+* **Differences**
+  * URL des endpoints
+
+  * Exigences pour l’App et le Projet
+
+  * Paramètres de requête
+
+<div id="similarities">
+  ### Similarités
+</div>
+
+**Authentification**
+
+Les endpoints de gestion des Publications pour la v1.1 standard et pour X API v2 ([POST statuses/update](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update) et [POST statuses/destroy/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-destroy-id)) utilisent tous deux [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication). Par conséquent, si vous utilisiez déjà l’un des endpoints standard v1.1, vous pouvez continuer à utiliser la même méthode d’authentification lors de votre migration vers X API v2.
+
+<div id="differences">
+  ### Différences
+</div>
+
+**URL des endpoints**
+
+* Endpoints standard v1.1 :
+  * https://api.x.com/1.1/statuses/update.json
+    (Crée une Publication)
+  * `https://api.x.com/1.1/statuses/destroy/:id.json`
+    (Supprime une Publication)
+* Endpoint de X API v2 :
+  * https://api.x.com/2/tweets
+    (Crée une Publication)
+  * https://api.x.com/2/tweets/:id
+    (Supprime une Publication donnée)
+
+<div id="app-and-project-requirements">
+  ### Exigences relatives à l’App et au Projet
+</div>
+
+Les endpoints de X API v2 requièrent que vous utilisiez des identifiants provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [Projet](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints de X API v1.1 peuvent utiliser des identifiants provenant d’Apps, qu’elles soient autonomes ou associées à un Projet.
+
+<div id="request-parameters">
+  ### Paramètres de requête
+</div>
+
+Les paramètres de requête standard de la v1.1 suivants acceptaient deux paramètres de requête (user&#95;id ou screen&#95;name). X API v2 n’accepte que l’identifiant numérique de la Publication pour l’endpoint DELETE, et celui-ci doit être transmis dans le chemin de l’endpoint.
+
+Pour l’endpoint POST, des paramètres supplémentaires doivent être transmis dans le corps JSON de la requête. Vous pouvez en savoir plus sur les paramètres disponibles dans le [guide de référence de l’API](/fr/x-api/posts/manage-tweets/introduction).
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="create-a-post-v2">
+  ### Créer une Publication (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello world!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Créer une Publication
+  response = client.posts.create(text="Hello world!")
+  print(f"Created Post: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Créer une Publication
+  const response = await client.posts.create({ text: "Hello world!" });
+  console.log(`Created Post: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+<div id="delete-a-post-v2">
+  ### Supprimer une publication (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/tweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Supprime une publication
+  response = client.posts.delete("1234567890")
+  print(f"Deleted: {response.data.deleted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Supprime une publication
+  const response = await client.posts.delete("1234567890");
+  console.log(`Deleted: ${response.data?.deleted}`);
+  ```
+</CodeGroup>

@@ -1,0 +1,231 @@
+---
+title: Inicio rápido del usuario autenticado
+sidebarTitle: Usuario autenticado
+description: Obtén el perfil del usuario actualmente autenticado
+keywords: ["usuario autenticado", "endpoint me", "usuario actual", "búsqueda autenticada"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te muestra cómo obtener el perfil del usuario actualmente autenticado mediante el endpoint `/me`.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * Un token de acceso de usuario (OAuth 1.0a o OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-the-authenticated-user">
+  ## Obtener el usuario autenticado
+</div>
+
+Realiza una solicitud al endpoint `/me` con un token de acceso de usuario (User Access Token):
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me?\
+  user.fields=created_at,description,verified,public_metrics,profile_image_url" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtener el usuario autenticado
+  response = client.users.get_me(
+      user_fields=["created_at", "description", "verified", "public_metrics", "profile_image_url"]
+  )
+
+  print(f"Nombre de usuario: {response.data.username}")
+  print(f"ID: {response.data.id}")
+  print(f"Seguidores: {response.data.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtener el usuario autenticado
+  const response = await client.users.getMe({
+    userFields: ["created_at", "description", "verified", "public_metrics", "profile_image_url"],
+  });
+
+  console.log(`Nombre de usuario: ${response.data?.username}`);
+  console.log(`ID: ${response.data?.id}`);
+  console.log(`Seguidores: ${response.data?.public_metrics?.followers_count}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="response">
+  ## Respuesta
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "description": "The voice of the X developer community",
+    "verified": true,
+    "profile_image_url": "https://pbs.twimg.com/profile_images/...",
+    "public_metrics": {
+      "followers_count": 583423,
+      "following_count": 2048,
+      "tweet_count": 14052,
+      "listed_count": 1672
+    }
+  }
+}
+```
+
+***
+
+<div id="use-case">
+  ## Caso de uso
+</div>
+
+El endpoint `/me` es esencial cuando:
+
+* **Verificar la autenticación** — Confirmar que el usuario esté correctamente autenticado
+* **Obtener el identificador de usuario** — Recuperar el id del usuario autenticado para otras llamadas a la API
+* **Personalizar experiencias** — Mostrar el perfil del usuario en tu aplicación
+* **Solicitudes en nombre de un usuario** — Saber para quién estás realizando solicitudes
+
+***
+
+<div id="include-pinned-post">
+  ## Incluir la Publicación fijada
+</div>
+
+Solicita la publicación fijada del usuario:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me?\
+  user.fields=pinned_tweet_id&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtener al usuario autenticado con su publicación fijada
+  response = client.users.get_me(
+      user_fields=["pinned_tweet_id"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at", "text"]
+  )
+
+  print(f"Username: {response.data.username}")
+  # La publicación fijada está en response.includes.tweets
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtener al usuario autenticado con su publicación fijada
+  const response = await client.users.getMe({
+    userFields: ["pinned_tweet_id"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at", "text"],
+  });
+
+  console.log(`Username: ${response.data?.username}`);
+  // La publicación fijada está en response.includes?.tweets
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Respuesta con expansión
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "pinned_tweet_id": "1234567890"
+  },
+  "includes": {
+    "tweets": [
+      {
+        "id": "1234567890",
+        "text": "Welcome to my profile!",
+        "created_at": "2024-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="available-fields">
+  ## Campos disponibles
+</div>
+
+| Campo | Descripción |
+|:------|:------------|
+| `created_at` | Fecha de creación de la cuenta |
+| `description` | Biografía del usuario |
+| `profile_image_url` | URL del avatar |
+| `verified` | Estado de verificación |
+| `public_metrics` | Número de seguidores y seguidos |
+| `location` | Ubicación definida por el usuario |
+| `url` | Sitio web del usuario |
+| `protected` | Estado de la cuenta protegida |
+| `pinned_tweet_id` | ID de la Publicación fijada |
+
+***
+
+<div id="authentication-requirement">
+  ## Requisito de autenticación
+</div>
+
+<Warning>
+  El endpoint `/me` requiere autenticación con User Context. No admite autenticación App-Only (Bearer Token).
+</Warning>
+
+Usa uno de los siguientes métodos:
+
+* [OAuth 1.0a User Context](/es/resources/fundamentals/authentication)
+* [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2)
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Búsqueda de usuarios" icon="users" href="/es/x-api/users/lookup/quickstart/user-lookup">
+    Buscar otros usuarios
+  </Card>
+
+  <Card title="Guía de integración" icon="book" href="/es/x-api/users/lookup/integrate">
+    Conceptos clave y prácticas recomendadas
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/users/authenticated-user-lookup">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

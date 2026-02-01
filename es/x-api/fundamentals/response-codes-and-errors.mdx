@@ -1,0 +1,255 @@
+---
+title: Códigos de respuesta y errores
+sidebarTitle: Códigos de respuesta
+description: Códigos de estado HTTP y manejo de errores para X API
+keywords: ["códigos de respuesta", "códigos de error", "códigos de estado HTTP", "errores de la API", "manejo de errores", "depuración"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+La X API usa códigos de estado HTTP estándar. Las solicitudes satisfactorias devuelven códigos 2xx; los errores devuelven códigos 4xx o 5xx con detalles en el cuerpo de la respuesta.
+
+***
+
+<div id="http-status-codes">
+  ## Códigos de estado HTTP
+</div>
+
+<div id="success-codes">
+  ### Códigos de éxito
+</div>
+
+| Código | Significado | Descripción |
+|:-----|:--------|:------------|
+| **200** | OK | Solicitud satisfactoria |
+| **201** | Created | Recurso creado (solicitudes POST) |
+| **204** | No Content | Éxito sin cuerpo de respuesta (solicitudes DELETE) |
+
+<div id="client-error-codes">
+  ### Códigos de error del cliente
+</div>
+
+| Código | Significado | Causas habituales |
+|:-----|:--------|:--------------|
+| **400** | Solicitud incorrecta | JSON no válido, consulta mal formada, parámetros obligatorios ausentes |
+| **401** | No autorizado | Credenciales de autenticación no válidas o ausentes |
+| **403** | Prohibido | Autenticación válida pero sin permiso para este recurso o acción |
+| **404** | No encontrado | El recurso no existe o se ha eliminado |
+| **409** | Conflicto | El stream no tiene reglas (solo stream filtrado) |
+| **429** | Demasiadas solicitudes | Límite de tasa de solicitudes o cuota de uso superados |
+
+<div id="server-error-codes">
+  ### Códigos de error del servidor
+</div>
+
+| Código | Significado | Qué hacer |
+|:-----|:--------|:-----------|
+| **500** | Error interno del servidor | Espera y vuelve a intentarlo; revisa la [página de estado](/es/status) |
+| **502** | Puerta de enlace incorrecta | Espera y vuelve a intentarlo |
+| **503** | Servicio no disponible | X está sobrecargado; espera y vuelve a intentarlo |
+| **504** | Se agotó el tiempo de espera de la puerta de enlace | Espera y vuelve a intentarlo |
+
+***
+
+<div id="error-response-format">
+  ## Formato de la respuesta de error
+</div>
+
+Las respuestas de error incluyen detalles estructurados:
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The 'query' parameter is required.",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+| Campo    | Descripción                          |
+| :------- | :----------------------------------- |
+| `type`   | URI que identifica el tipo de error  |
+| `title`  | Descripción breve del error          |
+| `detail` | Explicación específica de este error |
+
+Pueden estar presentes campos adicionales según el tipo de error.
+
+***
+
+<div id="error-types">
+  ## Tipos de error
+</div>
+
+| Tipo | Descripción |
+|:-----|:------------|
+| `about:blank` | Error genérico (consulta el código de estado HTTP correspondiente) |
+| `.../invalid-request` | Solicitud mal formada o parámetros no válidos |
+| `.../resource-not-found` | La Publicación, el usuario u otro recurso no existe |
+| `.../not-authorized-for-resource` | Sin acceso a contenido privado/protegido |
+| `.../client-forbidden` | La aplicación no está inscrita o no tiene el acceso requerido |
+| `.../usage-capped` | Se superó el límite de uso |
+| `.../rate-limit-exceeded` | Se superó el límite de frecuencia |
+| `.../streaming-connection` | Problema en la conexión de streaming |
+| `.../rule-cap` | Demasiadas reglas del stream filtrado |
+| `.../invalid-rules` | Error de sintaxis en la regla |
+| `.../duplicate-rules` | La regla ya existe |
+
+***
+
+<div id="partial-errors">
+  ## Errores parciales
+</div>
+
+Algunas solicitudes pueden completarse parcialmente. Una respuesta 200 puede incluir tanto `data` como `errors`:
+
+```json
+{
+  "data": [
+    {"id": "123", "text": "Hello"}
+  ],
+  "errors": [
+    {
+      "resource_id": "456",
+      "resource_type": "tweet",
+      "title": "Error No Encontrado",
+      "detail": "No se pudo encontrar el tuit con el id: [456].",
+      "type": "https://api.x.com/2/problems/resource-not-found"
+    }
+  ]
+}
+```
+
+Esto sucede cuando se solicitan varios recursos y algunos no están disponibles.
+
+***
+
+<div id="troubleshooting-common-errors">
+  ## Solución de problemas comunes
+</div>
+
+<Accordion title="401 No autorizado">
+  **Comprueba tu autenticación:**
+
+  * Verifica que estás usando el método de autenticación correcto para el endpoint
+  * Asegúrate de que las credenciales no se hayan regenerado
+  * Comprueba el formato del encabezado `Authorization`
+  * Para OAuth 1.0a, verifica el cálculo de la firma
+
+  [Guía de autenticación →](/es/resources/fundamentals/authentication/overview)
+</Accordion>
+
+<Accordion title="403 Prohibido">
+  **Comprueba tu acceso:**
+
+  * Verifica que tu aplicación tenga acceso a este endpoint
+  * Algunos endpoints requieren un registro o aprobación específicos
+  * Los endpoints con contexto de usuario necesitan los permisos (scopes) de OAuth apropiados
+  * El recurso puede ser privado o estar protegido
+</Accordion>
+
+<Accordion title="429 Demasiadas solicitudes">
+  **Has alcanzado el límite de frecuencia:**
+
+  * Revisa el encabezado `x-rate-limit-reset` para saber cuándo volver a intentar
+  * Implementa reintentos con backoff exponencial
+  * Considera almacenar en caché las respuestas
+  * Distribuye las solicitudes a lo largo de la ventana de tiempo
+
+  [Guía de límites de frecuencia →](/es/x-api/fundamentals/rate-limits)
+</Accordion>
+
+<Accordion title="400 Solicitud incorrecta">
+  **Corrige tu solicitud:**
+
+  * Valida la sintaxis JSON
+  * Revisa si faltan parámetros obligatorios
+  * Verifica los tipos de parámetros (cadenas de texto vs. números)
+  * Escapa los caracteres especiales en las consultas
+</Accordion>
+
+<Accordion title="Faltan publicaciones esperadas">
+  **Comprueba estos factores:**
+
+  * Las publicaciones de cuentas protegidas solo son visibles con autorización
+  * Las publicaciones eliminadas devuelven 404
+  * Algunas publicaciones se bloquean en determinadas regiones
+  * Verifica que la sintaxis de la consulta de búsqueda sea correcta
+</Accordion>
+
+<Accordion title="Desconexiones de la transmisión">
+  **Gestiona la reconexión:**
+
+  * Implementa la reconexión automática con backoff
+  * Usa las funciones de recuperación para los datos omitidos
+  * Comprueba si hay desconexiones por búfer lleno (el cliente no consume con la suficiente rapidez)
+  * Verifica que exista al menos una regla de transmisión
+
+  [Guía de transmisión →](/es/x-api/posts/filtered-stream/integrate/handling-disconnections)
+</Accordion>
+
+***
+
+<div id="rate-limit-headers">
+  ## Encabezados de límite de frecuencia
+</div>
+
+Cada respuesta incluye información sobre el límite de frecuencia:
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Encabezado               | Descripción                                        |
+| :----------------------- | :------------------------------------------------- |
+| `x-rate-limit-limit`     | Máximo de solicitudes en la ventana actual         |
+| `x-rate-limit-remaining` | Solicitudes restantes                              |
+| `x-rate-limit-reset`     | Marca de tiempo Unix en que se reinicia la ventana |
+
+***
+
+<div id="best-practices">
+  ## Mejores prácticas
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Revisar códigos de estado" icon="square-check">
+    Revisa el código de estado HTTP antes de analizar el cuerpo de la respuesta.
+  </Card>
+
+  <Card title="Gestionar errores parciales" icon="triangle-exclamation">
+    Comprueba el array `errors` incluso en respuestas con código 200.
+  </Card>
+
+  <Card title="Implementar lógica de reintentos" icon="arrows-rotate">
+    Usa backoff exponencial para los errores 429 y 5xx.
+  </Card>
+
+  <Card title="Registrar detalles de la solicitud" icon="file-lines">
+    Incluye el ID de la solicitud y la marca de tiempo para facilitar la depuración.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="getting-help">
+  ## Obtener ayuda
+</div>
+
+Al publicar preguntas sobre errores, incluye:
+
+* La URL del endpoint de la API
+* Encabezados de la solicitud (oculta las credenciales)
+* Respuesta completa de error
+* Qué esperabas que sucediera
+* Pasos que ya has probado
+
+<CardGroup cols={2}>
+  <Card title="Foro para desarrolladores" icon="comments" href="https://devcommunity.x.com">
+    Haz preguntas y busca soluciones.
+  </Card>
+
+  <Card title="Estado de la API" icon="signal" href="/es/status">
+    Comprueba si hay incidencias conocidas.
+  </Card>
+</CardGroup>

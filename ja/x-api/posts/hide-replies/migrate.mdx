@@ -1,0 +1,102 @@
+---
+title: 移行ガイド
+sidebarTitle: 移行ガイド
+keywords: ["「返信を非表示」 移行", "「返信を非表示」 への移行", "移行ガイド", "「返信を非表示」に移行", "v2 移行"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="comparing-x-apis-hide-replies-endpoints">
+  ## X API の返信非表示エンドポイントの比較
+</div>
+
+v2 の返信非表示エンドポイントは、Labs の返信非表示エンドポイントを置き換えるものです。すでにこの Labs バージョンのエンドポイントを利用するコードやアプリ、ツールがあり、新しい X API v2 エンドポイントへの移行を検討している場合は、本ガイドを参照してください。
+
+新しい X API v2（返信非表示エンドポイントを含む）を利用するには、[新しい Developer Console にオプトイン](https://developer.x.com/en/portal/opt-in)し、[Project](/ja/resources/fundamentals/developer-apps) を作成し、その Project に App を追加する必要があります。その後、その App に紐づく認証情報を使って返信非表示エンドポイントにリクエストを送信できます。Labs v2 の返信非表示エンドポイントに登録されているのと同じ App を追加すれば、ユーザーの認証状態を維持できます。
+
+次の表は、Labs と新しい X API v2 エンドポイントの違いを比較したものです。
+
+| **説明** | **Labs v2** | **X API v2** |
+| :--- | :--- | :--- |
+| ホストドメイン | https://api.x.com | https://api.x.com |
+| エンドポイントパス | /labs/2/tweets/:id/hidden | /2/tweets/:id/hidden |
+| 認証方式 | OAuth 1.0a ユーザーコンテキスト | OAuth 1.0a ユーザーコンテキスト |
+| 対応している HTTP メソッド | PUT | PUT |
+| デフォルトのリクエストレート制限 | 15 分あたり 10 リクエスト（認証済みユーザー全体で共有） | 15 分あたり 50 リクエスト（認証済みユーザーごと） |
+| 返信を非表示にできる | ✔︎  | ✔︎  |
+| 以前に非表示にした返信を再表示できる | ✔︎  | ✔︎  |
+| 返信の非表示／再表示を複数回行える | ✔︎  | ✔︎  |
+| [Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報の使用が必要 |     | ✔   |
+
+***
+
+<div id="code-examples">
+  ## コードサンプル
+</div>
+
+<div id="hide-a-reply-v2">
+  ### 返信を非表示にする (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/tweets/1234567890/hidden" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"hidden": true}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a ユーザーコンテキストでの認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/tweets/1234567890/hidden"
+  response = requests.put(url, auth=auth, json={"hidden": True})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 返信を非表示にする
+  response = client.posts.hide_reply("1234567890", hidden=True)
+  print(f"Hidden: {response.data.hidden}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 返信を非表示にする
+  const response = await client.posts.hideReply("1234567890", { hidden: true });
+  console.log(`Hidden: ${response.data?.hidden}`);
+  ```
+</CodeGroup>
+
+**その他の移行リソース**
+
+[X API 移行ハブ](/ja/x-api/migrate/overview)

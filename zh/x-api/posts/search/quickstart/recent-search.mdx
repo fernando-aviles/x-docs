@@ -1,0 +1,276 @@
+---
+title: 最近搜索快速入门
+sidebarTitle: 最近搜索
+description: 在几分钟内完成你的第一个最近搜索请求
+keywords: ["recent search", "search quickstart", "recent search tutorial", "search tweets", "recent search guide", "search example"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你完成首次“近期搜索”请求，以查找最近 7 天内的帖子。
+
+<Note>
+  **前置条件**
+
+  在开始之前，你需要：
+
+  * 一个已获批准应用的 [开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer Token（可在 Developer Console 的“Keys and tokens”下找到）
+</Note>
+
+***
+
+<Steps>
+  <Step title="构建查询" icon="magnifying-glass">
+    搜索查询会使用运算符来匹配帖子。先从一个简单的关键词开始：
+
+    ```
+    python
+    ```
+
+    或者组合多个运算符：
+
+    ```
+    python lang:en -is:retweet
+    ```
+
+    这将匹配包含英文单词 &quot;python&quot; 的帖子，但不包括转发帖子。
+
+    <Tip>
+      有关所有可用选项，请参阅[完整运算符参考](/zh/x-api/posts/search/integrate/operators)。
+    </Tip>
+  </Step>
+
+  <Step title="发起请求" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/recent?query=python%20lang%3Aen%20-is%3Aretweet" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 搜索最近的帖子
+      for page in client.posts.search_recent(
+          query="python lang:en -is:retweet"
+      ):
+          for post in page.data:
+              print(post.text)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 搜索最近的帖子
+      const paginator = client.posts.searchRecent({
+        query: "python lang:en -is:retweet",
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(post.text);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应" icon="eye">
+    默认响应中包含 `id`、`text` 和 `edit_history_tweet_ids`：
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1234567890123456789",
+          "text": "Just started learning Python and loving it!",
+          "edit_history_tweet_ids": ["1234567890123456789"]
+        },
+        {
+          "id": "1234567890123456788",
+          "text": "Python tip: use list comprehensions for cleaner code",
+          "edit_history_tweet_ids": ["1234567890123456788"]
+        }
+      ],
+      "meta": {
+        "newest_id": "1234567890123456789",
+        "oldest_id": "1234567890123456788",
+        "result_count": 2
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="添加字段和扩展" icon="sliders">
+    使用查询参数请求更多 data：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/recent?\
+      query=python%20lang%3Aen%20-is%3Aretweet&\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 使用字段和扩展进行搜索
+      for page in client.posts.search_recent(
+          query="python lang:en -is:retweet",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 使用字段和扩展进行搜索
+      const paginator = client.posts.searchRecent({
+        query: "python lang:en -is:retweet",
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+
+    **响应：**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1234567890123456789",
+          "text": "Just started learning Python and loving it!",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "9876543210",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          },
+          "edit_history_tweet_ids": ["1234567890123456789"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "pythondev",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "newest_id": "1234567890123456789",
+        "oldest_id": "1234567890123456789",
+        "result_count": 1
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="对结果进行分页" icon="arrow-right">
+    这些 SDK 会自动处理分页。对于 cURL，请使用响应中的 `next_token`：
+
+    ```bash
+    curl "https://api.x.com/2/tweets/search/recent?\
+    query=python&\
+    max_results=100&\
+    next_token=b26v89c19zqg8o3fo7gesq314yb9l2l4ptqy" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+
+    <Card title="分页指南" icon="arrow-right" href="/zh/x-api/posts/search/integrate/paginate">
+      进一步了解如何分页浏览大型结果集
+    </Card>
+  </Step>
+</Steps>
+
+***
+
+<div id="example-queries">
+  ## 示例查询
+</div>
+
+<AccordionGroup>
+  <Accordion title="来自特定用户的帖子">
+    ```
+    from:XDevelopers
+    ```
+  </Accordion>
+
+  <Accordion title="带有话题标签的帖子">
+    ```
+    #Python -is:retweet
+    ```
+  </Accordion>
+
+  <Accordion title="包含图片的帖子">
+    ```
+    "machine learning" has:images lang:en
+    ```
+  </Accordion>
+
+  <Accordion title="提及某个用户的帖子">
+    ```
+    @elonmusk -is:retweet -is:reply
+    ```
+  </Accordion>
+
+  <Accordion title="包含指向特定域名链接的帖子">
+    ```
+    url:github.com lang:en
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 下一步
+</div>
+
+<CardGroup cols={2}>
+  <Card title="构建查询" icon="magnifying-glass" href="/zh/x-api/posts/search/integrate/build-a-query">
+    掌握查询语法和运算符
+  </Card>
+
+  <Card title="运算符参考" icon="list-check" href="/zh/x-api/posts/search/integrate/operators">
+    查看所有可用运算符
+  </Card>
+
+  <Card title="全量存档搜索" icon="vault" href="/zh/x-api/posts/search/quickstart/full-archive-search">
+    搜索完整的帖子存档
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/search-recent-posts">
+    完整的端点文档
+  </Card>
+</CardGroup>

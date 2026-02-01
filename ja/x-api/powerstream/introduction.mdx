@@ -1,0 +1,392 @@
+---
+title: はじめに
+sidebarTitle: はじめに
+keywords: ["powerstream", "powerstream API", "real-time streaming", "streaming rules", "filtered stream", "enterprise streaming", "GNIP powerstream"]
+---
+
+Powerstream は、X 上の公開データにアクセスするための、最速のリアルタイムストリーミング API です。従来の GNIP Powetrack API と同様に、キーワード、オペレーター、メタデータに基づいて投稿をフィルタリングするためのルールを使用します。Powerstream エンドポイントへの永続的な HTTP 接続が確立されると、ほぼリアルタイムで条件に一致する投稿を受信し始めることができます。
+
+現在、Powerstream では最大 1,000 個のルールがサポートされており、各ルールは 2,048 文字まで使用できます。
+
+<div id="key-features">
+  ## 主な機能:
+</div>
+
+* **リアルタイムなデータ配信**: ルールにマッチするdataを、ほぼリアルタイムで取得できます。
+* **高精度なフィルタリング**: 演算子を含むブールクエリを使用して、必要なdataだけを正確にフィルタリングできます。
+* **配信形式**: HTTP/1.1 のチャンク転送エンコーディングによる JSON レスポンス。
+* **ローカルデータセンター対応**: レプリケーション遅延を回避してレイテンシーを低減するため、ローカルデータセンターからの投稿のみを取得します。
+
+<Note>
+  Powerstream API は、一部の Enterprise プランで利用可能なプレミアム機能です。
+
+  Powerstream へのアクセスや Enterprise 向けサービスの詳細にご関心がある場合は、[Enterprise Request Form](/ja/forms/enterprise-api-interest) から Sales チームまでお問い合わせください。
+  Powerstream がどのようにニーズにお応えできるかについて、ご相談を承ります。
+</Note>
+
+<div id="quick-start">
+  ## クイックスタート
+</div>
+
+このセクションでは、Python と `requests` ライブラリを使用して PowerStream エンドポイントをすばやく使い始める方法を紹介します。`pip install requests` でインストールしてください。すべての例では OAuth 2.0 Bearer Token 認証を使用します。`YOUR_BEARER_TOKEN` を実際のトークンに置き換えてください（`os.getenv('BEARER_TOKEN')` などを使って安全に管理してください）。
+
+各エンドポイントについてコードスニペット付きで説明します。ファイル先頭には次の import 文があるものとします。
+
+```python
+import requests
+import json
+import time
+import sys
+import os  # 環境変数用
+```
+
+<div id="setup">
+  ### セットアップ
+</div>
+
+```python
+bearer_token = os.getenv('BEARER_TOKEN') or "YOUR_BEARER_TOKEN"  # セキュリティのため環境変数を使用
+base_url = "https://api.x.com/2/powerstream"
+rules_url = f"{base_url}/rules"  # ルール管理用
+headers = {
+   "Authorization": f"Bearer {bearer_token}",
+   "Content-Type": "application/json"
+}
+```
+
+<div id="1-create-rules-post-rules">
+  ### 1. ルールを作成 (POST /rules)
+</div>
+
+ストリームをフィルターするルールを追加します。
+
+```python
+data = {
+   "rules": [
+       {
+           "value": "(cat OR dog) lang:en -is:retweet",
+           "tag": "pet-monitor"
+       },
+       # 必要に応じてルールを追加してください（最大100件まで）
+   ]
+}
+
+response = requests.post(rules_url, headers=headers, json=data)
+if response.status_code == 201:
+   rules_added = response.json().get("data", {}).get("rules", [])
+   print("Rules added:")
+   for rule in rules_added:
+       print(f"ID: {rule['id']}, Value: {rule['value']}, Tag: {rule.get('tag', 'N/A')}")
+else:
+   print(f"Error {response.status_code}: {response.text}")
+```
+
+<div id="2-delete-rules-post-rules">
+  ### 2. ルールを削除する (POST /rules)
+</div>
+
+ID（推奨）または value を指定してルールを削除します。
+
+```python
+data = {
+   "rules": [
+       {
+           "value": "(cat OR dog) lang:en -is:retweet",
+           "tag": "pet-monitor"
+       },
+       # 必要に応じてルールを追加してください(最大100件)
+   ]
+}
+
+response = requests.delete(rules_url, headers=headers, json=data)
+if response.status_code == 200:
+   deleted = response.json().get("data", {})
+   print(f"Deleted count: {deleted.get('deleted', 'N/A')}")
+   if 'not_deleted' in deleted:
+       print("Not deleted:", deleted['not_deleted'])
+else:
+   print(f"Error {response.status_code}: {response.text}")
+```
+
+**Tip**: すべてのルールを削除するには、まず GET で取得して id を抽出し、その後一括削除します。
+
+<div id="3-get-rules-get-rules">
+  ### 3. ルールの取得 (GET /rules)
+</div>
+
+すべての有効なルールを取得します。
+
+```python
+response = requests.get(rules_url, headers=headers)
+if response.status_code == 200:
+   rules = response.json().get("data", {}).get("rules", [])
+   if rules:
+       print("Active rules:")
+       for rule in rules:
+           print(f"ID: {rule['id']}, Value: {rule['value']}, Tag: {rule.get('tag', 'N/A')}")
+   else:
+       print("No active rules.")
+else:
+   print(f"Error {response.status_code}: {response.text}")
+```
+
+<div id="4-powerstream-get-stream">
+  ### 4. PowerStream (GET /stream)
+</div>
+
+リアルタイムの投稿を受信するためにストリームに接続します。行ごとに読み取るには `stream=True` を使用します。接続の堅牢性を高めるために再接続ロジックを実装してください。
+
+```python
+stream_url = base_url
+
+def main():
+   while True:
+       response = requests.request("GET", stream_url, headers=headers, stream=True)
+       print(response.status_code)
+       for response_line in response.iter_lines():
+           if response_line:
+               json_response = json.loads(response_line)
+               print(json.dumps(json_response, indent=4, sort_keys=True))
+               if response.status_code != 200:
+                   print(response.headers)
+                   raise Exception(
+                       "Request returned an error: {} {}".format(
+                           response.status_code, response.text
+                       )
+                   )
+```
+
+<div id="local-datacenter-support">
+  #### ローカルデータセンターサポート
+</div>
+
+レイテンシーを最適化するために、Powerstream では、接続が確立されているローカルデータセンターで生成・作成された投稿のみを取得するオプションを提供しています。これにより、他のデータセンターからの投稿と比較してレプリケーション遅延を回避でき、より高速な配信が可能になります。これを有効にするには、クエリパラメータ `?localDcOnly=true` をストリームエンドポイント（例: `/2/powerstream?localDcOnly=true`）に付与します。接続中のデータセンターは、ストリームの初期の data ペイロードおよびレスポンスの HTTP ヘッダーの両方で示されます。
+
+コード内で使用するには:
+
+```python
+# ローカルデータセンターのみの場合:
+stream_url = "https://api.x.com/2/powerstream?localDcOnly=true"
+```
+
+`localDcOnly` パラメータを有効にすると、ストリームが最初に接続されたときに、どのローカルデータセンターが使用されているかを示す次のレスポンスヘッダーが含まれます。
+
+```bash
+'x-powerstream-datacenter': 'atla',
+'x-powerstream-localdconly': 'true'
+```
+
+さらに、データセンターを指定する初期ペイロードも送信されます。
+
+```bash
+{
+    "type": "connection_metadata",
+    "datacenter": "atla",
+    "timestamp": 1762557264155
+}
+```
+
+<Note>
+  **ヒント:** レイテンシーを最適化するには、複数の地理的ロケーションからの接続を構成します（例: 米国東海岸のアトランタ近郊と米国西海岸のポートランド近郊など）。それぞれの接続で `localDcOnly=true` を有効にしてください。これにより、それぞれのデータセンターの投稿により高速にアクセスできます。異なるデータセンターからのストリームは、クライアント側で集約して統合してください。
+</Note>
+
+<div id="operators">
+  ## 演算子
+</div>
+
+フィルタリングのルールを設定するには、キーワードと演算子を使用できます。利用可能な演算子の一覧を以下で参照してください。
+
+<div id="field-based-operators">
+  ### フィールド単位の演算子
+</div>
+
+<div id="user-operators">
+  #### ユーザー演算子
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `from:` | 特定のユーザーが投稿した投稿に一致します | `from:xdevelopers` または `from:123456` |
+| `to:` | 特定のユーザー宛ての投稿に一致します | `to:jvaleski` |
+| `retweets_of:` | 特定のユーザーの投稿のリポストに一致します | `retweets_of:xdevelopers` |
+
+<div id="content-operators">
+  #### コンテンツ演算子
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `contains:` | 特定のテキストやキーワードを含む投稿に一致する | `contains:hello` または `contains:-2345.432` |
+| `url_contains:` | URL に特定のテキストを含む投稿に一致する | `url_contains:"com/willplayforfood"` |
+| `lang:` | 特定の言語の投稿に一致する | `lang:en` |
+
+<div id="entity-operators">
+  #### エンティティ演算子
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `has:` | 特定のエンティティを含む投稿と一致します（オプション: メンション、位置情報、リンク、メディア、言語、シンボル、画像、動画） | `has:images`, `has:geo`, `has:mentions` |
+| `is:` | 特定の種類、または特定のプロパティを持つ投稿と一致します（オプション: リツイート、返信） | `is:retweet`, `is:reply` |
+
+<div id="location-operators">
+  #### ロケーション演算子
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `place:` | 特定の場所からの投稿にマッチします | `place:"Belmont Central"`, `place:02763fa2a7611cf3` |
+| `bounding_box:` | 地理的なバウンディングボックス内の投稿にマッチします | `bounding_box:[-112.424083 42.355283 -112.409111 42.792311]` |
+| `point_radius:` | 特定の地点を中心とする半径内の投稿にマッチします | `point_radius:[-111.464973 46.371179 25mi]`, `point_radius:[-111.464973 46.371179 15km]` |
+
+<div id="advancedcontent-operators">
+  #### 高度な／コンテンツ系オペレーター
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `bio:` | プロフィールの自己紹介文（bio）に特定の内容を含むユーザーの投稿にマッチ（フレーズマッチングを使用） | N/A |
+| `bio_name:` | プロフィールの自己紹介文（bio）に特定の名前を含むユーザーの投稿にマッチ（フレーズマッチングを使用） | N/A |
+
+<div id="additional-operators">
+  #### 追加の演算子
+</div>
+
+| 演算子 | 概要 | 例 |
+|----------|---------|---------|
+| `retweets_of_status_id:` | 特定の投稿のRepostに一致します | `retweets_of_status_id:1234567890123456789` |
+| `in_reply_to_status_id:` | 特定の投稿への返信に一致します | `in_reply_to_status_id:1234567890123456789` |
+
+<div id="non-field-operators">
+  ### フィールド以外の演算子
+</div>
+
+<div id="special-syntax-operators">
+  #### 特殊構文演算子
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `@` | メンション演算子 | `@username` |
+| Phrase matching | フレーズの完全一致検索を行う | `"exact phrase"` |
+
+<div id="logical-operators">
+  #### 論理演算子
+</div>
+
+| Operator | Summary | Example |
+|----------|---------|---------|
+| `OR` | 式間の論理和 (OR) | `x OR facebook` |
+| Space/AND | 式間の論理積 (AND) | `x facebook` (両方の語句が含まれている必要があります) |
+| `()` | 複雑な式をグループ化するための括弧 | `(x OR facebook) iphone` |
+| `-` | 否定/除外 | `x -facebook` (facebook を含まない x) |
+
+<div id="responses">
+  ## レスポンス
+</div>
+
+Powestream API のペイロードは、従来の GNIP Powertrack API と同じ形式です。JSON レスポンスのサンプルは次のとおりです。
+
+```json
+[
+   {
+       "created_at": "Tue Mar 21 20:50:14 +0000 2006",
+       "id": 20,
+       "id_str": "20",
+       "text": "just setting up my twttr",
+       "truncated": false,
+       "entities": {
+           "hashtags": [],
+           "symbols": [],
+           "user_mentions": [],
+           "urls": []
+       },
+       "source": "<a href=\"http://x.com\" rel=\"nofollow\">X Web Client</a>",
+       "in_reply_to_status_id": null,
+       "in_reply_to_status_id_str": null,
+       "in_reply_to_user_id": null,
+       "in_reply_to_user_id_str": null,
+       "in_reply_to_screen_name": null,
+       "user": {
+           "id": 12,
+           "id_str": "12",
+           "name": "jack",
+           "screen_name": "jack",
+           "location": "",
+           "description": "no state is the best state",
+           "url": "https://t.co/ZEpOg6rn5L",
+           "entities": {
+               "url": {
+                   "urls": [
+                       {
+                           "url": "https://t.co/ZEpOg6rn5L",
+                           "expanded_url": "http://primal.net/jack",
+                           "display_url": "primal.net/jack",
+                           "indices": [
+                               0,
+                               23
+                           ]
+                       }
+                   ]
+               },
+               "description": {
+                   "urls": []
+               }
+           },
+           "protected": false,
+           "followers_count": 6427829,
+           "friends_count": 3,
+           "listed_count": 32968,
+           "created_at": "Tue Mar 21 20:50:14 +0000 2006",
+           "favourites_count": 36306,
+           "utc_offset": null,
+           "time_zone": null,
+           "geo_enabled": true,
+           "verified": false,
+           "statuses_count": 30134,
+           "lang": null,
+           "contributors_enabled": false,
+           "is_translator": false,
+           "is_translation_enabled": false,
+           "profile_background_color": "EBEBEB",
+           "profile_background_image_url": "http://abs.twimg.com/images/themes/theme7/bg.gif",
+           "profile_background_image_url_https": "https://abs.twimg.com/images/themes/theme7/bg.gif",
+           "profile_background_tile": false,
+           "profile_image_url": "http://pbs.twimg.com/profile_images/1661201415899951105/azNjKOSH_normal.jpg",
+           "profile_image_url_https": "https://pbs.twimg.com/profile_images/1661201415899951105/azNjKOSH_normal.jpg",
+           "profile_banner_url": "https://pbs.twimg.com/profile_banners/12/1742427520",
+           "profile_link_color": "990000",
+           "profile_sidebar_border_color": "DFDFDF",
+           "profile_sidebar_fill_color": "F3F3F3",
+           "profile_text_color": "333333",
+           "profile_use_background_image": true,
+           "has_extended_profile": true,
+           "default_profile": false,
+           "default_profile_image": false,
+           "following": null,
+           "follow_request_sent": null,
+           "notifications": null,
+           "translator_type": "regular",
+           "withheld_in_countries": []
+       },
+       "geo": null,
+       "coordinates": null,
+       "place": null,
+       "contributors": null,
+       "is_quote_status": false,
+       "retweet_count": 122086,
+       "favorite_count": 263321,
+       "favorited": false,
+       "retweeted": false,
+       "lang": "en"
+   }
+]
+```
+
+<div id="limits-best-practices">
+  ## 制限とベストプラクティス
+</div>
+
+* レート制限: ルール管理は 24 時間あたり 50 リクエストまで。ストリームには制限はありません（ただし接続数の上限は適用されます）。
+* 再接続: 切断時には指数バックオフ方式で再接続します。
+* 監視: `Connection: keep-alive` ヘッダーを使用します。

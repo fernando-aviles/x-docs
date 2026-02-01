@@ -1,0 +1,37 @@
+---
+title: PIN ベース認可
+sidebarTitle: PIN ベース OAuth
+keywords: ["PIN ベース OAuth", "PIN OAuth", "OAuth PIN", "PIN ベース認可", "OAuth 1.0a PIN", "デスクトップ OAuth"]
+---
+
+import { Button } from "/snippets/ja/button.mdx";
+
+<div id="pin-based-authorization">
+  ### PINベース認可
+</div>
+
+PINベースのOAuthフローは、[3-legged OAuth](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens)プロセスの一種であり、認可後にユーザーをリダイレクトするためのWebブラウザにアクセスできない、またはWebブラウザを埋め込めないアプリケーション向けに用意されています。たとえば、コマンドラインアプリケーション、組み込みシステム、ゲーム機、特定の種類のモバイルアプリなどが該当します。
+
+PINベースのOAuthフローは、アプリが `oauth_callback` を `oob` に設定した `request_token` で開始されます。`oob` という用語は、out-of-band OAuth を意味します。ユーザーは引き続きXにアクセスしてログインまたはアプリの認可を行いますが、アクセスを承認しても自動的にアプリケーションへリダイレクトされることはありません。代わりに、数値のPINコードが表示され、その値をアプリケーションに戻って入力するよう案内されます。
+
+<Note>
+  **Note:** PINベースの認可を使用する場合でも、Xアプリ設定内の `callback_url` は引き続き必須です。
+</Note>
+
+ 
+
+<div id="implementing-the-pin-based-oauth-flow">
+  #### PIN ベースの OAuth フローの実装
+</div>
+
+PIN ベースのフローは、[3-legged authorization](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens)（および [Sign in with X](/ja/resources/fundamentals/authentication#log-in-with-x)）と同じ方法で実装しますが、次の点が異なります。
+
+1. [POST oauth/request&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-request-token) 呼び出し時に、`oauth_callback` の値を `oob` に設定する必要があります。
+
+2. ユーザーが [GET oauth/authenticate](/ja/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) または [GET oauth/authorize URL](/ja/resources/fundamentals/authentication/api-reference#get-oauth-authorize) を使用してあなたのアプリを許可するために X に送られた後、ユーザーは `callback_url` にリダイレクトされず、代わりに X が生成した約 7 桁の PIN と、その PIN をあなたのアプリケーションに入力するよう案内する画面が表示されます。
+
+3. ユーザーがこの PIN をあなたのアプリケーションに入力し、アプリケーションはその PIN 番号を `oauth_verifier` として [POST oauth/access&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-access-token) に渡し、`access_token` を取得します。
+
+<Note>
+  **Note:** PIN 番号は再利用できません。取得した `access_token` は、アプリケーションによるユーザー連携リクエストに使用する必要があります。
+</Note>

@@ -1,0 +1,262 @@
+---
+title: Annotations de publication
+sidebarTitle: Annotations
+description: Annotations d'entités et de contexte pour l'analyse sémantique
+keywords: ["annotations", "annotations de publication", "annotations d'entité", "annotations de contexte", "NER", "reconnaissance d'entités nommées", "sujets"]
+---
+
+Les annotations fournissent des métadonnées sémantiques sur le contenu des publications. X analyse les publications pour identifier les entités (personnes, lieux, produits) et le contexte (sujets, domaines) afin de vous aider à comprendre et à filtrer le contenu.
+
+---
+
+<div id="annotation-types">
+  ## Types d’annotations
+</div>
+
+<div id="entity-annotations">
+  ### Annotations d’entités
+</div>
+
+La reconnaissance des entités nommées (NER) identifie des mentions spécifiques dans le texte de la publication :
+
+| Type | Exemples |
+|:-----|:---------|
+| **Personne** | Barack Obama, Elon Musk |
+| **Lieu** | San Francisco, Japon |
+| **Produit** | iPhone, ChatGPT |
+| **Organisation** | NASA, Google |
+| **Autre** | Super Bowl, Diabète |
+
+Les annotations d’entités comprennent un score de confiance et la position dans le texte.
+
+<div id="context-annotations">
+  ### Annotations de contexte
+</div>
+
+Analyse sémantique qui classe les publications par sujet et par domaine :
+
+- **Domaine** : Catégorie générale (Sport, Divertissement, Technologie)
+- **Entité** : Sujet spécifique au sein du domaine (NBA, films Marvel, IA)
+
+Les annotations de contexte aident à filtrer et à catégoriser les publications sans dépendre de mots-clés.
+
+---
+
+<div id="requesting-annotations">
+  ## Demander des annotations
+</div>
+
+Ajoutez `context_annotations` et `entities` à votre paramètre `tweet.fields` :
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=context_annotations,entities" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+
+<div id="response-structure">
+  ## Structure de la réponse
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Just saw the new Marvel movie - it was amazing!",
+    "entities": {
+      "annotations": [
+        {
+          "start": 17,
+          "end": 22,
+          "probability": 0.9234,
+          "type": "Organization",
+          "normalized_text": "Marvel"
+        }
+      ]
+    },
+    "context_annotations": [
+      {
+        "domain": {
+          "id": "86",
+          "name": "Movie",
+          "description": "Un film"
+        },
+        "entity": {
+          "id": "1234567890",
+          "name": "Marvel Cinematic Universe"
+        }
+      },
+      {
+        "domain": {
+          "id": "65",
+          "name": "Interests and Hobbies Vertical"
+        },
+        "entity": {
+          "id": "781974596752842752",
+          "name": "Entertainment"
+        }
+      }
+    ]
+  }
+}
+```
+
+***
+
+
+<div id="entity-annotation-fields">
+  ## Champs d’annotation d’entité
+</div>
+
+| Champ | Description |
+|:------|:------------|
+| `start` | Position de début dans le texte |
+| `end` | Position de fin dans le texte |
+| `probability` | Score de confiance (0-1) |
+| `type` | Type d’entité (Personne, Lieu, etc.) |
+| `normalized_text` | Nom d’entité normalisé |
+
+---
+
+<div id="context-domains">
+  ## Domaines de contexte
+</div>
+
+X utilise plus de 80 domaines pour catégoriser les publications. Parmi les domaines courants figurent notamment :
+
+<Tabs>
+  <Tab title="Divertissement">
+| ID | Domaine |
+|:---|:--------|
+| 3 | Séries télévisées |
+| 4 | Épisodes de séries télévisées |
+| 54 | Musicien |
+| 56 | Acteur |
+| 86 | Film |
+| 91 | Podcast |
+  </Tab>
+  <Tab title="Sports">
+| ID | Domaine |
+|:---|:--------|
+| 6 | Événements sportifs |
+| 11 | Sport |
+| 12 | Équipe sportive |
+| 26 | Ligue sportive |
+| 60 | Athlète |
+| 93 | Entraîneur |
+  </Tab>
+  <Tab title="Business et technologies">
+| ID | Domaine |
+|:---|:--------|
+| 45 | Verticale de marque |
+| 46 | Catégorie de marque |
+| 47 | Marque |
+| 48 | Produit |
+| 165 | Technologie |
+| 166 | Actions |
+  </Tab>
+  <Tab title="Autres">
+| ID | Domaine |
+|:---|:--------|
+| 10 | Personne |
+| 13 | Lieu |
+| 29 | Événements |
+| 35 | Personnalités politiques |
+| 119 | Jour férié |
+| 131 | Unified Twitter Taxonomy |
+  </Tab>
+</Tabs>
+
+<Note>
+Le domaine 131 (Unified Twitter Taxonomy) alimente la fonctionnalité Topics de X, visible par les utilisateurs de la plateforme.
+</Note>
+
+---
+
+<div id="using-annotations-in-filters">
+  ## Utiliser les annotations dans les filtres
+</div>
+
+<div id="search-and-filtered-stream">
+  ### Recherche et flux filtré
+</div>
+
+Filtrer les publications par identifiant d’entité d’annotation de contexte :
+
+```bash
+# Publications concernant une entité spécifique
+context:86.1234567890
+
+# Publications dans un domaine spécifique
+context:86.*
+```
+
+
+<div id="practical-examples">
+  ### Exemples pratiques
+</div>
+
+```bash
+# Posts about the NBA
+query=context:26.852137520
+
+# Publications à propos des produits Apple
+query=context:47.10026792024
+
+# Posts about movies
+query=context:86.*
+```
+
+***
+
+
+<div id="language-support">
+  ## Prise en charge des langues
+</div>
+
+Les annotations sont disponibles dans plusieurs langues :
+
+| Langue | Couverture |
+|:---------|:---------|
+| English | Maximale |
+| Japanese | Élevée |
+| Spanish | Élevée |
+| Portuguese | Moyenne |
+| French | Moyenne |
+| Hindi | Moyenne |
+
+La couverture varie en fonction du domaine et du marché.
+
+---
+
+<div id="important-notes">
+  ## Remarques importantes
+</div>
+
+<Warning>
+**Toutes les publications ne sont pas annotées.** La couverture des annotations dépend de :
+- La prise en charge linguistique
+- La couverture des sujets dans la taxonomie de X
+- La richesse sémantique du texte de la publication
+</Warning>
+
+- Les annotations ne sont pas rétroactives — elles ne sont appliquées qu’au moment où les entités sont suivies
+- La même entité peut apparaître dans plusieurs domaines (par exemple, une célébrité est à la fois Person et Actor)
+- Les identifiants d’entité sont stables dans l’ensemble des domaines
+
+---
+
+<div id="resources">
+  ## Ressources
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Entity Explorer" icon="flask" href="https://tweet-entity-extractor.glitch.me/">
+    Outil interactif pour explorer les annotations.
+  </Card>
+  <Card title="Context Entity List" icon="github" href="https://github.com/xdevplatform/twitter-context-annotations">
+    Fichier CSV des entités d’annotation de contexte disponibles.
+  </Card>
+</CardGroup>

@@ -1,0 +1,48 @@
+---
+title: OAuth Echo
+sidebarTitle: OAuth Echo
+keywords: ["OAuth Echo", "OAuth Echo テスト", "OAuth 検証", "エコーテスト", "OAuth 1.0a Echo", "OAuth の検証"]
+---
+
+import { Button } from "/snippets/ja/button.mdx";
+
+
+<div id="oauth-echo">
+  ### OAuth Echo
+</div>
+
+OAuth Echo は、API とやり取りしながら、第三者に対して OAuth 認可を安全に委譲するための手段です。
+
+このやり取りには 4 つの当事者が関与します。
+
+* **User（ユーザー）** — 特定の、認可された X アプリケーションを通じて X を利用しているユーザー
+* **Consumer（コンシューマー）** — サードパーティのメディアプロバイダー（例: 写真共有サイト）とやり取りしようとしている X アプリケーション
+* **Delegator（デリゲーター）** — サードパーティのメディアプロバイダー
+* **Service Provider（サービスプロバイダ）** — 別名 X 本体
+     
+
+本質的には、アプリケーションおよびユーザーに代わって Delegator が X API に送信するリクエストを準備します。通常であれば署名付き OAuth リクエストとして送信する内容を HTTP ヘッダーに入れ、Delegator に対し、中間処理を完了したあとでそのリクエストを X に送信するよう依頼します。
+
+例を挙げます。User が写真をアップロードしたいとします。Consumer は POST を用いて Delegator 上のアップロードを呼び出します。POST には画像を含める必要がありますが、さらに HTTP ヘッダーとして 2 つの項目を追加する必要があります。
+
+* `x-auth-service-provider` — 実質的に、アイデンティティ委譲を送信すべきレルムを表します。X の場合、これを https://api.x.com/1.1/account/verify_credentials.json に設定します。iOS5 ベースの X 連携では、この URL に追加の `application_id` パラメータが付与され、`x-verify-credentials-authorization` で使用される `oauth_signature` の計算にも利用されます。
+* `x-verify-credentials-authorization` — Consumer は、OAuth を使用して HTTP ヘッダー経由で https://api.x.com/1.1/account/verify_credentials.json を呼び出せるように、必要なすべての OAuth パラメータを作成する必要があります（例: `OAuth oauth_consumer_key="..."`, `oauth_token="..."`, `oauth_signature_method="..."`, `oauth_signature="..."`, `oauth_timestamp="..."`, `oauth_nonce="..."`, `oauth_version="..."` のような形式）。
+     
+
+トランザクション全体の処理時間は、`oauth_timestamp` が有効な範囲内に収まるようにする必要がある点に注意してください。
+
+別案として、これら 2 つのパラメータをヘッダーではなく POST のボディで `x_auth_service_provider` および `x_verify_credentials_authorization` として送信することもできます。この場合、OAuth シグネチャのベース文字列にこれらのパラメータを含め、エスケープすることを忘れないでください。これは任意のリクエストでパラメータをエンコードする場合と同様です。可能な限り処理を分離するためには、HTTP ヘッダーを使用するのが最善です。
+
+この時点での Delegator の目的は、メディアを保存する前に、User が自称どおりのユーザーであることを検証することです。Delegator がアップロードメソッドを通じて上記のすべてのデータを受信したら、画像を一時的に保存し、`x-auth-service-provider` ヘッダーで指定されたエンドポイント、つまりこの例では https://api.x.com/1.1/account/verify_credentials.json への呼び出しを構成する必要があります。その際、Consumer が `x-verify-credentials-authorization` ヘッダーで提供したものと同じ OAuth 認証ヘッダーを使用します。
+ 
+
+<div id="oauth-echo-best-practices">
+  #### OAuth Echo のベストプラクティス
+</div>
+
+ルックアップを行う際は、ハードコードされた値ではなく、必ず `x-auth-service-provider` によって提供される URL を使用してください。たとえば Apple iOS は、すべての OAuth リクエストに追加の application_id パラメータを付与しており、このパラメータは OAuth Echo の各段階で保持されている必要があります。
+
+OAuth 認可部分については、`x-verify-credentials-authorization` のヘッダー値を取得し、その値をサービスプロバイダーへの呼び出し用の Authorization ヘッダーに設定します。念のため、`x-auth-service-provider` の値が期待どおりであることも確認してください。
+
+* Service Provider が HTTP 200 を返した場合は問題ありません。この場合、Delegator は画像を永続的に保存し、URL を生成して返します。
+* Service Provider が HTTP 200 を返さなかった場合は、その画像を破棄し、その後エラーを Consumer に返します。

@@ -1,0 +1,246 @@
+---
+title: v1 à v2
+sidebarTitle: v1 à v2
+keywords: ["migration de v1.1 à v2", "migration du flux filtré", "migration du flux filtré", "flux filtré standard v1.1 à v2", "flux filtré de v1 à v2", "guide de migration"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### v1.1 standard par rapport à X API v2
+</div>
+
+Si vous avez utilisé l’endpoint v1.1 [statuses/filter](https://developer.x.com/en/docs/x-api/v1/tweets/filter-realtime/api-reference/post-statuses-filter), ce guide peut vous aider à comprendre les similitudes et les différences entre l’endpoint standard et les endpoints de flux filtré de X API v2.
+
+* **Similitudes**
+  * Paramètres de requête et opérateurs
+  * Prise en charge de l’historique de modification des Publications et des métadonnées
+* **Différences**
+  * URL des endpoints
+  * Exigences relatives à l’application et au Projet
+  * Méthode d’authentification
+  * Volume de règles et flux persistant
+  * Format des données de la réponse
+  * Paramètres de requête
+  * Disponibilité des fonctionnalités de reprise et de redondance
+  * Opérateurs de requête
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Paramètres de requête et opérateurs**
+
+L’endpoint standard v1.1 `statuses/filter` propose quelques paramètres pouvant être transmis avec la requête pour filtrer le flux. Avec le flux filtré de la v2, vous utilisez à la place un ensemble d’[opérateurs](/fr/x-api/posts/filtered-stream#building-rules-for-filtered-stream) qui peuvent être combinés à l’aide de la logique booléenne pour filtrer les Publications souhaitées. Les opérateurs disponibles incluent certains qui remplacent directement les paramètres standard v1.1 existants. 
+
+Les paramètres de requête standard v1.1 suivants ont des opérateurs équivalents dans X API v2 :
+ 
+
+| **Standard** | **X API v2** |
+| :--- | :--- |
+| follow - Une liste d’identifiants utilisateur séparés par des virgules, indiquant les utilisateurs dont les Publications doivent être livrées dans le flux. | De nombreux opérateurs qui peuvent vous aider à trouver des Publications liées à des utilisateurs spécifiques :<br /><br />* @<br />* from:<br />* to:<br />* etc. |
+| track - Une liste d’expressions séparées par des virgules qui seront utilisées pour déterminer quelles Publications seront livrées dans le flux. | De nombreux opérateurs qui peuvent vous aider à trouver des Publications liées à des mots-clés spécifiques :<br /><br />* keyword<br />* &quot;exact phrase match&quot;<br />* #<br />* etc. |
+
+**Prise en charge de l’historique de modification des Publications et des métadonnées**
+
+Les deux versions fournissent des métadonnées décrivant tout historique de modification. Consultez les [références de l’API pour le flux filtré](/fr/x-api/posts/filtered-stream#api-reference-index) et la page sur les [principes fondamentaux des modifications de Publications](/fr/x-api/fundamentals/edit-posts) pour plus de détails. 
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URLs d’endpoint**
+
+* Endpoints standard v1.1 :
+  * https://stream.x.com/1.1/statuses/filter.json
+* Endpoint X API v2 :
+  * https://api.x.com/2/tweets/search/stream
+  * https://api.x.com/2/tweets/search/stream/rule
+
+**Exigences relatives aux App et aux Projets**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants issus d’une [App développeur](/fr/resources/fundamentals/developer-apps) qui est associée à un [Projet](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un Projet.
+
+**Méthode d’authentification**
+
+L’endpoint standard prend en charge [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication), tandis que les endpoints de flux filtré X API v2 prennent en charge [OAuth 2.0 App-Only](/fr/resources/fundamentals/authentication#oauth-2-0) (également appelée authentification « Application-only »). Pour effectuer des requêtes vers la version X API v2, vous devez utiliser un App Access Token pour authentifier vos requêtes.
+
+Si vous n’avez plus l’App Access Token qui vous a été présenté lors de la création de votre App et de votre app dans la Developer Console, vous pouvez en générer un nouveau en accédant à la page « Keys and tokens » de votre app dans la Developer Console. Si vous souhaitez générer un App Access Token par programmation, consultez ce [guide OAuth 2.0 App-Only](/fr/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token). 
+
+**Volume de règles et flux persistant**
+
+L’endpoint standard v1.1 prend en charge une seule règle pour filtrer la connexion de streaming. Pour modifier la règle, vous devez déconnecter le flux et soumettre une nouvelle requête avec les règles de filtrage révisées transmises en tant que paramètres. 
+
+L’endpoint de flux filtré X API v2 vous permet d’appliquer plusieurs règles à un seul flux et d’ajouter ou de supprimer des règles de votre flux tout en conservant la connexion de flux. 
+
+**Format des données de réponse**
+
+L’une des plus grandes différences entre les versions standard v1.1 et X API v2 des endpoints concerne la manière dont vous sélectionnez les champs renvoyés dans votre payload.
+
+Pour les endpoints standard, vous recevez de nombreux champs de réponse par défaut, puis vous avez la possibilité d’utiliser des paramètres pour identifier quels champs ou ensembles de champs doivent être renvoyés dans le payload.
+
+La version X API v2 ne renvoie par défaut que les champs id et text de la Publication. Pour demander des champs ou des objets supplémentaires, vous devrez utiliser les paramètres [fields](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). Tous les champs de Publication que vous demandez à partir de ces endpoints seront renvoyés dans l’objet Publication principal. Tous les objets et champs d’utilisateur, de média, de sondage ou de lieu étendus seront renvoyés dans un objet includes au sein de votre réponse. Vous pouvez ensuite faire correspondre tout objet étendu à l’objet Publication en faisant correspondre les ID présents à la fois dans la Publication et dans l’objet étendu. 
+
+Nous vous encourageons à en savoir plus sur ces nouveaux paramètres dans leurs guides respectifs, ou en lisant notre guide sur [comment utiliser les champs et les expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions). 
+
+Nous avons également élaboré un [guide de migration de format de données](/fr/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) qui peut vous aider à faire correspondre les champs standard v1.1 aux nouveaux champs v2. Ce guide vous fournira également le paramètre d’expansion et de champ spécifique que vous devrez transmettre avec votre requête v2 pour renvoyer des champs spécifiques. 
+ 
+
+En plus des changements dans la façon dont vous demandez certains champs, X API v2 introduit également de nouvelles structures JSON pour les objets renvoyés par les API, notamment les objets Publication et [user](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine du JSON, les endpoints standard renvoient les objets Publication dans un tableau statuses, tandis que X API v2 renvoie un tableau data. 
+* Au lieu de faire référence aux « statuses » Retweeted et Quoted, le JSON X API v2 fait référence aux Tweets Retweeted et Quoted. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont en cours de suppression. 
+* Au lieu d’utiliser à la fois favorites (dans l’objet Publication) et favourites (dans l’objet user), X API v2 utilise le terme like. 
+* X adopte la convention selon laquelle les valeurs JSON vides (par exemple null) ne sont pas écrites dans le payload. Les attributs de Publication et d’utilisateur ne sont inclus que s’ils ont des valeurs non nulles. 
+   
+
+Nous avons également introduit un nouvel ensemble de champs dans l’[objet Publication](/fr/x-api/fundamentals/data-dictionary#tweet), notamment les suivants :
+
+* Un champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id)
+* Deux nouveaux champs [annotations](/fr/x-api/fundamentals/post-annotations), dont context et entities
+* Plusieurs nouveaux champs [metrics](/fr/x-api/fundamentals/metrics) 
+* Un nouveau champ reply&#95;setting, qui vous indique qui peut répondre à une Publication donnée
+
+**Paramètres de requête**
+
+Il existe également un ensemble de paramètres de requête standard du flux filtré **non** pris en charge dans X API v2 :
+
+| Paramètre standard v1.1 | Détails |
+| :--- | :--- |
+| locations - Une liste de paires longitude,latitude séparées par des virgules spécifiant un ensemble de boîtes englobantes pour filtrer les Publications. | Nous n’avons pas encore publié d’opérateurs basés sur la localisation pour X API v2. |
+| Delimited | Avec le point de terminaison v1.1, définir cette valeur sur la longueur de la chaîne de caractères indique que les statuts doivent être délimités dans le flux, afin que les clients sachent combien d’octets lire avant la fin du message de statut.<br /><br />Cette fonctionnalité n’est pas disponible avec X API v2. |
+| Stall&#95;warnings | Avec le point de terminaison v1.1, définir ce paramètre sur true entraîne l’envoi de messages périodiques si le client risque d’être déconnecté. <br /><br />Avec X API v2, les avertissements de blocage sont envoyés par défaut, avec une nouvelle ligne envoyée régulièrement. |
+
+**Disponibilité des fonctionnalités de reprise et de redondance**
+
+La version X API v2 du flux filtré introduit des fonctionnalités de reprise et de redondance qui peuvent vous aider à maximiser la disponibilité du streaming et à récupérer les Publications qui ont pu être manquées en raison d’une déconnexion de cinq minutes ou moins.
+
+Les connexions redondantes vous permettent de vous connecter jusqu’à deux fois à un flux donné, ce qui peut vous aider à garantir que vous maintenez une connexion au flux en permanence, même si l’une de vos connexions échoue. 
+
+Le paramètre backfill&#95;minutes peut être utilisé pour récupérer jusqu’à cinq minutes de données manquées. 
+
+Ces deux fonctionnalités ne sont disponibles que via l’[accès Academic Research](/fr/x-api/getting-started/about-x-api). Vous pouvez en savoir plus sur cette fonctionnalité dans notre guide d’intégration consacré aux [fonctionnalités de reprise et de redondance](/fr/x-api/posts/filtered-stream#filtered-stream-recovery-and-redundancy-features). 
+
+**Nouveaux opérateurs de requête**
+
+X API v2 introduit de nouveaux opérateurs pour prendre en charge deux nouvelles fonctionnalités : 
+
+* **[Conversation IDs](/fr/x-api/fundamentals/conversation-id)** - À mesure que les conversations se déroulent sur X, un Conversation ID sera disponible pour marquer les Publications qui font partie de la conversation. Toutes les Publications de la conversation auront leur champ conversation&#95;id défini sur l’id de la Publication qui a lancé la conversation. 
+  * conversation&#95;id :
+* **[X Annotations](/fr/x-api/fundamentals/post-annotations)** fournissent des informations contextuelles sur les Publications et incluent des annotations d’entité et de contexte. Les entités sont composées de personnes, de lieux, de produits et d’organisations. Les contextes sont des domaines, ou des sujets, dont les entités mises en avant font partie. Par exemple, les personnes mentionnées dans une Publication peuvent avoir un contexte qui indique si elles sont athlètes, acteurs ou politiciens.
+  * context : - correspond aux Publications qui ont été annotées avec un contexte d’intérêt.
+  * entity : - correspond aux Publications qui ont été annotées avec une entité d’intérêt.
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="add-a-rule-to-filtered-stream-v2">
+  ### Ajouter une règle au flux filtré (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+    -H "Authorization: Bearer $BEARER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"add": [{"value": "cat has:images", "tag": "cats with images"}]}'
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream/rules"
+
+  headers = {
+      "Authorization": f"Bearer {bearer_token}",
+      "Content-Type": "application/json"
+  }
+
+  data = {
+      "add": [{"value": "cat has:images", "tag": "cats with images"}]
+  }
+
+  response = requests.post(url, headers=headers, json=data)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Ajouter une règle au flux filtré
+  response = client.posts.add_stream_rules(
+      add=[{"value": "cat has:images", "tag": "cats with images"}]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Ajouter une règle au flux filtré
+  const response = await client.posts.addStreamRules({
+    add: [{ value: "cat has:images", tag: "cats with images" }],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="connect-to-filtered-stream-v2">
+  ### Se connecter au flux filtré (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/stream?tweet.fields=created_at,author_id" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream"
+
+  params = {"tweet.fields": "created_at,author_id"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  # Diffuser des Publications en temps réel
+  response = requests.get(url, headers=headers, params=params, stream=True)
+  for line in response.iter_lines():
+      if line:
+          print(line.decode("utf-8"))
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Se connecter au flux filtré
+  for post in client.posts.stream(
+      tweet_fields=["created_at", "author_id"]
+  ):
+      print(f"{post.data.created_at}: {post.data.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Se connecter au flux filtré
+  const stream = client.posts.stream({
+    tweetFields: ["created_at", "author_id"],
+  });
+
+  for await (const post of stream) {
+    console.log(`${post.data?.created_at}: ${post.data?.text?.slice(0, 50)}...`);
+  }
+  ```
+</CodeGroup>

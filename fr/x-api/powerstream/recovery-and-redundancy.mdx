@@ -1,0 +1,46 @@
+---
+title: Récupération et redondance
+sidebarTitle: Récupération et redondance
+keywords: ["powerstream recovery", "powerstream redundancy", "recovery features", "redundancy features", "fault tolerance", "error recovery"]
+---
+
+Lorsque vous consommez des données en streaming, maximiser votre temps de connexion et recevoir l&#39;ensemble des données correspondantes est un objectif fondamental. Cela implique d&#39;exploiter des connexions redondantes, de détecter automatiquement les déconnexions, de vous reconnecter rapidement et de disposer d&#39;un plan pour récupérer les données perdues.
+
+Dans ce guide d&#39;intégration, nous aborderons différentes fonctionnalités de récupération et de redondance : connexions redondantes, backfill et récupération.
+ 
+
+<div id="redundant-connections">
+  ## Connexions redondantes
+</div>
+
+Une connexion redondante vous permet simplement d’établir plus d’une connexion simultanée au flux. Cela offre une redondance en vous permettant de vous connecter au même flux avec deux consommateurs distincts, qui reçoivent les mêmes données via les deux connexions. Ainsi, votre application dispose d’un basculement à chaud pour diverses situations, par exemple si l’un des flux est déconnecté ou si le serveur principal de votre application tombe en panne.
+
+Pour utiliser un flux redondant, connectez-vous simplement à la même URL que celle utilisée pour votre connexion principale. Les données de votre flux seront envoyées via les deux connexions.
+
+<div id="backfill">
+  ## Backfill
+</div>
+
+Après avoir détecté une déconnexion, votre système doit être suffisamment robuste pour se reconnecter automatiquement au flux. Si possible, votre système doit noter la durée de la déconnexion afin que vous puissiez utiliser la fonctionnalité de récupération appropriée pour reconstituer les données. 
+
+Si vous constatez que la déconnexion a duré cinq minutes ou moins, vous pouvez utiliser le paramètre de backfill, `backfillMinutes`. Si vous transmettez ce paramètre avec votre requête `GET /powerstream`, vous recevrez les Publications qui correspondent à vos règles et qui ont été publiées au cours des une à cinq dernières minutes. En général, nous envoyons ces anciennes Publications en premier, avant toute nouvelle Publication correspondante, et nous ne dédupliquons pas les Publications. Cela signifie que si vous avez été déconnecté pendant 90 secondes, mais que vous demandez deux minutes de données de backfill, vous recevrez 30 secondes de Publications en double, que votre système doit être en mesure de gérer. Voici un exemple de ce à quoi une requête avec le paramètre de backfill pourrait ressembler :
+
+`curl 'https://api.x.com/2/powerstream?backfillMinutes=5' -H "Authorization: Bearer $ACCESS_TOKEN"`
+
+Si vous constatez que la déconnexion a duré plus de cinq minutes, vous pouvez utiliser le [point de terminaison de recherche récente](/fr/x-api/posts/search/introduction) ou la fonctionnalité de récupération pour demander les données manquantes. 
+
+<div id="recovery">
+  ## Récupération
+</div>
+
+Vous pouvez utiliser la fonctionnalité Recovery pour récupérer les données manquantes au cours des 24 dernières heures si vous ne parvenez pas à vous reconnecter dans la fenêtre de rattrapage de 5 minutes.
+
+La fonctionnalité Recovery pour le streaming vous permet de bénéficier d’une fenêtre de rattrapage étendue de 24 heures. Recovery vous permet de « rejouer » la période correspondant aux données manquantes. Un flux de récupération est démarré lorsque vous effectuez une requête de connexion en utilisant les paramètres de requête `startTime` et `endTime`. Une fois connecté, Recovery retransmettra la période indiquée, puis se déconnectera.  
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Nom** | **Type** | **Description** |
+| `startTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Date en UTC indiquant l’heure de début à partir de laquelle effectuer la récupération. |
+| `endTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Date en UTC indiquant l’heure de fin jusqu’à laquelle effectuer la récupération. |
+
+Exemple d’URL de requête : `https://api.x.com/2/powerstream?startTime=2022-07-12T15:10:00Z&endTime=2022-07-12T15:20:00Z`

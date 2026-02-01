@@ -1,0 +1,263 @@
+---
+title: De v1 a v2
+sidebarTitle: De v1 a v2
+keywords: ["migración de v1.1 a v2", "migración de lookup", "migrar lookup", "de estándar a v2", "lookup de v1 a v2", "guía de migración"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ## Standard v1.1 comparado con X API v2
+</div>
+
+Si has estado trabajando con los endpoints estándar v1.1 GET statuses/show y GET statuses/lookup, esta guía te ayudará a comprender las similitudes y diferencias entre los endpoints estándar y los endpoints de búsqueda de Publicaciones de X API v2.
+
+También puede interesarte nuestra [herramienta visual de migración de formatos de datos](/es/x-api/migrate/data-format-migration) para que puedas ver rápidamente las diferencias entre el [formato de datos de X API v1.1](/es/x-api/fundamentals/data-dictionary) y el [formato de X API v2](/es/x-api/fundamentals/data-dictionary).
+
+* **Similitudes**
+  * OAuth 1.0a User Context
+  * Límites de Publicaciones por solicitud
+  * Compatibilidad con el historial de edición y metadatos de la Publicación
+
+* **Diferencias**
+  * URLs de endpoints
+  * Requisitos de App y Project
+  * Formato de datos de la Respuesta
+  * Parámetros de solicitud
+
+<div id="similarities">
+  ### Similitudes
+</div>
+
+<div id="oauth-10a-user-context-authentication-method">
+  #### Método de autenticación OAuth 1.0a User Context
+</div>
+
+El endpoint estándar admite [OAuth 1.0a User Context](/es/resources/fundamentals/authentication), mientras que el nuevo endpoint de búsqueda de publicaciones de X API v2 admite tanto OAuth 1.0a User Context como [OAuth 2.0 App-Only](/es/resources/fundamentals/authentication). Por lo tanto, si antes utilizabas uno de los endpoints estándar de búsqueda de publicaciones de v1.1, puedes seguir usando el mismo método de autenticación si migras a la versión de X API v2.
+
+La autenticación App-Only probablemente sea la forma más sencilla de comenzar. Para aprender a generar un App Access Token, consulta [esta guía de OAuth 2.0 App-Only](/es/resources/fundamentals/authentication).
+
+<div id="posts-per-request-limits">
+  #### Límites de Publicaciones por solicitud
+</div>
+
+El endpoint v1.1 [GET statuses/lookup](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-lookup) te permite especificar hasta 100 Publicaciones por solicitud. Esto también se aplica al endpoint GET /tweets. Para especificar el máximo de 100 Publicaciones, utiliza el parámetro `ids` como parámetro de consulta con una lista separada por comas de [ID de Publicaciones](/es/resources/fundamentals/x-ids).
+
+**Compatibilidad con el historial de edición de Publicaciones y metadatos**
+
+Ambas versiones proporcionan metadatos que describen cualquier historial de edición. Consulta la Referencia de la API de consulta de Publicaciones y la [página de fundamentos de edición de Publicaciones](/es/x-api/fundamentals/edit-posts) para obtener más detalles.
+
+<div id="differences">
+  ### Diferencias
+</div>
+
+<div id="endpoint-urls">
+  #### URLs de endpoints
+</div>
+
+* **Endpoints estándar de v1.1:**
+  * `https://api.x.com/1.1/statuses/show`
+  * `https://api.x.com/1.1/statuses/lookup`
+
+* **Endpoint de X API v2:**
+  * `https://api.x.com/2/tweets`
+  * `https://api.x.com/2/tweets/:id`
+
+<div id="app-and-project-requirements">
+  #### Requisitos de App y Project
+</div>
+
+Los endpoints de X API v2 requieren credenciales de una [App de desarrollador](/es/resources/fundamentals/developer-apps) asociada con un [Project](/es/resources/fundamentals/developer-apps) para autenticarse. Los endpoints de X API v1.1 pueden utilizar credenciales de Apps o de Apps asociadas con una App.
+
+<div id="response-data-format">
+  #### Formato de datos de la respuesta
+</div>
+
+Una diferencia significativa entre las versiones de endpoints estándar v1.1 y X API v2 es cómo se seleccionan los campos en la carga útil.
+
+En los endpoints estándar, muchos campos de la respuesta se incluyen de forma predeterminada, con opciones para usar parámetros y especificar campos adicionales.
+
+X API v2, sin embargo, solo entrega los campos `id` y `text` de la Publicación de forma predeterminada. Los campos y objetos adicionales requieren el uso de los parámetros [fields](/es/x-api/fundamentals/fields) y [expansions](/es/x-api/fundamentals/expansions). Los campos expandidos se devuelven en un objeto `includes` dentro de la respuesta, que se puede asociar con el objeto de Publicación principal comparando las id.
+
+Para obtener más información sobre el uso de campos y expansiones, consulta la [guía sobre cómo usar fields y expansions](/es/x-api/fundamentals/data-dictionary). Una [guía de migración de formato de datos](/es/x-api/fundamentals/fields) también asigna los campos estándar de v1.1 a los nuevos campos de v2.
+
+Además, X API v2 introduce nuevos diseños JSON para objetos, incluidos el objeto de Publicación y el objeto de [user](/es/x-api/fundamentals/data-dictionary#user):
+
+* Los endpoints estándar devuelven objetos de Publicación en una matriz `statuses`, mientras que X API v2 usa una matriz `data`.
+* Los Tuits retuiteados y citados en X API v2 reemplazan la terminología de &quot;statuses&quot;.
+* Nueva terminología como `like` reemplaza términos como `favorites` y `favourites`.
+* Los atributos sin valores (por ejemplo, `null`) no se incluyen en las cargas útiles de X API v2.
+
+El objeto de Publicación en X API v2 incluye nuevos campos como:
+
+* `conversation_id`
+* Dos nuevos campos de [annotations](/es/x-api/fundamentals/post-annotations) (`context` y `entities`)
+* Nuevos campos de [metrics](/es/x-api/fundamentals/metrics)
+* El campo `reply_setting` que muestra quién puede responder a una Publicación determinada
+
+<div id="request-parameters">
+  #### Parámetros de solicitud
+</div>
+
+Los siguientes parámetros de solicitud estándar de v1.1 tienen equivalentes en X API v2:
+
+| Estándar | X API v2 |
+|:----------|:----------|
+| `id`     | `ids`    |
+
+Algunos parámetros estándar de v1.1 **no** se admiten en X API v2:
+
+| Estándar            | Comentario                                                                                                                      |
+|:---------------------|:------------------------------------------------------------------------------------------------------------------------------|
+| `tweet_mode`        | Reemplazado por la funcionalidad de campos y expansions.                                                                       |
+| `trim_user`         | Reemplazado por campos y expansions. Utiliza la expansión `author_id` y `user.fields` para los datos de usuario.               |
+| `include_my_retweet`| Proporciona el ID de la Publicación original para Publicaciones retuiteadas por el usuario autenticado.                        |
+| `include_entities`  | Utiliza campos y expansions para controlar las entidades en la carga útil.                                                     |
+| `include_ext_alt_text` | Añade el campo `ext_alt_text` en la entidad de medios si hay texto alternativo.                                             |
+| `include_card_uri`  | Añade `card_uri` cuando se adjunta una tarjeta de anuncios.                                                                    |
+| `map`               | Devuelve el ID de la Publicación y el mensaje de error para Publicaciones no disponibles en X API v2, en lugar de campos con valor null en v1.1. |
+
+<div id="code-examples">
+  ### Ejemplos de código
+</div>
+
+Los siguientes ejemplos muestran endpoints estándar de la v1.1 y sus equivalentes en v2. Reemplaza las credenciales por tus propios tokens. Para los endpoints de v2, el token debe pertenecer a una [App de desarrollador](/es/resources/fundamentals/developer-apps/overview) dentro de un [Project](/es/resources/fundamentals/developer-apps/overview).
+
+Los payloads de la Respuesta de v1.1 serán diferentes de los de v2. Con v2, puedes solicitar distintos campos con los parámetros [fields](/es/x-api/fundamentals/fields) y [expansions](/es/x-api/fundamentals/expansions).
+
+**Búsqueda de varias Publicaciones: v1.1 `GET statuses/lookup` → v2 `GET /tweets`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/statuses/lookup.json?id=1460323737035677698%2C1460323743339741184' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/tweets?ids=1460323737035677698%2C1460323743339741184&tweet.fields=created_at&expansions=author_id&user.fields=created_at' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets"
+
+  params = {
+      "ids": "1460323737035677698,1460323743339741184",
+      "tweet.fields": "created_at",
+      "expansions": "author_id",
+      "user.fields": "created_at"
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtener varias Publicaciones por ID con campos y expansions
+  response = client.posts.get_posts(
+      ids=["1460323737035677698", "1460323743339741184"],
+      tweet_fields=["created_at"],
+      expansions=["author_id"],
+      user_fields=["created_at"]
+  )
+
+  for post in response.data:
+      print(f"Post: {post.text}")
+      print(f"Created at: {post.created_at}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtener varias Publicaciones por ID con campos y expansions
+  const response = await client.posts.getPosts({
+    ids: ["1460323737035677698", "1460323743339741184"],
+    tweetFields: ["created_at"],
+    expansions: ["author_id"],
+    userFields: ["created_at"],
+  });
+
+  response.data?.forEach((post) => {
+    console.log(`Post: ${post.text}`);
+    console.log(`Created at: ${post.created_at}`);
+  });
+  ```
+</CodeGroup>
+
+**Búsqueda de una única Publicación: v1.1 `GET statuses/show/:id` → v2 `GET /tweets/:id`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/statuses/show.json?id=1460323737035677698' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/tweets/1460323737035677698?tweet.fields=created_at&expansions=author_id&user.fields=created_at' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1460323737035677698"
+
+  params = {
+      "tweet.fields": "created_at",
+      "expansions": "author_id",
+      "user.fields": "created_at"
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtener una única Publicación por ID
+  response = client.posts.get(
+      "1460323737035677698",
+      tweet_fields=["created_at"],
+      expansions=["author_id"],
+      user_fields=["created_at"]
+  )
+
+  print(f"Publicación: {response.data.text}")
+  print(f"Creado el: {response.data.created_at}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtener una única Publicación por ID
+  const response = await client.posts.get("1460323737035677698", {
+    tweetFields: ["created_at"],
+    expansions: ["author_id"],
+    userFields: ["created_at"],
+  });
+
+  console.log(`Publicación: ${response.data?.text}`);
+  console.log(`Creado el: ${response.data?.created_at}`);
+  ```
+</CodeGroup>

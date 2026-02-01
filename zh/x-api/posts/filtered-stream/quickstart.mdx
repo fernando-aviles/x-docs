@@ -1,0 +1,308 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 连接到过滤流并接收实时帖子
+keywords: ["过滤流快速入门", "流式传输快速入门", "过滤流教程", "流式传输指南", "流式传输示例"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将指导你如何连接到过滤流，以接收符合过滤规则的实时帖子。
+
+<Note>
+  **前提条件**
+
+  在开始之前，你需要：
+
+  * 一个[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer Token（可在 Developer Console 的“Keys and tokens”下找到）
+</Note>
+
+***
+
+<Steps>
+  <Step title="创建过滤规则" icon="filter">
+    规则用于定义要接收哪些帖子。使用运算符按关键词、话题标签、用户等条件进行匹配。
+
+    **示例规则：** 匹配包含 &quot;cat&quot; 且带图片的帖子：
+
+    ```
+    cat has:images
+    ```
+
+    <Card title="构建规则" icon="filter" href="/zh/x-api/posts/filtered-stream/integrate/build-a-rule">
+      学习规则语法和运算符
+    </Card>
+  </Step>
+
+  <Step title="将此规则添加到你的流中" icon="plus">
+    使用 rules 端点添加规则。包含一个 `tag`，用于识别每条帖子是由哪条规则匹配到的：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "add": [
+            {"value": "cat has:images", "tag": "cats with images"}
+          ]
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 向过滤流添加一条规则
+      response = client.filtered_stream.add_rules(
+          add=[{"value": "cat has:images", "tag": "cats with images"}]
+      )
+
+      for rule in response.data:
+          print(f"Rule added: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      # 向过滤流添加一条规则
+      const response = await client.filteredStream.addRules({
+        add: [{ value: "cat has:images", tag: "cats with images" }],
+      });
+
+      response.data?.forEach((rule) => {
+        console.log(`Rule added: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+
+    **响应：**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1273026480692322304",
+          "value": "cat has:images",
+          "tag": "cats with images"
+        }
+      ],
+      "meta": {
+        "sent": "2024-01-15T10:30:00.000Z",
+        "summary": {
+          "created": 1,
+          "not_created": 0,
+          "valid": 1,
+          "invalid": 0
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="验证规则" icon="check">
+    列出所有生效的规则，以确认你的规则已添加：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 获取所有生效的规则
+      response = client.filtered_stream.get_rules()
+
+      for rule in response.data:
+          print(f"Active rule: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 获取所有生效的规则
+      const response = await client.filteredStream.getRules();
+
+      response.data?.forEach((rule) => {
+        console.log(`Active rule: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="连接到数据流" icon="plug">
+    建立持久连接以接收匹配的帖子：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream?\
+      tweet.fields=created_at,author_id&\
+      expansions=author_id&\
+      user.fields=username" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 连接到过滤流
+      for post in client.filtered_stream.stream(
+          tweet_fields=["created_at", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username"]
+      ):
+          print(f"新帖子: {post.data.text}")
+          print(f"匹配规则: {post.matching_rules}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 连接到过滤流
+      const stream = client.filteredStream.stream({
+        tweetFields: ["created_at", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username"],
+      });
+
+      for await (const post of stream) {
+        console.log(`新帖子: ${post.data?.text}`);
+        console.log(`匹配规则: ${post.matching_rules}`);
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="处理收到的帖子" icon="message">
+    匹配到的帖子流（JSON 对象）：
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "text": "Look at this cute cat! 🐱",
+        "author_id": "9876543210",
+        "created_at": "2024-01-15T10:35:00.000Z",
+        "edit_history_tweet_ids": ["1234567890"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "catperson"
+          }
+        ]
+      },
+      "matching_rules": [
+        {
+          "id": "1273026480692322304",
+          "tag": "cats with images"
+        }
+      ]
+    }
+    ```
+
+    <Tip>
+      `matching_rules` 数组会根据你定义的标签显示与该帖子匹配的规则。
+    </Tip>
+  </Step>
+
+  <Step title="删除规则（可选）" icon="trash">
+    根据 ID 删除规则：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "delete": {
+            "ids": ["1273026480692322304"]
+          }
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 按 ID 删除规则
+      response = client.filtered_stream.delete_rules(
+          delete={"ids": ["1273026480692322304"]}
+      )
+      print(f"Deleted: {response.meta.summary.deleted}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      # 按 ID 删除规则
+      const response = await client.filteredStream.deleteRules({
+        delete: { ids: ["1273026480692322304"] },
+      });
+      console.log(`Deleted: ${response.meta?.summary?.deleted}`);
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="managing-your-connection">
+  ## 管理连接
+</div>
+
+<AccordionGroup>
+  <Accordion title="保活信号">
+    流会每 20 秒发送一行空白行（`\r\n`）。如果在 20 秒内既没有收到数据，也没有收到保活信号，请重新连接。
+  </Accordion>
+
+  <Accordion title="断开连接">
+    按下 `Ctrl+C` 以关闭连接，或者关闭终端窗口。
+  </Accordion>
+
+  <Accordion title="连接限制">
+    每个应用只允许一个连接。打开新的连接会关闭现有的连接。
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="构建规则" icon="filter" href="/zh/x-api/posts/filtered-stream/integrate/build-a-rule">
+    了解规则语法
+  </Card>
+
+  <Card title="运算符参考" icon="list-check" href="/zh/x-api/posts/filtered-stream/integrate/operators">
+    查看全部可用运算符
+  </Card>
+
+  <Card title="处理断开连接" icon="plug" href="/zh/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    平滑重连
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/filtered-stream">
+    完整端点说明文档
+  </Card>
+</CardGroup>

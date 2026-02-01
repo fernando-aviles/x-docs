@@ -1,0 +1,55 @@
+---
+title: Associer les Publications aux règles
+sidebarTitle: Associer les Publications aux règles
+keywords: ["règles de correspondance", "règles de filtrage", "mise en correspondance des règles", "règles de flux", "règles de flux filtré", "balises de règle"]
+---
+
+<div id="matching-returned-posts-to-their-associated-rule">
+  ### Faire correspondre les Publications renvoyées à leur règle associée
+</div>
+
+L’endpoint de flux filtré vous permet de disposer de plusieurs règles via une seule connexion. Avant de commencer à recevoir des Publications dans votre flux, vous devez créer une règle qui précise quels types de Publications vous souhaitez recevoir. 
+
+Lorsque vous définissez vos règles pour faire correspondre des Publications sur la base d’un large éventail d’attributs, y compris les attributs utilisateur, la géolocalisation, la langue et bien d’autres, vous pouvez associer une balise afin de distinguer cette règle à un niveau plus global. Les balises sont un bon moyen de contextualiser votre règle, en particulier si vous avez de nombreuses règles en place. Les règles de filtrage déterminent quelles activités liées aux Publications seront envoyées via la connexion.
+
+Si vous devez ajouter une nouvelle règle de filtrage pour capturer un type différent de Publication, ou supprimer une règle existante, votre application peut envoyer une requête à l’endpoint [POST tweets/search/stream/rules](/fr/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) pour effectuer cette opération. Lorsque cette requête est envoyée, les règles de filtrage sont automatiquement modifiées et les changements prennent simplement effet dans le flux de données sans qu’il soit nécessaire de se reconnecter. La plupart des ajouts de règles prennent effet en environ 20 secondes ou moins. C’est peu probable, mais selon des facteurs externes (par exemple, la connectivité réseau), il peut s’écouler plus de temps avant que vous ne commenciez à recevoir les Publications correspondantes. Si vous ne trouvez pas une règle dans l’endpoint de liste des règles, assurez-vous que la requête de création de règle a bien abouti ; vous pouvez le vérifier en consultant vos journaux pour y rechercher d’éventuels messages d’erreur.
+
+<div id="matching-rules">
+  #### Règles de correspondance
+</div>
+
+Lorsqu’une activité est livrée via votre connexion de flux filtré, un tableau matching&#95;rules indique quelle liste de filtres a correspondu à la Publication livrée.
+
+Dans la charge utile de la Publication, il existe des métadonnées supplémentaires sous forme de chaîne de caractères qui comprennent l’id et le tag de la règle ayant provoqué la livraison d’une Publication spécifique. Si plusieurs règles correspondent à une seule Publication, l’activité est livrée une seule fois avec chacune des règles correspondantes incluse dans ces métadonnées. Les règles de correspondance offrent un moyen simple d’associer une Publication spécifique à des règles spécifiques, ce qui est particulièrement utile si vous avez de nombreuses règles distinctes. Étant donné que les données sont livrées via un flux unique de cette manière, il est essentiel de disposer d’un id et d’un tag uniques pour effectuer la correspondance. 
+
+**Voici à quoi ressemble le tableau ”matching&#95;rules” dans la charge utile de la Publication :**
+
+```"matching_rules": [
+    {
+      "id": "1166916266197536768",
+      "tag": "test-rule-tag-00000"
+    },
+    {
+      "id": "1166916266197536769",
+      "tag": "test-rule-tag-12345"
+    }
+  ]
+```
+
+<div id="rule-tags">
+  #### Balises de règles
+</div>
+
+Au moment de leur création, chaque règle de filtrage peut être associée à une balise. Les balises de règles n’ont pas de signification particulière, car elles sont simplement traitées comme des chaînes de caractères opaques associées à une règle. Elles seront incluses dans les métadonnées `matching_rules` des activités renvoyées et ont pour but de faciliter la différenciation de vos règles à un niveau plus global.
+
+Les balises offrent un moyen simple de créer des regroupements logiques de règles de filtrage. Par exemple, vous pouvez générer un ID unique pour une règle spécifique et l’utiliser comme balise, puis permettre à votre application de référencer cet ID dans les activités qu’elle traite afin d’associer un résultat à des clients, des campagnes, des catégories ou d’autres groupes connexes spécifiques.
+
+Notez que les balises ne peuvent pas être mises à jour sur une règle existante et ne peuvent être incluses qu’au moment de la création d’une règle. Pour « mettre à jour » ou « renommer » une balise, vous devez d’abord supprimer la règle, puis l’ajouter de nouveau avec la balise souhaitée. La meilleure solution consiste simplement à utiliser un identifiant unique comme balise, que votre système peut associer à divers autres éléments de données au sein de votre propre application, sans avoir à modifier quoi que ce soit dans l’ensemble de règles.
+
+<div id="filtered-stream-recovery-and-redundancy-features">
+  ### Flux filtré - Fonctionnalités de reprise et de redondance
+</div>
+
+<Note>
+  Remarque : ces fonctionnalités de reprise et de redondance ne sont disponibles que pour les utilisateurs disposant d’un accès à l’offre Enterprise.
+</Note>

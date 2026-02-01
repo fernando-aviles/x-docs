@@ -1,0 +1,243 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+keywords: ["integración para administrar tuits", "integración para crear tuits", "integración para publicar tuits", "guía de administración de tuits", "configuración para crear tuits"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta página presenta herramientas y conceptos clave para integrar los endpoints de gestión de Publicaciones en tu sistema.
+
+***
+
+<div id="helpful-tools">
+  ## Herramientas útiles
+</div>
+
+Antes de entrar en algunos conceptos clave que te ayudarán a integrar este endpoint, te recomendamos familiarizarte con:
+
+<div id="postman">
+  ### Postman
+</div>
+
+Postman es una excelente herramienta que puedes utilizar para probar un endpoint. Cada solicitud de Postman incluye todos los parámetros de ruta y de cuerpo de la solicitud para ayudarte a comprender rápidamente qué opciones tienes disponibles. Para obtener más información sobre nuestras colecciones de Postman, visita nuestra página [&quot;Cómo usar Postman&quot;](/es/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  ### Ejemplos de código
+</div>
+
+¿Te interesa configurar este endpoint con código en tu lenguaje de programación preferido? Hemos preparado varios ejemplos de código que puedes usar como punto de partida en nuestra [página de GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="third-party-libraries">
+  ### Bibliotecas de terceros
+</div>
+
+Aprovecha una de las [bibliotecas de terceros](/es/x-api/tools-and-libraries/overview) de nuestras comunidades para empezar. Puedes encontrar una biblioteca que funcione con los endpoints v2 buscando la etiqueta de versión adecuada.
+
+<div id="key-concepts">
+  ## Conceptos clave
+</div>
+
+<div id="authentication">
+  ### Autenticación
+</div>
+
+Todos los endpoints de X API v2 requieren que autentiques tus solicitudes con un conjunto de credenciales, también conocidas como claves y tokens.
+
+Estos endpoints en particular requieren el uso de [OAuth 1.0a User Context](/es/resources/fundamentals/authentication), lo que significa que debes usar un conjunto de claves de API y tokens de acceso de usuario para realizar una solicitud correcta. Los tokens de acceso deben estar asociados con el usuario en cuyo nombre estás realizando la solicitud. Si deseas generar un conjunto de tokens de acceso para otro usuario, ese usuario debe autorizar o autenticar tu App usando el [flujo de OAuth de 3 participantes](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow).
+
+Ten en cuenta que OAuth 1.0a puede ser difícil de usar. Si no estás familiarizado con este método de autenticación, te recomendamos que uses una [biblioteca](/es/x-api/tools-and-libraries/overview), que uses una herramienta como Postman o que uses OAuth 2.0 para autenticar tus solicitudes.
+
+[OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) permite un mayor control sobre el ámbito de una aplicación y los flujos de autorización en múltiples dispositivos. OAuth 2.0 te permite elegir scopes específicos y granulares que te otorgan permisos concretos en nombre de un usuario.
+
+Para habilitar OAuth 2.0 en tu App, debes activarlo en la configuración de autenticación de tu App, que se encuentra en la sección de configuración de la App en el Developer Console.
+
+<div id="developer-console-projects-and-developer-apps">
+  ### Developer Console, Projects y Apps de desarrollador
+</div>
+
+Para obtener un conjunto de credenciales de autenticación que funcionen con los endpoints de X API v2, debes contar con una [cuenta de desarrollador](/es/resources/fundamentals/developer-portal), haber configurado un [Project](/es/resources/fundamentals/developer-apps) dentro de esa cuenta y haber creado una [App de desarrollador](/es/resources/fundamentals/developer-apps) dentro de ese Project. Luego, podrás encontrar tus claves y tokens en tu App de desarrollador.
+
+<div id="rate-limits">
+  ### Límites de tasa
+</div>
+
+Cada día, muchos miles de desarrolladores realizan solicitudes a la X API. Para ayudar a gestionar el enorme volumen de estas solicitudes, se aplican [límites de tasa](https://developer.x.com/x-api/fundamentals/rate-limits) a cada endpoint, lo que restringe la cantidad de solicitudes que puedes hacer en nombre de tu app o en nombre de un usuario autenticado.
+
+Estos endpoints tienen límites de tasa a nivel de usuario, lo que significa que el usuario autenticado en cuyo nombre realizas la solicitud solo puede invocar el endpoint una cierta cantidad de veces a través de cualquier App de desarrollador. Hay un límite de tasa por usuario de 200 solicitudes cada 15 minutos para el método POST. El método DELETE tiene un límite de tasa de 50 solicitudes cada 15 minutos. Además, existe un límite de [300 solicitudes cada 3 horas](https://blog.x.com/developer/en_us/topics/tools/2018/new-developer-requirements-to-protect-our-platform), incluidas las Publicaciones creadas con los permisos manage Posts o manage Retweets.
+
+<div id="source-labels">
+  ### Etiquetas de origen
+</div>
+
+El nombre de tu App y la URL de tu sitio web se mostrarán como la [etiqueta de origen](https://help.x.com/en/using-twitter/how-to-tweet#source-labels) en los metadatos de cualquier Publicación creada programáticamente por tu aplicación. Si cambias el caso de uso de una X App, asegúrate de actualizar el caso de uso en esta configuración a fin de garantizar que cumples con los [Developer Terms](https://developer.x.com/content/developer-twitter/en/developer-terms/agreement-and-policy).
+
+<div id="profile-settings">
+  ### Configuración del perfil
+</div>
+
+Solo puedes añadir una ubicación a una Publicación si tienes la geolocalización habilitada en la configuración de tu perfil. Si no tienes la geolocalización habilitada, todavía puedes añadir un parámetro de ubicación en el cuerpo de tu solicitud, pero no se adjuntará a tu Publicación. Lo mismo ocurre con el etiquetado de usuarios en imágenes. Si el usuario al que estás etiquetando no tiene habilitado el etiquetado de fotos, su nombre no aparecerá en la lista de usuarios etiquetados aunque la Publicación se haya creado correctamente.
+
+<div id="adding-media-to-a-post">
+  ### Añadir contenido multimedia a una Publicación
+</div>
+
+Actualmente, no es posible subir contenido multimedia por completo mediante X API v2. Sin embargo, puedes adjuntar a una Publicación contenido multimedia que ya hayas subido previamente. Puedes usar identificadores de contenido multimedia (media IDs) que ya se hayan [subido mediante el endpoint de medios v1](https://developer.x.com/en/docs/twitter-api/v1/media/upload-media/api-reference/post-media-upload) o a través de [X Media Studio](https://media.x.com/en/articles/products/2018/media-studio). Estos identificadores de contenido multimedia deben ser tuyos o de un usuario autenticado.
+
+***
+
+<div id="code-examples">
+  ## Ejemplos de código
+</div>
+
+<div id="create-a-post">
+  ### Crear una publicación
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"text": "¡Hola, mundo!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Crear una publicación
+  response = client.posts.create(text="¡Hola, mundo!")
+  print(f"Publicación creada: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Crear una publicación
+  const response = await client.posts.create({ text: "¡Hola, mundo!" });
+  console.log(`Publicación creada: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+<div id="create-a-reply">
+  ### Crear una respuesta
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"text": "This is a reply!", "reply": {"in_reply_to_tweet_id": "1234567890"}}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Crear una respuesta
+  response = client.posts.create(
+      text="This is a reply!",
+      reply={"in_reply_to_tweet_id": "1234567890"}
+  )
+  print(f"Respuesta creada: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Crear una respuesta
+  const response = await client.posts.create({
+    text: "This is a reply!",
+    reply: { inReplyToTweetId: "1234567890" },
+  });
+  console.log(`Respuesta creada: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+<div id="delete-a-post">
+  ### Eliminar una Publicación
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/tweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Eliminar una publicación
+  response = client.posts.delete("1234567890")
+  print(f"Deleted: {response.data.deleted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Eliminar una publicación
+  const response = await client.posts.delete("1234567890");
+  console.log(`Deleted: ${response.data?.deleted}`);
+  ```
+</CodeGroup>
+
+**Próximos pasos**
+
+[Referencia de la API](/es/x-api/posts/manage-tweets#manage-tweets-api-reference-index)

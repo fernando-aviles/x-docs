@@ -1,0 +1,197 @@
+---
+title: ブックマークの取得
+sidebarTitle: ブックマークの取得
+description: 自分がブックマークした投稿を取得する
+keywords: ["ブックマーク 取得 クイックスタート", "ブックマーク 取得 クイックスタート", "ブックマーク 取得 チュートリアル", "ブックマーク 取得 ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、X API を使用してブックマークした投稿を取得する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  始める前に、次のものが必要です。
+
+  * 承認済みの App が紐づいた [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * `bookmark.read` スコープが付与されたユーザーアクセストークン（OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-your-bookmarks">
+  ## ブックマークを取得する
+</div>
+
+<Steps>
+  <Step title="自分のユーザーIDを取得する">
+    認証済みユーザーのIDが必要です。`/2/users/me` エンドポイント、または [ユーザー検索エンドポイント](/ja/x-api/users/lookup/introduction)を使って取得できます。
+  </Step>
+
+  <Step title="ブックマークをリクエストする">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/bookmarks?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      max_results=10" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # ページネーション付きでブックマークされた投稿を取得する
+      for page in client.bookmarks.get(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // ページネーション付きでブックマークされた投稿を取得する
+      const paginator = client.bookmarks.get("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1501258597237342208",
+          "text": "コミュニティと共有したい、X API を使ったプロジェクトを作ったことはありますか？ぜひ教えてください！",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 15,
+            "reply_count": 8,
+            "like_count": 89,
+            "quote_count": 3
+          }
+        },
+        {
+          "id": "1501258542258348032",
+          "text": "これは、開発者のイノベーションが X をより良い場所にする一例にすぎません...",
+          "created_at": "2024-01-15T09:15:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 22,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 7
+          }
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw4539n0vybdnx19ylpayqf16fjt4l"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-author-information">
+  ## 投稿者情報を含める
+</div>
+
+投稿者に関する情報を取得するには、expansions パラメーターを使用します。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/bookmarks?\
+  tweet.fields=created_at,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 投稿者情報付きでブックマークを取得
+  for page in client.bookmarks.get(
+      "2244994945",
+      tweet_fields=["created_at", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"]
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}...")
+      # 投稿者情報は page.includes.users に含まれます
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 投稿者情報付きでブックマークを取得
+  const paginator = client.bookmarks.get("2244994945", {
+    tweetFields: ["created_at", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}...`);
+    });
+    # 投稿者情報は page.includes?.users に含まれます
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="required-scopes">
+  ## 必要なスコープ
+</div>
+
+OAuth 2.0 PKCE を使用する場合、アクセストークンには次のスコープが必要です。
+
+| Scope | Description |
+|:------|:------------|
+| `bookmark.read` | ブックマークを読み取る |
+| `tweet.read` | 投稿データを読み取る |
+| `users.read` | ユーザーデータを読み取る（expansions 用） |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ブックマークを管理" icon="bookmark" href="/ja/x-api/posts/bookmarks/quickstart/manage-bookmarks">
+    ブックマークを追加・削除する
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/get-users-bookmarks">
+    エンドポイントの詳細なドキュメント
+  </Card>
+</CardGroup>

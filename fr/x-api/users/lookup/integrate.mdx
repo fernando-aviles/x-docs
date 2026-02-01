@@ -1,0 +1,399 @@
+---
+title: Guide d'intégration
+sidebarTitle: Guide d'intégration
+description: Concepts clés et bonnes pratiques pour intégrer la recherche d'utilisateurs
+keywords: ["intégration de la recherche d'utilisateurs", "guide d'intégration des utilisateurs", "implémentation de la recherche d'utilisateurs"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide couvre les concepts clés dont vous avez besoin pour intégrer les endpoints de recherche d’utilisateurs à votre application.
+
+***
+
+<div id="authentication">
+  ## Authentification
+</div>
+
+Tous les endpoints de X API v2 nécessitent une authentification. Choisissez la méthode qui correspond à votre cas d’usage :
+
+| Méthode | Idéale pour | Peut accéder aux métriques privées ? |
+|:-------|:------------|:-------------------------------------|
+| [OAuth 2.0 App-Only](/fr/resources/fundamentals/authentication#oauth-2-0) | Communication entre serveurs, données publiques | Non |
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Applications côté utilisateur | Oui (pour les données de l’utilisateur autorisé) |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Intégrations héritées | Oui (pour les données de l’utilisateur autorisé) |
+
+<div id="app-only-authentication">
+  ### Authentification App-Only
+</div>
+
+Pour les données publiques des utilisateurs, utilisez un Bearer Token :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer un utilisateur par nom d'utilisateur
+  response = client.users.get_by_username("XDevelopers")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="user-context-authentication">
+  ### Authentification en contexte utilisateur
+</div>
+
+Obligatoire pour l&#39;endpoint de l&#39;utilisateur authentifié (`/2/users/me`) :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  # Utilisation d'un jeton d'accès utilisateur OAuth 2.0
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer le profil de l'utilisateur authentifié
+  response = client.users.get_me()
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  // Utilisation d'un jeton d'accès utilisateur OAuth 2.0
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const response = await client.users.getMe();
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Warning>
+  L&#39;endpoint `/2/users/me` fonctionne uniquement avec l&#39;authentification en contexte utilisateur. Les jetons App-only renverront une erreur.
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## Champs et expansions
+</div>
+
+Par défaut, X API v2 renvoie un jeu de data minimal. Utilisez `fields` et `expansions` pour demander exactement ce dont vous avez besoin.
+
+<div id="default-response">
+  ### Réponse par défaut
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+<div id="available-fields">
+  ### Champs disponibles
+</div>
+
+<Accordion title="user.fields">
+  | Champ | Description |
+  |:------|:------------|
+  | `created_at` | Horodatage de création du compte |
+  | `description` | Bio de l’utilisateur |
+  | `entities` | URL extraites de la bio |
+  | `location` | Emplacement défini par l’utilisateur |
+  | `pinned_tweet_id` | ID de la Publication épinglée |
+  | `profile_image_url` | URL de l’avatar |
+  | `protected` | Indique si le compte est protégé |
+  | `public_metrics` | Nombre d’abonnés / d’abonnements |
+  | `url` | URL du site web |
+  | `verified` | Statut de vérification |
+  | `withheld` | Informations de restriction |
+</Accordion>
+
+<Accordion title="tweet.fields (nécessite l’extension pinned_tweet_id)">
+  | Champ | Description |
+  |:------|:------------|
+  | `created_at` | Horodatage de création de la Publication |
+  | `text` | Contenu de la Publication |
+  | `public_metrics` | Nombre d’interactions |
+  | `entities` | Hashtags, mentions, URL |
+</Accordion>
+
+<div id="example-with-fields">
+  ### Exemple avec des champs
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers?\
+  user.fields=created_at,description,public_metrics,verified&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtenir un utilisateur avec des champs supplémentaires et des expansions
+  response = client.users.get_by_username(
+      "XDevelopers",
+      user_fields=["created_at", "description", "public_metrics", "verified"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at", "public_metrics"]
+  )
+
+  print(response.data)
+  print(response.includes)  # Contient le Tweet épinglé étendu
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers", {
+    userFields: ["created_at", "description", "public_metrics", "verified"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // Contient le Tweet épinglé étendu
+  ```
+</CodeGroup>
+
+<div id="response-with-expansions">
+  ### Réponse avec « expansions »
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "verified": true,
+    "pinned_tweet_id": "1234567890",
+    "public_metrics": {
+      "followers_count": 583423,
+      "following_count": 2048,
+      "tweet_count": 14052
+    }
+  },
+  "includes": {
+    "tweets": [
+      {
+        "id": "1234567890",
+        "text": "Bienvenue sur la plateforme X Developer !",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+<Card title="Guide des champs et des expansions" icon="sliders" href="/fr/x-api/fundamentals/fields">
+  En savoir plus sur la personnalisation des réponses
+</Card>
+
+***
+
+<div id="batch-lookups">
+  ## Recherches groupées
+</div>
+
+Recherchez plusieurs utilisateurs en une seule requête :
+
+<CodeGroup dropdown>
+  ```bash cURL (par ID)
+  curl "https://api.x.com/2/users?ids=2244994945,783214,6253282&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```bash cURL (par noms d’utilisateur)
+  curl "https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtenir plusieurs utilisateurs par ID
+  response = client.users.get_users(
+      ids=["2244994945", "783214", "6253282"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+
+  # Obtenir plusieurs utilisateurs par noms d’utilisateur
+  response = client.users.get_users_by_usernames(
+      usernames=["XDevelopers", "X", "XAPI"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtenir plusieurs utilisateurs par ID
+  const byIds = await client.users.getUsers({
+    ids: ["2244994945", "783214", "6253282"],
+    userFields: ["username", "verified"],
+  });
+  byIds.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+
+  // Obtenir plusieurs utilisateurs par noms d’utilisateur
+  const byUsernames = await client.users.getUsersByUsernames({
+    usernames: ["XDevelopers", "X", "XAPI"],
+    userFields: ["username", "verified"],
+  });
+  byUsernames.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<Tip>
+  Les requêtes groupées sont limitées à 100 utilisateurs. Utilisez plusieurs requêtes pour des jeux de données plus volumineux.
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## Gestion des erreurs
+</div>
+
+<div id="common-errors">
+  ### Erreurs courantes
+</div>
+
+| Statut | Erreur | Solution |
+|:-------|:------|:---------|
+| 400 | Requête invalide | Vérifiez le format des paramètres |
+| 401 | Non autorisé | Vérifiez les informations d’authentification |
+| 403 | Accès interdit | Vérifiez les autorisations de l’application |
+| 404 | Introuvable | L’utilisateur n’existe pas ou a été suspendu |
+| 429 | Trop de requêtes | Patientez puis réessayez (voir limites de débit) |
+
+<div id="suspended-or-deleted-users">
+  ### Comptes suspendus ou supprimés
+</div>
+
+Si un utilisateur est suspendu ou supprimé :
+
+* La recherche d’un seul utilisateur renvoie `404`
+* La recherche de plusieurs utilisateurs omet cet utilisateur des résultats et inclut un tableau `errors`
+
+```json
+{
+  "data": [
+    { "id": "2244994945", "username": "XDevelopers" }
+  ],
+  "errors": [
+    {
+      "resource_id": "1234567890",
+      "resource_type": "user",
+      "title": "Not Found Error",
+      "detail": "Could not find user with id: [1234567890]."
+    }
+  ]
+}
+```
+
+<div id="protected-users">
+  ### Utilisateurs protégés
+</div>
+
+Pour les comptes protégés que vous ne suivez pas :
+
+* Les informations de base (id, nom, nom d’utilisateur) sont accessibles
+* Le contenu protégé (publication épinglée) peut être restreint
+* `protected: true` indique le statut du compte
+
+***
+
+<div id="best-practices">
+  ## Bonnes pratiques
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Requêtes par lots" icon="layer-group">
+    Utilisez les endpoints multi-utilisateurs pour récupérer jusqu’à 100 utilisateurs en une seule fois, ce qui réduit le nombre d’appels API.
+  </Card>
+
+  <Card title="Ne demandez que les champs nécessaires" icon="filter">
+    Indiquez uniquement les champs dont vous avez besoin afin de minimiser la taille de la réponse.
+  </Card>
+
+  <Card title="Mettre en cache les données utilisateur" icon="database">
+    Mettez en cache les profils utilisateur localement pour réduire les requêtes répétées.
+  </Card>
+
+  <Card title="Gérer correctement les erreurs" icon="triangle-exclamation">
+    Vérifiez la présence d’erreurs partielles dans les réponses de requêtes par lots.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/users/get-user-by-id">
+    Documentation complète de l’endpoint
+  </Card>
+
+  <Card title="Dictionnaire de données" icon="book" href="/fr/x-api/fundamentals/data-dictionary">
+    Tous les objets et champs disponibles
+  </Card>
+
+  <Card title="Exemples de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Exemples de code fonctionnels
+  </Card>
+
+  <Card title="Gestion des erreurs" icon="triangle-exclamation" href="/fr/x-api/fundamentals/response-codes-and-errors">
+    Gérez les erreurs efficacement
+  </Card>
+</CardGroup>

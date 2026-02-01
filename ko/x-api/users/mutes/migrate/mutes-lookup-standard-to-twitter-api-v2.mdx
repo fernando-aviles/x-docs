@@ -1,0 +1,185 @@
+---
+title: 뮤트 조회
+sidebarTitle: 뮤트 조회
+keywords: ["뮤트 조회 마이그레이션", "v1.1에서 v2로의 뮤트 조회", "뮤트 조회 이전", "Standard v1.1에서 v2 뮤트로 이전", "뮤트 이전"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+<div id="mutes-lookup-standard-v11-compared-to-x-api-v2">
+  ### 뮤트 조회: 표준 v1.1과 X API v2 비교
+</div>
+
+표준 v1.1 [GET mutes/users/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-ids)와 [GET mutes/users/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-list) 엔드포인트를 사용해 왔다면, 이 가이드는 표준 v1.1과 X API v2 뮤트 조회 엔드포인트 간의 유사점과 차이점을 이해하는 데 도움이 되도록 작성되었습니다.
+
+* **유사점**
+  * 인증
+* **차이점**
+  * 엔드포인트 URL
+
+  * 요청당 사용자 수 제한
+
+  * 앱 및 Project 요구 사항
+
+  * 응답 데이터 형식
+
+  * 요청 매개변수
+
+<div id="similarities">
+  #### 공통점
+</div>
+
+**인증**
+
+표준 v1.1과 X API v2의 뮤트 조회 엔드포인트는 모두 [OAuth 1.0a User Context](/ko/resources/fundamentals/authentication#oauth-1-0a-2)를 사용합니다. 따라서 이전에 표준 v1.1 뮤트 조회 엔드포인트 중 하나를 사용했다면, X API v2로 마이그레이션하더라도 동일한 인증 방식을 계속 사용할 수 있습니다. 
+
+<div id="differences">
+  #### 차이점
+</div>
+
+**엔드포인트 URL**
+
+* 표준 v1.1 엔드포인트:
+  * GET https://api.x.com/1.1/mutes/users/ids.json\
+    (지정한 사용자가 뮤트한 사용자 ID 목록)
+  * GET https://api.x.com/1.1/mutes/users/lists.json\
+    (지정한 사용자에 의해 뮤트된 사용자 목록)
+* X API v2 엔드포인트:
+  * GET https://api.x.com/2/users/:id/muting\
+    (지정한 사용자 ID에 의해 뮤트된 사용자 목록)
+     
+
+**요청당 사용자 수 제한**
+
+표준 v1.1 엔드포인트는 요청당 최대 5,000명의 사용자를 반환할 수 있습니다. 새로운 v2 엔드포인트는 요청당 최대 1,000명의 사용자를 반환할 수 있습니다. 1,000명의 사용자를 모두 반환받으려면 쿼리 매개변수로 max&#95;results=1000 을 전달해야 합니다. 그런 다음 응답 페이로드에 포함된 next&#95;token 을 다음 요청의 pagination&#95;token 쿼리 매개변수로 전달하면 됩니다.
+ 
+
+**App 및 Project 요구 사항**
+
+X API v2 엔드포인트를 사용하려면 요청을 인증할 때 [developer App](/ko/resources/fundamentals/developer-apps)과 [Project](/ko/resources/fundamentals/developer-apps)에 연결된 자격 증명을 사용해야 합니다. 모든 X API v1.1 엔드포인트는 Project 에 연결되지 않은 App 또는 Project 에 연결된 App의 자격 증명 모두를 사용할 수 있습니다.
+
+**응답 data 형식**
+
+표준 v1.1 엔드포인트 버전과 X API v2 엔드포인트 버전 간의 가장 큰 차이점 중 하나는 페이로드에서 어떤 필드를 반환할지 선택하는 방식입니다.
+
+표준 엔드포인트의 경우 기본적으로 많은 응답 필드를 받게 되며, 이후 매개변수를 사용해 어떤 필드 또는 필드 집합을 페이로드에 반환할지 지정할 수 있습니다.
+
+X API v2 버전은 기본적으로 user id, 이름(name), username 필드만 제공합니다. 추가 필드나 객체를 요청하려면 [fields](/ko/x-api/fundamentals/fields) 및 [expansions](/ko/x-api/fundamentals/expansions) 매개변수를 사용해야 합니다. 이 엔드포인트에서 요청한 사용자 필드는 기본 user 객체에 포함되어 반환됩니다. 확장된 포스트(Post) 객체와 필드는 응답 내 includes 객체에 반환됩니다. 그런 다음 user 와 확장된 포스트(Post) 객체에 있는 ID 를 서로 매칭하여 확장된 객체를 다시 user 객체에 매핑할 수 있습니다. 
+
+이러한 새로운 매개변수에 대해서는 각 가이드를 더 읽어보시거나, [fields 및 expansions 사용 방법](/ko/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions)에 대한 가이드를 참고하시기를 권장합니다. 
+
+또한 표준 v1.1 필드를 최신 v2 필드에 매핑하는 데 도움이 되는 [data 형식 마이그레이션 가이드](/ko/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2)도 제공하고 있습니다. 이 가이드는 특정 필드를 반환하기 위해 v2 요청과 함께 전달해야 하는 expansion 및 field 매개변수를 구체적으로 안내합니다. 
+ 
+
+특정 필드를 요청하는 방식의 변경 사항 외에도, X API v2는 API가 반환하는 객체에 대해 새로운 JSON 설계를 도입하고 있으며, 여기에는 [Post](/ko/x-api/fundamentals/data-dictionary#tweet) 및 [user](/ko/x-api/fundamentals/data-dictionary#user) 객체가 포함됩니다.
+
+* JSON 루트 레벨에서, 표준 엔드포인트는 statuses 배열에 Post 객체를 반환하는 반면, X API v2는 data 배열을 반환합니다. 
+* Retweeted 및 Quoted &quot;statuses&quot;를 참조하는 대신, X API v2 JSON은 리트윗(Retweeted) 및 인용(Quoted) 트윗을 참조합니다. contributors 및 user.translator&#95;type 과 같은 많은 레거시 및 사용 중단 필드는 제거됩니다. 
+* Post 객체의 favorites 와 user 객체의 favourites 를 모두 사용하는 대신, X API v2는 like 라는 용어를 사용합니다. 
+* X는 값이 없는 JSON 값(예: null)은 페이로드에 기록하지 않는 규칙을 채택하고 있습니다. Post 및 user 속성은 null 이 아닌 값을 가진 경우에만 포함됩니다. 
+   
+
+또한 [Post 객체](/ko/x-api/fundamentals/data-dictionary#tweet)에 다음과 같은 새로운 필드 세트를 도입했습니다.
+
+* [conversation&#95;id](/ko/x-api/fundamentals/conversation-id) 필드
+* context 및 entities 를 포함하는 두 개의 새로운 [annotations](/ko/x-api/fundamentals/post-annotations) 필드
+* 여러 개의 새로운 [metrics](/ko/x-api/fundamentals/metrics) 필드 
+* 특정 포스트에 누가 답글을 달 수 있는지를 보여주는 새로운 reply&#95;setting 필드
+
+**요청 매개변수**
+
+다음 표준 v1.1 요청 매개변수에는 X API v2에서 상응하는 매개변수가 있습니다:
+
+| **표준** | **X API v2** |
+| :--- | :--- |
+| stringify&#95;ids | 해당 없음 |
+| cursor | pagination&#95;token |
+| skip&#95;status | 해당 없음 |
+
+또한 X API v2에서 지원되지 않는 표준 v1.1 Mutes 조회용 요청 매개변수들도 있습니다:
+
+| 표준 | 설명 |
+| :--- | :--- |
+| include&#95;entities | 이 매개변수는 포스트 페이로드에서 entities 노드를 제거하는 데 사용됩니다. 이제 추가적인 필드 및 expansions 기능으로 대체되었습니다. |
+
+***
+
+<div id="code-examples">
+  ## 코드 예제
+</div>
+
+<div id="get-muted-users-v2">
+  ### 음소거한 사용자 조회하기 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context 인증이 필요합니다.
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 페이지네이션을 사용해 음소거한 사용자 조회하기
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 페이지네이션을 사용해 음소거한 사용자 조회하기
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>

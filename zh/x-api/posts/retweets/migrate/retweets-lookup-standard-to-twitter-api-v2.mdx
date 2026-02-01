@@ -1,0 +1,147 @@
+---
+title: 转推查询
+sidebarTitle: 转推查询
+keywords: ["转推查询迁移", "v1.1 到 v2 的转推查询", "迁移转推查询", "Standard 到 v2 的转推", "转推迁移"]
+---
+
+<div id="retweets-lookup-standard-v11-compared-to-x-api-v2">
+  ### 转推查询：标准版 v1.1 与 X API v2 的比较
+</div>
+
+如果你一直在使用标准版 v1.1 中的 [v1.1 GET statuses/retweets/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweets-id)、[v1.1 GET statuses/retweets/:ids](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweeters-ids)，本指南旨在帮助你了解标准版 v1.1 与 X API v2 转推查询端点之间的相似点和差异。
+
+* **相似点**
+  * 认证方式
+  * 每个请求的用户数量上限
+* **差异**
+  * 端点 URL
+
+  * 请求限制
+
+  * App 和 Project 要求
+
+  * 响应数据格式
+
+  * 请求参数
+
+<div id="similarities">
+  #### 相似之处
+</div>
+
+**身份验证**
+
+标准 v1.1 和 X API v2 的 Retweets 查询端点（[v1.1 GET statuses/retweets/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweets-id) 和 [v1.1 GET statuses/retweeters/:ids](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweeters-ids)）都使用 [OAuth 1.0a 用户上下文](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) 或 OAuth 2.0 Bearer Token。
+
+**每个请求的用户数量限制**
+
+对于 v1.1 和 v2 的 GET 端点，Retweets 查询端点每次请求返回的用户数量上限都是 100 个用户。对于 v2 的 Retweets 查询端点，不会传递任何分页令牌参数；默认情况下会返回 100 个用户，这是可返回的最大数量。
+
+<div id="differences">
+  #### 差异
+</div>
+
+**Endpoint URL**
+
+* 标准 v1.1 endpoint：
+  * https://api.x.com/1.1/statuses/retweets/:id.json
+    （返回由 `id` 参数指定的帖子最近 100 条转推的集合）
+  * `https://api.x.com/1.1/statuses/retweeters/ids.json`
+    （返回由 `id` 参数指定的帖子中，最多 100 个转推该帖子的用户 ID 的集合）
+* X API v2 endpoint：
+  * https://api.x.com/2/tweets/:id/retweeted&#95;by
+    （返回转推了指定帖子的账号列表）
+
+**App 和 Project 要求**
+
+在对请求进行认证时，X API v2 endpoint 要求你使用来自一个 [developer App](/zh/resources/fundamentals/developer-apps) 且该 App 关联到某个 [Project](/zh/resources/fundamentals/developer-apps) 的凭证。所有 X API v1.1 endpoint 则可以使用来自独立 App 或与某个 Project 关联的 App 的凭证。
+
+**响应数据格式**
+
+标准 v1.1 和 X API v2 版本 endpoint 之间最大差异之一，在于你如何指定在 payload 中返回哪些字段。
+
+对于标准 endpoint，你默认会收到许多响应字段，然后可以选择使用参数来指定哪些字段或字段集应包含在 payload 中。
+
+X API v2 版本默认只返回用户的 id、名称（name）和用户名字段。若要请求任何其他字段或对象，你需要使用 [fields](/zh/x-api/fundamentals/fields) 和 [expansions](/zh/x-api/fundamentals/expansions) 参数。你从该 endpoint 请求的任何用户字段都会返回在主用户对象中。任何扩展的帖子对象及其字段都会返回在响应中的一个包含对象（`includes` 对象）内。然后你可以通过匹配用户对象与扩展帖子对象中出现的 ID，将扩展对象与用户对象关联起来。 
+
+我们建议你阅读各自指南中关于这些新参数的更多内容，或者参阅我们的[如何使用 fields 和 expansions](/zh/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) 指南。 
+
+我们还整理了一份 [数据格式迁移指南](/zh/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2)，帮助你将标准 v1.1 字段映射到较新的 v2 字段。该指南还会为你提供在 v2 请求中需要传递的具体扩展和字段参数，以返回特定字段。 
+ 
+
+除了更改你请求某些字段的方式之外，X API v2 还为 API 返回的对象引入了新的 JSON 设计，包括 [Post](/zh/x-api/fundamentals/data-dictionary#tweet) 和 [user](/zh/x-api/fundamentals/data-dictionary#user) 对象。
+
+* 在 JSON 根级别，标准 endpoint 在 `statuses` 数组中返回 Post 对象，而 X API v2 在 `data` 数组中返回 Post 对象。 
+* X API v2 的 JSON 不再引用被转推和被引用的 “statuses”，而是引用被转推和被引用的推文（Tweets）。许多旧版和已弃用字段（例如 contributors 和 user.translator&#95;type）将被移除。 
+* X API v2 不再同时使用 favorites（Post 对象中的字段）和 favourites（user 对象中的字段），而统一使用术语 like。 
+* X 采用这样一种约定：对于没有值的 JSON 值（例如 null），不会写入 payload 中。仅当 Post 和 user 属性的值为非 null 时，这些属性才会被包含。 
+   
+
+我们还为 [Post 对象](/zh/x-api/fundamentals/data-dictionary#tweet) 引入了一组新的字段，包括以下内容：
+
+* 一个 [conversation&#95;id](/zh/x-api/fundamentals/conversation-id) 字段
+* 两个新的 [annotations](/zh/x-api/fundamentals/post-annotations) 字段，包括 context 和 entities
+* 若干新的 [metrics](/zh/x-api/fundamentals/metrics) 字段 
+* 一个新的 reply&#95;setting 字段，用于表明谁可以回复某条帖子
+
+**请求参数**
+
+以下标准 v1.1 请求参数接受两个查询参数（user&#95;id 或 screen&#95;name）。X API v2 只接受数值型用户 ID，并且该 ID 必须作为 endpoint 路径的一部分传递。
+
+***
+
+<div id="code-examples">
+  ## 代码示例
+</div>
+
+<div id="get-users-who-retweeted-a-post-v2">
+  ### 获取转发指定帖子（Post）的用户列表（v2）
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/retweeted_by?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1234567890/retweeted_by"
+
+  params = {"user.fields": "username,verified"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  response = requests.get(url, headers=headers, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取转发该帖子（Post）的用户列表
+  response = client.posts.get_retweeted_by(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 获取转发该帖子（Post）的用户列表
+  const response = await client.posts.getRetweetedBy("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>

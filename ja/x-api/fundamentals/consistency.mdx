@@ -1,0 +1,215 @@
+---
+title: API の一貫性
+sidebarTitle: 一貫性
+description: X API v2 のエンドポイント全体での一貫したパターン
+keywords: ["一貫性", "API の一貫性", "統一された API", "一貫したエンドポイント", "API 設計"]
+---
+
+X API v2 は、すべてのエンドポイントで一貫したパターンを採用するように設計されています。1 つのエンドポイントの動作を理解すれば、同じパターンを他のすべてのエンドポイントにも適用できます。
+
+***
+
+<div id="consistent-patterns">
+  ## 一貫性のあるパターン
+</div>
+
+<div id="url-structure">
+  ### URL 構造
+</div>
+
+すべての v2 エンドポイントは、一貫したパターンに従います。
+
+```
+/version/resource/{id}?parameters
+/version/resource/verb?parameters
+```
+
+例：
+
+```
+/2/tweets/1234567890                    # Get a specific post
+/2/tweets/search/recent                 # Search recent posts
+/2/users/by/username/xdevelopers        # Get user by username
+/2/users/1234/followers                 # ユーザーのフォロワーを取得
+```
+
+<div id="response-structure">
+  ### レスポンス構造
+</div>
+
+すべてのレスポンスは同じトップレベルの構造を持ちます。
+
+```json
+{
+  "data": { ... },       // プライマリオブジェクト
+  "includes": { ... },   // 展開されたオブジェクト
+  "meta": { ... },       // ページネーション、カウント
+  "errors": [ ... ]      // 部分的なエラー(存在する場合)
+}
+```
+
+<div id="id-format">
+  ### ID の形式
+</div>
+
+すべての ID は、言語間の互換性を確保するために文字列型として返されます。
+
+```json
+{
+  "id": "1234567890123456789",
+  "author_id": "2244994945"
+}
+```
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドと展開
+</div>
+
+同じ [fields](/ja/x-api/fundamentals/fields) および [expansions](/ja/x-api/fundamentals/expansions) パラメータを一貫して利用できます。
+
+| オブジェクト | fields パラメータ | 適用対象 |
+|:-------|:-----------------|:-------------|
+| 投稿 | `tweet.fields` | 投稿を返すすべてのエンドポイント |
+| User | `user.fields` | User を返すすべてのエンドポイント |
+| Media | `media.fields` | Media の展開をサポートするすべてのエンドポイント |
+| Poll | `poll.fields` | Poll の展開をサポートするすべてのエンドポイント |
+| Place | `place.fields` | Place の展開をサポートするすべてのエンドポイント |
+
+***
+
+<div id="object-schemas">
+  ## オブジェクトスキーマ
+</div>
+
+同じ種類のオブジェクトは、どのエンドポイントから返されるかに関係なく、同じフィールドを持ちます。
+
+* search エンドポイントから取得した投稿は、lookup エンドポイントから取得した投稿と同じフィールドを持ちます
+* followers エンドポイントから取得した User は、search エンドポイントから取得した User と同じフィールドを持ちます
+* 展開されたオブジェクトは、それぞれ対応する単体オブジェクトと同じフィールド構成になります
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+すべてのエンドポイントで同じ認証方式を使用します。
+
+| 方法 | ヘッダー形式 |
+|:-------|:--------------|
+| Bearer Token | `Authorization: Bearer {token}` |
+| OAuth 1.0a | `Authorization: OAuth {parameters}` |
+| OAuth 2.0 | `Authorization: Bearer {user_token}` |
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+エラーは一貫した形式で返されます。
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The query parameter is missing",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+[すべてのエラーの種類を見る →](/ja/x-api/fundamentals/response-codes-and-errors)
+
+***
+
+<div id="pagination">
+  ## ページネーション
+</div>
+
+すべてのページネーション対応エンドポイントは同一のトークンシステムを使用します。
+
+| Parameter | Description |
+|:----------|:------------|
+| `max_results` | 1ページあたりの結果数 |
+| `pagination_token` | `next_token` または `previous_token` から取得するトークン |
+
+[ページネーションについて詳しく見る →](/ja/x-api/fundamentals/pagination)
+
+***
+
+<div id="naming-conventions">
+  ## 命名規則
+</div>
+
+* アメリカ英語のつづり（`favourites` ではなく `favorites`）
+* フィールド名にはスネークケース表記を使用（`author_id`、`created_at`）
+* 用語を一貫して使用する（フィールドでは `repost_count` ではなく `retweet_count`）
+
+***
+
+<div id="empty-values">
+  ## 空の値
+</div>
+
+値を持たないフィールドは、`null` を返すのではなく、省略されます。
+
+```json
+// User without a bio
+{
+  "id": "1234",
+  "name": "Example User",
+  "username": "example"
+  // "description" は省略されており、null ではない
+}
+```
+
+***
+
+<div id="entity-consistency">
+  ## エンティティの整合性
+</div>
+
+`entities` オブジェクトには、テキストから抽出されたエンティティのみが含まれます：
+
+* `urls`
+* `hashtags`
+* `mentions`
+* `cashtags`
+
+メディアと投票は `entities` ではなく `attachments` に含まれます。
+
+***
+
+<div id="what-this-means-for-you">
+  ## これによって得られるメリット
+</div>
+
+<CardGroup cols={2}>
+  <Card title="一度学べばどこでも使える" icon="graduation-cap">
+    あるエンドポイントで学んだパターンは、すべてのエンドポイントに適用できます。
+  </Card>
+
+  <Card title="予測可能なレスポンス" icon="square-check">
+    同じオブジェクトタイプは、API 全体で同じ構造になっています。
+  </Card>
+
+  <Card title="よりシンプルなコード" icon="code">
+    共通パターンに対して再利用可能な関数を作成できます。
+  </Card>
+
+  <Card title="デバッグが容易" icon="bug">
+    一貫したエラー形式により、トラブルシューティングが容易になります。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="report-inconsistencies">
+  ## 不整合の報告
+</div>
+
+不整合を見つけましたか？次のいずれかからお知らせください。
+
+* [Developer Forum](https://devcommunity.x.com)
+* [Developer Feedback](https://t.co/devfeedback)

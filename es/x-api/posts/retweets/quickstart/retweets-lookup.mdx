@@ -1,0 +1,206 @@
+---
+title: Consulta de retuits
+sidebarTitle: Consulta de retuits
+description: Obtén los usuarios que hicieron Retuit de una publicación
+keywords: ["búsqueda de retuits", "inicio rápido de retuits", "obtener retuits", "tutorial de retuits", "guía de retuits", "ejemplo de retuits"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te muestra cómo obtener los usuarios que hicieron Retuit de una Publicación específica.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * El Bearer Token de tu App (para datos públicos) o el User Access Token (para métricas privadas)
+</Note>
+
+***
+
+<div id="get-users-who-retweeted-a-post">
+  ## Obtener usuarios que hicieron Retuit de una Publicación
+</div>
+
+<Steps>
+  <Step title="Encontrar el ID de la Publicación">
+    Obtén el ID de la Publicación para la que quieres buscar Retuits:
+
+    ```
+    https://x.com/XDevelopers/status/1354143047324299264
+                                    └── Este es el ID de la Publicación
+    ```
+  </Step>
+
+  <Step title="Realizar la solicitud">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+      user.fields=created_at,username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Obtener usuarios que hicieron Retuit de una Publicación con paginación
+      for page in client.posts.get_retweeted_by(
+          "1354143047324299264",
+          user_fields=["created_at", "username", "verified"]
+      ):
+          for user in page.data:
+              print(f"{user.username} - Se unió: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Obtener usuarios que hicieron Retuit de una Publicación con paginación
+      const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+        userFields: ["created_at", "username", "verified"],
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Se unió: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Revisar la respuesta">
+    ```json
+    {
+      "data": [
+        {
+          "created_at": "2008-12-04T18:51:57.000Z",
+          "id": "17874544",
+          "username": "TwitterSupport",
+          "name": "Twitter Support",
+          "verified": true
+        },
+        {
+          "created_at": "2007-02-20T14:35:54.000Z",
+          "id": "783214",
+          "username": "Twitter",
+          "name": "Twitter",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## Incluir datos adicionales
+</div>
+
+Utiliza el parámetro expansions para obtener datos relacionados, como Publicaciones fijadas:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtén los usuarios que han hecho Retuit usando expansions
+  for page in client.posts.get_retweeted_by(
+      "1354143047324299264",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # Las Publicaciones fijadas están en page.includes.tweets
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtén los usuarios que han hecho Retuit usando expansions
+  const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // Las Publicaciones fijadas están en page.includes?.tweets
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Respuesta con expansión
+</div>
+
+```json
+{
+  "data": [
+    {
+      "pinned_tweet_id": "1389270063807598594",
+      "created_at": "2018-11-21T14:24:58.000Z",
+      "id": "1065249714214457345",
+      "username": "TwitterSpaces",
+      "name": "Spaces"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-05-03T17:26:09.000Z",
+        "id": "1389270063807598594",
+        "text": "now, everyone with 600 or more followers can host a Space..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Administrar retuits" icon="retweet" href="/es/x-api/posts/retweets/quickstart/manage-retweets">
+    Retuitear y deshacer retuits
+  </Card>
+
+  <Card title="Citar publicaciones" icon="quote-left" href="/es/x-api/posts/quote-tweets/quickstart">
+    Obtener publicaciones citadas
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/posts/get-retweeted-by">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

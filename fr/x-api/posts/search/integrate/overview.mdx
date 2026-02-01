@@ -1,0 +1,299 @@
+---
+title: Guide d'intégration
+sidebarTitle: Vue d'ensemble
+description: Concepts clés et bonnes pratiques pour l'intégration de Search Posts
+keywords: ["intégration de recherche", "vue d'ensemble de la recherche", "guide de recherche", "implémentation de la recherche", "intégration de la recherche de Tweets"]
+---
+
+Ce guide présente les concepts clés indispensables pour intégrer les endpoints Search Posts dans votre application.
+
+***
+
+<div id="authentication">
+  ## Authentification
+</div>
+
+<div id="recent-search">
+  ### Recherche récente
+</div>
+
+La recherche récente prend en charge plusieurs méthodes d’authentification :
+
+| Méthode | Cas d’utilisation |
+|:-------|:------------------|
+| [OAuth 2.0 App-Only](/fr/resources/fundamentals/authentication#oauth-2-0) | Données de publications publiques |
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Métriques privées |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Métriques privées |
+
+<div id="full-archive-search">
+  ### Recherche dans l’archive complète
+</div>
+
+La recherche dans l’archive complète ne prend en charge que l’authentification [OAuth 2.0 App-Only](/fr/resources/fundamentals/authentication#oauth-2-0).
+
+<Warning>
+  Les métriques privées (`non_public_metrics`, `organic_metrics`, `promoted_metrics`) ne sont pas disponibles avec la recherche dans l’archive complète, car elle ne prend en charge que l’authentification App-Only.
+</Warning>
+
+***
+
+<div id="building-queries">
+  ## Création de requêtes
+</div>
+
+Les requêtes utilisent des opérateurs pour cibler des Publications. Combinez les opérateurs à l’aide de la logique booléenne :
+
+```
+(AI OR "machine learning") lang:en -is:retweet has:links
+```
+
+<div id="query-length-limits">
+  ### Limites de longueur des requêtes
+</div>
+
+| Niveau d’accès | Recherche récente | Recherche dans l’archive complète |
+|:-------------|:--------------|:--------------------|
+| Self-serve | 512 caractères | 1 024 caractères |
+| Enterprise | 4 096 caractères | 4 096 caractères |
+
+<div id="operator-types">
+  ### Types d’opérateurs
+</div>
+
+| Type | Description | Example |
+|:-----|:------------|:--------|
+| **Autonome** | Peut être utilisé seul | `#python`, `from:user` |
+| **Conjonction requise** | Doit être utilisé avec un opérateur autonome | `has:media`, `is:retweet` |
+
+<Card title="Créer une requête" icon="magnifying-glass" href="/fr/x-api/posts/search/integrate/build-a-query">
+  Apprenez la syntaxe des requêtes en détail
+</Card>
+
+<Card title="Référence des opérateurs" icon="list-check" href="/fr/x-api/posts/search/integrate/operators">
+  Consultez tous les opérateurs disponibles
+</Card>
+
+***
+
+<div id="fields-and-expansions">
+  ## Champs et expansions
+</div>
+
+Par défaut, la réponse inclut uniquement `id`, `text` et `edit_history_tweet_ids`. Utilisez des paramètres pour demander des données supplémentaires.
+
+<div id="example-request">
+  ### Exemple de requête
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/recent?\
+  query=python&\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Rechercher des publications récentes
+  for page in client.posts.search_recent(
+      query="python",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text} - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Rechercher des publications récentes
+  const paginator = client.posts.searchRecent("python", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="available-expansions">
+  ### Expansions disponibles
+</div>
+
+| Expansion | Renvoie |
+|:----------|:--------|
+| `author_id` | Objet utilisateur de l’auteur |
+| `attachments.media_keys` | Objets média joints |
+| `attachments.poll_ids` | Objets de sondage joints |
+| `referenced_tweets.id` | Publications citées ou en réponse |
+| `geo.place_id` | Objets de lieu |
+| `entities.mentions.username` | Objets utilisateur mentionnés |
+
+<Card title="Guide des champs et expansions" icon="sliders" href="/fr/x-api/fundamentals/fields">
+  En savoir plus sur la personnalisation des réponses
+</Card>
+
+***
+
+<div id="pagination">
+  ## Pagination
+</div>
+
+Les endpoints de recherche renvoient les résultats sous forme de pages. Utilisez le `next_token` de la réponse pour récupérer d’autres pages de résultats.
+
+<div id="how-it-works">
+  ### Comment ça fonctionne
+</div>
+
+1. Faites votre requête initiale avec `max_results`
+2. Vérifiez la présence de `next_token` dans l&#39;objet `meta`
+3. Incluez le `next_token` dans les requêtes suivantes
+4. Répétez jusqu&#39;à ce qu&#39;aucun `next_token` ne soit plus renvoyé
+
+<div id="example">
+  ### Exemple
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # Première requête
+  curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # Requête suivante avec jeton de pagination
+  curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100&next_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Le SDK gère automatiquement la pagination
+  all_posts = []
+
+  for page in client.posts.search_recent(query="python", max_results=100):
+      if page.data:
+          all_posts.extend(page.data)
+
+  print(f"{len(all_posts)} publications trouvées")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllResults(query) {
+    const allPosts = [];
+
+    // Le SDK gère automatiquement la pagination
+    const paginator = client.posts.searchRecent(query, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allPosts.push(...page.data);
+      }
+    }
+
+    return allPosts;
+  }
+
+  // Utilisation
+  const posts = await getAllResults("python");
+  console.log(`Nombre de publications trouvées : ${posts.length}`);
+  ```
+</CodeGroup>
+
+<Card title="Guide de pagination" icon="arrow-right" href="/fr/x-api/posts/search/integrate/paginate">
+  En savoir plus sur la pagination
+</Card>
+
+***
+
+<div id="post-edits">
+  ## Modifications de publications
+</div>
+
+Les publications peuvent être modifiées jusqu&#39;à 5 fois dans les 30 minutes qui suivent. Les points de terminaison de recherche renvoient toujours la version la plus récente.
+
+<div id="considerations">
+  ### Points à prendre en compte
+</div>
+
+* `edit_history_tweet_ids` contient tous les ID de Publication (de la plus ancienne à la plus récente)
+* Les Publications récupérées après la fenêtre de 30 minutes représentent la version finale
+* Pour les cas d&#39;utilisation en quasi temps réel, les Publications récemment publiées peuvent encore être modifiées
+
+<Card title="Principes de base de l’édition de Publications" icon="clock-rotate-left" href="/fr/x-api/fundamentals/edit-posts">
+  En savoir plus sur l’édition des Publications
+</Card>
+
+***
+
+<div id="best-practices">
+  ## Bonnes pratiques
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Commencer de façon ciblée" icon="crosshairs">
+    Utilisez plusieurs opérateurs pour affiner les résultats et réduire le bruit.
+  </Card>
+
+  <Card title="Tester de façon itérative" icon="flask">
+    Commencez avec un périmètre large, puis affinez en fonction des résultats.
+  </Card>
+
+  <Card title="Gérer la pagination" icon="arrow-right">
+    Mettez en place une pagination adaptée pour les grands ensembles de résultats.
+  </Card>
+
+  <Card title="Mettre les résultats en cache" icon="database">
+    Stockez les résultats localement pour éviter les requêtes répétées.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Créer une requête" icon="magnifying-glass" href="/fr/x-api/posts/search/integrate/build-a-query">
+    Maîtriser la syntaxe des requêtes
+  </Card>
+
+  <Card title="Référence des opérateurs" icon="list-check" href="/fr/x-api/posts/search/integrate/operators">
+    Tous les opérateurs disponibles
+  </Card>
+
+  <Card title="Pagination" icon="arrow-right" href="/fr/x-api/posts/search/integrate/paginate">
+    Gérer des ensembles de résultats volumineux
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/posts/recent-search">
+    Documentation complète du point de terminaison
+  </Card>
+</CardGroup>

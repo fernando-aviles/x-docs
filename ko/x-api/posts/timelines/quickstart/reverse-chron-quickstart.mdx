@@ -1,0 +1,244 @@
+---
+title: 홈 타임라인 퀵스타트
+sidebarTitle: 홈 타임라인
+description: 사용자의 홈 타임라인을 최신순으로 가져오기
+keywords: ["home timeline", "reverse chronological", "home timeline quickstart", "timeline quickstart", "home timeline tutorial"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 최신순 홈 타임라인 엔드포인트에 첫 요청을 보내는 방법을 단계별로 안내합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * 승인이 완료된 App이 연결된 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 이 엔드포인트에는 사용자 인증이 필요하므로 사용자 액세스 토큰(User Access Tokens)
+</Note>
+
+***
+
+<div id="step-1-get-the-user-id">
+  ## 1단계: 사용자 ID 가져오기
+</div>
+
+홈 타임라인을 가져오려는 계정의 사용자 ID가 필요합니다. username 조회 엔드포인트를 사용해 찾습니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  response = client.users.get_by_username("XDevelopers")
+  print(f"User ID: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(`User ID: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+응답에는 사용자 ID가 포함되어 있습니다:
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+***
+
+<div id="step-2-request-the-home-timeline">
+  ## 2단계: 홈 타임라인 요청
+</div>
+
+사용자 ID와 사용자 액세스 토큰을 사용해 GET 요청을 수행합니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Get home timeline with pagination
+  for page in client.posts.get_home_timeline("2244994945"):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Get home timeline with pagination
+  const paginator = client.posts.getHomeTimeline("2244994945");
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-3-review-the-response">
+  ## 3단계: 응답 검토
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1524796546306478083",
+      "text": "Today marks the launch of Devs in the Details...",
+      "edit_history_tweet_ids": ["1524796546306478083"]
+    },
+    {
+      "id": "1524468552404668416",
+      "text": "Join us tomorrow for a discussion about bots...",
+      "edit_history_tweet_ids": ["1524468552404668416"]
+    }
+  ],
+  "meta": {
+    "result_count": 2,
+    "newest_id": "1524796546306478083",
+    "oldest_id": "1524468552404668416",
+    "next_token": "7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4"
+  }
+}
+```
+
+***
+
+<div id="step-4-add-fields-and-expansions">
+  ## 4단계: 필드와 expansions 추가
+</div>
+
+쿼리 매개변수를 사용해 추가 데이터를 요청합니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified&\
+  max_results=10" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 필드와 expansions를 포함하여 홈 타임라인 가져오기
+  for page in client.posts.get_home_timeline(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 필드와 expansions를 포함하여 홈 타임라인 가져오기
+  const paginator = client.posts.getHomeTimeline("2244994945", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-5-paginate-through-results">
+  ## 5단계: 결과 페이지네이션 처리
+</div>
+
+SDK는 페이지네이션을 자동으로 처리합니다. cURL을 사용할 때는 더 많은 결과를 가져오기 위해 응답의 `next_token`을 사용하세요:
+
+```bash
+curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+max_results=10&\
+pagination_token=7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="common-parameters">
+  ## 공통 매개변수
+</div>
+
+| Parameter | Description | Default |
+|:----------|:------------|:--------|
+| `max_results` | 페이지당 결과 수 (1-100) | 10 |
+| `start_time` | 가장 오래된 포스트의 타임스탬프 (ISO 8601) | — |
+| `end_time` | 가장 최신 포스트의 타임스탬프 (ISO 8601) | — |
+| `since_id` | 이 ID 이후의 포스트만 반환 | — |
+| `until_id` | 이 ID 이전의 포스트만 반환 | — |
+| `exclude` | `retweets`, `replies` 또는 둘 다 제외 | — |
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="사용자 멘션" icon="at" href="/ko/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    사용자를 멘션한 포스트 가져오기
+  </Card>
+
+  <Card title="통합 가이드" icon="book" href="/ko/x-api/posts/timelines/integrate">
+    핵심 개념과 모범 사례
+  </Card>
+
+  <Card title="API 레퍼런스" icon="code" href="/ko/x-api/posts/reverse-chronological-timeline-by-user-id">
+    전체 엔드포인트 문서
+  </Card>
+
+  <Card title="페이지네이션 가이드" icon="arrow-right" href="/ko/x-api/fundamentals/pagination">
+    대규모 결과 집합 탐색
+  </Card>
+</CardGroup>

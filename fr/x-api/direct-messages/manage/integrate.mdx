@@ -1,0 +1,315 @@
+---
+title: Guide d’intégration
+sidebarTitle: Guide d’intégration
+description: Concepts clés et bonnes pratiques pour l’envoi de messages privés
+keywords: ["intégration de gestion des messages privés", "intégration de gestion des DM", "intégration d’envoi de DM"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide présente les principaux concepts nécessaires pour intégrer les endpoints de gestion des Messages privés à votre application.
+
+***
+
+<div id="authentication">
+  ## Authentification
+</div>
+
+Les endpoints de Messages privés (DM) nécessitent une authentification utilisateur :
+
+| Méthode | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandée |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Support hérité |
+
+<Warning>
+  L’authentification App-only n’est pas prise en charge. Tous les Messages privés sont strictement privés.
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### Scopes obligatoires (OAuth 2.0)
+</div>
+
+| Scope | Obligatoire pour |
+|:------|:-------------|
+| `dm.write` | L’envoi et la suppression de messages |
+| `dm.read` | Obligatoire avec dm.write |
+| `tweet.read` | Obligatoire avec les scopes dm |
+| `users.read` | Obligatoire avec les scopes dm |
+
+***
+
+<div id="endpoints-overview">
+  ## Aperçu des endpoints
+</div>
+
+| Méthode | Endpoint | Description |
+|:-------|:---------|:------------|
+| POST | `/2/dm_conversations/with/:participant_id/messages` | Envoyer un message individuel |
+| POST | `/2/dm_conversations` | Créer une conversation de groupe |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | Ajouter un message à la conversation |
+| DELETE | `/2/dm_events/:event_id` | Supprimer un message |
+
+***
+
+<div id="sending-messages">
+  ## Envoi de messages
+</div>
+
+<div id="one-to-one-message">
+  ### Message privé individuel
+</div>
+
+Envoyez un message à un utilisateur en particulier. Crée une nouvelle conversation si aucune n’existe :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Envoyer un message privé individuel
+  response = client.dm_conversations.create_message(
+      participant_id="9876543210",
+      text="Hello!"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Envoyer un message privé individuel
+  const response = await client.dmConversations.createMessage({
+    participantId: "9876543210",
+    text: "Hello!",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="group-conversation">
+  ### Conversation de groupe
+</div>
+
+Créez un nouveau groupe et envoyez le premier message :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "conversation_type": "Group",
+      "participant_ids": ["944480690", "906948460078698496"],
+      "message": {"text": "Bienvenue dans notre groupe !"}
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Créer une conversation de groupe
+  response = client.dm_conversations.create(
+      conversation_type="Group",
+      participant_ids=["944480690", "906948460078698496"],
+      message={"text": "Bienvenue dans notre groupe !"}
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Créer une conversation de groupe
+  const response = await client.dmConversations.create({
+    conversationType: "Group",
+    participantIds: ["944480690", "906948460078698496"],
+    message: { text: "Bienvenue dans notre groupe !" },
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Note>
+  Le champ `conversation_type` doit avoir la valeur `"Group"` (sensible à la casse).
+</Note>
+
+<div id="add-to-existing-conversation">
+  ### Ajouter à une conversation existante
+</div>
+
+Envoyez un message à n&#39;importe quelle conversation à laquelle vous participez :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Another message"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Ajouter un message à une conversation existante
+  response = client.dm_conversations.add_message(
+      dm_conversation_id="1582103724607971328",
+      text="Another message"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Ajouter un message à une conversation existante
+  const response = await client.dmConversations.addMessage({
+    dmConversationId: "1582103724607971328",
+    text: "Another message",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-attachments">
+  ## Pièces jointes multimédias
+</div>
+
+Ajoutez un élément multimédia (photo, vidéo ou GIF) par message.
+
+<Steps>
+  <Step title="Téléverser un média">
+    Utilisez le point de terminaison [Media Upload](/fr/x-api/media/quickstart/media-upload-chunked) pour téléverser votre fichier et obtenir un `media_id`.
+  </Step>
+
+  <Step title="Inclure dans le message">
+    ```json
+    {
+      "text": "Regardez cette image !",
+      "attachments": [{"media_id": "1583157113245011970"}]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  * L’utilisateur authentifié doit être celui qui a téléversé le média
+  * Le média est disponible pendant 24 heures après le téléversement
+  * Un seul média peut être joint par message
+</Note>
+
+***
+
+<div id="sharing-posts">
+  ## Partage de publications
+</div>
+
+Incluez une publication dans votre message en ajoutant l’URL de la publication au texte :
+
+```json
+{
+  "text": "Avez-vous vu ceci ? https://x.com/XDevelopers/status/1580559079470145536"
+}
+```
+
+La réponse contiendra un champ `referenced_tweets` avec l’identifiant de la Publication.
+
+***
+
+<div id="message-requirements">
+  ## Exigences relatives aux messages
+</div>
+
+| Field | Obligatoire | Notes |
+|:------|:---------|:------|
+| `text` | Oui* | Obligatoire si aucune pièce jointe |
+| `attachments` | Oui* | Obligatoire si aucun texte |
+
+*Au moins l’un des champs `text` ou `attachments` doit être renseigné.
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## Compatibilité des identifiants avec la v1.1
+</div>
+
+Les identifiants de conversation et d’événement sont partagés entre les points de terminaison v1.1 et v2. Cela permet des flux de travail hybrides :
+
+* Créer des messages avec la v2
+* Supprimer des messages avec la v1.1 (pas encore disponible dans la v2)
+* Faire référence aux identifiants de conversation à partir des URL x.com
+
+***
+
+<div id="error-handling">
+  ## Gestion des erreurs
+</div>
+
+| Statut | Erreur | Solution |
+|:-------|:------|:---------|
+| 400 | Requête invalide | Vérifiez le format du corps de la requête |
+| 401 | Non autorisé | Vérifiez le jeton d’accès |
+| 403 | Accès refusé | Vérifiez les scopes et les autorisations de l’utilisateur |
+| 429 | Trop de requêtes | Patientez avant de réessayer |
+
+<div id="common-issues">
+  ### Problèmes courants
+</div>
+
+<AccordionGroup>
+  <Accordion title="Impossible d’envoyer un message à l’utilisateur">
+    Le destinataire peut avoir des paramètres de MD qui empêchent les messages provenant d’utilisateurs inconnus, ou peut vous avoir bloqué.
+  </Accordion>
+
+  <Accordion title="Échec de la pièce jointe multimédia">
+    Assurez-vous que le média a été téléversé par le même utilisateur authentifié et qu’il a été téléversé il y a moins de 24 heures.
+  </Accordion>
+
+  <Accordion title="Échec de la création du groupe">
+    Vérifiez que tous les ID des participants sont valides et que les utilisateurs autorisent les invitations à des MD de groupe.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Démarrage rapide" icon="rocket" href="/fr/x-api/direct-messages/manage/quickstart">
+    Envoyez votre premier message privé
+  </Card>
+
+  <Card title="Recherche de messages privés" icon="inbox" href="/fr/x-api/direct-messages/lookup/introduction">
+    Récupérez des conversations de messages privés
+  </Card>
+
+  <Card title="Téléversement de médias" icon="image" href="/fr/x-api/media/quickstart/media-upload-chunked">
+    Téléversez des médias pour les pièces jointes
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/direct-messages/create-dm-message-by-participant-id">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

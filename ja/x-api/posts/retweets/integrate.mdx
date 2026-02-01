@@ -1,0 +1,188 @@
+---
+title: 連携ガイド
+sidebarTitle: 連携ガイド
+keywords: ["リツイート連携", "リツイートガイド", "リツイート連携ガイド", "リツイート実装", "リツイート設定"]
+---
+
+このページでは、Retweet エンドポイントを統合するために必要なツールと主要な概念について説明します。
+
+***
+
+<div id="helpful-tools">
+  ## 役立つツール
+</div>
+
+このエンドポイントの統合に役立つ重要な概念を説明する前に、事前に次のツールに慣れておくことをおすすめします。
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman は、エンドポイントを試すのに便利なツールです。各 Postman リクエストには、利用可能な項目をすばやく把握できるよう、すべてのパスパラメータとボディパラメータが含まれています。Postman コレクションの詳細については、「[Using Postman](/ja/tutorials/postman-getting-started)」ページをご覧ください。
+
+<div id="code-samples">
+  #### コードサンプル
+</div>
+
+お好みのプログラミング言語でこのエンドポイントをセットアップしたい場合は、[Github ページ](https://github.com/xdevplatform/Twitter-API-v2-sample-code)に、出発点として利用できるコードサンプルをいくつか用意しています。
+
+<div id="third-party-libraries">
+  #### サードパーティ製ライブラリ
+</div>
+
+コミュニティによる[サードパーティ製ライブラリ](/ja/x-api/tools-and-libraries/overview)を活用して、開発を始めましょう。適切なバージョンタグを探すことで、v2 エンドポイントに対応したライブラリを見つけることができます。
+
+<div id="key-concepts">
+  ### 主な概念
+</div>
+
+<div id="authentication">
+  #### 認証
+</div>
+
+すべての X API v2 エンドポイントでは、キーやトークンとも呼ばれる認証情報セットを使ってリクエストを認証する必要があります。
+
+Retweets ルックアップエンドポイントへのリクエストを認証するには、OAuth 1.0a ユーザーコンテキスト または OAuth 2.0 Bearer Token のいずれかを使用できます。
+
+Retweets を管理するエンドポイントでは OAuth 1.0a ユーザーコンテキスト の使用が必須です。つまり、リクエストを正常に行うには、API キーとユーザーアクセストークンのセットを使用しなければなりません。アクセストークンは、あなたが代理でリクエストを行うユーザーに紐づいている必要があります。別のユーザーのアクセストークンを生成したい場合は、そのユーザーが 3-legged OAuth フローを使ってあなたの App を承認または認証する必要があります。
+
+OAuth 1.0a は扱いが難しい場合があることに注意してください。この認証方式に慣れていない場合は、リクエストを正しく認証するために [library](/ja/x-api/tools-and-libraries/overview) の利用を推奨します。
+
+**注意**
+
+次のフィールドをリクエストする場合は、OAuth 1.0a ユーザーコンテキスト が必須です。
+
+* tweet.fields.non&#95;public&#95;metrics
+* tweet.fields.promoted&#95;metrics
+* tweet.fields.organic&#95;metrics
+* media.fields.non&#95;public&#95;metrics
+* media.fields.promoted&#95;metrics
+* media.fields.organic&#95;metrics
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Developer Console、Project、および開発者用 App
+</div>
+
+X API v2 エンドポイントで使用できる認証情報一式を取得するには、まず[開発者アカウントに登録](https://developer.x.com/en/portal/petition/essential/basic-info)し、そのアカウント内に[Project](/ja/resources/fundamentals/developer-apps)を作成し、その Project 内に[開発者用 App](/ja/resources/fundamentals/developer-apps)を作成する必要があります。これらの手順を完了すると、開発者用 App 内でキーとトークンを確認できます。
+
+<div id="rate-limits">
+  #### レート制限
+</div>
+
+毎日、何万もの開発者が X API にリクエストを送信しています。この膨大な数のリクエストを管理するために、[レート制限](/ja/x-api/fundamentals/rate-limits)が各エンドポイントに設定されており、アプリケーションや認証済みユーザーに代わって行えるリクエスト数が制限されています。
+
+manage Retweets エンドポイントは、15 分あたり 50 件（ユーザーごと）に制限されています。さらに、POST エンドポイントについては、ユーザーごと・アプリごとに 3 時間のウィンドウあたり 300 件に制限されています。
+
+Retweets lookup エンドポイントでは、15 分のウィンドウあたり 75 件に制限されています。さらに、このエンドポイントから返されるのは、最新の Retweeting ユーザー上位 100 件のみです。
+
+<div id="fields-and-expansions">
+  #### フィールドと展開
+</div>
+
+X API v2 では、`fields` と `expansions` と呼ばれる一連のツールを使って、API からどのデータを返すかを正確に指定できます。`expansions` パラメータを使うと、ペイロード内で参照されているオブジェクトを展開して取得できます。たとえば、このエンドポイントでは次の [expansions](/ja/x-api/fundamentals/expansions) を取得できます。
+
+* attachments.poll&#95;ids
+* attachments.media&#95;keys
+* author&#95;id, entities.mentions.username
+* geo.place&#95;id
+* in&#95;reply&#95;to&#95;user&#95;id,
+* referenced&#95;tweets.id,
+* referenced&#95;tweets.id.author&#95;id
+
+`fields` パラメータを使用すると、さまざまなデータオブジェクト内で、受信したい特定の [fields](/ja/x-api/fundamentals/fields) を選択できます。これらのエンドポイントでは、主に Post オブジェクトが返されます。デフォルトでは、Post オブジェクトは `id` と `text` フィールドを返します。`tweet.created_at` や `tweet.entities` のような追加フィールドを受信するには、`fields` パラメータを使ってそれらを明示的にリクエストする必要があります。インテグレーションでの利用を検討すべき重要なフィールドとしては、投票データ、メトリクス、投稿のアノテーション、会話 ID フィールドなどがあります。
+
+[X API v2 data dictionary](/ja/x-api/fundamentals/data-dictionary) には、[fields と expansions を併用する方法](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) を解説したガイドを用意しています。
+
+***
+
+<div id="code-examples">
+  ### コードサンプル
+</div>
+
+<div id="get-users-who-retweeted-a-post">
+  #### 投稿をリポストしたユーザーを取得する
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/retweeted_by?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 投稿をリポストしたユーザーを取得する
+  response = client.posts.get_retweeted_by(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 投稿をリポストしたユーザーを取得する
+  const response = await client.posts.getRetweetedBy("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<div id="retweet-a-post">
+  #### 投稿をリツイートする
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/retweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 投稿をリツイートする
+  response = client.posts.retweet(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 投稿をリツイートする
+  const response = await client.posts.retweet("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

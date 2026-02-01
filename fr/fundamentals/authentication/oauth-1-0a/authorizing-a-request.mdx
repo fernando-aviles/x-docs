@@ -1,0 +1,150 @@
+---
+title: Autorisation d’une requête
+sidebarTitle: Autorisation d’une requête
+keywords: ["autoriser une requête", "autorisation OAuth", "autorisation de requête", "autorisation OAuth 1.0a", "autoriser une requête API"]
+---
+
+import { Button } from "/snippets/fr/button.mdx";
+
+<div id="authorizing-a-request">
+  ### Autoriser une requête
+</div>
+
+L’objectif de ce document est de vous montrer comment modifier des requêtes HTTP afin d’envoyer des requêtes autorisées à X API.
+
+Toutes les API de X sont basées sur le protocole HTTP. Cela signifie que tout logiciel que vous développez et qui utilise les API de X envoie une série de messages structurés aux serveurs de X. Par exemple, une requête pour publier le texte « **Hello Ladies + Gentlemen, a signed OAuth request!** » en tant que Publication ressemblera à ceci :
+
+```
+POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
+Accept: */*
+Connection: close
+User-Agent: OAuth gem v0.4.4
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 76
+Host: api.x.com
+
+status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
+```
+
+N’importe quelle bibliothèque HTTP devrait être en mesure de générer et d’émettre la requête ci-dessus sans grande difficulté. Cependant, la requête ci-dessus est considérée comme invalide, puisqu’il n’existe aucun moyen de savoir :
+
+1. Quelle application effectue la requête
+2. Au nom de quel utilisateur la requête publie
+3. Si l’utilisateur a accordé à l’application l’autorisation de publier en son nom
+4. Si la requête a été altérée par un tiers pendant son transit
+
+Pour permettre aux applications de fournir ces informations, l’API de X s’appuie sur le [protocole OAuth 1.0a](http://tools.ietf.org/html/rfc5849). À un niveau très simplifié, la mise en œuvre de X exige que les requêtes nécessitant une autorisation contiennent un en-tête HTTP Authorization supplémentaire, avec suffisamment d’informations pour répondre aux questions énumérées ci-dessus. Une version de la requête HTTP montrée ci-dessus, modifiée pour inclure cet en-tête, ressemble à ceci (normalement, l’en-tête Authorization devrait tenir sur une seule ligne, mais il a été coupé sur plusieurs lignes ici pour plus de lisibilité) :
+
+```
+POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
+Accept: */*
+Connection: close
+User-Agent: OAuth gem v0.4.4
+Content-Type: application/x-www-form-urlencoded
+Authorization:
+OAuth oauth\_consumer\_key="xvz1evFS4wEEPTGEFPHBog",
+oauth_nonce="kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg",
+oauth_signature="tnnArxj06cWHq44gCs1OSKk%2FjLY%3D",
+oauth\_signature\_method="HMAC-SHA1",
+oauth_timestamp="1318622958",
+oauth_token="370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb",
+oauth_version="1.0"
+Content-Length: 76
+Host: api.x.com
+
+status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
+```
+
+Au moment de sa création, cette requête aurait été acceptée comme valide par X API.
+
+Si ce processus de signature vous semble dépasser le cadre de votre intégration, envisagez d’utiliser les [Web Intents](https://dev.x.com/web/intents), qui n’ont pas besoin de recourir à OAuth pour interagir avec X API.
+ 
+
+**Collecte des paramètres**
+
+Vous devriez pouvoir voir que l’en-tête contient 7 paires clé/valeur, et que toutes les clés commencent par la chaîne de caractères “oauth&#95;”. Pour toute requête X API donnée, collecter ces 7 valeurs et créer un en-tête similaire vous permettra de fournir l’autorisation pour la requête. La façon dont chaque valeur a été générée est décrite ci-dessous :
+
+**Clé consommateur**
+
+Le oauth&#95;consumer&#95;key identifie l’application qui effectue la requête. Obtenez cette valeur à partir de la page des paramètres de votre [application X](/fr/resources/fundamentals/developer-apps) dans le [Developer Console](/fr/resources/fundamentals/developer-portal).
+
+|                            |                        |
+| :------------------------- | :--------------------- |
+| oauth&#95;consumer&#95;key | xvz1evFS4wEEPTGEFPHBog |
+
+**Nonce**
+
+Le paramètre oauth&#95;nonce est un jeton unique que votre application doit générer pour chaque requête unique. X utilisera cette valeur pour déterminer si une requête a été soumise plusieurs fois. La valeur de cette requête a été générée en encodant en base64 32 octets de données aléatoires, puis en supprimant tous les caractères non alphanumériques, mais toute approche produisant une chaîne de caractères alphanumérique relativement aléatoire devrait convenir ici.
+
+|                 |                                            |
+| :-------------- | :----------------------------------------- |
+| oauth&#95;nonce | kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg |
+
+**Signature**
+
+Le paramètre oauth&#95;signature contient une valeur générée en soumettant tous les autres paramètres de requête ainsi que deux valeurs secrètes à un algorithme de signature. L’objectif de la signature est de permettre à X de vérifier que la requête n’a pas été modifiée en transit, de vérifier l’application qui envoie la requête et de vérifier que l’application est autorisée à interagir avec le compte de l’utilisateur.
+
+Le processus de calcul de la valeur oauth&#95;signature pour cette requête est décrit dans [Création d’une signature](/fr/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature).
+
+|     |     |
+| :--- | :--- |
+| oauth&#95;signature | tnnArxj06cWHq44gCs1OSKk/jLY= |
+
+**Méthode de signature**
+
+La valeur oauth&#95;signature&#95;method utilisée par X est HMAC-SHA1. Cette valeur doit être utilisée pour toute requête autorisée envoyée à X API.
+
+|     |     |
+| :--- | :--- |
+| oauth&#95;signature&#95;method | HMAC-SHA1 |
+
+**Horodatage**
+
+Le paramètre oauth&#95;timestamp indique le moment où la requête a été créée. Cette valeur doit être le nombre de secondes écoulées depuis l’époque Unix au moment où la requête est générée, et elle devrait être facile à générer dans la plupart des langages de programmation. X rejettera les requêtes créées trop longtemps auparavant, il est donc important de maintenir l’horloge de l’ordinateur qui génère les requêtes synchronisée avec NTP.
+
+|     |     |
+| :--- | :--- |
+| oauth&#95;timestamp | 1318622958 |
+
+**Jeton**
+
+Le paramètre oauth&#95;token représente généralement l’autorisation donnée par un utilisateur pour partager l’accès à son compte avec votre application. Il existe quelques requêtes d’authentification pour lesquelles cette valeur n’est pas transmise ou prend une forme différente de jeton, mais ces cas sont détaillés dans [Obtenir des jetons d’accès](/fr/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens). Pour la plupart des requêtes à usage général, vous utiliserez ce que l’on appelle un **jeton d’accès**.
+
+Vous pouvez générer un [jeton d’accès](/fr/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) valide pour votre compte sur la page des paramètres de votre [application X](/fr/resources/fundamentals/developer-apps) dans la [Developer Console](/fr/resources/fundamentals/developer-portal).
+
+|     |     |
+| :--- | :--- |
+| oauth&#95;token | 370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb |
+
+**Version**
+
+Le paramètre oauth&#95;version doit toujours avoir la valeur 1.0 pour toute requête envoyée à X API.
+
+|     |     |
+| :--- | :--- |
+| oauth&#95;version | 1.0 |
+
+<div id="building-the-header-string">
+  #### Création de la chaîne d’en-tête
+</div>
+
+Pour créer la chaîne d’en-tête, imaginez écrire dans une chaîne de caractères nommée DST.
+
+1. Ajoutez la chaîne de caractères « OAuth » (y compris l’espace à la fin) à DST.
+2. Pour chaque paire clé/valeur des 7 paramètres répertoriés ci-dessus :
+   1. [Effectuez un encodage en pourcentage](/fr/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) de la clé et ajoutez-la à DST.
+   2. Ajoutez le caractère égal « = » à DST.
+   3. Ajoutez un guillemet double « &quot; » à DST.
+   4. [Effectuez un encodage en pourcentage](/fr/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) de la valeur et ajoutez-la à DST.
+   5. Ajoutez un guillemet double « &quot; » à DST.
+   6. S’il reste des paires clé/valeur, ajoutez une virgule « , » et un espace «  » à DST.
+
+Accordez une attention particulière à l’encodage en pourcentage des valeurs lors de la création de cette chaîne de caractères. Par exemple, la valeur oauth&#95;signature de tnnArxj06cWHq44gCs1OSKk/jLY= doit être encodée sous la forme tnnArxj06cWHq44gCs1OSKk%2FjLY%3D.
+
+L’application de ces étapes aux paramètres collectés ci-dessus donne la chaîne de caractères suivante :
+
+```
+OAuth oauth\_consumer\_key="xvz1evFS4wEEPTGEFPHBog", oauth\_nonce="kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg", oauth\_signature="tnnArxj06cWHq44gCs1OSKk%2FjLY%3D", oauth\_signature\_method="HMAC-SHA1", oauth\_timestamp="1318622958", oauth\_token="370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb", oauth_version="1.0"
+```
+
+Cette valeur doit être utilisée comme en-tête Authorization de la requête.

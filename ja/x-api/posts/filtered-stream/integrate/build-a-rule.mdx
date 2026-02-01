@@ -1,0 +1,336 @@
+---
+title: ルールを作成する
+sidebarTitle: ルールを作成する
+description: オペレーターを使用してフィルタードストリームルールを作成する方法を学びます
+keywords: ["build rule", "filter rules", "stream rules", "rule builder", "filtered stream rules", "create rule", "rule guide"]
+---
+
+フィルタードストリームのエンドポイントでは、ストリームに適用された一連のルールに一致する投稿が配信されます。ルールは、さまざまな投稿属性にマッチするオペレーターで構成されます。
+
+複数のルールは、[POST /tweets/search/stream/rules](/ja/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) エンドポイントを使用して設定できます。ルールを追加し、[GET /tweets/search/stream](/ja/x-api/posts/filtered-stream#get-2-tweets-search-stream) を使って接続すると、ルールに一致する投稿のみが配信されます。ルールを追加または削除するために接続を切断する必要はありません。
+
+***
+
+<div id="rule-limitations">
+  ## ルールの制限
+</div>
+
+ルール数の上限は、利用している[アクセスレベル](/ja/x-api/getting-started/about-x-api)によって異なります。具体的な上限については、[filtered stream の概要](/ja/x-api/posts/filtered-stream/introduction)を参照してください。
+
+***
+
+<div id="operator-types-standalone-and-conjunction-required">
+  ## 演算子のタイプ: 単独使用可能と結合必須
+</div>
+
+**単独演算子** は、単独で、または他のどの演算子（結合が必要なものを含む）とも組み合わせて使用できます。
+
+たとえば、このルールが機能するのは、`#hashtag` が単独演算子だからです。
+
+```
+#xapiv2
+```
+
+**連結必須オペレーター** は、ルール内で単独では使用できません。少なくとも 1 つの単独で使用できるオペレーターと組み合わせてのみ使用できます。これは、これらのオペレーターだけを使用すると、非常に大量の投稿がマッチしてしまうためです。
+
+たとえば、次のルールは連結必須オペレーターのみを含んでいるため、**サポートされません**。
+
+```
+has:media
+```
+
+```
+has:links OR is:retweet
+```
+
+`"X data"` のような、単独の演算子からなるフレーズを追加すると、そのルールは正しく動作します。
+
+```
+"X data" has:mentions (has:media OR has:links)
+```
+
+***
+
+<div id="boolean-operators-and-grouping">
+  ## ブール演算子とグループ化
+</div>
+
+複数の演算子を次のように組み合わせて使用できます。
+
+| Operator | Description | Example |
+| :--- | :--- | :--- |
+| **AND** (スペース) | 投稿は両方の条件を満たしている必要があります | `snow day #NoSchool` は &quot;snow&quot; AND &quot;day&quot; AND #NoSchool を含む投稿に一致します |
+| **OR** | 投稿はいずれかの条件を満たしていれば一致します | `grumpy OR cat OR #meme` は &quot;grumpy&quot; OR &quot;cat&quot; OR #meme を含む投稿に一致します |
+| **NOT** (ダッシュ) | この条件に一致する投稿を除外します | `cat #meme -grumpy` は &quot;cat&quot; と #meme を含み、かつ &quot;grumpy&quot; を含まない投稿に一致します |
+| **Grouping** (かっこ) | 演算子をグループ化します | `(grumpy cat) OR (#meme has:images)` はいずれかのグループに一致します |
+
+<Note>
+  **否定についての注意事項**
+
+  * `sample:` を除き、すべての演算子は否定形で使用できます
+  * 演算子 `-is:nullcast` は常に否定形で使用する必要があります
+  * 否定された演算子を単独では使用できません
+  * グループ化された演算子を否定しないでください。`skiing -(snow OR day OR noschool)` の代わりに、`skiing -snow -day -noschool` を使用してください
+</Note>
+
+***
+
+<div id="order-of-operations">
+  ## 演算の順序
+</div>
+
+AND と OR を組み合わせる場合：
+
+1. AND ロジックで接続された演算子が先にグループ化されます
+2. 次に、OR ロジックで接続された演算子が適用されます
+
+**例:**
+
+| Query                    | Evaluated as               |
+| :----------------------- | :------------------------- |
+| `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
+| `ipad iphone OR android` | `(iphone ipad) OR android` |
+
+曖昧さをなくすには、かっこを使用してください。
+
+```
+(apple OR iphone) ipad
+```
+
+```
+iphone (ipad OR android)
+```
+
+***
+
+<div id="punctuation-diacritics-and-case-sensitivity">
+  ## 句読点、ダイアクリティカルマーク、大文字と小文字の区別
+</div>
+
+**ダイアクリティカルマーク:** アクセント付きの Filtered stream ルールは、同じアクセントを含む投稿にのみマッチします。たとえば、`diacrítica` は *diacrítica* にはマッチしますが、*diacritica* には**マッチしません**。
+
+**大文字と小文字の区別:** すべてのオペレーターは大文字と小文字を区別しません。ルール `cat` は *cat*、*CAT*、*Cat* にマッチします。
+
+<Note>
+  **投稿検索は動作が異なります**
+
+  [検索クエリを作成する](/ja/x-api/posts/search/integrate/build-a-query)場合、アクセント付きのキーワードは、アクセントの有無にかかわらず投稿にマッチします。たとえば、`Diacrítica` は *Diacrítica* と *Diacritica* の両方にマッチします。
+</Note>
+
+***
+
+<div id="quote-tweet-matching">
+  ## 引用ツイートのマッチング
+</div>
+
+filtered stream を使用する場合、オペレーターは引用ツイートのコンテンツ**と**引用された元の投稿のコンテンツの両方にマッチします。
+
+<Note>
+  [Search Posts](/ja/x-api/posts/search/introduction) は動作が異なり、引用ツイートのコンテンツのみにマッチし、元の投稿にはマッチしません。
+</Note>
+
+***
+
+<div id="specificity-and-efficiency">
+  ## 具体性と効率性
+</div>
+
+<Warning>
+  単一のキーワードやハッシュタグのような広範なオペレーターの使用は推奨されません。膨大な量の投稿にマッチして、接続リソースを急速に消費してしまいます。
+</Warning>
+
+**効果的なルールを構築するためのヒント：**
+
+1. **最初は具体的に、後から広げる** — 関連性の高い結果を返す、ターゲットを絞ったルールを作成する
+2. **複数のオペレーターを使う** — オペレーターを組み合わせて結果を絞り込む
+3. **文字数制限に注意する** — ルール全体の文字列型が上限の対象になる
+
+**段階的な例：**
+
+```
+# Too broad - 200,000+ Posts per day
+happy
+
+# Better - adds language filter and exclusions
+(happy OR happiness) lang:en -birthday -is:retweet
+
+# さらに良い例 - 59文字でより具体的
+(happy OR happiness) place_country:GB -birthday -is:retweet
+```
+
+***
+
+<div id="iteratively-building-a-rule">
+  ## ルールを段階的に作成する
+</div>
+
+<div id="step-1-start-with-a-basic-rule">
+  ### ステップ 1: まずは基本的なルールを作成する
+</div>
+
+```
+happy OR happiness
+```
+
+<div id="step-2-test-and-narrow-based-on-results">
+  ### ステップ 2: 結果に基づいてテストし、絞り込む
+</div>
+
+多くの言語の投稿があることがわかりました。言語フィルターを追加します:
+
+```
+(happy OR happiness) lang:en
+```
+
+誕生日おめでとうの投稿が含まれています。これらとリツイートを除外しましょう：
+
+```
+(happy OR happiness) lang:en -birthday -is:retweet
+```
+
+<div id="step-3-broaden-for-better-coverage">
+  ### ステップ 3: カバレッジを広げる
+</div>
+
+より多くのセンチメントを捉えられるように、関連キーワードを追加します。
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
+```
+
+<div id="step-4-adjust-for-trends">
+  ### ステップ 4: トレンドに合わせて調整する
+</div>
+
+休日に関する投稿が表示されています。これらを除外します:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
+```
+
+***
+
+<div id="adding-and-removing-rules">
+  ## ルールの追加と削除
+</div>
+
+ルールを追加または削除するには、[POST /2/tweets/search/stream/rules](/ja/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) を使用します。
+
+<div id="adding-rules">
+  ### ルールの追加
+</div>
+
+`value`（ルール）と、任意の `tag`（一致した投稿を識別するため）を含む `add` 用の JSON 本文を送信します：
+
+```bash
+curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "add": [
+      {"value": "cat has:media", "tag": "cats with media"},
+      {"value": "cat has:media -grumpy", "tag": "happy cats with media"},
+      {"value": "meme", "tag": "funny things"},
+      {"value": "meme has:images"}
+    ]
+  }'
+```
+
+<div id="removing-rules">
+  ### ルールの削除
+</div>
+
+削除するルールのidを含む `delete` JSON ボディを送信します。
+
+```bash
+curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "delete": {
+      "ids": [
+        "1165037377523306498",
+        "1165037377523306499"
+      ]
+    }
+  }'
+```
+
+***
+
+<div id="rule-examples">
+  ## ルール例
+</div>
+
+<div id="tracking-a-natural-disaster">
+  ### 自然災害の追跡
+</div>
+
+ハリケーン・ハービーに関する気象機関からの投稿を抽出します。
+
+```json
+{
+  "value": "-is:retweet has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1)",
+  "tag": "ハリケーン・ハービー - 位置情報を含む気象機関"
+}
+```
+
+<div id="sentiment-analysis-for-nowplaying">
+  ### #nowplaying の感情分析
+</div>
+
+**ポジティブな感情:**
+
+```json
+{
+  "value": "#nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing",
+  "tag": "#nowplaying positive"
+}
+```
+
+**否定的な感情:**
+
+```json
+{
+  "value": "#nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible",
+  "tag": "#nowplaying negative"
+}
+```
+
+<div id="using-post-annotations">
+  ### 投稿アノテーションの使用
+</div>
+
+`context:` 演算子を使って、画像付きのペット（猫以外）に関する日本語の投稿を検索します。
+
+まず、[Post lookup](/ja/x-api/posts/lookup/introduction) で `tweet.fields=context_annotations` を使用して、domain と entity の ID を特定します。
+
+* Cats: `domain` 66、`entity` 852262932607926273
+* Pets: `domain` 65、`entity` 852262932607926273
+
+```json
+{
+  "value": "context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:images lang:ja",
+  "tag": "Japanese pets with images - no cats"
+}
+```
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="演算子リファレンス" icon="list" href="/ja/x-api/posts/filtered-stream/integrate/operators">
+    利用可能な演算子の完全な一覧
+  </Card>
+
+  <Card title="フィルタ済みストリーム クイックスタート" icon="rocket" href="/ja/x-api/posts/filtered-stream/quickstart">
+    ストリームに接続する
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code/tree/master/Filtered-Stream">
+    複数言語でのコード例
+  </Card>
+</CardGroup>

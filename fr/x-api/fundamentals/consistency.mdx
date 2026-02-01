@@ -1,0 +1,215 @@
+---
+title: Cohérence de l’API
+sidebarTitle: Cohérence
+description: Schémas cohérents entre les endpoints de X API v2
+keywords: ["cohérence", "cohérence de l’API", "API uniforme", "endpoints cohérents", "conception d’API"]
+---
+
+X API v2 est conçue avec des schémas cohérents sur l’ensemble des endpoints. Une fois que vous savez comment fonctionne un endpoint, ces mêmes schémas s’appliquent partout.
+
+***
+
+<div id="consistent-patterns">
+  ## Schémas cohérents
+</div>
+
+<div id="url-structure">
+  ### Structure d&#39;URL
+</div>
+
+Tous les endpoints v2 suivent un modèle prévisible :
+
+```
+/version/resource/{id}?parameters
+/version/resource/verb?parameters
+```
+
+Exemples :
+
+```
+/2/tweets/1234567890                    # Get a specific post
+/2/tweets/search/recent                 # Search recent posts
+/2/users/by/username/xdevelopers        # Obtenir un utilisateur par nom d'utilisateur
+/2/users/1234/followers                 # Get user's followers
+```
+
+<div id="response-structure">
+  ### Structure de la réponse
+</div>
+
+Toutes les réponses utilisent la même structure de haut niveau :
+
+```json
+{
+  "data": { ... },       // Objet(s) principal(aux)
+  "includes": { ... },   // Objets développés
+  "meta": { ... },       // Pagination, décomptes
+  "errors": [ ... ]      // Erreurs partielles (le cas échéant)
+}
+```
+
+<div id="id-format">
+  ### Format des identifiants
+</div>
+
+Tous les identifiants sont renvoyés sous forme de chaînes de caractères afin d’assurer la compatibilité entre les langages de programmation :
+
+```json
+{
+  "id": "1234567890123456789",
+  "author_id": "2244994945"
+}
+```
+
+***
+
+<div id="fields-and-expansions">
+  ## Champs et expansions
+</div>
+
+Les mêmes paramètres [champs](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions) fonctionnent de manière cohérente :
+
+| Objet | Paramètre fields | S’applique à |
+|:-------|:-----------------|:-------------|
+| Publication | `tweet.fields` | Tous les endpoints qui renvoient des publications |
+| Utilisateur | `user.fields` | Tous les endpoints qui renvoient des utilisateurs |
+| Média | `media.fields` | Tous les endpoints avec des expansions de média |
+| Sondage | `poll.fields` | Tous les endpoints avec des expansions de sondage |
+| Lieu | `place.fields` | Tous les endpoints avec des expansions de lieu |
+
+***
+
+<div id="object-schemas">
+  ## Schémas d’objet
+</div>
+
+Le même type d’objet a les mêmes champs, peu importe l’endpoint qui le renvoie :
+
+* Une Publication provenant de la recherche a les mêmes champs qu’une Publication provenant de la recherche par identifiant
+* Un Utilisateur provenant des abonnés a les mêmes champs qu’un Utilisateur provenant de la recherche
+* Les objets étendus correspondent à leurs équivalents indépendants
+
+***
+
+<div id="authentication">
+  ## Authentification
+</div>
+
+Tous les endpoints utilisent les mêmes méthodes d’authentification :
+
+| Méthode | Format d’en-tête |
+|:-------|:--------------|
+| Bearer Token | `Authorization: Bearer {token}` |
+| OAuth 1.0a | `Authorization: OAuth {parameters}` |
+| OAuth 2.0 | `Authorization: Bearer {user_token}` |
+
+***
+
+<div id="error-handling">
+  ## Gestion des erreurs
+</div>
+
+Les erreurs respectent un format cohérent :
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The query parameter is missing",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+[Voir tous les types d’erreurs →](/fr/x-api/fundamentals/response-codes-and-errors)
+
+***
+
+<div id="pagination">
+  ## Pagination
+</div>
+
+Tous les endpoints paginés utilisent le même système de jetons :
+
+| Paramètre | Description |
+|:----------|:------------|
+| `max_results` | Résultats par page |
+| `pagination_token` | Jeton provenant de `next_token` ou `previous_token` |
+
+[En savoir plus sur la pagination →](/fr/x-api/fundamentals/pagination)
+
+***
+
+<div id="naming-conventions">
+  ## Conventions de nommage
+</div>
+
+* Orthographe en anglais américain (`favorites` et non `favourites`)
+* snake&#95;case pour les noms de champs (`author_id`, `created_at`)
+* Terminologie cohérente (`retweet_count`, non `repost_count` dans les champs)
+
+***
+
+<div id="empty-values">
+  ## Valeurs vides
+</div>
+
+Les champs sans valeur sont omis plutôt que renvoyés sous la forme `null` :
+
+```json
+// User without a bio
+{
+  "id": "1234",
+  "name": "Example User",
+  "username": "example"
+  // « description » est omis, pas null
+}
+```
+
+***
+
+<div id="entity-consistency">
+  ## Cohérence des entités
+</div>
+
+L&#39;objet `entities` contient uniquement les entités extraites du texte :
+
+* `urls`
+* `hashtags`
+* `mentions`
+* `cashtags`
+
+Les médias et les sondages se trouvent dans `attachments`, pas dans `entities`.
+
+***
+
+<div id="what-this-means-for-you">
+  ## Ce que cela signifie pour vous
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Apprendre une fois, utiliser partout" icon="graduation-cap">
+    Les schémas que vous apprenez sur un endpoint s’appliquent à tous les endpoints.
+  </Card>
+
+  <Card title="Réponses prévisibles" icon="square-check">
+    Les mêmes types d’objet partagent la même structure au sein de l’API.
+  </Card>
+
+  <Card title="Code simplifié" icon="code">
+    Créez des fonctions réutilisables pour les schémas courants.
+  </Card>
+
+  <Card title="Débogage facilité" icon="bug">
+    Des formats d’erreur cohérents simplifient le dépannage.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="report-inconsistencies">
+  ## Signaler des incohérences
+</div>
+
+Vous avez constaté une incohérence ? Faites-le-nous savoir :
+
+* [Developer Forum](https://devcommunity.x.com)
+* [Developer Feedback](https://t.co/devfeedback)

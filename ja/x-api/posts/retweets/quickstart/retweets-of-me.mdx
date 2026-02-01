@@ -1,0 +1,205 @@
+---
+title: 自分の投稿のリポスト
+sidebarTitle: 自分の投稿のリポスト
+description: リポストされた自分の投稿を取得します
+keywords: ["自分の投稿のリポスト", "自分の投稿のリポスト一覧", "自分のリポスト", "リポストクイックスタート", "リポストチュートリアル", "リポストガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、他のユーザーにリポストされたあなたの投稿を取得する方法を順を追って説明します。
+
+<Note>
+  **前提条件**
+
+  作業を始める前に、次のものが必要です。
+
+  * 承認済みのアプリが紐付けられた[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * ユーザーアクセストークン（OAuth 1.0a または OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="why-use-retweets-of-me">
+  ## なぜ「Retweets of Me」を利用するのか
+</div>
+
+「Retweets of Me」エンドポイントを使用すると、次のことができます。
+
+* **エンゲージメントを追跡** — どの投稿がリツイートされているかを確認できます
+* **共感度を理解** — どのようなコンテンツがオーディエンスに響いているかを把握できます
+* **戦略に活かす** — 共有パターンに基づいてコンテンツ戦略を調整できます
+
+***
+
+<div id="get-your-retweeted-posts">
+  ## リポストされた自分の投稿を取得する
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/reposts_of_me?\
+  tweet.fields=created_at,public_metrics&\
+  max_results=10" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # リポストされた自分の投稿を取得する
+  for page in client.posts.get_reposts_of_me(
+      tweet_fields=["created_at", "public_metrics"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Retweets: {post.public_metrics.retweet_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // リポストされた自分の投稿を取得する
+  const paginator = client.posts.getRepostsOfMe({
+    tweetFields: ["created_at", "public_metrics"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Retweets: ${post.public_metrics?.retweet_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="response">
+  ## レスポンス
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1848781937210802364",
+      "text": "ever wanted to discover trends.. before they're trends?...",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "public_metrics": {
+        "retweet_count": 42,
+        "reply_count": 5,
+        "like_count": 156,
+        "quote_count": 8
+      },
+      "edit_history_tweet_ids": ["1848781937210802364"]
+    },
+    {
+      "id": "1847990559081648620",
+      "text": "posting is just journaling with an audience",
+      "created_at": "2024-01-14T15:20:00.000Z",
+      "public_metrics": {
+        "retweet_count": 28,
+        "reply_count": 12,
+        "like_count": 89,
+        "quote_count": 3
+      },
+      "edit_history_tweet_ids": ["1847990559081648620"]
+    }
+  ],
+  "meta": {
+    "result_count": 2,
+    "next_token": "7140dibdnow9c7btw481s8m561gat797rboud5r80xvzm"
+  }
+}
+```
+
+***
+
+<div id="filter-by-time-range">
+  ## 時間範囲でフィルタリング
+</div>
+
+特定の期間にリツイートされた投稿を取得します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/reposts_of_me?\
+  start_time=2024-01-01T00%3A00%3A00Z&\
+  end_time=2024-01-31T23%3A59%3A59Z&\
+  tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 時間範囲を指定してリツイートされた投稿を取得
+  for page in client.posts.get_reposts_of_me(
+      start_time="2024-01-01T00:00:00Z",
+      end_time="2024-01-31T23:59:59Z",
+      tweet_fields=["created_at", "public_metrics"]
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 時間範囲を指定してリツイートされた投稿を取得
+  const paginator = client.posts.getRepostsOfMe({
+    startTime: "2024-01-01T00:00:00Z",
+    endTime: "2024-01-31T23:59:59Z",
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="common-parameters">
+  ## 共通パラメーター
+</div>
+
+| パラメーター | 説明 | デフォルト |
+|:----------|:------------|:--------|
+| `max_results` | 1ページあたりの結果数 (1〜100) | 10 |
+| `start_time` | 最古の投稿のタイムスタンプ (ISO 8601) | — |
+| `end_time` | 最新の投稿のタイムスタンプ (ISO 8601) | — |
+| `pagination_token` | 次ページ用トークン | — |
+| `tweet.fields` | 追加の投稿フィールド | `id`, `text` |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="リツイートの検索" icon="retweet" href="/ja/x-api/posts/retweets/quickstart/retweets-lookup">
+    どのユーザーが投稿をリツイートしたかを確認します
+  </Card>
+
+  <Card title="リツイートの管理" icon="share" href="/ja/x-api/posts/retweets/quickstart/manage-retweets">
+    投稿のリツイートとリツイートの取り消しを行います
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/reposts-of-me">
+    エンドポイントに関する詳細なドキュメント
+  </Card>
+</CardGroup>

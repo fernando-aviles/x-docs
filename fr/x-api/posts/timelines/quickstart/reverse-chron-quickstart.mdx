@@ -1,0 +1,244 @@
+---
+title: Guide de démarrage rapide du fil d'accueil
+sidebarTitle: Fil d'accueil
+description: Obtenez le fil d'accueil d'un utilisateur dans l'ordre chronologique inverse
+keywords: ["fil d'accueil", "ordre chronologique inverse", "guide de démarrage rapide du fil d'accueil", "guide de démarrage rapide de la timeline", "tutoriel du fil d'accueil"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment effectuer votre première requête vers l’endpoint de la timeline d’accueil antéchronologique.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin de :
+
+  * un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une application approuvée
+  * des User Access Tokens (cet endpoint requiert une authentification utilisateur)
+</Note>
+
+***
+
+<div id="step-1-get-the-user-id">
+  ## Étape 1 : Récupérer l’ID utilisateur
+</div>
+
+Vous avez besoin de l’ID utilisateur du compte pour lequel vous souhaitez récupérer la timeline d’accueil. Recherchez-le à l’aide de l’endpoint de recherche par nom d’utilisateur :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  response = client.users.get_by_username("XDevelopers")
+  print(f"User ID: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(`User ID: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+La réponse contient l’ID utilisateur :
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+***
+
+<div id="step-2-request-the-home-timeline">
+  ## Étape 2 : Récupérer le fil d’actualité d’accueil
+</div>
+
+Effectuez une requête GET avec l’ID utilisateur et le jeton d’accès de l’utilisateur :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Get home timeline with pagination
+  for page in client.posts.get_home_timeline("2244994945"):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Get home timeline with pagination
+  const paginator = client.posts.getHomeTimeline("2244994945");
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-3-review-the-response">
+  ## Étape 3 : Examiner la réponse
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1524796546306478083",
+      "text": "Today marks the launch of Devs in the Details...",
+      "edit_history_tweet_ids": ["1524796546306478083"]
+    },
+    {
+      "id": "1524468552404668416",
+      "text": "Join us tomorrow for a discussion about bots...",
+      "edit_history_tweet_ids": ["1524468552404668416"]
+    }
+  ],
+  "meta": {
+    "result_count": 2,
+    "newest_id": "1524796546306478083",
+    "oldest_id": "1524468552404668416",
+    "next_token": "7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4"
+  }
+}
+```
+
+***
+
+<div id="step-4-add-fields-and-expansions">
+  ## Étape 4 : Ajoutez des champs et des expansions
+</div>
+
+Demandez des données supplémentaires à l’aide de paramètres de requête :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified&\
+  max_results=10" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer le fil d’accueil avec des champs et des expansions
+  for page in client.posts.get_home_timeline(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérer le fil d’accueil avec des champs et des expansions
+  const paginator = client.posts.getHomeTimeline("2244994945", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-5-paginate-through-results">
+  ## Étape 5 : Paginer les résultats
+</div>
+
+Les SDK gèrent la pagination automatiquement. Pour cURL, utilisez le `next_token` de la réponse pour obtenir davantage de résultats :
+
+```bash
+curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+max_results=10&\
+pagination_token=7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="common-parameters">
+  ## Paramètres courants
+</div>
+
+| Paramètre | Description | Valeur par défaut |
+|:----------|:------------|:--------|
+| `max_results` | Résultats par page (1–100) | 10 |
+| `start_time` | Horodatage de la publication la plus ancienne (ISO 8601) | — |
+| `end_time` | Horodatage de la publication la plus récente (ISO 8601) | — |
+| `since_id` | Renvoie les publications après cet id | — |
+| `until_id` | Renvoie les publications avant cet id | — |
+| `exclude` | Exclut les `retweets`, les `replies` ou les deux | — |
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Mentions de l’utilisateur" icon="at" href="/fr/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    Obtenir les publications mentionnant un utilisateur
+  </Card>
+
+  <Card title="Guide d’intégration" icon="book" href="/fr/x-api/posts/timelines/integrate">
+    Concepts clés et bonnes pratiques
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/posts/reverse-chronological-timeline-by-user-id">
+    Documentation complète de l’endpoint
+  </Card>
+
+  <Card title="Guide de pagination" icon="arrow-right" href="/fr/x-api/fundamentals/pagination">
+    Parcourir de grands volumes de résultats
+  </Card>
+</CardGroup>

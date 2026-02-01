@@ -1,0 +1,251 @@
+---
+title: Expansions
+sidebarTitle: Expansions
+description: Incluye objetos relacionados en las respuestas de la API
+keywords: ["expansions", "expandir objetos", "expansión de objetos", "objetos anidados", "objetos relacionados"]
+---
+
+Expansions te permite incluir objetos relacionados en una sola respuesta de API. En lugar de hacer varias solicitudes, obtén una publicación y su autor, contenido multimedia o publicaciones referenciadas en una sola llamada.
+
+***
+
+<div id="how-expansions-work">
+  ## Cómo funcionan las expansiones
+</div>
+
+Cuando solicitas una expansión, la API incluye el objeto completo en la sección `includes` de la respuesta:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Respuesta:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "author_id": "2244994945"
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers"
+    }]
+  }
+}
+```
+
+El `author_id` en `data` se vincula con el objeto de usuario en `includes`.
+
+***
+
+<div id="post-expansions">
+  ## Expansiones de publicaciones
+</div>
+
+| Expansion | Devuelve | Caso de uso |
+|:----------|:--------|:---------|
+| `author_id` | Objeto de usuario | Obtener detalles del autor de la publicación |
+| `referenced_tweets.id` | Objeto(s) de publicación | Obtener publicaciones citadas o respondidas |
+| `referenced_tweets.id.author_id` | Objeto(s) de usuario | Obtener los autores de las publicaciones referenciadas |
+| `in_reply_to_user_id` | Objeto de usuario | Obtener el usuario al que se responde |
+| `attachments.media_keys` | Objeto(s) de medios | Obtener imágenes, videos y GIFs |
+| `attachments.poll_ids` | Objeto de encuesta | Obtener opciones y votos de la encuesta |
+| `geo.place_id` | Objeto de lugar | Obtener detalles de la ubicación |
+| `entities.mentions.username` | Objeto(s) de usuario | Obtener usuarios mencionados |
+| `edit_history_tweet_ids` | Objeto(s) de publicación | Obtener las versiones anteriores de publicaciones editadas |
+
+***
+
+<div id="user-expansions">
+  ## Expansions de usuario
+</div>
+
+| Expansión | Devuelve | Caso de uso |
+|:----------|:--------|:---------|
+| `pinned_tweet_id` | Objeto Post | Obtener la publicación fijada del usuario |
+
+***
+
+<div id="space-expansions">
+  ## Expansions de Space
+</div>
+
+| Expansion | Devuelve | Caso de uso |
+|:----------|:--------|:---------|
+| `creator_id` | Objeto User | Obtener al creador del Space |
+| `host_ids` | Objeto(s) User | Obtener a los anfitriones del Space |
+| `speaker_ids` | Objeto(s) User | Obtener a los oradores del Space |
+| `invited_user_ids` | Objeto(s) User | Obtener a los usuarios invitados |
+
+***
+
+<div id="dm-expansions">
+  ## Expansions de DM
+</div>
+
+| Expansión | Devuelve | Caso de uso |
+|:----------|:--------|:---------|
+| `sender_id` | Objeto de usuario | Obtener el remitente del mensaje |
+| `participant_ids` | Objeto(s) de usuario | Obtener los participantes de la conversación |
+| `attachments.media_keys` | Objeto de medios | Obtener los medios adjuntos |
+| `referenced_tweets.id` | Objeto de publicación | Obtener la publicación referenciada |
+
+***
+
+<div id="list-expansions">
+  ## Expansions de listas
+</div>
+
+| Expansion | Devuelve | Caso de uso |
+|:----------|:--------|:---------|
+| `owner_id` | Objeto User | Obtener el propietario de la lista |
+
+***
+
+<div id="combining-with-fields">
+  ## Combinar con campos
+</div>
+
+Las Expansions devuelven campos predeterminados para cada objeto. Para obtener campos adicionales, combina Expansions con parámetros de campos:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?\
+expansions=author_id,attachments.media_keys&\
+user.fields=description,public_metrics&\
+media.fields=url,alt_text" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Respuesta:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Check out this image!",
+    "author_id": "2244994945",
+    "attachments": {
+      "media_keys": ["3_1234567890"]
+    }
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers",
+      "description": "The voice of the X Developer Platform",
+      "public_metrics": {
+        "followers_count": 570842
+      }
+    }],
+    "media": [{
+      "media_key": "3_1234567890",
+      "type": "photo",
+      "url": "https://pbs.twimg.com/media/example.jpg",
+      "alt_text": "Example image"
+    }]
+  }
+}
+```
+
+***
+
+<div id="multiple-expansions">
+  ## Varias expansions
+</div>
+
+Solicita varias expansions en una lista separada por comas:
+
+```bash
+expansions=author_id,referenced_tweets.id,attachments.media_keys
+```
+
+***
+
+<div id="common-patterns">
+  ## Patrones comunes
+</div>
+
+<Tabs>
+  <Tab title="Contexto completo de la publicación">
+    Obtén la publicación con su autor, el contenido multimedia y las publicaciones referenciadas:
+
+    ```bash
+    expansions=author_id,attachments.media_keys,referenced_tweets.id
+    tweet.fields=created_at,public_metrics,conversation_id
+    user.fields=username,name,profile_image_url
+    media.fields=url,preview_image_url,type
+    ```
+  </Tab>
+
+  <Tab title="Hilo de conversación">
+    Obtén las respuestas con sus autores:
+
+    ```bash
+    expansions=author_id,in_reply_to_user_id,referenced_tweets.id
+    tweet.fields=conversation_id,in_reply_to_user_id,created_at
+    user.fields=username,name
+    ```
+  </Tab>
+
+  <Tab title="Usuario con publicación fijada">
+    Obtén el perfil de un usuario con su publicación fijada:
+
+    ```bash
+    expansions=pinned_tweet_id
+    user.fields=description,public_metrics,verified
+    tweet.fields=created_at,public_metrics
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="linking-data-and-includes">
+  ## Vincular data e includes
+</div>
+
+Los objetos de `includes` no incluyen información de posición. Vincúlalos usando sus id:
+
+```python
+# Ejemplo de Python
+response = api_call()
+post = response["data"]
+users = {u["id"]: u for u in response["includes"]["users"]}
+
+# Get the author
+author = users.get(post["author_id"])
+print(f"{author['name']} said: {post['text']}")
+```
+
+```javascript
+// Ejemplo de JavaScript
+const { data: post, includes } = response;
+const users = Object.fromEntries(
+  includes.users.map(u => [u.id, u])
+);
+
+const author = users[post.author_id];
+console.log(`${author.name} said: ${post.text}`);
+```
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Campos" icon="list" href="/es/x-api/fundamentals/fields">
+    Solicita campos específicos para cada tipo de objeto.
+  </Card>
+
+  <Card title="Diccionario de datos" icon="book" href="/es/x-api/fundamentals/data-dictionary">
+    Esquemas completos de objetos.
+  </Card>
+</CardGroup>

@@ -1,0 +1,229 @@
+---
+title: v1 vers v2
+sidebarTitle: v1 vers v2
+keywords: ["migration de v1.1 vers v2", "migration de la recherche d'utilisateurs", "migrer la recherche d'utilisateurs", "recherche d'utilisateurs standard vers v2", "recherche d'utilisateurs de v1 vers v2", "guide de migration"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### Standard v1.1 comparé à X API v2
+</div>
+
+Si vous avez utilisé les endpoints standard v1.1 GET users/show et GET users/lookup, ce guide a pour objectif de vous aider à comprendre les similitudes et les différences entre les endpoints standard et les endpoints de recherche d’utilisateurs de X API v2.
+
+* **Similarités**
+  * OAuth 1.0a User Context
+  * Limites d’utilisateurs par requête
+* **Différences**
+  * URL des endpoints
+  * Exigences relatives à l’App et au Projet
+  * Format des données de réponse
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarities
+</div>
+
+**Méthode d’authentification OAuth 1.0a User Context**
+
+Le endpoint standard prend en charge [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication#oauth-1-0a-2), tandis que les nouveaux endpoints de recherche d’utilisateurs de X API v2 prennent en charge à la fois OAuth 1.0a User Context et [App only](/fr/resources/fundamentals/authentication#oauth-2-0). Par conséquent, si vous utilisiez auparavant l’un des endpoints standard v1.1 de recherche d’utilisateurs, vous pouvez continuer à utiliser la même méthode d’authentification en migrant vers la version X API v2.
+
+Selon la bibliothèque ou le package d’authentification que vous choisissez, l’authentification App only est probablement le moyen le plus simple de commencer et peut être configurée avec un simple en-tête de requête. Pour savoir comment générer un jeton d’accès App only, consultez [ce guide App only](/fr/resources/fundamentals/authentication#bearer-token-also-known-as-app-only).
+
+**Limites d’utilisateurs par requête**
+
+Le endpoint standard v1.1 GET users/lookup vous permet d’indiquer 100 utilisateurs par requête. Il en va de même pour les endpoints GET /users et GET /users/by. Pour spécifier jusqu’à 100 utilisateurs, vous devrez transmettre le paramètre ids (GET /users) ou le paramètre username (GET /users/by) en tant que paramètre de requête, et inclure la liste des id utilisateur/noms d’utilisateur dans une liste séparée par des virgules.
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL d’endpoint**
+
+* Endpoints standard v1.1 :
+  * https://api.x.com/1.1/users/show (recherche par id unique ou nom d’utilisateur)
+  * https://api.x.com/1.1/users/lookup (recherche par plusieurs id ou noms d’utilisateur)
+* Endpoint X API v2 :
+  * https://api.x.com/2/users (recherche par plusieurs id)
+  * https://api.x.com/2/users/:id (recherche par id unique)
+  * https://api.x.com/2/users/by (recherche par plusieurs noms d’utilisateur)
+  * https://api.x.com/2/users/by/username/:username (recherche par nom d’utilisateur unique)
+
+**Exigences relatives aux App et aux Projets**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants issus d’une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [Projet](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un Projet.
+
+**Format des données de réponse**
+
+L’une des plus grandes différences entre les versions d’endpoint standard v1.1 et X API v2 concerne la façon dont vous sélectionnez les champs renvoyés dans votre payload.
+
+Pour les endpoints standard, vous recevez par défaut un grand nombre de champs de la réponse, puis vous avez la possibilité d’utiliser des paramètres pour identifier quels champs ou ensembles de champs doivent être renvoyés dans le payload.
+
+La version X API v2 ne fournit par défaut que les champs user id, name et username. Pour demander des champs ou objets supplémentaires, vous devrez utiliser les paramètres [fields](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). Tous les champs user que vous demandez à partir de cet endpoint seront renvoyés dans l’objet user principal. Tout objet Publication étendu et ses champs seront renvoyés dans un objet includes au sein de votre réponse. Vous pouvez ensuite faire correspondre tous les objets étendus à l’objet user en faisant correspondre les id présents à la fois dans l’objet user et dans l’objet Publication étendu.
+
+Nous vous encourageons à en savoir plus sur ces nouveaux paramètres dans leurs guides respectifs, ou en lisant notre guide sur [comment utiliser les champs et les expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions).
+
+Nous avons également préparé un [guide de migration de format de données](/fr/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) qui peut vous aider à faire correspondre les champs standard v1.1 aux nouveaux champs v2. Ce guide vous fournira également le paramètre d’expansion et de champ spécifique que vous devrez transmettre avec votre requête v2 pour renvoyer des champs spécifiques.
+
+En plus des changements concernant la façon dont vous demandez certains champs, X API v2 introduit également de nouveaux modèles JSON pour les objets renvoyés par les API, y compris les objets [Publication](/fr/x-api/fundamentals/data-dictionary#tweet) et [user](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine JSON, les endpoints standard renvoient des objets Publication dans un tableau statuses, tandis que X API v2 renvoie un tableau data.
+* Au lieu de faire référence aux « statuses » Retweeted et Quoted, le JSON X API v2 fait référence aux Tweets Retweeted et Quoted. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont en cours de suppression.
+* Au lieu d’utiliser à la fois favorites (dans l’objet Publication) et favourites (dans l’objet user), X API v2 utilise le terme like.
+* X adopte la convention selon laquelle les valeurs JSON sans valeur (par exemple null) ne sont pas écrites dans le payload. Les attributs de Publication et de user ne sont inclus que s’ils ont des valeurs non nulles.
+
+Nous avons également introduit un nouvel ensemble de champs dans l’[objet Publication](/fr/x-api/fundamentals/data-dictionary#tweet), notamment :
+
+* Un champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id)
+* Deux nouveaux champs [annotations](/fr/x-api/fundamentals/post-annotations), dont context et entities
+* Plusieurs nouveaux champs [metrics](/fr/x-api/fundamentals/metrics)
+* Un nouveau champ reply&#95;setting, qui vous indique qui peut répondre à une Publication donnée
+
+**Paramètres de requête**
+
+Les paramètres de requête standard v1.1 suivants ont des équivalents dans X API v2 :
+
+|     |     |
+| :--- | :--- |
+| **Standard** | **X API v2** |
+| user&#95;id | ids |
+| screen&#95;name | username |
+
+Il existe également un ensemble de paramètres de requête standard pour la recherche d’utilisateurs qui ne sont **pas** pris en charge dans X API v2 :
+
+| Standard | Commentaire |
+| :--- | :--- |
+| include&#95;entities | Ce paramètre est utilisé pour supprimer le nœud entities du payload de la Publication. Il a été remplacé par la fonctionnalité additive des champs et des expansions. |
+
+***
+
+<div id="code-examples">
+  ### Exemples de code
+</div>
+
+Les exemples suivants illustrent les endpoints standard de la v1.1 et leurs équivalents en v2.
+
+**Recherche d’un seul utilisateur : v1.1 `GET users/show` → v2 `GET /users/by/username/:username`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/users/show.json?screen_name=XDevelopers' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/users/by/username/XDevelopers?user.fields=created_at,description,public_metrics' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/by/username/XDevelopers"
+
+  params = {
+      "user.fields": "created_at,description,public_metrics"
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer un utilisateur par nom d'utilisateur avec des champs supplémentaires
+  response = client.users.get_by_username(
+      "XDevelopers",
+      user_fields=["created_at", "description", "public_metrics"]
+  )
+
+  print(f"Nom : {response.data.name}")
+  print(f"Abonnés : {response.data.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers", {
+    userFields: ["created_at", "description", "public_metrics"],
+  });
+
+  console.log(`Nom : ${response.data?.name}`);
+  console.log(`Abonnés : ${response.data?.public_metrics?.followers_count}`);
+  ```
+</CodeGroup>
+
+**Recherche de plusieurs utilisateurs : v1.1 `GET users/lookup` → v2 `GET /users/by`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/users/lookup.json?screen_name=XDevelopers,X,XAPI' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&user.fields=created_at,public_metrics' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/by"
+
+  params = {
+      "usernames": "XDevelopers,X,XAPI",
+      "user.fields": "created_at,public_metrics"
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  for user in response.json()["data"]:
+      print(f"{user['username']}: {user['public_metrics']['followers_count']} abonnés")
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer plusieurs utilisateurs par noms d'utilisateur
+  response = client.users.get_users_by_usernames(
+      usernames=["XDevelopers", "X", "XAPI"],
+      user_fields=["created_at", "public_metrics"]
+  )
+
+  for user in response.data:
+      print(f"{user.username}: {user.public_metrics.followers_count} abonnés")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getUsersByUsernames({
+    usernames: ["XDevelopers", "X", "XAPI"],
+    userFields: ["created_at", "public_metrics"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username}: ${user.public_metrics?.followers_count} abonnés`);
+  });
+  ```
+</CodeGroup>

@@ -1,0 +1,302 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+description: 关于列表查询集成的关键概念和最佳实践
+keywords: ["列表查询集成", "列表集成指南", "列表查询实现"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南介绍了你在将 List 查找端点集成到你的应用程序时需要掌握的关键概念。
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+列表查询端点支持多种身份验证方法：
+
+| 方法 | 最适用于 | 能访问私有列表？ |
+|:-------|:---------|:-------------------------|
+| [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 公开列表数据 | 否 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 面向用户的应用 | 是（拥有/关注） |
+| [OAuth 1.0a 用户上下文](/zh/resources/fundamentals/authentication) | 传统集成 | 是（拥有/关注） |
+
+<div id="example-request">
+  ### 示例请求
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,private" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 根据 ID 获取列表
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "private"]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "private"],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="endpoints-overview">
+  ## 端点概览
+</div>
+
+| 方法 | 端点 | 描述 |
+|:-------|:---------|:------------|
+| GET | [`/2/lists/:id`](/zh/x-api/lists/get-list) | 根据 ID 获取列表 |
+| GET | [`/2/users/:id/owned_lists`](/zh/x-api/users/get-owned-lists) | 获取用户拥有的列表 |
+
+***
+
+<div id="fields-and-expansions">
+  ## 字段与扩展
+</div>
+
+<div id="default-response">
+  ### 默认响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News"
+  }
+}
+```
+
+<div id="available-fields">
+  ### 可用字段
+</div>
+
+<Accordion title="list.fields">
+  | 字段 | 说明 |
+  |:------|:------------|
+  | `created_at` | 列表创建时间戳 |
+  | `description` | 列表描述 |
+  | `follower_count` | 关注者数量 |
+  | `member_count` | 成员数量 |
+  | `owner_id` | 所有者的用户 id |
+  | `private` | 列表是否为私有 |
+</Accordion>
+
+<Accordion title="user.fields (需要对 owner_id 进行扩展)">
+  | 字段 | 说明 |
+  |:------|:------------|
+  | `username` | 所有者的 @账号 |
+  | `name` | 所有者的显示名称 |
+  | `verified` | 所有者的认证状态 |
+  | `profile_image_url` | 所有者的头像 URL |
+</Accordion>
+
+<div id="example-with-expansions">
+  ### 包含扩展的示例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,owner_id&\
+  expansions=owner_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取带有所有者扩展的列表
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "owner_id"],
+      expansions=["owner_id"],
+      user_fields=["username", "verified"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 包含所有者用户对象
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "owner_id"],
+    expansions: ["owner_id"],
+    userFields: ["username", "verified"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 包含所有者用户对象
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 包含扩展的响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News",
+    "description": "Top tech journalists",
+    "member_count": 50,
+    "follower_count": 1250,
+    "owner_id": "2244994945"
+  },
+  "includes": {
+    "users": [
+      {
+        "id": "2244994945",
+        "username": "XDevelopers",
+        "verified": true
+      }
+    ]
+  }
+}
+```
+
+<Card title="字段与扩展指南" icon="sliders" href="/zh/x-api/fundamentals/fields">
+  进一步了解如何自定义响应
+</Card>
+
+***
+
+<div id="pagination">
+  ## 分页
+</div>
+
+在检索用户拥有的 Lists 时，结果会分页返回：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 第一次请求
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # 使用分页令牌的后续请求
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK 会自动处理分页
+  all_lists = []
+
+  for page in client.lists.get_user_owned_lists(user_id="123", max_results=100):
+      if page.data:
+          all_lists.extend(page.data)
+
+  print(f"Found {len(all_lists)} lists")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllOwnedLists(userId) {
+    const allLists = [];
+
+    // SDK 会自动处理分页
+    const paginator = client.lists.getUserOwnedLists(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allLists.push(...page.data);
+      }
+    }
+
+    return allLists;
+  }
+
+  // 用法示例
+  const lists = await getAllOwnedLists("123");
+  console.log(`Found ${lists.length} lists`);
+  ```
+</CodeGroup>
+
+<Card title="分页指南" icon="arrow-right" href="/zh/x-api/fundamentals/pagination">
+  进一步了解分页
+</Card>
+
+***
+
+<div id="private-lists">
+  ## 私密列表
+</div>
+
+* 私密列表仅对列表所有者可见
+* 必须以列表所有者身份通过认证才能获取私密列表详情
+* `private` 字段表示列表是否为私密
+
+***
+
+<div id="error-handling">
+  ## 错误处理
+</div>
+
+| 状态码 | 错误 | 解决方案 |
+|:-------|:------|:---------|
+| 400 | 无效请求 | 检查 List ID 格式 |
+| 401 | 未授权 | 检查认证信息 |
+| 403 | 禁止访问 | List 可能是私有的 |
+| 404 | 未找到 | List 不存在 |
+| 429 | 请求过多 | 等待后重试 |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="快速开始" icon="rocket" href="/zh/x-api/lists/list-lookup/quickstart">
+    发起你的第一个列表查询请求
+  </Card>
+
+  <Card title="列表帖子" icon="list" href="/zh/x-api/lists/list-tweets/introduction">
+    从列表中获取帖子
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/lists/get-list">
+    端点的完整文档
+  </Card>
+
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    可运行的代码示例
+  </Card>
+</CardGroup>

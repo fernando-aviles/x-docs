@@ -1,0 +1,197 @@
+---
+title: Gérer les comptes masqués
+sidebarTitle: Gérer les comptes masqués
+description: Masquer et ne plus masquer des utilisateurs à l'aide de X API
+keywords: ["démarrage rapide gestion des comptes masqués", "démarrage rapide masquage d'utilisateurs", "tutoriel gestion des comptes masqués", "guide du masquage", "démarrage rapide masquages"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment masquer et annuler le masquage d’utilisateurs à l’aide de la X API.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * d’un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une application approuvée
+  * d’un jeton d’accès utilisateur (OAuth 1.0a ou OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="mute-a-user">
+  ## Mettre un compte en sourdine
+</div>
+
+<Steps>
+  <Step title="Récupérer l’identifiant de votre compte">
+    Vous avez besoin de l’identifiant de l’utilisateur authentifié. Vous pouvez le trouver en utilisant l’[endpoint de recherche d’utilisateurs](/fr/x-api/users/lookup/introduction) ou à partir de votre jeton d’accès (la partie numérique correspond à votre identifiant utilisateur).
+  </Step>
+
+  <Step title="Récupérer l’identifiant du compte cible">
+    Trouvez l’identifiant du compte que vous voulez mettre en sourdine en utilisant l’[endpoint de recherche d’utilisateurs](/fr/x-api/users/lookup/introduction).
+  </Step>
+
+  <Step title="Envoyer la requête de mise en sourdine">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/muting" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"target_user_id": "9876543210"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # Mettre un compte en sourdine
+      response = client.users.mute(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+
+      print(f"Muting: {response.data.muting}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // Mettre un compte en sourdine
+      const response = await client.users.mute("123456789", {
+        targetUserId: "9876543210",
+      });
+
+      console.log(`Muting: ${response.data?.muting}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse">
+    ```json
+    {
+      "data": {
+        "muting": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unmute-a-user">
+  ## Annuler la mise en sourdine d’un utilisateur
+</div>
+
+Annulez la mise en sourdine d’un utilisateur :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/muting/9876543210" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Annuler la mise en sourdine d’un utilisateur
+  response = client.users.unmute(
+      source_user_id="123456789",
+      target_user_id="9876543210"
+  )
+
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Annuler la mise en sourdine d’un utilisateur
+  const response = await client.users.unmute("123456789", "9876543210");
+
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>
+
+**Réponse :**
+
+```json
+{
+  "data": {
+    "muting": false
+  }
+}
+```
+
+***
+
+<div id="mute-vs-block">
+  ## Mettre en sourdine vs Bloquer
+</div>
+
+| Fonctionnalité | Mettre en sourdine | Bloquer |
+|:--------|:-----|:------|
+| Voir leurs publications | Non | Non |
+| Ils voient vos publications | Oui | Non |
+| Ils peuvent vous suivre | Oui | Non |
+| Ils peuvent vous envoyer un DM | Oui | Non |
+| Ils en sont informés | Non | Oui |
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Recherche des comptes mis en sourdine" icon="volume-xmark" href="/fr/x-api/users/mutes/quickstart/mutes-lookup">
+    Récupérez vos comptes mis en sourdine
+  </Card>
+
+  <Card title="Blocages" icon="ban" href="/fr/x-api/users/blocks/quickstart">
+    Bloquez plutôt des comptes
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/users/mute-user-by-user-id">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

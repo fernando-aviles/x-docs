@@ -1,0 +1,105 @@
+---
+title: Guide d’intégration
+sidebarTitle: Guide d’intégration
+keywords: ["intégration des membres de listes", "guide sur les membres de listes", "configuration des membres de listes", "intégration de l’appartenance à une liste", "guide d’intégration des membres de listes"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Cette page présente les outils et les principaux concepts pour intégrer les endpoints List Members.
+
+***
+
+<div id="helpful-tools">
+  ## Outils utiles
+</div>
+
+Avant d’aborder certains concepts clés qui vous aideront à intégrer cet endpoint, nous vous recommandons de vous familiariser avec :
+
+<div id="postman">
+  ### Postman
+</div>
+
+Postman est un excellent outil pour tester un endpoint. Chaque requête Postman inclut tous les paramètres de chemin et de corps de requête afin de vous aider à comprendre rapidement ce qui est disponible pour vous. Pour en savoir plus sur nos collections Postman, veuillez consulter notre page [&quot;Utiliser Postman&quot;](/fr/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  ### Exemples de code
+</div>
+
+Vous souhaitez mettre en place cet endpoint avec du code dans votre langage de programmation préféré ? Nous mettons à votre disposition plusieurs exemples de code que vous pouvez utiliser comme point de départ sur notre [page GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="third-party-libraries">
+  ### Bibliothèques tierces
+</div>
+
+Profitez de l&#39;une des [bibliothèques tierces](/fr/x-api/tools-and-libraries/overview) mises à disposition par nos communautés pour vous aider à démarrer. Vous pouvez trouver une bibliothèque compatible avec les endpoints v2 en recherchant le tag de version approprié.
+
+***
+
+<div id="key-concepts">
+  ## Concepts clés
+</div>
+
+<div id="authentication">
+  ### Authentification
+</div>
+
+Tous les endpoints de X API v2 exigent que vous authentifiiez vos requêtes avec un ensemble d’identifiants, également appelés clés et jetons. Vous pouvez utiliser soit OAuth 1.0a User Context, OAuth 2.0 Authorization Code with PKCE, soit App only pour authentifier vos requêtes sur les endpoints de **lookup** des listes. En revanche, vous devez vous authentifier avec OAuth 1.0a User Context ou OAuth 2.0 pour les endpoints de **manage** des listes.
+
+[OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) signifie que vous devez utiliser un ensemble de clés d’API et de jetons d’accès utilisateur pour effectuer une requête avec succès. Les jetons d’accès doivent être associés à l’utilisateur pour le compte duquel vous effectuez la requête. Si vous souhaitez générer un ensemble de jetons d’accès pour un autre utilisateur, celui-ci doit autoriser votre App à l’aide du [flux OAuth en 3 étapes](/fr/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow).
+
+Veuillez noter qu’OAuth 1.0a peut être difficile à utiliser. Si vous n’êtes pas à l’aise avec cette méthode d’authentification, nous vous recommandons d’utiliser une [bibliothèque](/fr/x-api/tools-and-libraries/overview), d’utiliser un outil comme Postman, ou d’utiliser soit OAuth 2.0, soit App only pour authentifier vos requêtes.
+
+[OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) permet un meilleur contrôle sur le périmètre (scope) d’une application et les flux d’autorisation sur plusieurs appareils. OAuth 2.0 vous permet de choisir des scopes fins et spécifiques qui vous donnent des autorisations précises au nom d’un utilisateur.
+
+Pour activer OAuth 2.0 dans votre App, vous devez l’activer dans les paramètres d’authentification de votre App, disponibles dans la section App settings de la Developer Console.
+
+[App only](/fr/resources/fundamentals/authentication#oauth-2-0) exige simplement que vous transmettiez un [App only Access Token](/fr/resources/fundamentals/authentication#bearer-token-also-known-as-app-only) avec votre requête. Vous pouvez soit générer un App only Access Token directement au sein d’une App développeur, soit en générer un en utilisant l’endpoint [POST oauth2/token](/fr/resources/fundamentals/authentication#post-oauth2-token).
+
+<div id="developer-console-projects-and-developer-apps">
+  ### Developer Console, Projets et Apps développeur
+</div>
+
+Pour obtenir un ensemble d’identifiants d’authentification qui fonctionneront avec les endpoints de X API v2, vous devez [créer un compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info), configurer un [Projet](/fr/resources/fundamentals/developer-apps) dans ce compte, puis créer une [App développeur](/fr/resources/fundamentals/developer-apps) au sein de ce Projet. Vous pourrez ensuite trouver vos clés et jetons dans votre App développeur.
+
+<div id="rate-limits">
+  ### Limites de débit
+</div>
+
+Chaque jour, plusieurs milliers de développeurs envoient des requêtes vers X API. Pour aider à gérer l&#39;important volume de ces requêtes, des [limites de débit](/fr/x-api/fundamentals/rate-limits) sont appliquées à chaque endpoint, ce qui restreint le nombre de requêtes que vous pouvez effectuer pour le compte de votre app ou pour le compte d&#39;un utilisateur authentifié.
+
+Les points de terminaison de consultation (GET) sont soumis à des limites de débit à la fois au niveau de l&#39;App et au niveau de l&#39;utilisateur, tandis que les points de terminaison de gestion (POST/DELETE) sont limités au niveau de l&#39;utilisateur. La limite de débit de l&#39;App signifie que vous, en tant que développeur, ne pouvez effectuer qu&#39;un certain nombre de requêtes vers cet endpoint sur une période donnée depuis une App donnée (en utilisant soit l&#39;API Key et l&#39;API Secret Key, soit l&#39;App only Access Token). La limite de débit de l&#39;utilisateur signifie que l&#39;utilisateur authentifié pour le compte duquel vous effectuez la requête ne peut effectuer une consultation de List qu&#39;un certain nombre de fois, quel que soit l&#39;App développeur utilisée.
+
+Le tableau ci-dessous présente les limites de débit pour chaque endpoint.
+
+| Point de terminaison | Méthode HTTP | Limite de débit |
+| :--- | :--- | :--- |
+| /2/lists/:id/members | GET | 900 requêtes par tranche de 15 minutes |
+| /2/users/:id/list&#95;memberships | GET | 75 requêtes par tranche de 15 minutes |
+| /2/lists/:id/members | POST | 300 requêtes par tranche de 15 minutes |
+| /2/lists/:id/members/:user&#95;id | DELETE | 300 requêtes par tranche de 15 minutes |
+
+<div id="fields-and-expansions">
+  ### Champs et expansions
+</div>
+
+L&#39;endpoint GET de X API v2 permet aux utilisateurs de sélectionner exactement quelles données ils souhaitent que l&#39;API renvoie en utilisant un ensemble d&#39;outils appelés `fields` et `expansions`. Le paramètre `expansions` vous permet d&#39;inclure les objets référencés dans le payload. Par exemple, la recherche des membres d&#39;une List vous permet de récupérer les [expansions](/fr/x-api/fundamentals/expansions) suivantes :
+
+* `pinned_tweet_id`
+
+Le paramètre `fields` vous permet de sélectionner exactement quels [champs](/fr/x-api/fundamentals/fields) parmi les différents objets de données vous souhaitez recevoir. La recherche des membres d&#39;une List renvoie principalement des objets User. Par défaut, l&#39;objet User renvoie les champs id, name et username. Pour recevoir des champs supplémentaires tels que `user.created_at` ou `user.description`, vous devrez les demander spécifiquement en utilisant un paramètre user.fields.
+
+Nous avons ajouté un guide sur l&#39;utilisation des [champs et expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions).
+
+Le tableau ci-dessous présente les champs et expansions disponibles pour chaque endpoint de recherche :
+
+| Endpoint | Champs | Expansions |
+| :--- | :--- | :--- |
+| /2/lists/:id/members | `user.fields`, `tweet.fields` | `pinned_tweet_id` |
+| /2/users/:id/list&#95;memberships | `list.fields`, `user.fields` | `owner_id` |
+
+<div id="pagination">
+  ### Pagination
+</div>
+
+La récupération des appartenances/membres peut renvoyer une grande quantité de data. Pour garantir des résultats cohérents et performants à tout moment, nous utilisons la pagination. La pagination est une fonctionnalité des endpoints de X API v2 qui renvoient davantage de résultats que ce qu’il est possible de renvoyer dans une seule réponse. Lorsque c’est le cas, la data est renvoyée sous la forme d’une série de « pages ». Pour en savoir plus sur la façon de [paginer les résultats.](/fr/x-api/fundamentals/pagination)

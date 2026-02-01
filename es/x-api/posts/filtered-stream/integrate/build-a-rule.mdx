@@ -1,0 +1,336 @@
+---
+title: Crear una regla
+sidebarTitle: Crear una regla
+description: Aprende a crear reglas de flujo filtrado usando operadores
+keywords: ["crear regla", "reglas de filtrado", "reglas de flujo", "constructor de reglas", "reglas de flujo filtrado", "crear regla", "guía de reglas"]
+---
+
+Los endpoints de flujo filtrado entregan Publicaciones que coinciden con un conjunto de reglas aplicadas al flujo. Las reglas están compuestas por operadores que hacen coincidir una variedad de atributos de la Publicación.
+
+Se pueden aplicar varias reglas mediante el endpoint [POST /tweets/search/stream/rules](/es/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules). Una vez que hayas agregado reglas y te hayas conectado mediante [GET /tweets/search/stream](/es/x-api/posts/filtered-stream#get-2-tweets-search-stream), solo se entregarán las Publicaciones que coincidan con tus reglas. No necesitas desconectarte para agregar o eliminar reglas.
+
+***
+
+<div id="rule-limitations">
+  ## Limitaciones de las reglas
+</div>
+
+Los límites en el número de reglas dependen de tu [nivel de acceso](/es/x-api/getting-started/about-x-api). Consulta la [introducción al flujo filtrado](/es/x-api/posts/filtered-stream/introduction) para conocer los límites específicos.
+
+***
+
+<div id="operator-types-standalone-and-conjunction-required">
+  ## Tipos de operadores: independientes y que requieren conjunción
+</div>
+
+Los **operadores independientes** se pueden usar solos o junto con cualquier otro operador (incluidos los que requieren conjunción).
+
+Por ejemplo, esta regla funciona porque `#hashtag` es un operador independiente:
+
+```
+#xapiv2
+```
+
+Los **operadores que requieren conjunción** no se pueden usar de forma aislada en una regla; solo se pueden usar cuando se incluye al menos un operador independiente. Esto se debe a que usar estos operadores solos daría lugar a que coincidiera un volumen extremadamente alto de Publicaciones.
+
+Por ejemplo, las siguientes reglas **no están permitidas** ya que contienen únicamente operadores que requieren conjunción:
+
+```
+has:media
+```
+
+```
+has:links OR is:retweet
+```
+
+Si añadimos un operador independiente, como la expresión `"X data"`, la regla funciona correctamente:
+
+```
+"X data" has:mentions (has:media OR has:links)
+```
+
+***
+
+<div id="boolean-operators-and-grouping">
+  ## Operadores booleanos y agrupación
+</div>
+
+Combina varios operadores utilizando estas herramientas:
+
+| Operator | Description | Example |
+| :--- | :--- | :--- |
+| **AND** (space) | Las Publicaciones deben cumplir ambas condiciones | `snow day #NoSchool` coincide con Publicaciones que contienen &quot;snow&quot; AND &quot;day&quot; y #NoSchool |
+| **OR** | Las Publicaciones deben cumplir al menos una de las condiciones | `grumpy OR cat OR #meme` coincide con Publicaciones que contienen &quot;grumpy&quot; OR &quot;cat&quot; o #meme |
+| **NOT** (dash) | Excluye las Publicaciones que cumplan esta condición | `cat #meme -grumpy` coincide con Publicaciones que contienen &quot;cat&quot; y #meme pero NOT &quot;grumpy&quot; |
+| **Grouping** (parentheses) | Agrupa operadores | `(grumpy cat) OR (#meme has:images)` coincide con cualquiera de los grupos |
+
+<Note>
+  **Una nota sobre negaciones**
+
+  * Todos los operadores se pueden negar excepto `sample:`
+  * El operador `-is:nullcast` siempre debe estar negado
+  * Los operadores negados no se pueden usar solos
+  * No niegues operadores agrupados. En lugar de `skiing -(snow OR day OR noschool)`, usa `skiing -snow -day -noschool`
+</Note>
+
+***
+
+<div id="order-of-operations">
+  ## Orden de operaciones
+</div>
+
+Al combinar AND y OR:
+
+1. Primero se combinan los operadores conectados mediante la lógica AND
+2. Luego se aplican los operadores conectados mediante la lógica OR
+
+**Ejemplos:**
+
+| Consulta                 | Se evalúa como             |
+| :----------------------- | :------------------------- |
+| `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
+| `ipad iphone OR android` | `(iphone ipad) OR android` |
+
+Para eliminar la incertidumbre, utiliza paréntesis:
+
+```
+(apple OR iphone) ipad
+```
+
+```
+iphone (ipad OR android)
+```
+
+***
+
+<div id="punctuation-diacritics-and-case-sensitivity">
+  ## Puntuación, diacríticos y distinción entre mayúsculas y minúsculas
+</div>
+
+**Diacríticos:** Las reglas de flujo filtrado con acentos solo coinciden con Publicaciones que también incluyen el acento. Por ejemplo, `diacrítica` coincide con *diacrítica* pero **no** con *diacritica*.
+
+**Distinción entre mayúsculas y minúsculas:** Todos los operadores son insensibles a mayúsculas y minúsculas. La regla `cat` coincide con *cat*, *CAT* y *Cat*.
+
+<Note>
+  **La búsqueda de Publicaciones se comporta de manera diferente**
+
+  Al [crear consultas de búsqueda](/es/x-api/posts/search/integrate/build-a-query), las palabras clave con acentos coinciden con Publicaciones tanto con como sin acentos. Por ejemplo, `Diacrítica` coincide tanto con *Diacrítica* como con *Diacritica*.
+</Note>
+
+***
+
+<div id="quote-tweet-matching">
+  ## Coincidencia de Tuits citados
+</div>
+
+Al usar el flujo filtrado, los operadores coinciden tanto con el contenido del Tuit citado **como** con el contenido de la Publicación original que fue citada.
+
+<Note>
+  [Buscar publicaciones](/es/x-api/posts/search/introduction) se comporta de manera diferente: solo coincide con el contenido del Tuit citado, no con la Publicación original.
+</Note>
+
+***
+
+<div id="specificity-and-efficiency">
+  ## Especificidad y eficiencia
+</div>
+
+<Warning>
+  No se recomienda usar operadores amplios, como una única palabra clave o un hashtag: coincidirán con un volumen masivo de Publicaciones y consumirán tu conexión rápidamente.
+</Warning>
+
+**Consejos para crear reglas efectivas:**
+
+1. **Empieza de forma específica y luego amplía** — Crea reglas dirigidas que devuelvan resultados relevantes
+2. **Usa varios operadores** — Combina operadores para acotar los resultados
+3. **Controla el número de caracteres** — Toda la cadena de texto de la regla cuenta para el límite
+
+**Progresión de ejemplo:**
+
+```
+# Too broad - 200,000+ Posts per day
+happy
+
+# Mejor: agrega filtro de idioma y exclusiones
+(happy OR happiness) lang:en -birthday -is:retweet
+
+# Even better - 59 characters, more specific
+(happy OR happiness) place_country:GB -birthday -is:retweet
+```
+
+***
+
+<div id="iteratively-building-a-rule">
+  ## Crear una regla de manera iterativa
+</div>
+
+<div id="step-1-start-with-a-basic-rule">
+  ### Paso 1: Empieza con una regla básica
+</div>
+
+```
+happy OR happiness
+```
+
+<div id="step-2-test-and-narrow-based-on-results">
+  ### Paso 2: Prueba y acota en función de los resultados
+</div>
+
+Observamos Publicaciones en muchos idiomas. Añade un filtro de idioma:
+
+```
+(happy OR happiness) lang:en
+```
+
+Estamos recibiendo mensajes de felicitación de cumpleaños. Exclúyelos y los Retweets:
+
+```
+(happy OR happiness) lang:en -birthday -is:retweet
+```
+
+<div id="step-3-broaden-for-better-coverage">
+  ### Paso 3: Ampliar para una mejor cobertura
+</div>
+
+Queremos captar más matices de sentimiento. Añade palabras clave relacionadas:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
+```
+
+<div id="step-4-adjust-for-trends">
+  ### Paso 4: Ajustar según las tendencias
+</div>
+
+Están apareciendo Publicaciones sobre las fiestas. Exclúyelas:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
+```
+
+***
+
+<div id="adding-and-removing-rules">
+  ## Agregar y eliminar reglas
+</div>
+
+Usa [POST /2/tweets/search/stream/rules](/es/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) para agregar o eliminar reglas.
+
+<div id="adding-rules">
+  ### Agregar reglas
+</div>
+
+Envía un cuerpo JSON `add` con el campo `value` (la regla) y un campo `tag` opcional (para identificar las Publicaciones coincidentes):
+
+```bash
+curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "add": [
+      {"value": "cat has:media", "tag": "cats with media"},
+      {"value": "cat has:media -grumpy", "tag": "happy cats with media"},
+      {"value": "meme", "tag": "funny things"},
+      {"value": "meme has:images"}
+    ]
+  }'
+```
+
+<div id="removing-rules">
+  ### Eliminación de reglas
+</div>
+
+Envía un cuerpo JSON `delete` con los id de las reglas que desees eliminar:
+
+```bash
+curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "delete": {
+      "ids": [
+        "1165037377523306498",
+        "1165037377523306499"
+      ]
+    }
+  }'
+```
+
+***
+
+<div id="rule-examples">
+  ## Ejemplos de reglas
+</div>
+
+<div id="tracking-a-natural-disaster">
+  ### Seguimiento de un desastre natural
+</div>
+
+Haz coincidir publicaciones de agencias meteorológicas sobre el huracán Harvey:
+
+```json
+{
+  "value": "-is:retweet has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1)",
+  "tag": "Hurricane Harvey - weather agencies with geo"
+}
+```
+
+<div id="sentiment-analysis-for-nowplaying">
+  ### Análisis de sentimiento para #nowplaying
+</div>
+
+**Sentimiento positivo:**
+
+```json
+{
+  "value": "#nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing",
+  "tag": "#nowplaying positive"
+}
+```
+
+**Sentimiento negativo:**
+
+```json
+{
+  "value": "#nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible",
+  "tag": "#nowplaying negative"
+}
+```
+
+<div id="using-post-annotations">
+  ### Uso de las anotaciones de las Publicaciones
+</div>
+
+Encuentra Publicaciones en japonés sobre mascotas (que no sean gatos) con imágenes utilizando el operador `context:`:
+
+Primero, usa [Búsqueda de Publicaciones](/es/x-api/posts/lookup/introduction) con `tweet.fields=context_annotations` para identificar los ID de domain.entity:
+
+* Gatos: `domain` 66, `entity` 852262932607926273
+* Mascotas: `domain` 65, `entity` 852262932607926273
+
+```json
+{
+  "value": "context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:images lang:ja",
+  "tag": "Mascotas japonesas con imágenes - sin gatos"
+}
+```
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Referencia de operadores" icon="list" href="/es/x-api/posts/filtered-stream/integrate/operators">
+    Lista completa de operadores disponibles
+  </Card>
+
+  <Card title="Inicio rápido de flujo filtrado" icon="rocket" href="/es/x-api/posts/filtered-stream/quickstart">
+    Conéctate a tu flujo filtrado
+  </Card>
+
+  <Card title="Código de ejemplo" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code/tree/master/Filtered-Stream">
+    Ejemplos de código en múltiples lenguajes de programación
+  </Card>
+</CardGroup>

@@ -1,0 +1,102 @@
+---
+title: Guide de migration
+sidebarTitle: Guide de migration
+keywords: ["migration de Masquer les réponses", "migrer Masquer les réponses", "guide de migration", "migration de la fonctionnalité Masquer les réponses", "migration v2"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="comparing-x-apis-hide-replies-endpoints">
+  ## Comparaison des endpoints de masquage des réponses de X API
+</div>
+
+L’endpoint v2 de masquage des réponses remplace l’endpoint Labs de masquage des réponses. Si vous avez du code, des apps ou des outils qui utilisent la version Labs de cet endpoint et que vous envisagez de migrer vers le nouvel endpoint X API v2, ce guide est pour vous.
+
+Pour utiliser la nouvelle X API v2 (y compris l’endpoint de masquage des réponses), vous devrez [activer la nouvelle Developer Console](https://developer.x.com/en/portal/opt-in), créer un [Projet](/fr/resources/fundamentals/developer-apps) et ajouter une App à ce Projet. Vous pourrez ensuite utiliser les identifiants associés à cette App pour effectuer des requêtes vers l’endpoint de masquage des réponses. L’ajout de la même App inscrite pour l’endpoint Labs v2 de masquage des réponses permettra de conserver l’authentification de vos utilisateurs.
+
+Le tableau suivant compare les différences entre Labs et le nouvel endpoint X API v2 :
+
+| **Description** | **Labs v2** | **X API v2** |
+| :--- | :--- | :--- |
+| Domaine hôte | https://api.x.com | https://api.x.com |
+| Chemin de l’endpoint | /labs/2/tweets/:id/hidden | /2/tweets/:id/hidden |
+| Authentification | OAuth 1.0a User context | OAuth 1.0a User context |
+| Méthodes HTTP prises en charge | PUT | PUT |
+| Limites de débit des requêtes par défaut | 10 requêtes toutes les 15 minutes (partagées entre tous les utilisateurs authentifiés) | 50 requêtes toutes les 15 minutes (pour chaque utilisateur authentifié) |
+| Peut masquer des réponses | ✔︎  | ✔︎  |
+| Peut réafficher une réponse précédemment masquée | ✔︎  | ✔︎  |
+| Peut masquer ou réafficher des réponses plusieurs fois | ✔︎  | ✔︎  |
+| Nécessite l’utilisation d’identifiants provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [projet](/fr/resources/fundamentals/developer-apps) |     | ✔   |
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="hide-a-reply-v2">
+  ### Masquer une réponse (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/tweets/1234567890/hidden" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"hidden": true}'
+  ```
+
+  ```python Python
+  # Nécessite une authentification via OAuth 1.0a User Context
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/tweets/1234567890/hidden"
+  response = requests.put(url, auth=auth, json={"hidden": True})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Masquer une réponse
+  response = client.posts.hide_reply("1234567890", hidden=True)
+  print(f"Hidden: {response.data.hidden}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Masquer une réponse
+  const response = await client.posts.hideReply("1234567890", { hidden: true });
+  console.log(`Hidden: ${response.data?.hidden}`);
+  ```
+</CodeGroup>
+
+**Autres ressources de migration**
+
+[Hub de migration de X API](/fr/x-api/migrate/overview)

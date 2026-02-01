@@ -1,0 +1,322 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 获取关注者与关注列表，并管理关注关系
+keywords: ["关注快速入门", "关注者快速入门", "关注教程", "关注指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你完成获取粉丝和关注列表以及管理关注关系的操作。
+
+<Note>
+  **先决条件**
+
+  在开始之前，你需要：
+
+  * 一个已通过审批的 App 所属的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer Token（用于查询）
+  * 用户访问令牌（用于管理关注）
+</Note>
+
+***
+
+<div id="get-a-users-followers">
+  ## 获取某个用户的关注者
+</div>
+
+获取关注特定用户的用户列表：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/followers?\
+  user.fields=username,verified,public_metrics&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 使用分页获取某个用户的关注者
+  for page in client.users.get_followers(
+      "2244994945",
+      user_fields=["username", "verified", "public_metrics"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Followers: {user.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 使用分页获取某个用户的关注者
+  const paginator = client.users.getFollowers("2244994945", {
+    userFields: ["username", "verified", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Followers: ${user.public_metrics?.followers_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### 响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Developer",
+      "username": "dev_user",
+      "verified": false,
+      "public_metrics": {
+        "followers_count": 500,
+        "following_count": 200,
+        "tweet_count": 1500
+      }
+    }
+  ],
+  "meta": {
+    "result_count": 1,
+    "next_token": "abc123"
+  }
+}
+```
+
+***
+
+<div id="get-who-a-user-follows">
+  ## 获取某个用户关注的账号
+</div>
+
+获取特定用户关注的账号列表：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/following?\
+  user.fields=username,verified&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取某个用户关注的账号
+  for page in client.users.get_following(
+      "2244994945",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 获取某个用户关注的账号
+  const paginator = client.users.getFollowing("2244994945", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="follow-a-user">
+  ## 关注用户
+</div>
+
+以已认证用户的身份关注其他用户：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/following" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 关注用户
+  response = client.users.follow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 关注用户
+  const response = await client.users.follow("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### 响应
+</div>
+
+```json
+{
+  "data": {
+    "following": true,
+    "pending_follow": false
+  }
+}
+```
+
+<Note>
+  如果目标账号是受保护账号，在关注请求被批准之前，`pending_follow` 将为 `true`。
+</Note>
+
+***
+
+<div id="unfollow-a-user">
+  ## 取消关注用户
+</div>
+
+代表已认证用户取消关注某个用户：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/following/2244994945" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 取消关注用户
+  response = client.users.unfollow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 取消关注用户
+  const response = await client.users.unfollow("123456789", "2244994945");
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### 响应
+</div>
+
+```json
+{
+  "data": {
+    "following": false
+  }
+}
+```
+
+***
+
+<div id="common-parameters">
+  ## 常用参数
+</div>
+
+| 参数 | 描述 |
+|:----------|:------------|
+| `max_results` | 每页返回的结果数量（1-1000，默认为 100） |
+| `pagination_token` | 用于获取下一页的令牌 |
+| `user.fields` | 附加的用户字段 |
+| `expansions` | 要一并返回的关联对象 |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="用户查找" icon="user" href="/zh/x-api/users/lookup/introduction">
+    查找用户资料
+  </Card>
+
+  <Card title="屏蔽" icon="ban" href="/zh/x-api/users/blocks/introduction">
+    屏蔽和取消屏蔽用户
+  </Card>
+
+  <Card title="静音" icon="volume-xmark" href="/zh/x-api/users/mutes/introduction">
+    将用户静音和取消静音
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/users/followers-lookup">
+    完整端点说明
+  </Card>
+</CardGroup>

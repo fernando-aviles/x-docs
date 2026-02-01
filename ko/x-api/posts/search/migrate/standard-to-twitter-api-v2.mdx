@@ -1,0 +1,253 @@
+---
+title: v1에서 v2로
+sidebarTitle: v1에서 v2로
+keywords: ["v1.1에서 v2로 마이그레이션", "검색 마이그레이션", "검색 이전", "Standard v1.1에서 v2 검색으로", "v1에서 v2 검색으로", "마이그레이션 가이드"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### Standard v1.1와 X API v2 비교
+</div>
+
+v1.1 [search/posts](/ko/x-api/posts/search/introduction)를 사용해 오셨다면, 이 가이드의 목표는 Standard v1.1 검색 포스트 엔드포인트와 X API v2 검색 포스트 엔드포인트 간의 유사점과 차이점을 이해하는 데 도움을 드리는 것입니다.
+
+* **유사점**
+  * OAuth 1.0a User Context 및 OAuth 2.0 App-Only
+  * 포스트 수정 이력 및 메타데이터 지원
+* **차이점**
+  * 엔드포인트 URL
+
+  * 앱 및 Project 요구 사항
+
+  * 응답 데이터 형식
+
+  * 요청 매개변수
+
+  * 새로운 쿼리 연산자
+
+  * AND / OR 연산자 우선순위 규칙 
+
+<div id="similarities">
+  #### 유사점
+</div>
+
+**OAuth 1.0a User Context 및 OAuth 2.0 App-Only 인증**
+
+v1.1 search/posts 엔드포인트와 X API v2 recent search 엔드포인트는 [OAuth 1.0a User Context](/ko/resources/fundamentals/authentication)와 [OAuth 2.0 App-Only](/ko/resources/fundamentals/authentication#oauth-2-0)를 모두 지원합니다. 
+
+따라서 이전에 standard v1.1 search 엔드포인트를 사용하고 있었다면, X API v2 버전으로 마이그레이션하더라도 동일한 인증 방식을 계속 사용할 수 있습니다. 
+
+사용하는 인증 라이브러리/패키지에 따라 다를 수 있지만, App-Only 인증은 일반적으로 가장 시작하기 쉬운 방법이며, 간단한 요청 헤더 설정만으로 사용할 수 있습니다. App Access Token 생성 방법은 [OAuth 2.0 App-Only 가이드](/ko/resources/fundamentals/authentication#bearer-token-also-known-as-app-only)를 참조하세요. 
+
+X API v2 엔드포인트를 사용해 비공개 메트릭 또는 광고 메트릭을 가져오는 기능을 활용하려면 OAuth 1.0a User Context를 사용해야 하며, 메트릭을 가져오려는 포스트를 게시한 사용자와 관련된 사용자 액세스 토큰을 전달해야 합니다. 
+
+**포스트 수정 이력 및 메타데이터 지원**
+
+두 버전 모두 수정 이력을 설명하는 메타데이터를 제공합니다. 자세한 내용은 [search API 레퍼런스](/ko/x-api/posts/recent-search)와 [포스트 수정 기본 사항 문서](/ko/x-api/fundamentals/edit-posts)를 확인하세요. 
+
+<div id="differences">
+  #### 차이점
+</div>
+
+**엔드포인트 URL**
+
+* Standard v1.1 엔드포인트:
+  * https://api.x.com/1.1/search/tweets
+
+* X API v2 엔드포인트:
+  * https://api.x.com/2/tweets/search/recent
+     
+
+**App 및 Project 요구사항**
+
+X API v2 엔드포인트를 사용하려면, 요청을 인증할 때 [developer App](/ko/resources/fundamentals/developer-apps)과 연결된 [Project](/ko/resources/fundamentals/developer-apps)의 자격 증명을 사용해야 합니다. 모든 X API v1.1 엔드포인트는 App 또는 App과 연결된 App의 자격 증명을 사용할 수 있습니다. 
+
+**응답 데이터 형식**
+
+Standard v1.1과 X API v2 엔드포인트 버전 간 가장 큰 차이점 중 하나는 페이로드에서 어떤 필드를 반환할지 선택하는 방식입니다.
+
+Standard 엔드포인트의 경우 기본적으로 많은 응답 필드를 받게 되며, 이후 매개변수를 사용해 어떤 필드 또는 필드 집합을 페이로드에서 반환할지 지정할 수 있습니다.
+
+X API v2 버전은 기본적으로 포스트 id와 text 필드만 제공합니다. 추가 필드나 객체를 요청하려면 [fields](/ko/x-api/fundamentals/fields) 및 [expansions](/ko/x-api/fundamentals/expansions) 매개변수를 사용해야 합니다. 이러한 엔드포인트에서 요청한 모든 포스트 필드는 기본 포스트 객체로 반환됩니다. 확장된 사용자, 미디어, 투표 또는 장소 객체와 필드는 응답 내 includes 객체에 반환됩니다. 그런 다음 포스트와 확장된 객체 양쪽에 있는 ID를 매칭해, 확장된 객체를 포스트 객체에 다시 연결할 수 있습니다. 
+
+이러한 새로운 매개변수에 대해서는 각 가이드를 더 자세히 살펴보시거나, [fields 및 expansions 사용 방법](/ko/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions)에 대한 가이드를 참고하시기를 권장합니다. 
+
+또한 standard v1.1 필드를 새로운 v2 필드에 매핑하는 데 도움이 되는 [data 형식 마이그레이션 가이드](/ko/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2)를 제공하고 있습니다. 이 가이드는 특정 필드를 반환하기 위해 v2 요청에 함께 전달해야 하는 expansions 및 fields 매개변수를 구체적으로 안내합니다. 
+ 
+
+특정 필드를 요청하는 방식의 변경 사항 외에도, X API v2는 [Post](/ko/x-api/fundamentals/data-dictionary#tweet) 및 [user](/ko/x-api/fundamentals/data-dictionary#user) 객체를 포함해 API가 반환하는 객체에 대해 새로운 JSON 구조를 도입하고 있습니다.
+
+* JSON 루트 레벨에서, standard 엔드포인트는 포스트 객체를 statuses 배열로 반환하는 반면, X API v2는 data 배열로 반환합니다. 
+* Retweeted 및 Quoted &quot;statuses&quot;를 참조하는 대신, X API v2 JSON은 리트윗된 트윗과 인용 트윗을 참조합니다. contributors 및 user.translator&#95;type과 같은 많은 레거시 및 사용 중단된 필드가 제거되고 있습니다. 
+* 포스트 객체의 favorites와 사용자 객체의 favourites를 함께 사용하는 대신, X API v2는 like라는 용어를 사용합니다. 
+* X는 값이 없는 JSON 값(예: null)을 페이로드에 기록하지 않는 관례를 채택하고 있습니다. 포스트 및 사용자 속성은 null이 아닌 값을 가진 경우에만 포함됩니다. 
+   
+
+또한 [Post 객체](/ko/x-api/fundamentals/data-dictionary#tweet)에 다음을 포함한 새로운 필드 집합을 도입했습니다:
+
+* [conversation&#95;id](/ko/x-api/fundamentals/conversation-id) 필드
+* context 및 entities를 포함하는 두 개의 새로운 [annotations](/ko/x-api/fundamentals/post-annotations) 필드
+* 여러 개의 새로운 [metrics](/ko/x-api/fundamentals/metrics) 필드 
+* 특정 포스트에 누가 답글을 달 수 있는지 보여주는 새로운 reply&#95;setting 필드
+
+<div id="request-parameters">
+  #### 요청 매개변수
+</div>
+
+다음 표는 표준 v1.1 요청 매개변수와 X API v2에서 대응되는 매개변수를 보여줍니다.
+
+| Standard search v1.1 | Search Posts v2 |
+| :--- | :--- |
+| q   | query |
+|     | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| until (YYYY-MM-DD) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| since&#95;id | since&#95;id |
+| max&#95;id | until&#95;id |
+| count | max&#95;results |
+| Response provides search&#95;metadata.next&#95;results | next&#95;token |
+
+또한 X API v2에서 지원되지 **않는** 표준 검색 포스트용 요청 매개변수 집합이 있습니다.
+
+| **Standard v1.1 parameter** | **Details** |
+| :--- | :--- |
+| geocode | Search Posts는 위치 기반 쿼리를 위한 지리 연산자(geo operator)를 지원합니다. |
+| locale | 표준 검색에서는 쿼리의 언어를 지정하기 위해 사용되었으나, 완전히 구현되지는 않았습니다. |
+| lang | Search Posts 엔드포인트는 관심 있는 언어에 매칭하기 위한 lang 쿼리 연산자를 제공합니다. |
+| include&#95;entities | 포스트 엔터티는 항상 포함됩니다. |
+| result&#95;type | Search Posts 엔드포인트는 참여도와 관계없이, 일치하는 모든 포스트를 제공합니다. |
+| extended | X API v2는 최대 280자까지의 포스트를 기본으로 지원하도록 설계되었습니다. v2에서는 &#39;extended&#39; 포스트라는 개념이 없습니다. |
+
+다음은 표준 요청과 Search Posts 요청 간의 차이를 보여주는 예시 요청입니다.
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| https://api.x.com/1.1/search/tweets.json?q=snow&amp;count=50 | https://api.x.com/2/tweets/search/recent?query=snow&amp;max&#95;results=50 |
+
+이 두 요청은 모두 키워드 snow를 포함하는, 가장 최근 포스트 50개를 반환합니다. v2 요청은 일치하는 포스트의 기본 id 및 text 필드를 반환합니다. JSON 페이로드에 포함할 추가 포스트 및 사용자 필드를 지정하는 예시는 다음과 같습니다.
+
+|     |
+| :--- |
+| **X API v2** |
+| https://api.x.com/2/tweets/search/recent?query=snow&amp;max&#95;results=50&amp;tweet.fields=id,created&#95;at,author&#95;id,text,source,entities,attachments&amp;user.fields=id,name,username,description |
+
+**새로운 쿼리 연산자**
+
+Search Posts는 두 가지 새로운 X API v2 기능을 지원하기 위해 새로운 연산자를 도입합니다. 
+
+* **[Conversation IDs](/ko/x-api/fundamentals/conversation-id)** - X에서 대화가 전개될 때, 대화에 속하는 포스트를 표시하기 위한 conversation ID를 사용할 수 있습니다. 대화에 속한 모든 포스트는 대화를 시작한 포스트의 ID를 conversation&#95;id에 설정합니다. 
+  * `conversation_id:`
+* **[X Annotations](/ko/x-api/fundamentals/post-annotations)** 는 포스트에 대한 맥락 정보를 제공하며, 엔터티 및 컨텍스트 애노테이션을 포함합니다. 엔터티는 사람, 장소, 상품, 조직으로 구성됩니다. 컨텍스트는 도메인 또는 주제로, 추출된 엔터티가 속한 범주를 의미합니다. 예를 들어, 포스트에서 언급된 사람은 운동선수, 배우, 정치인인지 등을 나타내는 컨텍스트를 가질 수 있습니다.  
+  * context: 관심 있는 컨텍스트로 애노테이션된 포스트를 검색합니다. 
+  * entity: 관심 있는 엔터티로 애노테이션된 포스트를 검색합니다. 
+
+     
+
+<div id="and-or-operator-precedence">
+  #### AND / OR operator precedence
+</div>
+
+검색 쿼리를 구성하는 기본 요소는 OR와 AND 논리 그룹을 사용하는 것입니다. 표준 검색 API는 AND보다 OR을 먼저 적용하는 반면, Search Posts 엔드포인트(및 프리미엄·엔터프라이즈 버전)는 OR보다 AND를 먼저 적용합니다. 이 차이는 두 버전 간에 쿼리를 옮길 때 매우 중요합니다. 
+
+예를 들어, 표준 검색에서 ‘storm’ 키워드를 포함하면서 ‘colorado’라는 단어 또는 #COwx 해시태그를 언급하는 포스트를 찾고 싶다면, 다음 검색 쿼리를 사용할 수 있습니다:
+
+storm #COwx OR colorado
+
+Search Posts 연산자 우선순위에서는 AND가 OR보다 먼저 적용됩니다. 따라서 위의 쿼리는 다음과 동일하게 해석됩니다: 
+
+(storm #COwx) OR colorado
+
+그러나 위 규칙은 포스트가 ‘storm’이나 #COwx 해시태그를 언급했는지에 상관없이 ‘Colorado’를 언급하는 모든 포스트에도 일치합니다. 추가로, ‘storm’ 키워드와 #COwx 해시태그를 모두 언급한 포스트도 일치합니다. 
+
+쿼리가 원래 의도대로 동작하도록 하려면 OR 절을 함께 묶어야 합니다. 원래 표준 쿼리를 Search Posts에 맞게 변환하면 다음과 같습니다:
+
+storm (#COwx OR colorado)
+
+이 두 규칙은 일치 동작이 매우 다릅니다. 2019년 10월 한 달 동안, 원래 규칙은 1,175,000개 이상의 포스트와 일치하는 반면, 올바르게 변환된 규칙은 약 5,600개의 포스트와만 일치합니다. AND와 OR의 우선순위를 항상 유의하고, 필요한 경우 괄호를 사용하십시오. 
+
+<div id="curl-requests">
+  #### cURL 요청
+</div>
+
+**다음 섹션에서는 standard v1.1 엔드포인트와 이에 상응하는 v2 엔드포인트의 cURL 요청 예시를 보여줍니다.**
+
+요청은 [OAuth 2.0 App-Only](https://developer.x.com/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token)를 사용해 전송됩니다. 아래 cURL 요청을 실행하려면 Authorization 헤더의 ACCESS&#95;TOKEN을 앱 액세스 토큰으로 교체해야 합니다. v2 엔드포인트의 경우, 앱 액세스 토큰은 [Project](/ko/resources/fundamentals/developer-apps/overview) 내의 [developer App](/ko/resources/fundamentals/developer-apps/overview)에 속해야 합니다. 
+
+v1.1 엔드포인트가 반환하는 응답 페이로드는 v2 엔드포인트가 반환하는 응답 페이로드와 다릅니다. v2에서는 기본 필드뿐만 아니라 [fields](/ko/x-api/fundamentals/fields) 및 [expansions](/ko/x-api/fundamentals/expansions) 매개변수로 요청한 다른 필드도 응답에 포함됩니다. 이러한 매개변수를 사용해 반환받을 필드 집합을 다르게 지정할 수 있습니다.
+
+**Standard v1.1 `GET search/tweets` → v2 `GET tweets/search/recent`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/search/tweets.json?q=from%3AXDevelopers%20-is%3Aretweet&count=100' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/tweets/search/recent?query=from%3AXDevelopers%20-is%3Aretweet&tweet.fields=created_at%2Cconversation_id%2Centities&max_results=100' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/recent"
+
+  params = {
+      "query": "from:XDevelopers -is:retweet",
+      "tweet.fields": "created_at,conversation_id,entities",
+      "max_results": 100
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  for post in response.json()["data"]:
+      print(f"{post['created_at']}: {post['text'][:50]}...")
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 최신 포스트 검색 - SDK가 페이지네이션을 자동으로 처리합니다
+  for page in client.posts.search_recent(
+      query="from:XDevelopers -is:retweet",
+      tweet_fields=["created_at", "conversation_id", "entities"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 최신 포스트 검색 - SDK가 페이지네이션을 자동으로 처리합니다
+  const paginator = client.posts.searchRecent("from:XDevelopers -is:retweet", {
+    tweetFields: ["created_at", "conversation_id", "entities"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+**다음 단계**
+
+[X API v2 최근 검색 빠른 시작 가이드 살펴보기](/ko/x-api/posts/search/quickstart/recent-search)
+
+[최근 검색 API 레퍼런스 검토하기](/ko/x-api/posts/recent-search)
+
+[이 엔드포인트용 샘플 코드 살펴보기](https://github.com/xdevplatform/Twitter-API-v2-sample-code "이 엔드포인트용 샘플 코드 살펴보기")
+
+[최근 검색에 대한 첫 요청을 만드는 단계별 가이드](/ko/x-api/getting-started/make-your-first-request "최근 검색에 대한 첫 요청을 만드는 단계별 가이드")

@@ -1,0 +1,180 @@
+---
+title: 概要
+sidebarTitle: 概要
+keywords: ["post lookup migration", "lookup migrate", "v1.1 to v2 lookup", "lookup migration guide", "migrate lookup"]
+---
+
+<div id="comparing-x-apis-posts-lookup-endpoints">
+  ## X API の投稿ルックアップエンドポイントの比較
+</div>
+
+v2 の投稿ルックアップエンドポイントは、v1.1 の標準的な [GET statuses/lookup](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-lookup) および [GET statuses/show](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-show-id) エンドポイントに代わるものです。このガイドは、これらの旧エンドポイントから X API v2 へ移行する開発者向けです。
+
+***
+
+<div id="endpoint-comparison-table">
+  ## エンドポイント比較表
+</div>
+
+| 説明 | Standard v1.1 | X API v2 |
+|:-------------|:---------------|:----------|
+| **対応している HTTP メソッド** | `GET` | `GET` |
+| **ホストドメイン** | `https://api.x.com` | `https://api.x.com` |
+| **エンドポイントパス** | `/1.1/statuses/show.json`, `/1.1/statuses/lookup.json` | `/2/tweets` |
+| **[認証](resources/fundamentals/authentication)** | OAuth 1.0a ユーザーコンテキスト | OAuth 1.0a ユーザーコンテキスト, OAuth 2.0 App-Only, OAuth 2.0 Authorization Code with PKCE |
+| **投稿の [JSON 形式](/ja/x-api/fundamentals/data-dictionary)** | Standard v1.1 形式 | [X API v2 形式](/ja/x-api/fundamentals/data-dictionary)、`fields` と `expansions` パラメーターによって決定される (v1.1 との後方互換性はありません) |
+| **特定の [フィールド](/ja/x-api/fundamentals/data-dictionary) を選択可能** |  | ✔ |
+| **[アノテーション](/ja/x-api/fundamentals/post-annotations) フィールドをサポート** |  | ✔ |
+| **新しい [メトリクス](/ja/x-api/fundamentals/metrics) フィールドをサポート** |  | ✔ |
+| **`conversation_id` フィールドをサポート** |  | ✔ |
+| **投稿の編集履歴を提供** | ✔ | ✔ |
+| **[Project](resources/fundamentals/projects) に関連付けられた [開発者用 App](/ja/resources/fundamentals/developer-apps) の認証情報が必要** |  | ✔ |
+
+***
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ## Standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の GET statuses/show や GET statuses/lookup を利用している場合、このガイドは、standard v1.1 と X API v2 の投稿取得エンドポイントの類似点と相違点を理解するのに役立ちます。
+
+[X API v1.1 のデータ形式](/ja/x-api/fundamentals/data-dictionary)と [X API v2 の形式](/ja/x-api/fundamentals/data-dictionary)の違いをすばやく確認するには、[ビジュアルデータ形式移行ツール](/ja/x-api/migrate/data-format-migration)も参考になるかもしれません。
+
+* **類似点**
+  * OAuth 1.0a ユーザーコンテキスト
+  * リクエストごとの投稿数の上限
+  * 投稿の編集履歴とメタデータのサポート
+
+* **相違点**
+  * エンドポイントの URL
+  * アプリと Project の要件
+  * レスポンスのデータ形式
+  * リクエストパラメーター
+
+<div id="similarities">
+  ### 共通点
+</div>
+
+<div id="oauth-10a-user-context-authentication-method">
+  #### OAuth 1.0a ユーザーコンテキスト認証方法
+</div>
+
+標準エンドポイントは [OAuth 1.0a ユーザーコンテキスト](/ja/resources/fundamentals/authentication) をサポートしていますが、新しい X API v2 の Post ルックアップエンドポイントは、OAuth 1.0a ユーザーコンテキストに加えて [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication) もサポートしています。したがって、以前に標準 v1.1 の Post ルックアップエンドポイントのいずれかを使用していた場合は、X API v2 のエンドポイントへ移行しても、同じ認証方法をそのまま利用できます。
+
+App-Only 認証は、最も簡単に使い始められる方法である可能性があります。App Access Token の生成方法については、[この OAuth 2.0 App-Only ガイド](/ja/resources/fundamentals/authentication) を参照してください。
+
+<div id="posts-per-request-limits">
+  #### 1リクエストあたりの投稿数の上限
+</div>
+
+v1.1 の [GET statuses/lookup](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-lookup) エンドポイントでは、1リクエストあたり最大100件の投稿を指定できます。これは GET /tweets エンドポイントにも当てはまります。100件すべての投稿を指定するには、クエリパラメータとして `ids` パラメータを使用し、カンマ区切りの[投稿ID](/ja/resources/fundamentals/x-ids)のリストを渡します。
+
+**投稿の編集履歴とメタデータのサポート**
+
+どちらのバージョンも、編集履歴を示すメタデータを提供します。詳細については、投稿ルックアップのAPIリファレンスと、[Edit Posts の基礎ページ](/ja/x-api/fundamentals/edit-posts) を確認してください。
+
+<div id="differences">
+  ### 相違点
+</div>
+
+<div id="endpoint-urls">
+  #### エンドポイントURL
+</div>
+
+* **Standard v1.1 のエンドポイント:**
+  * `https://api.x.com/1.1/statuses/show`
+  * `https://api.x.com/1.1/statuses/lookup`
+
+* **X API v2 のエンドポイント:**
+  * `https://api.x.com/2/tweets`
+  * `https://api.x.com/2/tweets/:id`
+
+<div id="app-and-project-requirements">
+  #### App および Project の要件
+</div>
+
+X API v2 のエンドポイントの認証には、[開発者用 App](/ja/resources/fundamentals/developer-apps) に関連付けられた [Project](/ja/resources/fundamentals/developer-apps) の認証情報が必要です。X API v1.1 のエンドポイントでは、App 自体の認証情報、または別の App に関連付けられた App の認証情報を使用できます。
+
+<div id="response-data-format">
+  #### レスポンスデータ形式
+</div>
+
+標準 v1.1 と X API v2 のエンドポイントバージョンの大きな違いの 1 つは、ペイロード内でフィールドを選択する方法です。
+
+標準エンドポイントでは、多くのレスポンスフィールドがデフォルトで含まれており、パラメータを使用して追加のフィールドを指定することができます。
+
+一方、X API v2 では、デフォルトでは投稿の `id` と `text` フィールドのみが返されます。追加のフィールドやオブジェクトを取得するには、[fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。expansions で取得されたフィールドはレスポンス内の `includes` オブジェクトで返され、ID を照合することでメインの投稿オブジェクトと対応付けることができます。
+
+フィールドと展開の使い方の詳細は、[fields と expansions の使い方ガイド](/ja/x-api/fundamentals/data-dictionary)を参照してください。[データ形式の移行ガイド](/ja/x-api/fundamentals/fields)では、標準 v1.1 のフィールドと新しい v2 のフィールドとの対応関係も示しています。
+
+加えて、X API v2 では、投稿オブジェクトや [user](/ja/x-api/fundamentals/fields) オブジェクトを含む新しい JSON 構造が導入されています。
+
+* 標準エンドポイントは投稿オブジェクトを `statuses` 配列で返しますが、X API v2 は `data` 配列を使用します。
+* X API v2 では、リツイートおよび引用ツイートに関する用語により、従来の `statuses` という用語が置き換えられています。
+* `like` のような新しい用語が、`favorites` や `favourites` といった用語を置き換えます。
+* 値を持たない属性（例: `null`）は、X API v2 のペイロードには含まれません。
+
+X API v2 の投稿オブジェクトには、次のような新しいフィールドが含まれます。
+
+* `conversation_id`
+* 2 つの新しい [annotations](/ja/x-api/fundamentals/post-annotations) フィールド（`context` と `entities`）
+* 新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド
+* 特定の投稿に誰が返信できるかを示す `reply_setting` フィールド
+
+<div id="request-parameters">
+  #### リクエストパラメータ
+</div>
+
+次の v1.1 の標準リクエストパラメータには、X API v2 での対応があります:
+
+| 標準 | X API v2 |
+|:----------|:----------|
+| `id`     | `ids`    |
+
+一部の v1.1 の標準パラメータは、X API v2 ではサポートされて**いません**:
+
+| 標準               | コメント                                                                                                                      |
+|:---------------------|:------------------------------------------------------------------------------------------------------------------------------|
+| `tweet_mode`        | fields および expansions の機能に置き換えられました。                                                                          |
+| `trim_user`         | fields および expansions に置き換えられました。ユーザーデータには `author_id` の expansions と `user.fields` を使用してください。 |
+| `include_my_retweet`| 認証中のユーザーがリツイートした投稿について、その元となる投稿の ID を返します。                                                |
+| `include_entities`  | ペイロード内のエンティティを制御するには、fields および expansions を使用してください。                                       |
+| `include_ext_alt_text` | alt テキストが存在する場合、メディアエンティティに `ext_alt_text` フィールドを追加します。                                    |
+| `include_card_uri`  | 広告カードが添付されている場合に `card_uri` を追加します。                                                                    |
+| `map`               | v1.1 でフィールドが null にされるのとは異なり、X API v2 では利用できない投稿に対して、投稿 ID とエラーメッセージを返します。    |
+
+<div id="curl-requests">
+  ### CURL リクエスト
+</div>
+
+次の cURL リクエストは、Standard v1.1 エンドポイントと、それに対応する v2 エンドポイントを示しています。ヘッダー内の `ACCESS_TOKEN` を、アプリのアクセストークンに置き換えてください。v2 エンドポイントでは、そのトークンは [Project](/ja/resources/fundamentals/developer-apps) 内の [developer App](/ja/resources/fundamentals/developer-apps/overview) に紐づいている必要があります。
+
+v1.1 と v2 ではレスポンスペイロードが異なります。v2 では、[fields](/ja/x-api/fundamentals/fields) パラメータおよび [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用して、取得するフィールドを指定できます。
+
+**Standard v1.1 `GET statuses/lookup` と v2 `GET /tweets` エンドポイント**
+
+```bash
+curl --request GET \
+  --url 'https://api.x.com/1.1/statuses/lookup.json?id=1460323737035677698%2C1460323743339741184' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```
+
+```
+  curl --request GET \
+  --url 'https://api.x.com/2/tweets?ids=1460323737035677698%2C1460323743339741184&tweet.fields=created_at&expansions=author_id&user.fields=created_at' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```
+
+**Standard v1.1 の `GET statuses/show/:id` エンドポイントおよび v2 の `GET /tweets/:id` エンドポイント**
+
+```
+curl --request GET \
+  --url 'https://api.x.com/1.1/statuses/show.json?id=1460323737035677698' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```
+
+```
+curl --request GET \
+  --url 'https://api.x.com/2/tweets/1460323737035677698?tweet.fields=created_at&expansions=author_id&user.fields=created_at' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```

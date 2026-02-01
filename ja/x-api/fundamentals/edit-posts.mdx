@@ -1,0 +1,231 @@
+---
+title: 投稿の編集
+sidebarTitle: 投稿の編集
+description: X API で編集された投稿を扱う
+keywords: ["投稿の編集", "ツイートの編集", "編集履歴", "投稿の編集内容", "編集メタデータ", "編集ウィンドウ"]
+---
+
+X 上の投稿は、投稿後30分以内であれば最大5回まで編集できます。X API では、編集履歴とメタデータに完全にアクセスできます。
+
+***
+
+<div id="edit-rules">
+  ## 編集ルール
+</div>
+
+| ルール | 詳細 |
+|:-----|:--------|
+| **時間枠** | 元の投稿から30分以内 |
+| **編集回数の上限** | 編集は最大5回まで |
+| **id の動作** | 各編集で新しい投稿 id が作成される |
+| **削除** | いずれかのバージョンを削除すると、その編集チェーン全体が削除される |
+
+***
+
+<div id="what-cant-be-edited">
+  ## 編集できない投稿
+</div>
+
+一部の投稿のタイプは編集できません。
+
+* プロモーション投稿（広告）
+* 投票付き投稿
+* 他者への返信（自分自身のスレッド以外）
+* 再投稿（引用投稿は編集 *可能*）
+* コミュニティ投稿
+* 共同投稿
+* 予約投稿
+
+***
+
+<div id="edit-data-in-responses">
+  ## レスポンスの data を編集する
+</div>
+
+<div id="default-fields">
+  ### デフォルトのフィールド
+</div>
+
+すべての投稿レスポンスには、デフォルトで `edit_history_tweet_ids` が含まれます。
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"]
+  }
+}
+```
+
+* id が 1 つだけ = 編集履歴なし
+* id が複数 = 編集履歴（古いものから順）
+
+<div id="edit-controls">
+  ### 編集コントロール
+</div>
+
+編集情報を取得するには、`edit_controls` をリクエストします。
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=edit_controls" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  }
+}
+```
+
+| Field              | Description        |
+| :----------------- | :----------------- |
+| `is_edit_eligible` | 投稿を編集できるかどうか       |
+| `editable_until`   | 編集可能な期限が切れるタイムスタンプ |
+| `edits_remaining`  | 残りの編集回数 (0-5)      |
+
+***
+
+<div id="getting-edit-history">
+  ## 編集履歴の取得
+</div>
+
+すべてのバージョンの完全な投稿オブジェクトを取得するには、`edit_history_tweet_ids` の拡張パラメータを使用します。
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?\
+tweet.fields=edit_controls&\
+expansions=edit_history_tweet_ids" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  },
+  "includes": {
+    "tweets": [{
+      "id": "1234567890",
+      "text": "Original text (with typo)",
+      "edit_history_tweet_ids": ["1234567890", "1234567891"],
+      "edit_controls": {
+        "is_edit_eligible": true,
+        "editable_until": "2024-01-15T12:30:00.000Z",
+        "edits_remaining": 3
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="which-version-is-returned">
+  ## どのバージョンが返されますか？
+</div>
+
+デフォルトでは、APIは編集済み投稿の**最新バージョン**を返します。
+
+特定のバージョンを取得するには、その投稿のIDを指定して直接リクエストしてください。
+
+```bash
+# オリジナルバージョンを取得
+curl "https://api.x.com/2/tweets/1234567890" -H "Authorization: Bearer $TOKEN"
+
+# 編集済みバージョンを取得  
+curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="metrics-for-edited-posts">
+  ## 編集された投稿のメトリクス
+</div>
+
+編集された投稿の各バージョンには、それぞれ個別のエンゲージメントメトリクスがあります。各メトリクスは、そのエンゲージメントが発生した時点で表示されていたバージョンに紐づきます。
+
+***
+
+<div id="availability">
+  ## 提供状況
+</div>
+
+編集メタデータは以下で利用可能です:
+
+* 2022年9月29日以降に作成されたすべての投稿
+* 投稿を返すすべての v2 エンドポイント
+* （検索、タイムライン、ストリーム、ルックアップを含む）
+
+この日付より前に作成された投稿には編集メタデータは含まれません。
+
+***
+
+<div id="use-cases">
+  ## ユースケース
+</div>
+
+<Tabs>
+  <Tab title="変更を追跡">
+    投稿の編集を監視し、差分を記録します:
+
+    ```python
+    def check_for_edits(post):
+        history = post.get("edit_history_tweet_ids", [])
+        if len(history) > 1:
+            print(f"Post {post['id']} has been edited {len(history) - 1} times")
+    ```
+  </Tab>
+
+  <Tab title="編集済みインジケーターを表示">
+    UI に「編集済み」バッジを表示します:
+
+    ```javascript
+    const isEdited = post.edit_history_tweet_ids?.length > 1;
+    if (isEdited) {
+      showEditedBadge();
+    }
+    ```
+  </Tab>
+
+  <Tab title="元のコンテンツを取得">
+    編集された投稿の元のバージョンを取得します:
+
+    ```python
+    original_id = post["edit_history_tweet_ids"][0]
+    original = api.get_tweet(original_id)
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="投稿の検索" icon="magnifying-glass" href="/ja/x-api/posts/lookup/introduction">
+    編集履歴を含む投稿を取得します。
+  </Card>
+
+  <Card title="データ辞書" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
+    投稿オブジェクトの完全なリファレンスです。
+  </Card>
+</CardGroup>

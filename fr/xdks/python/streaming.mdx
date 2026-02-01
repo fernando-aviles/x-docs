@@ -1,0 +1,123 @@
+---
+title: Diffusion en continu
+sidebarTitle: Diffusion en continu
+---
+
+L'API X prend en charge les données en temps réel via des endpoints comme le [Filtered Stream Endpoint](https://docs.x.com/x-api/posts/filtered-stream/introduction), qui fournit les Publications correspondantes au fur et à mesure qu'elles sont publiées. Cela nécessite d'établir une connexion HTTP persistante.
+
+<div id="setup-and-basic-streaming">
+  ## Configuration et streaming de base
+</div>
+
+<div id="synchronous">
+  ### Synchrone
+</div>
+
+```python
+from xdk import Client
+# Initialiser le Client
+client = Client(bearer_token="your_bearer_token")
+# Diffuser les Publications en continu (assurez-vous d'avoir configuré les règles au préalable)
+for post_response in client.stream.posts():
+    data = post_response.model_dump() if hasattr(post_response, 'model_dump') else dict(post_response)
+    if 'data' in data and data['data']:
+        tweet = data['data']
+        post_text = tweet.get('text', '') if isinstance(tweet, dict) else (tweet.text if hasattr(tweet, 'text') else '')
+        print(f"Post: {post_text}")
+```
+
+
+<div id="async">
+  ### Asynchrone
+</div>
+
+```python
+import asyncio
+from asyncio import Queue
+import threading
+from xdk import Client
+async def stream_posts_async(client: Client):
+    queue = Queue()
+    loop = asyncio.get_event_loop()
+    stop = threading.Event()
+    def run_stream():
+        for post in client.stream.posts():
+            if stop.is_set():
+                break
+            asyncio.run_coroutine_threadsafe(queue.put(post), loop)
+        asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+    threading.Thread(target=run_stream, daemon=True).start()
+    while True:
+        post = await queue.get()
+        if post is None:
+            break
+        data = post.model_dump()
+        if 'data' in data and data['data']:
+            print(f"Publication : {data['data'].get('text', '')}")
+    stop.set()
+async def main():
+    client = Client(bearer_token="your_bearer_token")
+    await stream_posts_async(client)
+asyncio.run(main())
+```
+
+
+<div id="rule-management">
+  ## Gestion des règles
+</div>
+
+Les règles définissent des filtres permettant de cibler les données spécifiques que vous recherchez (par exemple des mots-clés, des utilisateurs, etc.). Vous pouvez en savoir plus sur la façon de créer des règles à l’aide de [ce guide](https://docs.x.com/x-api/posts/filtered-stream/integrate/build-a-rule).
+**Ajout de règles** :
+
+```python
+from xdk.stream.models import UpdateRulesRequest
+# Ajouter une règle
+add_rules = {
+    "add": [
+        {"value": "from:xdevelopers", "tag": "official_updates"}
+    ]
+}
+request_body = UpdateRulesRequest(**add_rules)
+response = client.stream.update_rules(body=request_body)
+```
+
+**Suppression de règles**:
+
+```python
+from xdk.stream.models import UpdateRulesRequest
+delete_rules = {
+    "delete": {
+        "ids": ["rule_id_1", "rule_id_2"]
+    }
+}
+request_body = UpdateRulesRequest(**delete_rules)
+response = client.stream.update_rules(body=request_body)
+```
+
+**Liste des règles** :
+
+```python
+# get_rules returns an Iterator, so iterate over it
+for page in client.stream.get_rules():
+    if page.data:
+        for rule in page.data:
+            # Accéder aux attributs de la règle - les modèles Pydantic prennent en charge l'accès par attribut et par dictionnaire
+            rule_id = rule.id if hasattr(rule, 'id') else rule.get('id', '')
+            rule_value = rule.value if hasattr(rule, 'value') else rule.get('value', '')
+            rule_tag = rule.tag if hasattr(rule, 'tag') else rule.get('tag', '')
+            print(f"ID: {rule_id}, Value: {rule_value}, Tag: {rule_tag}")
+    break  # Remove break to get all pages
+```
+
+Pour obtenir la syntaxe complète des règles, consultez la [documentation sur les règles de streaming X](https://developer.x.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule).
+
+
+<div id="troubleshooting">
+  ## Dépannage
+</div>
+
+- **403 Forbidden** : authentification invalide ou autorisations insuffisantes.
+- **420 Enhance Your Calm** : vous êtes soumis à une limitation de débit ; patientez puis réessayez.
+- **No Data** : vérifiez les règles avec `get_rules()` ; assurez-vous que des Publications correspondantes existent.
+Pour des exemples de code détaillés utilisant le XDK Python, consultez notre [dépôt GitHub d'exemples de code](https://github.com/xdevplatform/samples/tree/main/python).
+Pour davantage d'exemples et la Référence de l’API, consultez les docstrings intégrés (par exemple, `help(client.tweets.search_recent)`) ou les stubs générés dans le code source. Transmettez vos retours via le [dépôt GitHub](https://github.com/xdevplatform/xdk/tree/main/xdk/python).

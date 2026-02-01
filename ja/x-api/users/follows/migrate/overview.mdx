@@ -1,0 +1,83 @@
+---
+title: "概要"
+sidebarTitle: "概要"
+keywords: ["follows migration", "follows migrate", "v1.1 to v2 follows", "follows migration guide", "migrate follows"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="comparing-x-apis-follows-endpoints">
+  ## X API のフォローエンドポイントの比較
+</div>
+
+<div id="follows-lookup">
+  ### フォロー関係のルックアップ
+</div>
+
+v2 のフォロー関係ルックアップエンドポイントは、従来の v1.1 [followers/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/get-followers-ids)、v1.1 [followers/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/get-followers-list)、v1.1 [friends/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/get-friends-ids)、および v1.1 [friends/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/get-friends-list) エンドポイントを置き換えます。
+
+以下の表は、各種フォロー関係ルックアップエンドポイントを比較したものです。
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| HTTP methods supported | `GET` | `GET` |
+| Host domain | `https://api.x.com` | `https://api.x.com` |
+| Endpoint path | /1.1/friends/ids.json<br /><br />/1.1/friends/list.json<br /><br />/1.1/followers/ids.json<br /><br />/1.1/followers/list.json | /2/users/:id/following<br /><br />/2/users/:id/followers |
+| [Authentication](/ja/resources/fundamentals/authentication) | OAuth 1.0a User Context<br /><br />App only | OAuth 1.0a User Context<br /><br />OAuth 2.0 Authorization Code with PKCE<br /><br />App only |
+| Default request [rate limits](/ja/resources/fundamentals/rate-limits) | 15 requests per 15 min (per user)<br /><br />15 requests per 15 min (per app) | 15 requests per 15 min (per user)<br /><br />15 requests per 15 min (per app) |
+| Maximum users per response | GET friends/id および GET followers/id は、1 ページあたり最大 5000 個のユーザー ID を返します。<br /><br />  <br /><br />GET friends/list および GET followers/list は、1 ページあたり最大 200 個のユーザーオブジェクトを返します。 | 1 ページあたり 1000 個のユーザーオブジェクト |
+| Pagination | トークンは next&#95;cursor フィールドで返され、次のページの結果を返すために、cursor パラメーターの値として渡すことができます。 | トークンは next&#95;token フィールドで返され、次のページの結果を返すために、token パラメーターの値として渡すことができます。<br /><br />v2 のペイロードでは previous&#95;token フィールドも返され、pagination&#95;token パラメーターとともに渡すことで、前のページの結果を取得できます。 |
+| JSON format | Standard v1.1 format | [X API v2 format](/ja/x-api/fundamentals/data-dictionary)（fields および expansions リクエストパラメーターによって決まり、v1.1 のフォーマットとは下位互換性がありません）<br /><br />Standard v1.1 format から X API v2 format への移行について詳しくは、[data formats migration guide](/ja/x-api/migrate/data-format-migration)をご覧ください。 |
+| Supports selecting which [fields](/ja/x-api/fundamentals/data-dictionary) return in the payload |     | ✔   |
+| Supports the Post [annotations](/ja/x-api/fundamentals/post-annotations) fields |     | ✔   |
+| Supports requesting new [metrics](/ja/x-api/fundamentals/metrics) fields |     | ✔   |
+| Supports the [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) field |     | ✔   |
+| Requires the use of credentials from a [developer App](/ja/resources/fundamentals/developer-apps) associated with a [project](/ja/resources/fundamentals/developer-apps) |     | ✔   |
+
+<div id="manage-follows">
+  #### フォローの管理
+</div>
+
+v2 のフォロー管理用エンドポイントは、標準の v1.1 [POST friendships/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/post-friendships-create) および [POST friendships/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/post-friendships-destroy) エンドポイントを置き換えます。
+
+次の表では、標準の v1.1 と X API v2 のフォロー作成用エンドポイントを比較します。
+
+<div id="follow-a-user">
+  #### ユーザーをフォローする
+</div>
+
+| 説明 | Standard v1.1 | X API v2 |
+| :--- | :--- | :--- |
+| 対応 HTTP メソッド | POST | POST |
+| ホストドメイン | https://api.x.com | https://api.x.com |
+| エンドポイントパス | /1.1/friendships/create.json | /2/users/:id/following |
+| [認証](/ja/resources/fundamentals/authentication) | OAuth 1.0a User Context | OAuth 1.0a User Context<br /><br />OAuth 2.0 Authorization Code with PKCE |
+| デフォルトのリクエスト[レート制限](/ja/resources/fundamentals/rate-limits) | 15 分あたり 50 リクエスト | 15 分あたり 50 リクエスト |
+| ユーザーごとの 1 日あたりの最大操作回数 | 400 | 400 |
+| App ごとの 1 日あたりの最大操作回数 | 1000 | 1000 |
+| [Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [開発者用 App](/ja/resources/fundamentals/developer-apps) の認証情報が必要 |     | ✔️  |
+
+<div id="unfollow-a-user">
+  #### ユーザーのフォローを解除する
+</div>
+
+以下の表は、Standard v1.1 と X API v2 のフォロー解除エンドポイントを比較したものです。
+
+| 説明 | Standard v1.1 | X API v2 |
+| :--- | :--- | :--- |
+| サポートされている HTTP メソッド | POST | DELETE |
+| ホストドメイン | https://api.x.com | https://api.x.com |
+| エンドポイントパス | /1.1/friendships/destroy.json | /2/users/:source&#95;user&#95;id/following/:target&#95;user&#95;id |
+| [Authentication](/ja/resources/fundamentals/authentication) | OAuth 1.0a ユーザーコンテキスト | OAuth 1.0a ユーザーコンテキスト<br /><br />OAuth 2.0 Authorization Code with PKCE |
+| デフォルトのリクエスト[レート制限](/ja/resources/fundamentals/rate-limits) | 15 分あたり 15 リクエスト（ユーザーごと） | 15 分あたり 50 リクエスト（ユーザーごと） |
+| App ごとの 1 日あたりの最大操作数 | なし | 500 |
+| [Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報が必要 |     | ✔️  |
+
+**その他の移行リソース**
+
+[Follows lookup: Standard v1.1 から X API v2 への移行](/ja/x-api/users/follows/migrate/standard-to-twitter-api-v2)
+
+[フォローの管理: Standard v1.1 と X API v2 の比較](/ja/x-api/users/follows#manage-follows-standard-v1-1-compared-to-x-api-v2)
+
+[X API 移行ハブ](/ja/x-api/migrate/overview)

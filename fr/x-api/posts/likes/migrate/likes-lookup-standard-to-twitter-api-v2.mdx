@@ -1,0 +1,213 @@
+---
+title: Recherche des J’aime
+sidebarTitle: Recherche des J’aime
+keywords: ["migration de la recherche des J’aime", "recherche des J’aime de v1.1 à v2", "migrer la recherche des J’aime", "J’aime standard vers v2", "migration des J’aime"]
+---
+
+<div id="likes-lookup-standard-v11-compared-to-x-api-v2">
+  ### Recherche de mentions J’aime : standard v1.1 comparé à X API v2
+</div>
+
+Si vous avez travaillé avec l’endpoint standard v1.1 [GET favorites/list](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/api-reference/get-favorites-list), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints de recherche de mentions J’aime de la version standard v1.1 et de X API v2.
+
+Avec la v2, nous avons également introduit un nouvel endpoint des utilisateurs ayant aimé qui vous permet d’obtenir des informations sur les utilisateurs qui ont aimé une Publication.
+
+* **Similarités**
+  * Authentification
+  * Limites de débit
+* **Différences**
+  * URL des endpoints
+
+  * Limitations des requêtes
+
+  * Exigences relatives à l’App et au Projet
+
+  * Paramètres de requête
+
+  * Nouveau format JSON
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Authentification**
+
+Les endpoints Likes lookup standard v1.1 et X API v2 utilisent tous deux [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication#oauth-1-0a-2) ou [OAuth 2.0 Bearer Token](/fr/resources/fundamentals/authentication#bearer-token-also-known-as-app-only). Par conséquent, si vous utilisiez auparavant les endpoints standard v1.1 [GET favorites/list](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/api-reference/get-favorites-list), vous pouvez continuer à utiliser la même méthode d’authentification si vous migrez vers la version X API v2, si vous le souhaitez. 
+
+En fonction de votre bibliothèque ou package d’authentification préféré, l’authentification Bearer Token est probablement la manière la plus simple de commencer et peut être configurée avec un simple en-tête de requête. Pour savoir comment générer un Bearer Token, consultez [ce guide OAuth 2.0 Bearer Token](/fr/resources/fundamentals/authentication#bearer-token-also-known-as-app-only). 
+ 
+
+**Limites de fréquence**
+
+L’endpoint standard v1.1 GET favorites/list a une limite de 75 requêtes par tranche de 15 minutes et par utilisateur. L’endpoint v2 correspondant pour les Publications aimées a également cette même limite de fréquence. Toutefois, cet endpoint v2 a aussi une limite de fréquence supplémentaire de 75 requêtes par tranche de 15 minutes et par application.
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL d’endpoint**
+
+* Endpoints standard v1.1 :
+  * GET https://api.x.com/1.1/favorites/list.json
+    (liste de Publications publiées par l’utilisateur spécifié)
+  * Il n’existe aucun équivalent v1.1 pour l’endpoint v2 liking users
+* Endpoint X API v2 :
+  * GET https://api.x.com/2/users/:id/liked&#95;tweets
+    (liste de Publications aimées par l’utilisateur dont l’ID est spécifié)
+  * GET https://api.x.com/2/tweets/:id/liking&#95;users
+    (liste des utilisateurs qui ont aimé la Publication dont l’ID est spécifié)
+
+**Limitations des requêtes**
+
+L’endpoint v2 liked Posts vous permet de demander de 5 à 100 Publications par requête, mais vous pouvez demander toutes les mentions J’aime d’une Publication à l’aide de jetons de pagination. L’endpoint v1.1 GET favorites/list vous permet également de récupérer toutes les mentions J’aime de Publications, mais vous pouvez récupérer de 20 à 200 Publications par requête.
+
+Pour l’endpoint v2 liking users, vous êtes limité à 100 liking users par Publication. 
+ 
+
+**Conditions pour l’App et le Projet**
+
+Les endpoints X API v2 exigent que vous utilisiez des informations d’identification provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) qui est associée à un [Projet](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des informations d’identification provenant d’Apps ou d’Apps associées à un projet.
+
+**Paramètres de requête**
+
+Les endpoints standard v1.1 suivants acceptaient deux paramètres de requête (user&#95;id ou screen&#95;name). X API v2 accepte uniquement l’ID utilisateur numérique, et il doit être transmis dans le chemin de l’endpoint.
+
+L’une des plus grandes différences entre les versions d’endpoint standard v1.1 et X API v2 est la façon dont vous sélectionnez les champs qui sont renvoyés dans votre payload. Pour les endpoints standard, il existait plusieurs paramètres que vous pouviez utiliser pour identifier quels champs ou ensembles de champs seraient renvoyés dans le payload, tandis que la version X API v2 simplifie ces différents paramètres en [champs](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). 
+ 
+
+**Nouveau format JSON**
+
+X API v2 introduit de nouveaux modèles JSON pour les objets renvoyés par les API, y compris les objets [Post](/fr/x-api/fundamentals/data-dictionary#tweet) et [user](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine du JSON, les endpoints standard renvoient les objets user dans un tableau statuses, tandis que X API v2 renvoie un tableau data. 
+* Au lieu de faire référence à des « statuses » Retweeted et Quoted, le JSON X API v2 fait référence à des Tweets retweetés et cités. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont supprimés. 
+* Au lieu d’utiliser à la fois favorites (dans l’objet Post) et favourites (dans l’objet user), X API v2 utilise le terme like. 
+* X adopte la convention selon laquelle les valeurs JSON vides (par exemple null) ne sont pas écrites dans le payload. Les attributs des objets Post et user ne sont inclus que s’ils ont des valeurs non nulles.
+   
+
+En plus des changements apportés à notre nouveau format JSON, nous avons également introduit un nouvel ensemble de champs dans l’objet Post, comprenant les éléments suivants :
+
+* [conversation&#95;id](/fr/x-api/fundamentals/conversation-id)
+* Deux nouveaux champs [Post annotations](/fr/x-api/fundamentals/post-annotations), notamment context et entities
+* Plusieurs nouveaux champs [metrics](/fr/x-api/fundamentals/metrics)
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="get-liked-posts-v2">
+  ### Récupérer les publications aimées (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/liked_tweets?tweet.fields=created_at,public_metrics&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/2244994945/liked_tweets"
+
+  params = {
+      "tweet.fields": "created_at,public_metrics",
+      "max_results": 100
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer les publications aimées par l'utilisateur
+  for page in client.posts.get_liked_posts(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Mentions J’aime : {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Récupérer les publications aimées par l'utilisateur
+  const paginator = client.posts.getLikedPosts("2244994945", {
+    tweetFields: ["created_at", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Mentions J’aime : ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="get-liking-users-v2">
+  ### Récupérer les utilisateurs ayant aimé une Publication (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/liking_users?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1234567890/liking_users"
+
+  params = {"user.fields": "username,verified"}
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer les utilisateurs ayant aimé une Publication
+  response = client.posts.get_liking_users(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Récupérer les utilisateurs ayant aimé une Publication
+  const response = await client.posts.getLikingUsers("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>

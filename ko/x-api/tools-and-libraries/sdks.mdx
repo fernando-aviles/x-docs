@@ -1,0 +1,241 @@
+---
+title: 공식 SDK
+sidebarTitle: SDK
+description: TypeScript 및 Python용 공식 X API SDK
+keywords: ["SDK", "소프트웨어 개발 키트", "클라이언트 SDK", "API SDK", "공식 SDK"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+X는 TypeScript와 Python을 위한 공식 SDK를 제공합니다. 이 라이브러리들은 인증과 페이지네이션을 처리하고, 완전한 타입 안전성을 제공합니다.
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python" href="/ko/xdks/python/overview">
+    비동기 지원, 타입 힌트, v2 전반에 대한 포괄적 지원.
+  </Card>
+
+  <Card title="TypeScript SDK" icon="js" href="/ko/xdks/typescript/overview">
+    완전한 TypeScript 타입, ESM 지원, Node.js와 호환.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="why-use-the-official-sdks">
+  ## 공식 SDK를 사용해야 하는 이유
+</div>
+
+| 이점 | 설명 |
+|:--------|:------------|
+| **항상 최신 상태** | X에서 직접 관리하며, 새 엔드포인트가 추가될 때마다 최신 상태로 업데이트됩니다 |
+| **유형 안전성** | 모든 객체와 메서드에 대한 완전한 유형 정의를 제공합니다 |
+| **내장 인증** | OAuth 2.0 및 OAuth 1.0a 지원 |
+| **자동 페이지네이션** | 토큰을 수동으로 처리하지 않고 결과를 순회할 수 있습니다 |
+
+***
+
+<div id="quick-start">
+  ## 빠른 시작
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ### 설치
+
+    ```bash
+    pip install xdk
+    ```
+
+    ### 기본 사용법
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+    # 포스트를 검색합니다(이터레이터를 반환합니다).
+    for page in client.posts.search_recent(query="api", max_results=10):
+        if page.data and len(page.data) > 0:
+            first_post = page.data[0]
+            print(first_post.text)
+            break
+    ```
+
+    <Button href="/ko/xdks/python/overview">Python 전체 가이드</Button>
+  </Tab>
+
+  <Tab title="TypeScript">
+    ### 설치
+
+    ```bash
+    npm install @xdevplatform/xdk
+    ```
+
+    ### 기본 사용법
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+
+    // 사용자를 조회합니다
+    const userResponse = await client.users.getByUsername('XDevelopers');
+    console.log(userResponse.data?.username);
+    ```
+
+    <Button href="/ko/xdks/typescript/overview">TypeScript 전체 가이드</Button>
+  </Tab>
+</Tabs>
+
+***
+
+<div id="authentication">
+  ## 인증
+</div>
+
+두 SDK 모두 여러 인증 방법을 지원합니다.
+
+<Tabs>
+  <Tab title="Bearer Token (앱 전용)">
+    공개 데이터를 읽기 위한 가장 간단한 옵션입니다.
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0 (사용자 컨텍스트)">
+    사용자를 대신해 작업을 수행할 때 사용합니다 (포스트 작성, 팔로우 등).
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth2_auth import OAuth2PKCEAuth
+
+    auth = OAuth2PKCEAuth(
+        client_id="YOUR_CLIENT_ID",
+        redirect_uri="YOUR_CALLBACK_URL",
+        scope="tweet.read users.read offline.access"
+    )
+
+    # 인가 URL 가져오기
+    auth_url = auth.get_authorization_url()
+
+    # 사용자가 인가를 완료한 후, 코드를 토큰으로 교환
+    tokens = auth.fetch_token(authorization_response=callback_url)
+    client = Client(bearer_token=tokens["access_token"])
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth2, generateCodeVerifier, generateCodeChallenge } from '@xdevplatform/xdk';
+
+    const oauth2 = new OAuth2({
+      clientId: 'YOUR_CLIENT_ID',
+      clientSecret: 'YOUR_CLIENT_SECRET',
+      redirectUri: 'https://your-app.com/callback',
+      scope: ['tweet.read', 'users.read', 'offline.access'],
+    });
+
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    oauth2.setPkceParameters(codeVerifier, codeChallenge);
+    const authUrl = await oauth2.getAuthorizationUrl('state');
+
+    // 인가 후 코드 교환
+    const tokens = await oauth2.exchangeCode(authCode, codeVerifier);
+    const client = new Client({ accessToken: tokens.access_token });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 1.0a (사용자 컨텍스트)">
+    레거시 애플리케이션 또는 특정 사용 사례에 적합합니다.
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth1_auth import OAuth1
+
+    oauth1 = OAuth1(
+        api_key="YOUR_API_KEY",
+        api_secret="YOUR_API_SECRET",
+        access_token="YOUR_ACCESS_TOKEN",
+        access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+    )
+
+    client = Client(auth=oauth1)
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth1 } from '@xdevplatform/xdk';
+
+    const oauth1 = new OAuth1({
+      apiKey: 'YOUR_API_KEY',
+      apiSecret: 'YOUR_API_SECRET',
+      accessToken: 'YOUR_ACCESS_TOKEN',
+      accessTokenSecret: 'YOUR_ACCESS_TOKEN_SECRET'
+    });
+
+    const client = new Client({ oauth1: oauth1 });
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="available-methods">
+  ## 사용 가능한 메서드
+</div>
+
+SDK는 모든 X API v2 엔드포인트에 대응하는 메서드를 제공합니다.
+
+| 카테고리 | Python | TypeScript |
+|:---------|:-------|:-----------|
+| **포스트** | `client.posts.search_recent()` | `client.posts.search()` |
+| **사용자** | `client.users.get_me()` | `client.users.getMe()` |
+| **Spaces** | `client.spaces.get()` | `client.spaces.findSpaceById()` |
+| **리스트** | `client.lists.get()` | `client.lists.getList()` |
+| **DMs** | `client.direct_messages.get()` | `client.directMessages.lookup()` |
+
+자세한 메서드 목록은 전체 SDK 문서를 참조하세요.
+
+***
+
+<div id="resources">
+  ## 리소스
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Python SDK 문서" icon="book" href="/ko/xdks/python/overview">
+    전체 Python 문서입니다.
+  </Card>
+
+  <Card title="TypeScript SDK 문서" icon="book" href="/ko/xdks/typescript/overview">
+    전체 TypeScript 문서입니다.
+  </Card>
+
+  <Card title="Python GitHub" icon="github" href="https://github.com/xdevplatform/xdk-py">
+    소스 코드 및 이슈.
+  </Card>
+
+  <Card title="TypeScript GitHub" icon="github" href="https://github.com/xdevplatform/twitter-api-typescript-sdk">
+    소스 코드 및 이슈.
+  </Card>
+</CardGroup>

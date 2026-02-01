@@ -1,0 +1,317 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+description: 集成帖子查询的关键概念和最佳实践
+keywords: ["帖子查询集成", "查询集成指南", "查询实现", "查询设置", "推文查询集成"]
+---
+
+import { Button } from "/snippets/zh/button.mdx"
+
+本指南介绍了将帖子查找端点集成到你的应用中所需掌握的关键概念。
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+所有 X API v2 端点都需要身份验证。请选择适合你用例的方法：
+
+| 方法 | 最适用于 | 能访问私有指标吗？ |
+|:-------|:---------|:---------------------------|
+| [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 服务端到服务端、公共数据 | 否 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 面向用户的应用 | 可以（针对已授权用户的帖子） |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 遗留集成 | 可以（针对已授权用户的帖子） |
+
+<div id="app-only-authentication">
+  ### 仅应用程序身份验证
+</div>
+
+对于公开的帖子数据，使用 Bearer Token：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 通过 ID 获取单个帖子
+  response = client.posts.get("1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.posts.get("1234567890");
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="user-context-authentication">
+  ### 用户上下文身份验证
+</div>
+
+若要访问非公开指标，请以帖子作者的身份进行身份验证：
+
+<Warning>
+  以下字段需要用户上下文身份验证：
+
+  * `tweet.fields.non_public_metrics`
+  * `tweet.fields.promoted_metrics`
+  * `tweet.fields.organic_metrics`
+  * `media.fields.non_public_metrics`
+  * `media.fields.promoted_metrics`
+  * `media.fields.organic_metrics`
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## 字段和扩展
+</div>
+
+X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精确指定所需内容。
+
+<div id="default-response">
+  ### 默认响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "edit_history_tweet_ids": ["1234567890"]
+  }
+}
+```
+
+<div id="available-fields">
+  ### 可用字段
+</div>
+
+<Accordion title="tweet.fields">
+  | 字段 | 说明 |
+  |:------|:------------|
+  | `created_at` | 帖子创建时间戳 |
+  | `author_id` | 作者的用户 id |
+  | `public_metrics` | 点赞、转发、回复、引用数 |
+  | `entities` | 话题标签、提及、URL、货币标签 |
+  | `attachments` | 媒体 key、投票 id |
+  | `conversation_id` | 线程标识符 |
+  | `context_annotations` | 主题/实体分类 |
+  | `in_reply_to_user_id` | 被回复的用户 |
+  | `lang` | 检测到的语言 |
+  | `source` | 发帖客户端 |
+  | `possibly_sensitive` | 敏感内容标记 |
+  | `reply_settings` | 谁可以回复 |
+</Accordion>
+
+<Accordion title="user.fields（需要 author_id 扩展）">
+  | 字段 | 说明 |
+  |:------|:------------|
+  | `username` | @ 用户名（handle） |
+  | `name` | 显示名称 |
+  | `profile_image_url` | 头像 URL |
+  | `verified` | 认证状态 |
+  | `description` | 个人简介 |
+  | `public_metrics` | 粉丝数/关注数 |
+  | `created_at` | 账号创建日期 |
+</Accordion>
+
+<Accordion title="media.fields（需要 attachments.media_keys 扩展）">
+  | 字段 | 说明 |
+  |:------|:------------|
+  | `url` | 媒体 URL |
+  | `preview_image_url` | 缩略图 URL |
+  | `type` | 类型（photo、video、animated&#95;gif） |
+  | `duration_ms` | 视频时长（毫秒） |
+  | `height`, `width` | 尺寸 |
+  | `alt_text` | 无障碍文本 |
+</Accordion>
+
+<div id="example-with-fields">
+  ### 包含字段的示例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890?\
+  tweet.fields=created_at,public_metrics,entities&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取带有额外字段和扩展的帖子
+  response = client.posts.get(
+      "1234567890",
+      tweet_fields=["created_at", "public_metrics", "entities"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 包含展开的用户和媒体对象
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.posts.get("1234567890", {
+    tweetFields: ["created_at", "public_metrics", "entities"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 包含展开的用户和媒体对象
+  ```
+</CodeGroup>
+
+***
+
+<div id="post-edits">
+  ## 帖子编辑
+</div>
+
+帖子在创建后的 30 分钟内最多可编辑 5 次。
+
+<div id="how-it-works">
+  ### 工作原理
+</div>
+
+* 每次编辑都会生成一个新的帖子 id
+* `edit_history_tweet_ids` 包含所有版本（最早的在前）
+* 该端点始终返回最新版本
+
+<div id="example-response">
+  ### 示例响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567893",
+    "text": "Hello world! (edited twice)",
+    "edit_history_tweet_ids": [
+      "1234567890",
+      "1234567891",
+      "1234567893"
+    ]
+  }
+}
+```
+
+<Tip>
+  在 30 分钟编辑窗口结束后获取的帖子即为最终版本。对于实时场景，请注意，最近发布的帖子可能仍在编辑窗口内。
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## 错误处理
+</div>
+
+<div id="common-errors">
+  ### 常见错误
+</div>
+
+| Status | 错误 | 解决方案 |
+|:-------|:------|:---------|
+| 400 | 无效请求 | 检查参数格式 |
+| 401 | 未授权 | 核实认证凭证 |
+| 403 | 权限不足 | 检查 App 权限 |
+| 404 | 未找到 | 帖子已被删除或不存在 |
+| 429 | 请求过于频繁 | 等待后重试（参见速率限制） |
+
+<div id="deleted-or-protected-posts">
+  ### 已删除或受保护的帖子
+</div>
+
+如果某条帖子已被删除，或来自你未关注的受保护账号：
+
+* 单条帖子查询会返回 `404`
+* 多条帖子查询的结果中会省略该帖子，并在 `errors` 数组中返回错误信息
+
+```json
+{
+  "data": [
+    { "id": "1234567890", "text": "Available post" }
+  ],
+  "errors": [
+    {
+      "resource_id": "1234567891",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [1234567891]."
+    }
+  ]
+}
+```
+
+***
+
+<div id="best-practices">
+  ## 最佳实践
+</div>
+
+<CardGroup cols={2}>
+  <Card title="批量请求" icon="layer-group">
+    使用 multi-Post 端点一次获取最多 100 条帖子，从而减少 API 调用次数。
+  </Card>
+
+  <Card title="仅请求必要字段" icon="filter">
+    只指定所需字段，以尽量减小响应大小和处理时间。
+  </Card>
+
+  <Card title="缓存响应" icon="database">
+    在本地缓存帖子 data，以减少对相同内容的重复请求次数。
+  </Card>
+
+  <Card title="处理编辑" icon="clock-rotate-left">
+    对于实时应用，请考虑在 30 分钟的编辑窗口期结束后重新获取帖子。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/post-lookup-by-post-id">
+    完整的接口文档
+  </Card>
+
+  <Card title="数据字典" icon="book" href="/zh/x-api/fundamentals/data-dictionary">
+    所有可用的对象和字段
+  </Card>
+
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    可运行的代码示例
+  </Card>
+
+  <Card title="错误处理" icon="triangle-exclamation" href="/zh/x-api/fundamentals/response-codes-and-errors">
+    妥善处理错误
+  </Card>
+</CardGroup>

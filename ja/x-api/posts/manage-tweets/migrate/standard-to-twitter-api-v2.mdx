@@ -1,0 +1,159 @@
+---
+title: v1 から v2 への移行
+sidebarTitle: v1 から v2 への移行
+keywords: ["v1.1 から v2 への移行", "ツイート作成の移行", "ツイート作成の移行方法", "Standard v1.1 から v2 へ", "v1 から v2 へのツイート移行", "移行ガイド"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ## Standard v1.1 と X API v2 の比較
+</div>
+
+Standard v1.1 の [POST statuses/update](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update) および [POST statuses/destroy/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-destroy-id) エンドポイントを利用している場合、このガイドの目的は、Standard v1.1 と X API v2 の投稿管理エンドポイントの類似点と相違点を理解するのに役立てることです。
+
+* **類似点**
+  * 認証
+* **相違点**
+  * エンドポイント URL
+
+  * App と Project の要件
+
+  * リクエストパラメータ
+
+<div id="similarities">
+  ### 類似点
+</div>
+
+**認証**
+
+標準 v1.1 と X API v2 の両方で扱う投稿（[POST statuses/update](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update) および [POST statuses/destroy/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-destroy-id)）エンドポイントは、どちらも [OAuth 1.0a ユーザーコンテキスト](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) を使用します。したがって、以前に標準 v1.1 のいずれかのエンドポイントを使用していた場合、X API v2 のエンドポイントに移行しても、同じ認証方法を引き続き使用できます。
+
+<div id="differences">
+  ### 違い
+</div>
+
+**エンドポイント URL**
+
+* Standard v1.1 エンドポイント:
+  * https://api.x.com/1.1/statuses/update.json
+    (投稿を作成します)
+  * `https://api.x.com/1.1/statuses/destroy/:id.json`
+    (投稿を削除します)
+* X API v2 エンドポイント:
+  * https://api.x.com/2/tweets
+    (投稿を作成します)
+  * https://api.x.com/2/tweets/:id
+    (指定した投稿を削除します)
+
+<div id="app-and-project-requirements">
+  ### App と Project の要件
+</div>
+
+X API v2 のエンドポイントでは、リクエストの認証時に、[Project](/ja/resources/fundamentals/developer-apps) に紐づいた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報を使用する必要があります。X API v1.1 のすべてのエンドポイントでは、Project に関連付けられていない App からの認証情報でも、Project に関連付けられた App からの認証情報でも使用できます。
+
+<div id="request-parameters">
+  ### リクエストパラメータ
+</div>
+
+以下の標準的な v1.1 のリクエストパラメータは、`user_id` または `screen_name` の 2 つのクエリパラメータを受け付けていました。X API v2 では、DELETE エンドポイントでは数値の投稿 ID のみを受け付け、これはエンドポイントのパスの一部として渡す必要があります。
+
+POST エンドポイントの場合は、追加のパラメータをリクエストの JSON ボディ経由で渡す必要があります。利用可能なパラメータの詳細については、[APIリファレンスガイド](/ja/x-api/posts/manage-tweets/introduction)を参照してください。
+
+***
+
+<div id="code-examples">
+  ## コード例
+</div>
+
+<div id="create-a-post-v2">
+  ### 投稿を作成 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello world!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 投稿を作成
+  response = client.posts.create(text="Hello world!")
+  print(f"Created Post: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 投稿を作成
+  const response = await client.posts.create({ text: "Hello world!" });
+  console.log(`Created Post: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+<div id="delete-a-post-v2">
+  ### 投稿を削除する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/tweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 投稿を削除する
+  response = client.posts.delete("1234567890")
+  print(f"Deleted: {response.data.deleted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 投稿を削除する
+  const response = await client.posts.delete("1234567890");
+  console.log(`Deleted: ${response.data?.deleted}`);
+  ```
+</CodeGroup>

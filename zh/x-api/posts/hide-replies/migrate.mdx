@@ -1,0 +1,102 @@
+---
+title: 迁移指南
+sidebarTitle: 迁移指南
+keywords: ["隐藏回复迁移", "隐藏回复迁移操作", "迁移指南", "迁移隐藏回复", "v2 迁移"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+<div id="comparing-x-apis-hide-replies-endpoints">
+  ## 比较 X API 的隐藏回复端点
+</div>
+
+v2 隐藏回复端点正在取代 Labs 隐藏回复端点。如果你有代码、应用或工具在使用该端点的 Labs 版本，并且正在考虑迁移到更新的 X API v2 端点，那么本指南适合你。
+
+要使用新的 X API v2（包括隐藏回复端点），你需要先[选择加入新的 Developer Console](https://developer.x.com/en/portal/opt-in)，创建一个 [Project](/zh/resources/fundamentals/developer-apps)，并向该 Project 添加一个 App。然后，你可以使用与该 App 关联的凭证来向隐藏回复端点发起请求。将已经注册用于 Labs v2 隐藏回复端点的同一个 App 添加到该 Project，可以保持你的用户的认证状态。
+
+下表比较了 Labs 与较新的 X API v2 端点之间的差异：
+
+| **说明** | **Labs v2** | **X API v2** |
+| :--- | :--- | :--- |
+| 主机域名 | https://api.x.com | https://api.x.com |
+| 端点路径 | /labs/2/tweets/:id/hidden | /2/tweets/:id/hidden |
+| 认证方式 | OAuth 1.0a 用户上下文 | OAuth 1.0a 用户上下文 |
+| 支持的 HTTP 方法 | PUT | PUT |
+| 默认请求速率限制 | 每 15 分钟 10 个请求（在所有已认证用户之间共享） | 每位已认证用户每 15 分钟 50 个请求 |
+| 是否可以隐藏回复 | ✔︎  | ✔︎  |
+| 是否可以取消隐藏之前已隐藏的回复 | ✔︎  | ✔︎  |
+| 是否可以多次隐藏或取消隐藏回复 | ✔︎  | ✔︎  |
+| 是否需要使用与某个 [Project](/zh/resources/fundamentals/developer-apps) 关联的 [developer App](/zh/resources/fundamentals/developer-apps) 的凭证 |     | ✔   |
+
+***
+
+<div id="code-examples">
+  ## 代码示例
+</div>
+
+<div id="hide-a-reply-v2">
+  ### 隐藏回复（v2）
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/tweets/1234567890/hidden" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"hidden": true}'
+  ```
+
+  ```python Python
+  # 需要使用 OAuth 1.0a 用户上下文进行身份验证
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/tweets/1234567890/hidden"
+  response = requests.put(url, auth=auth, json={"hidden": True})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 隐藏回复
+  response = client.posts.hide_reply("1234567890", hidden=True)
+  print(f"Hidden: {response.data.hidden}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 隐藏回复
+  const response = await client.posts.hideReply("1234567890", { hidden: true });
+  console.log(`Hidden: ${response.data?.hidden}`);
+  ```
+</CodeGroup>
+
+**其他迁移资源**
+
+[X API 迁移中心](/zh/x-api/migrate/overview)

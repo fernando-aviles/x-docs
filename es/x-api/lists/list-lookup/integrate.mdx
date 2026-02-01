@@ -1,0 +1,302 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+description: Conceptos clave y prácticas recomendadas para integrar la consulta de listas
+keywords: ["integración de consulta de listas", "guía de integración de listas", "implementación de búsqueda de listas"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía abarca los conceptos clave que necesitas para integrar los endpoints de consulta de Listas en tu aplicación.
+
+***
+
+<div id="authentication">
+  ## Autenticación
+</div>
+
+Los endpoints de consulta de Listas admiten varios métodos de autenticación:
+
+| Método | Mejor para | ¿Acceso a Listas privadas? |
+|:-------|:---------|:---------------------------|
+| [OAuth 2.0 App-Only](/es/resources/fundamentals/authentication#oauth-2-0) | Datos de Listas públicas | No |
+| [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Aplicaciones orientadas al usuario | Sí (propias/seguidas) |
+| [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Integraciones heredadas | Sí (propias/seguidas) |
+
+<div id="example-request">
+  ### Ejemplo de solicitud
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,private" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtener una lista por id
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "private"]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "private"],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="endpoints-overview">
+  ## Descripción general de los endpoints
+</div>
+
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| GET | [`/2/lists/:id`](/es/x-api/lists/get-list) | Obtener una Lista por id |
+| GET | [`/2/users/:id/owned_lists`](/es/x-api/users/get-owned-lists) | Obtener las Listas propiedad de un usuario |
+
+***
+
+<div id="fields-and-expansions">
+  ## Campos y expansions
+</div>
+
+<div id="default-response">
+  ### Respuesta predeterminada
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News"
+  }
+}
+```
+
+<div id="available-fields">
+  ### Campos disponibles
+</div>
+
+<Accordion title="list.fields">
+  | Campo | Descripción |
+  |:------|:------------|
+  | `created_at` | Marca de tiempo de creación de la Lista |
+  | `description` | Descripción de la Lista |
+  | `follower_count` | Número de seguidores |
+  | `member_count` | Número de miembros |
+  | `owner_id` | ID de usuario del propietario |
+  | `private` | Indica si la Lista es privada |
+</Accordion>
+
+<Accordion title="user.fields (requiere la expansión owner_id)">
+  | Campo | Descripción |
+  |:------|:------------|
+  | `username` | Nombre de usuario (@) del propietario |
+  | `name` | Nombre para mostrar del propietario |
+  | `verified` | Estado de verificación del propietario |
+  | `profile_image_url` | URL del avatar del propietario |
+</Accordion>
+
+<div id="example-with-expansions">
+  ### Ejemplo con expansiones
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,owner_id&\
+  expansions=owner_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtener una lista con la expansión de owner
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "owner_id"],
+      expansions=["owner_id"],
+      user_fields=["username", "verified"]
+  )
+
+  print(response.data)
+  print(response.includes)  # Contiene el objeto de usuario del propietario (owner)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "owner_id"],
+    expansions: ["owner_id"],
+    userFields: ["username", "verified"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // Contiene el objeto de usuario del propietario (owner)
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Respuesta con expansiones
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News",
+    "description": "Principales periodistas tecnológicos",
+    "member_count": 50,
+    "follower_count": 1250,
+    "owner_id": "2244994945"
+  },
+  "includes": {
+    "users": [
+      {
+        "id": "2244994945",
+        "username": "XDevelopers",
+        "verified": true
+      }
+    ]
+  }
+}
+```
+
+<Card title="Guía de campos y expansions" icon="sliders" href="/es/x-api/fundamentals/fields">
+  Obtén más información sobre cómo personalizar las respuestas
+</Card>
+
+***
+
+<div id="pagination">
+  ## Paginación
+</div>
+
+Al recuperar listas propias, los resultados se paginan:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # Primera solicitud
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # Solicitud posterior con token de paginación
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # El SDK gestiona la paginación automáticamente
+  all_lists = []
+
+  for page in client.lists.get_user_owned_lists(user_id="123", max_results=100):
+      if page.data:
+          all_lists.extend(page.data)
+
+  print(f"Se encontraron {len(all_lists)} listas")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllOwnedLists(userId) {
+    const allLists = [];
+
+    // El SDK gestiona la paginación automáticamente
+    const paginator = client.lists.getUserOwnedLists(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allLists.push(...page.data);
+      }
+    }
+
+    return allLists;
+  }
+
+  // Uso
+  const lists = await getAllOwnedLists("123");
+  console.log(`Se encontraron ${lists.length} listas`);
+  ```
+</CodeGroup>
+
+<Card title="Guía de paginación" icon="arrow-right" href="/es/x-api/fundamentals/pagination">
+  Más información sobre la paginación
+</Card>
+
+***
+
+<div id="private-lists">
+  ## Listas privadas
+</div>
+
+* Las Listas privadas solo son visibles para el propietario
+* Debes autenticarte como propietario para obtener los detalles de una Lista privada
+* El campo `private` indica si una Lista es privada
+
+***
+
+<div id="error-handling">
+  ## Manejo de errores
+</div>
+
+| Status | Error | Solution |
+|:-------|:------|:---------|
+| 400 | Solicitud no válida | Comprueba el formato del ID de la lista |
+| 401 | No autorizado | Comprueba la autenticación |
+| 403 | Prohibido | Es posible que la lista sea privada |
+| 404 | No encontrado | La lista no existe |
+| 429 | Demasiadas solicitudes | Espera y vuelve a intentarlo |
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Inicio rápido" icon="rocket" href="/es/x-api/lists/list-lookup/quickstart">
+    Realiza tu primera solicitud de búsqueda de Lista
+  </Card>
+
+  <Card title="Publicaciones de la Lista" icon="list" href="/es/x-api/lists/list-tweets/introduction">
+    Obtén publicaciones de una Lista
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/lists/get-list">
+    Documentación completa del endpoint
+  </Card>
+
+  <Card title="Código de ejemplo" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Ejemplos de código funcionales
+  </Card>
+</CardGroup>

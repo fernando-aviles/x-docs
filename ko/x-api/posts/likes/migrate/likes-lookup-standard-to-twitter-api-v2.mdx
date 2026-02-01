@@ -1,0 +1,213 @@
+---
+title: 좋아요 조회
+sidebarTitle: 좋아요 조회
+keywords: ["좋아요 조회 마이그레이션", "v1.1에서 v2로 좋아요 조회", "좋아요 조회 이전", "표준에서 v2 좋아요로", "좋아요 마이그레이션"]
+---
+
+<div id="likes-lookup-standard-v11-compared-to-x-api-v2">
+  ### 좋아요 조회: 표준 v1.1과 X API v2 비교
+</div>
+
+표준 v1.1 [GET favorites/list](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/api-reference/get-favorites-list) 엔드포인트를 사용해 왔다면, 이 가이드는 표준 v1.1과 X API v2 좋아요 조회 엔드포인트 간의 공통점과 차이점을 이해하는 데 도움을 주기 위한 것입니다.
+
+또한 v2에서는 새로운 좋아요한 사용자 조회 엔드포인트를 도입하여, 특정 포스트에 좋아요를 누른 사용자에 대한 정보를 가져올 수 있습니다.
+
+* **공통점**
+  * 인증
+  * Rate limit
+* **차이점**
+  * 엔드포인트 URL
+
+  * 요청 제한
+
+  * 앱 및 Project 요구 사항
+
+  * 요청 매개변수
+
+  * 새로운 JSON 형식
+
+<div id="similarities">
+  #### 유사점
+</div>
+
+**인증**
+
+일반 v1.1과 X API v2의 Likes lookup 엔드포인트는 모두 [OAuth 1.0a User Context](/ko/resources/fundamentals/authentication#oauth-1-0a-2) 또는 [OAuth 2.0 Bearer Token](/ko/resources/fundamentals/authentication#bearer-token-also-known-as-app-only)을 사용합니다. 따라서 이전에 일반 v1.1 [GET favorites/list 엔드포인트](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/api-reference/get-favorites-list)를 사용해 왔다면, X API v2 버전으로 마이그레이션하더라도 원할 경우 동일한 인증 방식을 계속 사용할 수 있습니다. 
+
+사용하려는 인증 라이브러리/패키지에 따라 다를 수 있지만, Bearer Token 인증이 시작하기에 가장 쉬운 방법인 경우가 많으며 간단한 요청 헤더 설정만으로 사용할 수 있습니다. Bearer Token을 생성하는 방법을 알아보려면 [이 OAuth 2.0 Bearer Token 가이드](/ko/resources/fundamentals/authentication#bearer-token-also-known-as-app-only)를 참고하세요. 
+ 
+
+**요청 제한**
+
+일반 v1.1 GET favorites/list 엔드포인트는 사용자당 15분당 75개의 요청 한도를 가집니다. v2의 해당 좋아요한 포스트 엔드포인트도 동일한 요청 한도를 가지고 있습니다. 하지만 이 v2 엔드포인트에는 추가로 App당 15분당 75개의 요청 한도가 적용됩니다.
+
+<div id="differences">
+  #### 차이점
+</div>
+
+**엔드포인트 URL**
+
+* 표준 v1.1 엔드포인트:
+  * GET https://api.x.com/1.1/favorites/list.json
+    (지정된 사용자가 생성한 포스트 목록)
+  * v2 liking users 엔드포인트에 해당하는 v1.1 엔드포인트는 없습니다.
+* X API v2 엔드포인트:
+  * GET https://api.x.com/2/users/:id/liked&#95;tweets
+    (지정된 사용자 ID가 좋아요를 누른 포스트 목록)
+  * GET https://api.x.com/2/tweets/:id/liking&#95;users
+    (지정된 포스트 ID에 좋아요를 누른 사용자 목록)
+
+**요청 제한**
+
+v2 liked 포스트 엔드포인트는 요청당 5~100개의 포스트를 요청할 수 있지만, 페이지네이션 토큰을 사용해 특정 포스트의 모든 좋아요를 조회할 수 있습니다. v1.1 GET favorites/list 엔드포인트 역시 포스트의 모든 좋아요를 가져올 수 있지만, 요청당 20~200개의 포스트만 가져올 수 있습니다.
+
+v2 liking users 엔드포인트의 경우, 포스트당 조회할 수 있는 좋아요한 사용자는 최대 100명으로 제한됩니다. 
+ 
+
+**App 및 Project 요구 사항**
+
+X API v2 엔드포인트를 사용하려면, 요청을 인증할 때 [developer App](/ko/resources/fundamentals/developer-apps)에 속해 있고 [Project](/ko/resources/fundamentals/developer-apps)와 연결된 자격 증명을 사용해야 합니다. 모든 X API v1.1 엔드포인트는 단독 App 또는 Project에 연결된 App의 자격 증명을 모두 사용할 수 있습니다.
+
+**요청 매개변수**
+
+다음 표준 v1.1 요청은 두 개의 쿼리 매개변수(user&#95;id 또는 screen&#95;name)를 허용했습니다. X API v2는 숫자 사용자 ID만 허용하며, 이 값은 엔드포인트 경로의 일부로 전달해야 합니다.
+
+표준 v1.1 엔드포인트와 X API v2 엔드포인트 버전 간의 가장 큰 차이점 중 하나는 페이로드에 어떤 필드를 포함할지를 선택하는 방식입니다. 표준 엔드포인트에서는 페이로드에 어떤 필드 또는 필드 집합을 포함할지 지정하기 위해 여러 매개변수를 사용할 수 있었던 반면, X API v2 버전에서는 이러한 다양한 매개변수를 [fields](/ko/x-api/fundamentals/fields)와 [expansions](/ko/x-api/fundamentals/expansions)로 단순화했습니다. 
+ 
+
+**새 JSON 형식**
+
+X API v2는 API가 반환하는 객체(예: [Post](/ko/x-api/fundamentals/data-dictionary#tweet) 및 [user](/ko/x-api/fundamentals/data-dictionary#user) 객체)에 대해 새로운 JSON 설계를 도입합니다.
+
+* JSON 루트 레벨에서 표준 엔드포인트는 statuses 배열 안에 user 객체를 반환하는 반면, X API v2는 data 배열을 반환합니다. 
+* Retweeted 및 Quoted &quot;statuses&quot;를 참조하는 대신, X API v2 JSON은 Retweeted 및 Quoted 트윗을 참조합니다. contributors 및 user.translator&#95;type과 같은 많은 레거시 및 사용 중단 예정 필드는 제거되고 있습니다. 
+* Post 객체에서 favorites, user 객체에서 favourites를 모두 사용하는 대신, X API v2에서는 like라는 용어만 사용합니다. 
+* X는 값이 없는(JSON에서 null과 같은) JSON 값은 페이로드에 기록하지 않는 컨벤션을 채택하고 있습니다. Post 및 user 속성은 null이 아닌 값을 가진 경우에만 포함됩니다.
+   
+
+새 JSON 형식에 도입한 변경 사항 외에도, Post 객체에 다음과 같은 새로운 필드 세트를 추가했습니다.
+
+* [conversation&#95;id](/ko/x-api/fundamentals/conversation-id)
+* context 및 entities를 포함한 두 개의 새로운 [Post annotations](/ko/x-api/fundamentals/post-annotations) 필드
+* 여러 개의 새로운 [metrics](/ko/x-api/fundamentals/metrics) 필드
+
+***
+
+<div id="code-examples">
+  ## 코드 예제
+</div>
+
+<div id="get-liked-posts-v2">
+  ### 좋아요한 포스트 가져오기 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/liked_tweets?tweet.fields=created_at,public_metrics&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/2244994945/liked_tweets"
+
+  params = {
+      "tweet.fields": "created_at,public_metrics",
+      "max_results": 100
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 사용자가 좋아요한 포스트를 가져옵니다
+  for page in client.posts.get_liked_posts(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 사용자가 좋아요한 포스트를 가져옵니다
+  const paginator = client.posts.getLikedPosts("2244994945", {
+    tweetFields: ["created_at", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="get-liking-users-v2">
+  ### 좋아요를 누른 사용자 가져오기 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/liking_users?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1234567890/liking_users"
+
+  params = {"user.fields": "username,verified"}
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 해당 포스트에 좋아요를 누른 사용자 가져오기
+  response = client.posts.get_liking_users(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 해당 포스트에 좋아요를 누른 사용자 가져오기
+  const response = await client.posts.getLikingUsers("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>

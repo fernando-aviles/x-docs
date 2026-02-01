@@ -1,0 +1,145 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+keywords: ["integración de marcadores", "guía de marcadores", "guía de integración de marcadores", "implementación de marcadores", "configuración de marcadores"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta página contiene información sobre varias herramientas y conceptos críticos que debes conocer al integrar los endpoints de gestión de Bookmarks en tu sistema. Hemos dividido la página en un par de secciones diferentes:
+
+* [Herramientas útiles](/es/x-api/users/blocks/integrate#helpful-tools)
+* Conceptos clave
+  * [Autenticación](/es/x-api/users/blocks/integrate#authentication)
+  * [Developer Console, Projects y Apps](/x-api/users/blocks/integrate#Developer Console-projects-and-developer-apps)
+  * [Límites de frecuencia](/es/x-api/users/blocks/integrate#rate-limits)
+
+<div id="helpful-tools">
+  ### Herramientas útiles
+</div>
+
+Antes de profundizar en algunos conceptos clave que te ayudarán a integrar este endpoint, te recomendamos familiarizarte con:
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman es una excelente herramienta que puedes usar para probar un endpoint. Cada solicitud de Postman incluye todos los parámetros de ruta y de cuerpo para ayudarte a entender rápidamente qué opciones tienes disponibles. Para obtener más información sobre nuestras colecciones de Postman, visita nuestra página [&quot;Uso de Postman&quot;](/es/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  #### Ejemplos de código
+</div>
+
+¿Quieres empezar a usar este endpoint con código en tu lenguaje de programación preferido? Tenemos varios ejemplos de código disponibles que puedes usar como punto de partida en nuestra [página de GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="third-party-libraries">
+  #### Bibliotecas de terceros
+</div>
+
+Aprovecha una de las [bibliotecas de terceros](/es/x-api/tools-and-libraries/overview) de nuestras comunidades para empezar. Puedes encontrar una biblioteca que funcione con los endpoints de v2 buscando la etiqueta de versión adecuada.
+
+<div id="key-concepts">
+  ### Conceptos clave
+</div>
+
+<div id="authentication">
+  #### Autenticación
+</div>
+
+Todos los endpoints de X API v2 requieren que autentiques tus solicitudes con un conjunto de credenciales, también conocidas como claves y tokens.
+
+Estos endpoints en particular requieren el uso de [OAuth 2.0 Authorization Code Flow with PKCE](/es/resources/fundamentals/authentication/oauth-2-0/authorization-code), lo que significa que debes usar un conjunto de claves y tokens de acceso de usuario para realizar una solicitud satisfactoria. Los tokens de acceso deben estar asociados con el usuario en cuyo nombre estás realizando la solicitud. Si quieres generar un conjunto de tokens de acceso para otro usuario, ese usuario debe autorizar o autenticar tu aplicación usando una [Authorize URL](/es/resources/fundamentals/authentication#authorize-url).
+
+Ten en cuenta que OAuth 2.0 puede resultar complejo de usar. Si no estás familiarizado con este método de autenticación, te recomendamos usar una [biblioteca](/es/x-api/tools-and-libraries/overview) o una herramienta como Postman para autenticar correctamente tus solicitudes.
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Developer Console, Projects y Apps de desarrollador
+</div>
+
+Para obtener un conjunto de credenciales de autenticación que funcionen con los endpoints de X API v2, debes tener una [cuenta de desarrollador](/es/resources/fundamentals/developer-portal), configurar un [Project](/es/resources/fundamentals/developer-apps) dentro de esa cuenta y crear una [App de desarrollador](/es/resources/fundamentals/developer-apps) dentro de ese Project. Después podrás encontrar tus claves y tokens en tu App de desarrollador.
+
+<div id="rate-limits">
+  #### Límites de frecuencia
+</div>
+
+Cada día, muchos miles de desarrolladores realizan solicitudes a la X API. Para ayudar a gestionar el gran volumen de estas solicitudes, se aplican [límites de frecuencia](/es/resources/fundamentals/rate-limits) a cada endpoint que restringen el número de solicitudes que puedes realizar en nombre de tu aplicación o en nombre de un usuario autenticado.
+
+Estos endpoints tienen límites de frecuencia a nivel de usuario, lo que significa que el usuario autenticado en cuyo nombre estás realizando la solicitud solo puede realizar llamadas a ese endpoint una cierta cantidad de veces en cualquier App de desarrollador. Existe un límite de frecuencia por usuario de 180 solicitudes por ventana de 15 minutos para el método GET. Con el método GET del endpoint Bookmarks lookup obtendrás tus 800 Publicaciones más recientes en Marcadores. Además, existe un límite de frecuencia por usuario de 50 solicitudes por ventana de 15 minutos para los métodos POST y DELETE.
+
+***
+
+<div id="code-examples">
+  ### Ejemplos de código
+</div>
+
+<div id="get-bookmarks">
+  #### Obtener marcadores
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/bookmarks?tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtener los marcadores del usuario
+  for page in client.bookmarks.get(user_id="123", tweet_fields=["created_at", "public_metrics"]):
+      for post in page.data:
+          print(f"{post.text} - Me gusta: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtener los marcadores del usuario
+  const paginator = client.bookmarks.get("123", {
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - Me gusta: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="create-a-bookmark">
+  #### Crear un marcador
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/bookmarks" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Guardar una Publicación en marcadores
+  response = client.bookmarks.create(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Guardar una Publicación en marcadores
+  const response = await client.bookmarks.create("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

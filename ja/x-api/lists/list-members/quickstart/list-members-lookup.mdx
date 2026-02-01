@@ -1,0 +1,182 @@
+---
+title: List メンバーの取得
+sidebarTitle: List メンバーの取得
+description: List のメンバーを取得する
+keywords: ["list members lookup クイックスタート", "list members lookup", "get list members クイックスタート", "list membership lookup"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、List のメンバーを取得する方法を順を追って説明します。
+
+<Note>
+  **前提条件**
+
+  開始する前に、次のものが必要です。
+
+  * 承認済みのアプリを持つ [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * アプリの Bearer Token
+</Note>
+
+***
+
+<div id="get-list-members">
+  ## リストメンバーを取得する
+</div>
+
+<Steps>
+  <Step title="リストIDを確認する">
+    リストを表示しているとき、その URL にリストIDが含まれています。
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── ここがリストIDです
+    ```
+  </Step>
+
+  <Step title="リストメンバーをリクエストする">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/members?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ページネーションを使用してリストメンバーを取得する
+      for page in client.lists.get_members(
+          "84839422",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Joined: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // ページネーションを使用してリストメンバーを取得する
+      const paginator = client.lists.getMembers("84839422", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Joined: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1319036828964454402",
+          "name": "Birdwatch",
+          "username": "birdwatch",
+          "created_at": "2020-10-21T22:04:47.000Z",
+          "verified": true
+        },
+        {
+          "id": "1065249714214457345",
+          "name": "Spaces",
+          "username": "TwitterSpaces",
+          "created_at": "2018-11-21T14:24:58.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "5349804505549807616"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 追加データを取得する
+</div>
+
+固定された投稿などの関連データを取得するには、expansions パラメータを使用します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422/members?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # expansions を使用して List のメンバーを取得
+  for page in client.lists.get_members(
+      "84839422",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # 固定された投稿は page.includes.tweets に含まれます
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // expansions を使用して List のメンバーを取得
+  const paginator = client.lists.getMembers("84839422", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // 固定された投稿は page.includes?.tweets に含まれます
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="リストメンバーを管理" icon="user-plus" href="/ja/x-api/lists/list-members/quickstart/manage-list-members">
+    メンバーの追加・削除
+  </Card>
+
+  <Card title="リストの検索" icon="list" href="/ja/x-api/lists/list-lookup/quickstart">
+    リストの詳細を取得
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/lists/get-list-members">
+    エンドポイントの完全なドキュメント
+  </Card>
+</CardGroup>

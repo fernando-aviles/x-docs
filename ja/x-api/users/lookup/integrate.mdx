@@ -1,0 +1,399 @@
+---
+title: 連携ガイド
+sidebarTitle: 連携ガイド
+description: User lookup との連携に関する主要な概念とベストプラクティス
+keywords: ["User lookup 連携", "ユーザー連携ガイド", "User lookup 実装"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+本ガイドでは、アプリケーションに User lookup エンドポイントを統合するために必要となる基本的な概念について説明します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+すべての X API v2 エンドポイントでは認証が必要です。ユースケースに合った方法を選択してください。
+
+| Method | Best for | Can access private metrics? |
+|:-------|:---------|:---------------------------|
+| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | サーバー間通信、公開データ | いいえ |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向けアプリ | はい（認可されたユーザーのデータ） |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー統合 | はい（認可されたユーザーのデータ） |
+
+<div id="app-only-authentication">
+  ### アプリのみ認証
+</div>
+
+公開ユーザーデータを取得する場合は Bearer Token を使用します。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Get user by username
+  response = client.users.get_by_username("XDevelopers")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="user-context-authentication">
+  ### User Context 認証
+</div>
+
+認証ユーザー向けエンドポイント（`/2/users/me`）では必須です:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  # OAuth 2.0 ユーザーアクセストークンを使用
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 認証ユーザーのプロフィールを取得
+  response = client.users.get_me()
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  // OAuth 2.0 ユーザーアクセストークンを使用
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const response = await client.users.getMe();
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Warning>
+  `/2/users/me` エンドポイントは User Context 認証でのみ利用できます。App-Only トークンではエラーが返されます。
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドと展開
+</div>
+
+X API v2 は、デフォルトでは最小限の data のみを返します。必要な情報だけを取得するには、`fields` と `expansions` を指定してください。
+
+<div id="default-response">
+  ### デフォルトのレスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+<div id="available-fields">
+  ### 利用可能なフィールド
+</div>
+
+<Accordion title="user.fields">
+  | フィールド | 説明 |
+  |:------|:------------|
+  | `created_at` | アカウント作成日時 |
+  | `description` | ユーザーの自己紹介 |
+  | `entities` | 自己紹介文に含まれる解析済み URL |
+  | `location` | ユーザーが指定した場所 |
+  | `pinned_tweet_id` | 固定された投稿の ID |
+  | `profile_image_url` | アバターの URL |
+  | `protected` | アカウントが非公開かどうか |
+  | `public_metrics` | フォロー/フォロワー数 |
+  | `url` | Web サイトの URL |
+  | `verified` | 認証ステータス |
+  | `withheld` | 利用制限に関する情報 |
+</Accordion>
+
+<Accordion title="tweet.fields (pinned_tweet_id の展開が必要)">
+  | フィールド | 説明 |
+  |:------|:------------|
+  | `created_at` | 投稿作成日時 |
+  | `text` | 投稿内容 |
+  | `public_metrics` | エンゲージメント数 |
+  | `entities` | ハッシュタグ、メンション、URL |
+</Accordion>
+
+<div id="example-with-fields">
+  ### フィールドを指定した例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers?\
+  user.fields=created_at,description,public_metrics,verified&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 追加フィールドと展開を指定してユーザー情報を取得
+  response = client.users.get_by_username(
+      "XDevelopers",
+      user_fields=["created_at", "description", "public_metrics", "verified"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at", "public_metrics"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 展開された固定ツイートを含む
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers", {
+    userFields: ["created_at", "description", "public_metrics", "verified"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 展開された固定ツイートを含む
+  ```
+</CodeGroup>
+
+<div id="response-with-expansions">
+  ### `expansions` を指定した場合のレスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "verified": true,
+    "pinned_tweet_id": "1234567890",
+    "public_metrics": {
+      "followers_count": 583423,
+      "following_count": 2048,
+      "tweet_count": 14052
+    }
+  },
+  "includes": {
+    "tweets": [
+      {
+        "id": "1234567890",
+        "text": "X Developer Platformへようこそ!",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+<Card title="フィールドと展開のガイド" icon="sliders" href="/ja/x-api/fundamentals/fields">
+  レスポンスのカスタマイズ方法について詳しく学びましょう
+</Card>
+
+***
+
+<div id="batch-lookups">
+  ## バッチ検索
+</div>
+
+1 回のリクエストで複数のユーザー情報を取得します:
+
+<CodeGroup dropdown>
+  ```bash cURL（ID 指定）
+  curl "https://api.x.com/2/users?ids=2244994945,783214,6253282&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```bash cURL（ユーザー名指定）
+  curl "https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ID で複数のユーザーを取得
+  response = client.users.get_users(
+      ids=["2244994945", "783214", "6253282"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+
+  # ユーザー名で複数のユーザーを取得
+  response = client.users.get_users_by_usernames(
+      usernames=["XDevelopers", "X", "XAPI"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ID で複数のユーザーを取得
+  const byIds = await client.users.getUsers({
+    ids: ["2244994945", "783214", "6253282"],
+    userFields: ["username", "verified"],
+  });
+  byIds.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+
+  // ユーザー名で複数のユーザーを取得
+  const byUsernames = await client.users.getUsersByUsernames({
+    usernames: ["XDevelopers", "X", "XAPI"],
+    userFields: ["username", "verified"],
+  });
+  byUsernames.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<Tip>
+  バッチリクエストでは一度に最大 100 ユーザーまで取得できます。より大きなデータセットが必要な場合は、複数のリクエストに分割してください。
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+<div id="common-errors">
+  ### 一般的なエラー
+</div>
+
+| ステータス | エラー | 解決方法 |
+|:-------|:------|:---------|
+| 400 | 無効なリクエスト | パラメータの形式を確認してください |
+| 401 | 認証されていません | 認証情報を確認してください |
+| 403 | アクセスが禁止されています | App の権限を確認してください |
+| 404 | 見つかりません | ユーザーが存在しないか、凍結されています |
+| 429 | リクエストが多すぎます | 一定時間待ってから再試行してください（レート制限を参照） |
+
+<div id="suspended-or-deleted-users">
+  ### 凍結または削除されたユーザー
+</div>
+
+ユーザーが凍結または削除されている場合:
+
+* 単一ユーザーのルックアップでは `404` を返します
+* 複数ユーザーのルックアップでは、そのユーザーは結果に含まれず、レスポンスに `errors` 配列が含まれます
+
+```json
+{
+  "data": [
+    { "id": "2244994945", "username": "XDevelopers" }
+  ],
+  "errors": [
+    {
+      "resource_id": "1234567890",
+      "resource_type": "user",
+      "title": "Not Found Error",
+      "detail": "Could not find user with id: [1234567890]."
+    }
+  ]
+}
+```
+
+<div id="protected-users">
+  ### 非公開アカウント
+</div>
+
+フォローしていない非公開アカウントの場合:
+
+* 基本情報（id、名前、ユーザー名）は参照できます
+* 保護されたコンテンツ（ピン留めされた投稿）はアクセスが制限される場合があります
+* `protected: true` はアカウントが非公開であることを示します
+
+***
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="バッチリクエスト" icon="layer-group">
+    マルチユーザーエンドポイントを使用して最大100人のユーザーを一度に取得し、API呼び出し回数を削減します。
+  </Card>
+
+  <Card title="必要なフィールドのみをリクエストする" icon="filter">
+    必要なフィールドのみを指定して、レスポンスサイズを最小限に抑えます。
+  </Card>
+
+  <Card title="ユーザーデータをキャッシュする" icon="database">
+    ユーザープロフィールをローカルにキャッシュして、重複するリクエスト回数を減らします。
+  </Card>
+
+  <Card title="エラーを適切に処理する" icon="triangle-exclamation">
+    バッチレスポンス内の部分的なエラーを確認します。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-user-by-id">
+    エンドポイントの完全なドキュメント
+  </Card>
+
+  <Card title="データ辞書" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
+    利用可能なすべてのオブジェクトとフィールド
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なコード例
+  </Card>
+
+  <Card title="エラー処理" icon="triangle-exclamation" href="/ja/x-api/fundamentals/response-codes-and-errors">
+    エラーを適切に扱う
+  </Card>
+</CardGroup>

@@ -1,0 +1,206 @@
+---
+title: 转推查询
+sidebarTitle: 转推查询
+description: 获取转推某条帖子的用户
+keywords: ["转推查询", "转推快速入门", "获取转推用户", "转推教程", "转推指南", "转推示例"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你获取转发了特定帖子（Post）的用户。
+
+<Note>
+  **先决条件**
+
+  开始之前，你需要：
+
+  * 一个拥有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer Token（用于公开数据）或 User Access Token（用于私有指标）
+</Note>
+
+***
+
+<div id="get-users-who-retweeted-a-post">
+  ## 获取转发某条帖子的用户
+</div>
+
+<Steps>
+  <Step title="查找帖子 ID">
+    获取你要查询其转发用户的那条帖子的 ID：
+
+    ```
+    https://x.com/XDevelopers/status/1354143047324299264
+                                    └── 这是帖子 ID
+    ```
+  </Step>
+
+  <Step title="发起请求">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+      user.fields=created_at,username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 使用分页获取转发了该帖子的用户
+      for page in client.posts.get_retweeted_by(
+          "1354143047324299264",
+          user_fields=["created_at", "username", "verified"]
+      ):
+          for user in page.data:
+              print(f"{user.username} - Joined: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 使用分页获取转发了该帖子的用户
+      const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+        userFields: ["created_at", "username", "verified"],
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Joined: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应">
+    ```json
+    {
+      "data": [
+        {
+          "created_at": "2008-12-04T18:51:57.000Z",
+          "id": "17874544",
+          "username": "TwitterSupport",
+          "name": "Twitter Support",
+          "verified": true
+        },
+        {
+          "created_at": "2007-02-20T14:35:54.000Z",
+          "id": "783214",
+          "username": "Twitter",
+          "name": "Twitter",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 包含额外数据
+</div>
+
+使用 `expansions` 参数获取相关数据，例如置顶帖子：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 使用 expansions 获取转发该推文的用户
+  for page in client.posts.get_retweeted_by(
+      "1354143047324299264",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # 置顶帖子位于 page.includes.tweets 中
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 使用 expansions 获取转发该推文的用户
+  const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // 置顶帖子位于 page.includes?.tweets 中
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 包含扩展的响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "pinned_tweet_id": "1389270063807598594",
+      "created_at": "2018-11-21T14:24:58.000Z",
+      "id": "1065249714214457345",
+      "username": "TwitterSpaces",
+      "name": "Spaces"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-05-03T17:26:09.000Z",
+        "id": "1389270063807598594",
+        "text": "now, everyone with 600 or more followers can host a Space..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="管理转推" icon="retweet" href="/zh/x-api/posts/retweets/quickstart/manage-retweets">
+    转推和撤销转推
+  </Card>
+
+  <Card title="引用帖子" icon="quote-left" href="/zh/x-api/posts/quote-tweets/quickstart">
+    获取引用帖子
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/get-retweeted-by">
+    完整的端点文档
+  </Card>
+</CardGroup>

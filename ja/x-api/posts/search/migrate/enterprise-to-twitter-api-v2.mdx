@@ -1,0 +1,137 @@
+---
+title: v1 から v2 へ（Enterprise）
+sidebarTitle: v1 から v2 へ（Enterprise）
+keywords: ["Enterprise から v2 へ", "Enterprise 移行", "GNIP から v2 へ", "Enterprise Search 移行", "Enterprise を v2 へ移行", "v1 から v2 への Enterprise 移行"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise と X API v2 の比較
+</div>
+
+**共通点**
+
+* ページネーション
+* タイムゾーン
+* 投稿の編集履歴とメタデータのサポート
+
+**相違点**
+
+* エンドポイント URL
+* アプリと Project の要件
+* 利用可能な期間
+* レスポンスのデータ形式
+* HTTP メソッド
+* リクエストの時刻形式
+* リクエストパラメータ
+* フィルタリング用演算子
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**ページネーション**
+
+v2 には追加のページネーション機能（`since_id` と `until_id` を使用して投稿のIDでページを遷移できる新しいページネーションパラメータ）がありますが、enterprise も v2 も時間を使ったページネーションが可能です（enterprise では `fromDate` と `toDate`、v2 では `start_time` と `end_time` を使用します）。
+ 
+
+**タイムゾーン**
+
+ページネーションのセクションで述べたように、enterprise と v2 の両方で、時間を使って異なるページのデータを取得できます。いずれの場合も、これらのパラメータを使用する際のタイムゾーンとして UTC を使用します。
+
+**投稿の編集履歴とメタデータのサポート**
+
+両バージョンとも、編集履歴を表すメタデータを提供します。詳しくは、[検索 API リファレンス](/ja/x-api/posts/recent-search) と [投稿の編集の基本ページ](/ja/x-api/fundamentals/edit-posts) を参照してください。 
+
+<div id="differences">
+  #### 違い
+</div>
+
+**エンドポイント URL**
+
+* Enterprise API エンドポイント:
+  * 30 日 - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label.json`
+  * 全アーカイブ - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label.json`
+* X API v2 エンドポイント
+  * 直近 (7 日間) - `https://api.x.com/2/tweets/search/recent`
+  * 全アーカイブ - `https://api.x.com/2/tweets/search/all`
+
+**App と Project の要件**
+
+X API v2 のエンドポイントでは、リクエスト認証時に Project の認証情報を使用する必要があります。すべての X API v1.1 エンドポイントは、単独の App からの認証情報、または Project に紐づいた App の認証情報を使用できます。
+ 
+
+**利用可能な期間**
+
+Enterprise API と X API v2 の両方で、全アーカイブに対してフィルタ済みの投稿データを取得できるエンドポイントが提供されています。
+
+ただし、X API v2 には enterprise API にあるような 30 日間エンドポイントはありません。その代わりに、前述の全アーカイブ、または 7 日間の期間を提供しており、これは Native Enriched から v2 への移行や、[Activity Streams から v2 への移行](/ja/x-api/migrate/data-format-migration#migrating-from-activity-streams-data-format-to-v2) と整合しており、enterprise のフィールドを新しい v2 のフィールドへマッピングするのに役立ちます。このガイドでは、特定のフィールドを返すために v2 のリクエストで指定する必要がある、特定の展開およびフィールドのパラメータについても説明します。
+ 
+
+**レスポンスデータ形式**
+
+[enterprise のレスポンス形式](https://developer.x.com/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) と [X API v2 の形式](/ja/x-api/fundamentals/data-dictionary) の最も大きな違いの 1 つは、ペイロード内で返すフィールドをどのように選択するか、という点です。
+
+Enterprise Search API では、多くのレスポンスフィールドがデフォルトで返され、そのうえでパラメータを使用して、どのフィールドまたはフィールドのセットをペイロードで返すかを指定することができます。
+
+X API v2 では、デフォルトで投稿の `id` と `text` フィールドのみが返されます。追加のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。これらのエンドポイントでリクエストした投稿フィールドは、プライマリの投稿オブジェクト内に返されます。展開されたユーザー、メディア、投票、または場所オブジェクトとそのフィールドは、レスポンス内の `includes` オブジェクト内に返されます。そのうえで、投稿と展開オブジェクトの両方に含まれる ID を照合することで、展開オブジェクトを投稿オブジェクトに対応付けることができます。
+
+これらの新しいパラメータについては、それぞれのガイド、または[フィールドと展開の使い方](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドを参照し、詳細を確認することをお勧めします。
+
+特定のフィールドのリクエスト方法の変更に加えて、X API v2 では API が返すオブジェクトのための新しい JSON 設計も導入しています。これには、[Post](/ja/x-api/fundamentals/data-dictionary#tweet) や [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトが含まれます。
+
+* JSON のルートレベルでは、標準のエンドポイントは投稿オブジェクトを `statuses` 配列で返しますが、X API v2 は `data` 配列で返します。
+* リツイートおよび引用された「statuses」を参照する代わりに、X API v2 の JSON ではリツイートおよび引用ツイートとして参照します。`contributors` や `user.translator_type` など、多くのレガシーおよび非推奨フィールドは削除されます。
+* 投稿オブジェクトでの `favorites` と、ユーザーオブジェクトでの `favourites` の両方を使用する代わりに、X API v2 では like という用語を使用します。
+* X では、値を持たない JSON 値 (例: `null`) はペイロードに書き出さない、という規約を採用しています。投稿およびユーザーの属性は、非 null の値を持つ場合にのみ含まれます。
+   
+
+また、投稿オブジェクトに対して以下を含む新しいフィールド群も導入しました。
+
+* [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) フィールド
+* コンテキストとエンティティを含む、2 つの新しい [annotations](/ja/x-api/fundamentals/post-annotations) フィールド
+* 複数の新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド
+* 特定の投稿に誰が返信できるかを示す、新しい `reply_setting` フィールド
+
+最後にもう 1 点。プレミアム版のレスポンスには、ルートレベルに `requestParameters` オブジェクトが含まれており、その中にリクエストに含めたパラメータがあります。これに対して v2 のバージョンでは、ルートレベルに `meta` オブジェクトが含まれ、追加の結果ページがある場合には `newest_id`、`oldest_id`、`result_count`、`next_token` が含まれます。
+
+**HTTP メソッド**
+
+エンタープライズ版のAPIでは、リクエストをJSONボディを持つPOST HTTPメソッド、またはクエリ文字列を持つGET HTTPメソッドのどちらかで送信できます。
+
+v2では、クエリ文字列を伴うGET HTTPメソッドのみを使用できます。
+ 
+
+**リクエスト時刻の形式**
+
+このエンドポイントのエンタープライズ版では、ページネーション用パラメータおよび`timePeriod`レスポンスフィールドの両方で、次の日時形式を使用します: `YYYYMMDDHHmm`
+
+v2エンドポイントでは、ページネーション用パラメータおよび`start`と`end`のレスポンスフィールドの両方で、ISO 8601/RFC 3339日時形式を使用します: `YYYY-MM-DDTHH:mm:ssZ
+ `
+
+**リクエストパラメータ**
+
+以下は、エンタープライズ版とX API v2におけるリクエストパラメータの対応表です。
+
+| Enterprise | Search Posts v2 |
+| :--- | :--- |
+| query | query |
+| maxResults | max&#95;results |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| toDate (YYMMDDHHmm) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+|     | since&#95;id |
+|     | until&#95;id |
+| next | next&#95;token or pagination&#95;token |
+
+**フィルタリング演算子**
+
+エンタープライズ版とX API v2で利用できる演算子はほとんど同じですが、一部の演算子については利用可否に違いがあり、X API v2バージョンのみに導入された新しい演算子もあります。
+
+X API v2、エンタープライズ、さらにプレミアムおよびスタンダードで利用可能な演算子の完全な一覧については、[Search Posts migration landing page](/ja/x-api/posts/search/migrate/overview)を参照してください。
+
+**次のステップ**
+
+[X API v2 フルアーカイブ検索のクイックスタートガイドを確認してください](/ja/x-api/posts/search/quickstart/full-archive-search)
+
+[フルアーカイブ検索のAPIリファレンスを確認してください](/ja/x-api/posts/full-archive-search)
+
+[これらのエンドポイント向けのサンプルコードを参照してください](https://github.com/xdevplatform/Twitter-API-v2-sample-code)

@@ -1,0 +1,359 @@
+---
+title: Démarrage rapide
+sidebarTitle: Démarrage rapide
+description: Récupérer les événements et les conversations de Messages privés
+keywords: ["démarrage rapide pour la consultation des Messages privés", "démarrage rapide pour les Messages privés", "tutoriel pour récupérer les Messages privés", "guide de consultation des Messages privés"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer les événements de messages privés pour l’utilisateur authentifié.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D’un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une application approuvée
+  * D’un jeton d’accès utilisateur (OAuth 1.0a ou OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-all-dm-events">
+  ## Récupérer tous les événements de DM
+</div>
+
+Récupérez tous les événements de DM pour l’utilisateur authentifié :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,text&\
+  max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer tous les événements de DM avec pagination
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "text"],
+      max_results=100
+  ):
+      for event in page.data:
+          print(f"{event.event_type}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérer tous les événements de DM avec pagination
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "text"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.event_type}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### Réponse
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "event_type": "MessageCreate",
+      "text": "Hello! How are you?",
+      "sender_id": "9876543210",
+      "created_at": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "meta": {
+    "result_count": 1,
+    "next_token": "abc123"
+  }
+}
+```
+
+***
+
+<div id="get-one-to-one-conversation">
+  ## Obtenir une conversation en tête-à-tête
+</div>
+
+Récupérer les événements de DM pour une conversation en tête-à-tête spécifique :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_conversations/with/9876543210/dm_events?\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer les événements de DM d'une conversation en tête-à-tête
+  for page in client.dm_events.get_by_participant(
+      participant_id="9876543210",
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.created_at}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérer les événements de DM d'une conversation en tête-à-tête
+  const paginator = client.dmEvents.getByParticipant("9876543210", {
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.created_at}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+Remplacez `9876543210` par l&#39;id utilisateur de l&#39;autre participant.
+
+***
+
+<div id="get-conversation-by-id">
+  ## Obtenir une conversation par ID
+</div>
+
+Récupérer les événements de MD pour un ID de conversation spécifique :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_conversations/1234567890-9876543210/dm_events?\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer les événements de MD d'une conversation à partir de son ID
+  for page in client.dm_events.get_by_conversation(
+      dm_conversation_id="1234567890-9876543210",
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.created_at}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérer les événements de MD d'une conversation à partir de son ID
+  const paginator = client.dmEvents.getByConversation("1234567890-9876543210", {
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.created_at}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="filter-by-event-type">
+  ## Filtrer par type d’événement
+</div>
+
+Obtenez uniquement certains types d’événements :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  event_types=MessageCreate&\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtenir uniquement les événements MessageCreate
+  for page in client.dm_events.list(
+      event_types=["MessageCreate"],
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtenir uniquement les événements MessageCreate
+  const paginator = client.dmEvents.list({
+    eventTypes: ["MessageCreate"],
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(event.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="event-types">
+  ### Types d’événements
+</div>
+
+| Type | Description |
+|:-----|:------------|
+| `MessageCreate` | Un message a été envoyé |
+| `ParticipantsJoin` | L’utilisateur a rejoint la conversation |
+| `ParticipantsLeave` | L’utilisateur a quitté la conversation |
+
+***
+
+<div id="include-user-data">
+  ## Inclure les données utilisateur
+</div>
+
+Ajouter les informations sur l’expéditeur :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,text&\
+  expansions=sender_id&\
+  user.fields=username,profile_image_url" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer les événements de DM avec les informations sur l’expéditeur
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "text"],
+      expansions=["sender_id"],
+      user_fields=["username", "profile_image_url"]
+  ):
+      for event in page.data:
+          # Associer l’expéditeur à partir de includes
+          print(f"{event.sender_id}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérer les événements de DM avec les informations sur l’expéditeur
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "text"],
+    expansions: ["sender_id"],
+    userFields: ["username", "profile_image_url"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.sender_id}: ${event.text}`);
+    });
+    // Les objets utilisateur de l’expéditeur sont dans page.includes.users
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Réponse avec expansions
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "event_type": "MessageCreate",
+      "text": "Hello!",
+      "sender_id": "9876543210"
+    }
+  ],
+  "includes": {
+    "users": [
+      {
+        "id": "9876543210",
+        "username": "example_user",
+        "profile_image_url": "https://..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="common-parameters">
+  ## Paramètres courants
+</div>
+
+| Paramètre | Description |
+|:----------|:------------|
+| `max_results` | Événements par page (1-100, valeur par défaut : 100) |
+| `pagination_token` | Jeton pour accéder à la page suivante |
+| `dm_event.fields` | Champs de l’événement à renvoyer |
+| `event_types` | Filtre par type d’événement |
+| `expansions` | Objets associés à inclure |
+
+***
+
+<div id="next-steps">
+  ## Étapes suivantes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Envoyer des messages privés" icon="paper-plane" href="/fr/x-api/direct-messages/manage/quickstart">
+    Envoyer des messages privés
+  </Card>
+
+  <Card title="Guide d’intégration" icon="book" href="/fr/x-api/direct-messages/lookup/integrate">
+    Concepts clés et meilleures pratiques
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/direct-messages/returns-dm-events">
+    Documentation complète des endpoints
+  </Card>
+</CardGroup>

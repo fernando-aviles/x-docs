@@ -1,0 +1,114 @@
+---
+title: Modifier des Tweets
+keywords: ["modifier des tweets enterprise", "enterprise modification de tweets", "modifier des publications enterprise", "modifications de tweets enterprise", "modifier les métadonnées enterprise"]
+---
+
+Les points de terminaison Enterprise ont été mis à jour pour fournir les métadonnées des Publications modifiées. La fonctionnalité &#95;Edit Posts&#95; a été introduite pour la première fois à des fins de test auprès des employés de X le 1er septembre 2022. À partir de cette date, les Publications éligibles pouvaient être modifiées pendant 30 minutes et jusqu’à 5 fois. *Tous les objets pour les Publications créées depuis le 29 septembre 2022* incluent les métadonnées de modification de Publication, même si la Publication n’a jamais été modifiée. Chaque fois qu’une Publication est modifiée, un nouvel ID de Publication est créé. L’historique des modifications d’une Publication peut être décrit en chaînant ces ID, en commençant par l’ID d’origine. De plus, si une Publication quelconque dans la chaîne de modifications est supprimée, toutes les Publications de cette chaîne sont également supprimées.
+
+Ces métadonnées sont incluses automatiquement. Aucun paramètre de requête n’est nécessaire pour inclure l’historique des modifications disponible dans l’objet Publication.
+
+Avec ces nouvelles métadonnées, un développeur peut déterminer :
+
+* Si une Publication était éligible à la modification au moment de sa création. Certaines Publications, comme celles contenant des sondages ou les Publications programmées, ne peuvent pas être modifiées.
+* Les Publications sont modifiables pendant 30 minutes et peuvent être modifiées jusqu’à 5 fois. Pour les Publications modifiables, vous pouvez voir s’il reste du temps pour la modifier et combien de modifications supplémentaires sont possibles.
+* Si vous consultez une version modifiée d’une Publication. Dans la plupart des cas, l’API renverra la version la plus récente d’une Publication, sauf si une version antérieure spécifique est demandée via l’ID de Publication.
+
+Trois nouveaux attributs de Publication ont été ajoutés au niveau racine :
+
+* **edit&#95;history** - Fournit tous les ID de Publication associés à l’historique des modifications de la Publication. L’attribut &quot;initial&#95;tweet&#95;id&quot; indique la Publication d’origine et l’attribut &quot;edit&#95;tweet&#95;ids&quot; est un tableau qui fournit tous les ID associés à son historique de modifications. Si la Publication n’a pas été modifiée, ce tableau contiendra un seul ID.
+
+```
+"edit_history": {
+    "initial\_tweet\_id": "1283764123"
+    "edit\_tweet\_ids": \["1283764123"\]
+  }
+```
+
+* **edit&#95;controls** - Fournit des attributs indiquant quand la fenêtre d’édition de 30 minutes se termine et combien de modifications potentielles il reste.
+
+```
+"edit_controls": {  
+     "editable\_until\_ms": 1660155761384
+     "edits_remaining": 3   
+  }
+```
+
+* **editable** - Indique si une Publication était éligible à l’édition au moment de sa création. 
+
+&quot;editable&quot;: true
+
+La plupart des Publications sont éligibles. Toutefois, les types de Publications suivants ne le sont pas : 
+
+* La Publication est promue
+* La Publication contient un sondage
+* La Publication est une réponse dans un fil qui ne vous appartient pas
+* La Publication est un Retweet (notez que les Tweets cités sont éligibles à l’édition)
+* La Publication est en diffusion silencieuse (nullcast)
+* Publication de communauté
+* Publication Superfollow
+* Publication collaborative
+
+**Exemple d’attributs pour une Publication non modifiée**
+
+Le JSON ci-dessous met en évidence les métadonnées d’édition incluses pour une Publication publiée après l’ajout de la fonctionnalité d’édition de Publication. Cet exemple concerne une Publication qui n’a aucun historique de modification. 
+
+Notez que le tableau `"edit_tweet_ids"` contient un seul id.
+
+```
+{
+  "created_at": "Wed Aug 16 18:29:02 +0000 2022",
+  "id": 1557433858676740098,
+  "id_str": "1557433858676740098",
+  "text": "I wonder if I will every use teh edit button",
+  "edit_history": {
+    "initial_tweet_id": "1557433858676740098",
+    "edit_tweet_ids": ["1557433858676740098"]
+  },
+  "edit_controls": {
+    "editable_until_ms": 1660155761384,
+    "edits_remaining": 5
+  },
+  "editable": true
+}
+```
+
+**Exemples d’attributs pour une Publication modifiée**
+
+Le JSON ci-dessous met en évidence les métadonnées de modification qui sont incluses pour une Publication publiée après l’ajout de la fonctionnalité de modification de Publication. Cet exemple concerne une Publication qui n’a été modifiée qu’une seule fois. 
+
+Notez que le tableau `"edit_tweet_ids"` contient deux identifiants, un pour la Publication d’origine et un pour la version modifiée.
+
+```
+{
+  "created_at": "Wed Aug 16 18:35:42 +0000 2022",
+  "id": 1557445923210514432,
+  "id_str": "1557445923210514432",
+  "text": "I wonder if I will ever use the edit button",
+  "edit_history": {
+    "initial_tweet_id": "1557433858676740098",
+    "edit_tweet_ids": ["1557433858676740098", "1557445923210514432"]
+  },
+  "edit_controls": {
+    "editable_until_ms": 1660155761384,
+    "edits_remaining": 4
+  },
+  "editable": true
+}
+```
+
+**Prise en charge de la conformité**
+
+Le [Compliance Firehose](/fr/x-api/enterprise-gnip-2.0/fundamentals/firehouse) et le [point de terminaison de conformité par lot](/fr/x-api/compliance/batch-compliance/introduction) v2 ont tous deux été mis à jour pour prendre en charge la modification des Publications : 
+
+Un nouveau type d’événement « tweet&#95;edit » a été ajouté au Compliance Firehose.
+
+```
+{
+  "tweet_edit": {
+    "id": <tweetId>,
+    "initial_tweet_id": <tweetId>,
+    "edit_tweet_ids": [<tweetId1>, <tweetId2>, <tweetId3> ...],
+    "timestamp_ms": "<timestampMsStr>"
+  }
+}
+```

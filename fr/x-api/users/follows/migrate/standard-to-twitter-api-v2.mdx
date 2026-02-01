@@ -1,0 +1,202 @@
+---
+title: v1 vers v2
+sidebarTitle: v1 vers v2
+keywords: ["migration de v1.1 vers v2", "migration des abonnements", "migrer les abonnements", "abonnements standard vers v2", "abonnements v1 vers v2", "guide de migration"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="manage-follows-standard-v11-compared-to-x-api-v2">
+  #### Gérer les abonnements : standard v1.1 par rapport à X API v2
+</div>
+
+Si vous avez utilisé les endpoints standard v1.1 [POST friendships/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/post-friendships-create) et [POST friendships/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/post-friendships-destroy), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints standard et ceux de X API v2 permettant de gérer les abonnements.
+
+* **Similitudes**
+  * OAuth 1.0a User Context
+* **Différences**
+  * URL des endpoints
+  * Exigences en matière d’Application et de Projet
+  * Méthodes HTTP
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Méthode d’authentification OAuth 1.0a User Context**
+
+Les deux versions de cet endpoint prennent en charge [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication#oauth-1-0a-2). Par conséquent, si vous utilisiez précédemment l’un des endpoints standard v1.1 de gestion des abonnements, vous pouvez continuer à utiliser la même méthode d’authentification si vous migrez vers la version X API v2.
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL des endpoints**
+
+* Endpoints standard v1.1 :
+  * POST https://api.x.com/1.1/friendships/create.json
+    (suivre un utilisateur)
+  * POST https://api.x.com/1.1/friendships/destroy.json
+    (ne plus suivre un utilisateur)
+* Endpoint X API v2 :
+  * POST https://api.x.com/2/users/:id/following
+    (suivre un utilisateur)
+  * DELETE https://api.x.com/2/users/:source&#95;user&#95;id/following/:target&#95;user&#95;id
+    (ne plus suivre un utilisateur)
+
+**Exigences relatives aux Apps et aux Projets**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) qui est associée à un [Project](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un Project.
+
+**Paramètres de requête**
+
+Les paramètres de requête standard v1.1 suivants ont des équivalents dans X API v2 :
+
+| Standard v1.1 | X API v2 |
+| :--- | :--- |
+| Aucun équivalent | id (POST), source&#95;user&#95;id (DELETE) |
+| user&#95;id | target&#95;user&#95;id |
+| screen&#95;name | Aucun équivalent |
+
+Veuillez noter que les paramètres standard v1.1 sont transmis en tant que paramètres de requête, tandis que les paramètres X API v2 sont transmis dans le corps de la requête (pour l’endpoint POST) ou dans le chemin de l’URL (pour l’endpoint DELETE).
+
+De plus, les paramètres v2 id et source&#95;user&#95;id ne sont pas obligatoires lorsque vous utilisez les endpoints standard v1.1, car les jetons d’accès transmis avec OAuth 1.0a User Context permettaient de déterminer quel utilisateur initiait l’action de suivre/ne plus suivre.
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="follow-a-user-v2">
+  ### Suivre un utilisateur (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/following" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # Nécessite l'authentification OAuth 1.0a User Context
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/following"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Suivre un utilisateur
+  response = client.users.follow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Suit : {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Suivre un utilisateur
+  const response = await client.users.follow("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Suit : ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="unfollow-a-user-v2">
+  ### Ne plus suivre un utilisateur (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/following/2244994945" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a User Context
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/following/2244994945"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Ne plus suivre un utilisateur
+  response = client.users.unfollow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Ne plus suivre un utilisateur
+  const response = await client.users.unfollow("123456789", "2244994945");
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>

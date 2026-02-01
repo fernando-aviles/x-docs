@@ -1,0 +1,262 @@
+---
+title: 投稿アノテーション
+sidebarTitle: アノテーション
+description: セマンティック解析のためのエンティティおよびコンテキストのアノテーション
+keywords: ["アノテーション", "投稿アノテーション", "エンティティ アノテーション", "コンテキスト アノテーション", "NER", "固有表現認識", "トピック"]
+---
+
+アノテーションは、投稿の内容に関する意味的メタデータを提供します。X は投稿を解析し、コンテンツの理解やフィルタリングに役立てるために、エンティティ（人物、場所、製品）とコンテキスト（トピック、ドメイン）を特定します。
+
+---
+
+<div id="annotation-types">
+  ## アノテーションの種類
+</div>
+
+<div id="entity-annotations">
+  ### エンティティ注釈
+</div>
+
+固有表現認識 (NER) は、投稿テキスト内の特定のエンティティを識別します。
+
+| タイプ | 例 |
+|:-----|:---------|
+| **人物** | Barack Obama, Elon Musk |
+| **場所** | San Francisco, Japan |
+| **製品** | iPhone, ChatGPT |
+| **組織** | NASA, Google |
+| **その他** | Super Bowl, Diabetes |
+
+エンティティ注釈には、信頼度スコアとテキスト内での位置情報が含まれます。
+
+<div id="context-annotations">
+  ### コンテキスト注釈
+</div>
+
+投稿をトピックやドメインごとに分類するための意味解析です。
+
+- **Domain**: 大まかなカテゴリ（Sports、Entertainment、Technology）
+- **Entity**: ドメイン内の特定のトピック（NBA、Marvel Movies、AI）
+
+コンテキスト注釈を使用すると、キーワードに頼らずに投稿をフィルタリングおよび分類できます。
+
+---
+
+<div id="requesting-annotations">
+  ## 注釈をリクエストする
+</div>
+
+`tweet.fields` に `context_annotations` と `entities` を追加してください。
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=context_annotations,entities" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+
+<div id="response-structure">
+  ## レスポンスの構造
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Just saw the new Marvel movie - it was amazing!",
+    "entities": {
+      "annotations": [
+        {
+          "start": 17,
+          "end": 22,
+          "probability": 0.9234,
+          "type": "Organization",
+          "normalized_text": "Marvel"
+        }
+      ]
+    },
+    "context_annotations": [
+      {
+        "domain": {
+          "id": "86",
+          "name": "Movie",
+          "description": "映画"
+        },
+        "entity": {
+          "id": "1234567890",
+          "name": "Marvel Cinematic Universe"
+        }
+      },
+      {
+        "domain": {
+          "id": "65",
+          "name": "Interests and Hobbies Vertical"
+        },
+        "entity": {
+          "id": "781974596752842752",
+          "name": "Entertainment"
+        }
+      }
+    ]
+  }
+}
+```
+
+***
+
+
+<div id="entity-annotation-fields">
+  ## エンティティ注釈フィールド
+</div>
+
+| フィールド | 説明 |
+|:------|:------------|
+| `start` | テキスト内の開始位置 |
+| `end` | テキスト内の終了位置 |
+| `probability` | 信頼度スコア (0〜1) |
+| `type` | エンティティのタイプ (人名、場所など) |
+| `normalized_text` | 標準化されたエンティティ名 |
+
+---
+
+<div id="context-domains">
+  ## コンテキストドメイン
+</div>
+
+X では 80 を超えるドメインを使用して投稿を分類しています。一般的なドメインには次のようなものがあります。
+
+<Tabs>
+  <Tab title="エンターテインメント">
+| ID | ドメイン |
+|:---|:-------|
+| 3 | テレビ番組 |
+| 4 | テレビ番組のエピソード |
+| 54 | ミュージシャン |
+| 56 | 俳優 |
+| 86 | 映画 |
+| 91 | ポッドキャスト |
+  </Tab>
+  <Tab title="スポーツ">
+| ID | ドメイン |
+|:---|:-------|
+| 6 | スポーツイベント |
+| 11 | スポーツ |
+| 12 | スポーツチーム |
+| 26 | スポーツリーグ |
+| 60 | アスリート |
+| 93 | コーチ |
+  </Tab>
+  <Tab title="ビジネス & テクノロジー">
+| ID | ドメイン |
+|:---|:-------|
+| 45 | ブランド業種 |
+| 46 | ブランドカテゴリ |
+| 47 | ブランド |
+| 48 | 製品 |
+| 165 | テクノロジー |
+| 166 | 株式 |
+  </Tab>
+  <Tab title="その他">
+| ID | ドメイン |
+|:---|:-------|
+| 10 | 人物 |
+| 13 | 場所 |
+| 29 | イベント |
+| 35 | 政治家 |
+| 119 | 祝日 |
+| 131 | Unified Twitter Taxonomy |
+  </Tab>
+</Tabs>
+
+<Note>
+ドメイン 131（Unified Twitter Taxonomy）は、プラットフォーム上でユーザーに表示される X のトピック機能の基盤となるドメインです。
+</Note>
+
+---
+
+<div id="using-annotations-in-filters">
+  ## フィルターでのアノテーションの使用
+</div>
+
+<div id="search-and-filtered-stream">
+  ### 検索とフィルター済みストリーム
+</div>
+
+コンテキストアノテーションのエンティティIDで投稿をフィルタリングします：
+
+```bash
+# 特定のエンティティに関する投稿
+context:86.1234567890
+
+# Posts in a specific domain
+context:86.*
+```
+
+
+<div id="practical-examples">
+  ### 実用例
+</div>
+
+```bash
+# Posts about the NBA
+query=context:26.852137520
+
+# Apple製品に関する投稿
+query=context:47.10026792024
+
+# Posts about movies
+query=context:86.*
+```
+
+***
+
+
+<div id="language-support">
+  ## 言語サポート
+</div>
+
+アノテーションは複数の言語で利用できます。
+
+| 言語 | 対応状況 |
+|:---------|:---------|
+| English | 最高 |
+| Japanese | 高 |
+| Spanish | 高 |
+| Portuguese | 中 |
+| French | 中 |
+| Hindi | 中 |
+
+対応状況はドメインや市場によって異なります。
+
+---
+
+<div id="important-notes">
+  ## 重要な注意事項
+</div>
+
+<Warning>
+**すべての投稿にアノテーションが付与されているわけではありません。** アノテーションのカバレッジは次の要素に依存します。
+- 言語サポート
+- X のタクソノミーにおけるトピックのカバー範囲
+- 投稿テキストの意味的な情報量
+</Warning>
+
+- アノテーションは遡及的には適用されず、エンティティが追跡されている時点でのみ適用されます
+- 同じエンティティが複数のドメインに出現することがあります（例: あるセレブは「人物」と「俳優」の両方に分類され得ます）
+- エンティティの id はドメインをまたいでも変わりません
+
+---
+
+<div id="resources">
+  ## リソース
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Entity Explorer" icon="flask" href="https://tweet-entity-extractor.glitch.me/">
+    アノテーションを確認できるインタラクティブなツールです。
+  </Card>
+  <Card title="Context Entity List" icon="github" href="https://github.com/xdevplatform/twitter-context-annotations">
+    利用可能なコンテキストアノテーションエンティティのCSV一覧です。
+  </Card>
+</CardGroup>

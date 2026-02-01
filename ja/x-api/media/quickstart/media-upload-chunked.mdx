@@ -1,0 +1,368 @@
+---
+title: チャンク分割メディアアップロード
+sidebarTitle: クイックスタート
+description: チャンクアップロードを使用して動画や大容量のメディアファイルをアップロードする
+keywords: ["チャンクアップロード", "メディアアップロード", "チャンクメディア", "動画アップロード", "大容量ファイルアップロード", "チャンクアップロードガイド"]
+---
+
+このガイドでは、チャンクアップロードワークフローを使用して動画や大容量のメディアファイルをアップロードする手順を説明します。
+
+動画や大容量のメディアをアップロードするには、次の手順を実行する必要があります。
+
+1. **INIT** — アップロードを初期化し、`media_id` を取得する
+2. **APPEND** — ファイルの各チャンクをアップロードする
+3. **FINALIZE** — アップロードを完了する
+4. **STATUS** — （必要に応じて）処理の完了を待つ
+
+<Note>
+  完全な Python の例については、[このサンプルコード](https://github.com/xdevplatform/large-video-upload-python)を参照してください。
+</Note>
+
+***
+
+<div id="step-1-initialize-upload-init">
+  ## ステップ 1: アップロードの初期化 (INIT)
+</div>
+
+アップロードセッションを開始して `media_id` を取得します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=INIT" \
+    -F "media_type=video/mp4" \
+    -F "total_bytes=1048576" \
+    -F "media_category=amplify_video"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Initialize chunked upload
+  response = client.media.init_upload(
+      media_type="video/mp4",
+      total_bytes=1048576,
+      media_category="amplify_video"
+  )
+
+  media_id = response.data.id
+  print(f"Media ID: {media_id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Initialize chunked upload
+  const response = await client.media.initUpload({
+    mediaType: "video/mp4",
+    totalBytes: 1048576,
+    mediaCategory: "amplify_video",
+  });
+
+  const mediaId = response.data?.id;
+  console.log(`Media ID: ${mediaId}`);
+  ```
+</CodeGroup>
+
+**レスポンス:**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "expires_after_secs": 1295999
+  }
+}
+```
+
+***
+
+<div id="step-2-upload-chunks-append">
+  ## ステップ 2: チャンクのアップロード (APPEND)
+</div>
+
+ファイルをチャンクごとにアップロードします。たとえば、3 MB のファイルを 3 個のチャンクに分割します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=APPEND" \
+    -F "media_id=1880028106020515840" \
+    -F "segment_index=0" \
+    -F "media=@/path/to/chunk1.mp4"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Upload chunks
+  chunk_size = 1024 * 1024  # 1 MB chunks
+
+  with open("video.mp4", "rb") as f:
+      segment_index = 0
+      while True:
+          chunk = f.read(chunk_size)
+          if not chunk:
+              break
+          
+          client.media.append_upload(
+              media_id=media_id,
+              segment_index=segment_index,
+              media=chunk
+          )
+          segment_index += 1
+          print(f"Uploaded chunk {segment_index}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+  import fs from "fs";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Upload chunks
+  const chunkSize = 1024 * 1024; // 1 MB chunks
+  const fileBuffer = fs.readFileSync("video.mp4");
+
+  let segmentIndex = 0;
+  for (let offset = 0; offset < fileBuffer.length; offset += chunkSize) {
+    const chunk = fileBuffer.slice(offset, offset + chunkSize);
+    
+    await client.media.appendUpload({
+      mediaId,
+      segmentIndex,
+      media: chunk,
+    });
+    
+    console.log(`Uploaded chunk ${segmentIndex + 1}`);
+    segmentIndex++;
+  }
+  ```
+</CodeGroup>
+
+<Info>
+  **チャンクアップロードの利点:**
+
+  * 低速なネットワークでも信頼性が向上する
+  * アップロードを一時停止および再開できる
+  * 失敗したチャンクのみを個別に再試行できる
+</Info>
+
+***
+
+<div id="step-3-finalize-upload-finalize">
+  ## ステップ 3: アップロードの完了 (FINALIZE)
+</div>
+
+すべてのチャンクの送信が完了したら、アップロードを確定します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=FINALIZE" \
+    -F "media_id=1880028106020515840"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # アップロードを確定する
+  response = client.media.finalize_upload(media_id=media_id)
+
+  print(f"Processing state: {response.data.processing_info.state}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // アップロードを確定する
+  const response = await client.media.finalizeUpload({ mediaId });
+
+  console.log(`Processing state: ${response.data?.processing_info?.state}`);
+  ```
+</CodeGroup>
+
+**レスポンス:**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "size": 1048576,
+    "expires_after_secs": 86400,
+    "processing_info": {
+      "state": "pending",
+      "check_after_secs": 1
+    }
+  }
+}
+```
+
+<Note>
+  `processing_info` が返された場合は、処理が完了するまで待つためにステップ 4 に進んでください。返されない場合は、メディアをすぐに利用できます。
+</Note>
+
+***
+
+<div id="step-4-check-status-status">
+  ## ステップ 4: ステータスを確認する (STATUS)
+</div>
+
+レスポンスに `processing_info` が含まれている場合は、処理が完了するまでポーリングします:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/media/upload?command=STATUS&media_id=1880028106020515840" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  import time
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 処理が完了するまで待機
+  while True:
+      response = client.media.get_status(media_id=media_id)
+      state = response.data.processing_info.state
+      
+      if state == "succeeded":
+          print("Media ready!")
+          break
+      elif state == "failed":
+          print("Processing failed")
+          break
+      else:
+          check_after = response.data.processing_info.check_after_secs
+          print(f"Processing... checking again in {check_after}s")
+          time.sleep(check_after)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 処理が完了するまで待機
+  while (true) {
+    const response = await client.media.getStatus({ mediaId });
+    const state = response.data?.processing_info?.state;
+    
+    if (state === "succeeded") {
+      console.log("Media ready!");
+      break;
+    } else if (state === "failed") {
+      console.log("Processing failed");
+      break;
+    } else {
+      const checkAfter = response.data?.processing_info?.check_after_secs ?? 1;
+      console.log(`Processing... checking again in ${checkAfter}s`);
+      await new Promise((r) => setTimeout(r, checkAfter * 1000));
+    }
+  }
+  ```
+</CodeGroup>
+
+**処理状態:** `pending` → `in_progress` → `succeeded` または `failed`
+
+***
+
+<div id="step-5-create-post-with-media">
+  ## ステップ 5: メディア付き投稿を作成する
+</div>
+
+処理が完了したら、メディア付きの投稿を作成します。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "text": "この動画をチェックしてください！",
+      "media": {
+        "media_ids": ["1880028106020515840"]
+      }
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # メディア付きの投稿を作成
+  response = client.posts.create(
+      text="この動画をチェックしてください！",
+      media={"media_ids": [media_id]}
+  )
+
+  print(f"投稿しました: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // メディア付きの投稿を作成
+  const response = await client.posts.create({
+    text: "この動画をチェックしてください！",
+    media: { mediaIds: [mediaId] },
+  });
+
+  console.log(`投稿しました: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-categories">
+  ## メディアカテゴリ
+</div>
+
+| カテゴリ | 説明 |
+|:---------|:------------|
+| `tweet_image` | 投稿の画像 |
+| `tweet_gif` | 投稿のアニメーション GIF |
+| `tweet_video` | 投稿の動画 |
+| `amplify_video` | Amplify 動画 |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ベストプラクティス" icon="book" href="/ja/x-api/media/quickstart/best-practices">
+    ファイルに関する制約と要件
+  </Card>
+
+  <Card title="投稿を作成する" icon="message" href="/ja/x-api/posts/manage-tweets/quickstart">
+    メディア付き投稿
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/media/media-upload-init">
+    エンドポイントの詳細ドキュメント
+  </Card>
+</CardGroup>

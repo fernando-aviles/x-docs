@@ -1,0 +1,252 @@
+---
+title: フルアーカイブ投稿数
+sidebarTitle: フルアーカイブ投稿数
+description: 2006年までさかのぼる過去の投稿数を取得する
+keywords: ["フルアーカイブ 投稿数 クイックスタート", "アーカイブ数 クイックスタート", "履歴投稿数 クイックスタート", "フルアーカイブ数"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、2006年3月までさかのぼって過去の投稿数を取得する手順を説明します。
+
+<Warning>
+  フルアーカイブの投稿数機能を利用するには、[Self-serve](/ja/x-api/getting-started/about-x-api) または [Enterprise](/ja/x-api/getting-started/about-x-api) へのアクセスが必要です。
+</Warning>
+
+<Note>
+  **前提条件**
+
+  開始する前に、以下を用意してください。
+
+  * Self-serve または Enterprise アクセス権を持つ [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * アプリの Bearer Token
+</Note>
+
+***
+
+<div id="get-full-archive-post-counts">
+  ## 全アーカイブの投稿数を取得する
+</div>
+
+<Steps>
+  <Step title="クエリを作成する">
+    全アーカイブ検索と同じクエリ構文を使用します。たとえば、@XDevelopers からの投稿数をカウントするには次のようにします：
+
+    ```
+    from:XDevelopers
+    ```
+  </Step>
+
+  <Step title="時間範囲を設定する">
+    特定の過去期間を検索するには、`start_time` と `end_time` を指定します：
+
+    | パラメーター | フォーマット | 例 |
+    |:----------|:-------|:--------|
+    | `start_time` | ISO 8601 | `2020-01-01T00:00:00Z` |
+    | `end_time` | ISO 8601 | `2020-12-31T23:59:59Z` |
+  </Step>
+
+  <Step title="リクエストを実行する">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/counts/all?\
+      query=from%3AXDevelopers&\
+      start_time=2020-01-01T00%3A00%3A00Z&\
+      end_time=2020-12-31T23%3A59%3A59Z&\
+      granularity=day" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 全アーカイブの投稿数を取得
+      response = client.posts.count_all(
+          query="from:XDevelopers",
+          start_time="2020-01-01T00:00:00Z",
+          end_time="2020-12-31T23:59:59Z",
+          granularity="day"
+      )
+
+      for bucket in response.data:
+          print(f"{bucket.start}: {bucket.tweet_count} Posts")
+
+      print(f"Total: {response.meta.total_tweet_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 全アーカイブの投稿数を取得
+      const response = await client.posts.countAll({
+        query: "from:XDevelopers",
+        startTime: "2020-01-01T00:00:00Z",
+        endTime: "2020-12-31T23:59:59Z",
+        granularity: "day",
+      });
+
+      response.data?.forEach((bucket) => {
+        console.log(`${bucket.start}: ${bucket.tweet_count} Posts`);
+      });
+
+      console.log(`Total: ${response.meta?.total_tweet_count}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": [
+        {
+          "end": "2020-01-02T00:00:00.000Z",
+          "start": "2020-01-01T00:00:00.000Z",
+          "tweet_count": 3
+        },
+        {
+          "end": "2020-01-03T00:00:00.000Z",
+          "start": "2020-01-02T00:00:00.000Z",
+          "tweet_count": 5
+        }
+      ],
+      "meta": {
+        "total_tweet_count": 8
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="granularity-options">
+  ## 粒度オプション
+</div>
+
+カウントの集計単位を指定します：
+
+| Granularity | 説明 |
+|:------------|:------------|
+| `minute` | 1分ごとのカウント |
+| `hour` | 1時間ごとのカウント（デフォルト） |
+| `day` | 1日ごとのカウント |
+
+***
+
+<div id="paginate-through-results">
+  ## 結果をページングして取得する
+</div>
+
+長期間を対象とする場合は、レスポンス内の `next_token` を使用します。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/counts/all?\
+  query=from%3AXDevelopers&\
+  start_time=2015-01-01T00%3A00%3A00Z&\
+  end_time=2020-12-31T23%3A59%3A59Z&\
+  granularity=day&\
+  next_token=abc123" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ページネーションしながら件数を取得
+  next_token = None
+
+  while True:
+      response = client.posts.count_all(
+          query="from:XDevelopers",
+          start_time="2015-01-01T00:00:00Z",
+          end_time="2020-12-31T23:59:59Z",
+          granularity="day",
+          next_token=next_token
+      )
+      
+      for bucket in response.data:
+          print(f"{bucket.start}: {bucket.tweet_count}")
+      
+      next_token = response.meta.next_token
+      if not next_token:
+          break
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ページネーションしながら件数を取得
+  let nextToken = undefined;
+
+  do {
+    const response = await client.posts.countAll({
+      query: "from:XDevelopers",
+      startTime: "2015-01-01T00:00:00Z",
+      endTime: "2020-12-31T23:59:59Z",
+      granularity: "day",
+      nextToken,
+    });
+
+    response.data?.forEach((bucket) => {
+      console.log(`${bucket.start}: ${bucket.tweet_count}`);
+    });
+
+    nextToken = response.meta?.next_token;
+  } while (nextToken);
+  ```
+</CodeGroup>
+
+***
+
+<div id="key-differences-from-recent-counts">
+  ## Recent Counts との主な違い
+</div>
+
+| 機能 | Recent Counts | Full-Archive Counts |
+|:--------|:--------------|:--------------------|
+| 期間 | 過去7日間 | 2006年3月から現在まで |
+| 必須アクセスレベル | すべての開発者 | 従量課金、Enterprise |
+| デフォルトの期間 | 過去7日間 | 過去30日間 |
+
+***
+
+<div id="common-parameters">
+  ## 共通パラメータ
+</div>
+
+| Parameter | 説明 | デフォルト値 |
+|:----------|:------------|:--------|
+| `query` | 検索クエリ（必須） | — |
+| `granularity` | 時間バケットのサイズ | `hour` |
+| `start_time` | 最も古いタイムスタンプ（ISO 8601） | 30日前 |
+| `end_time` | 最新のタイムスタンプ（ISO 8601） | 現在 |
+| `next_token` | ページネーション用のトークン | — |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="最近のカウント" icon="clock" href="/ja/x-api/posts/counts/quickstart/recent-tweet-counts">
+    直近の投稿数を取得
+  </Card>
+
+  <Card title="クエリの作成" icon="magnifying-glass" href="/ja/x-api/posts/counts/integrate/build-a-query">
+    クエリ構文をマスター
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/full-archive-post-count">
+    エンドポイントの詳細ドキュメント
+  </Card>
+</CardGroup>

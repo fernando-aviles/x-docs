@@ -1,0 +1,46 @@
+---
+title: Recuperación y redundancia
+sidebarTitle: Recuperación y redundancia
+keywords: ["powerstream recovery", "powerstream redundancy", "recovery features", "redundancy features", "fault tolerance", "error recovery"]
+---
+
+Al consumir datos en streaming, maximizar el tiempo de conexión y recibir todos los datos coincidentes es un objetivo fundamental. Esto significa que es importante aprovechar conexiones redundantes, detectar automáticamente las desconexiones, reconectarse rápidamente y contar con un plan para recuperar los datos perdidos.
+
+En esta guía de integración, trataremos diferentes características de recuperación y redundancia: conexiones redundantes, backfill y recuperación.
+ 
+
+<div id="redundant-connections">
+  ## Conexiones redundantes
+</div>
+
+Una conexión redundante te permite establecer más de una conexión simultánea al stream. Esto proporciona redundancia al permitirte conectarte al mismo stream con dos consumidores independientes, recibiendo los mismos datos a través de ambas conexiones. De este modo, tu aplicación cuenta con una conmutación por error activa (hot failover) para diversas situaciones, como cuando un stream se desconecta o cuando falla el servidor principal de tu aplicación.
+
+Para usar un stream redundante, conéctate a la misma URL que usas para tu conexión principal. Los datos de tu stream se enviarán a través de ambas conexiones.
+
+<div id="backfill">
+  ## Backfill
+</div>
+
+Después de detectar una desconexión, tu sistema debe ser lo suficientemente inteligente como para reconectarse al stream. Si es posible, tu sistema debería registrar cuánto tiempo duró la desconexión para que puedas usar la función de recuperación adecuada y volver a completar los datos. 
+
+Si identificaste que la desconexión duró cinco minutos o menos, puedes usar el parámetro de backfill, `backfillMinutes`. Si pasas este parámetro con tu solicitud `GET /powerstream`, recibirás las publicaciones que coincidan con tus reglas de entre el último minuto y los últimos cinco minutos. En general, entregamos primero estas publicaciones más antiguas antes que cualquier publicación que coincida posteriormente y tampoco eliminamos publicaciones duplicadas. Esto significa que, si estuviste desconectado durante 90 segundos pero solicitas dos minutos de datos de backfill, recibirás 30 segundos de publicaciones duplicadas, lo cual tu sistema debería tolerar. Aquí tienes un ejemplo de cómo podría verse una solicitud con el parámetro de backfill:
+
+`curl 'https://api.x.com/2/powerstream?backfillMinutes=5' -H "Authorization: Bearer $ACCESS_TOKEN"`
+
+Si identificaste que el tiempo de desconexión fue superior a cinco minutos, puedes usar el [endpoint de búsqueda reciente](/es/x-api/posts/search/introduction) o la función de recuperación para solicitar los datos que te perdiste. 
+
+<div id="recovery">
+  ## Recuperación
+</div>
+
+Puedes usar la función de recuperación para recuperar datos perdidos durante las últimas 24 horas si no puedes volver a conectarte dentro de la ventana de backfill de 5 minutos.
+
+La función de recuperación de streaming te permite disponer de una ventana de backfill ampliada de 24 horas. La recuperación te permite &quot;reproducir&quot; el período de tiempo de los datos perdidos. Un stream de recuperación se inicia cuando realizas una solicitud de conexión usando los parámetros de solicitud `startTime` y `endTime`. Una vez conectado, la recuperación volverá a transmitir el período de tiempo indicado y luego se desconectará.  
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Nombre** | **Tipo** | **Descripción** |
+| `startTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Fecha en UTC que indica la hora de inicio a partir de la cual se va a recuperar. |
+| `endTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Fecha en UTC que indica la hora de finalización hasta la cual se va a recuperar. |
+
+URL de solicitud de ejemplo: `https://api.x.com/2/powerstream?startTime=2022-07-12T15:10:00Z&endTime=2022-07-12T15:20:00Z`

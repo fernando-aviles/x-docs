@@ -1,0 +1,211 @@
+---
+title: Consulta de usuarios silenciados
+sidebarTitle: Consulta de usuarios silenciados
+description: Obtén la lista de usuarios que has silenciado
+keywords: ["guía rápida de consulta de usuarios silenciados", "guía rápida de consulta de usuarios silenciados", "tutorial de consulta de usuarios silenciados", "guía de consulta de usuarios silenciados", "guía rápida sobre usuarios silenciados"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te explica cómo obtener tu lista de usuarios silenciados mediante la X API.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitas:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una aplicación aprobada
+  * Un token de acceso de usuario (User Access Token) (OAuth 1.0a o OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-muted-users">
+  ## Obtén tus usuarios silenciados
+</div>
+
+<Steps>
+  <Step title="Obtén tu ID de usuario">
+    Necesitas el ID de tu usuario autenticado. Puedes encontrarlo usando el [endpoint de búsqueda de usuarios](/es/x-api/users/lookup/introduction) o en tu Access Token (la parte numérica es tu ID de usuario).
+  </Step>
+
+  <Step title="Solicita tus usuarios silenciados">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/muting?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # Obtener usuarios silenciados con paginación
+      for page in client.users.get_muting(
+          "123456789",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Silenciado")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // Obtener usuarios silenciados con paginación
+      const paginator = client.users.getMuting("123456789", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Silenciado`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Revisa la respuesta">
+    ```json
+    {
+      "data": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers",
+          "created_at": "2013-12-14T04:35:55.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "1710819323648428707"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## Incluir datos adicionales
+</div>
+
+Utiliza expansions para obtener datos relacionados, como las Publicaciones fijadas:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtener usuarios silenciados con expansions
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # Las Publicaciones fijadas se encuentran en page.includes.tweets
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtener usuarios silenciados con expansions
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    # Las Publicaciones fijadas se encuentran en page.includes?.tweets
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Respuesta con expansión
+</div>
+
+```json
+{
+  "data": [
+    {
+      "username": "XDevelopers",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "id": "2244994945",
+      "name": "X Developers",
+      "pinned_tweet_id": "1430984356139470849"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-08-26T20:03:51.000Z",
+        "id": "1430984356139470849",
+        "text": "Help us build a better X Developer Platform!..."
+      }
+    ]
+  },
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+<div id="paginate-through-results">
+  ## Paginar los resultados
+</div>
+
+Los SDKs manejan la paginación automáticamente. Para cURL, usa el `next_token` de la respuesta:
+
+```bash
+curl "https://api.x.com/2/users/123456789/muting?\
+max_results=100&\
+pagination_token=1710819323648428707" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gestionar silenciamientos" icon="volume-xmark" href="/es/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    Silenciar y anular el silenciamiento de usuarios
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/users/get-muted-users">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

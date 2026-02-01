@@ -1,0 +1,166 @@
+---
+title: OAuth 2.0 Authorization Code Flow と PKCE を使用してエンドポイントに接続する方法
+sidebarTitle: OAuth 2.0 ユーザーの代わりにリクエストを送信
+keywords: ["OAuth 2.0 ユーザーアクセストークン", "ユーザーアクセストークン", "OAuth 2.0 ユーザーコンテキスト", "ユーザー認証", "OAuth 2.0 ユーザー", "アクセストークン"]
+---
+
+<div id="how-to-connect-to-endpoints-using-oauth-20-authorization-code-flow-with-pkce">
+  ### PKCE を用いた OAuth 2.0 認可コードフローでエンドポイントに接続する方法
+</div>
+
+<div id="how-to-connect-to-the-endpoints">
+  #### エンドポイントへの接続方法
+</div>
+
+ユーザーを認証するには、アプリで認可フローを実装する必要があります。この認可フローにより、ユーザーをX上の認可ダイアログにリダイレクトできます。そこで、通常のXの画面上に認可ダイアログが表示され、アプリに代わって認可処理が行われます。ユーザーはアプリを承認するか、権限を拒否するかを選択できます。ユーザーが選択を行った後、Xはユーザーをアプリにリダイレクトし、（ユーザーがアプリを承認した場合は）認可コードをアクセストークンと交換するか、（ユーザーがアプリを承認しなかった場合は）拒否時の処理を行えるようにします。
+
+<div id="working-with-confidential-clients">
+  #### 機密クライアントを扱う場合
+</div>
+
+機密クライアントを扱う場合は、トークンエンドポイントへリクエストを送信する際に、[basic authentication](https://datatracker.ietf.org/doc/html/rfc2617#section-2) スキームを使用して、Base64 エンコードされた Authorization ヘッダーを生成する必要があります。
+
+`userid` と `password` は、資格情報内の Base64 エンコードされる文字列の中で、1 つのコロン（&quot;:&quot;）文字で区切られます。
+
+例は次のようになります。
+
+`-header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='`
+
+ユーザーエージェントが Client ID として &quot;Aladdin&quot;、パスワードとして &quot;open sesame&quot; を送信したい場合、次のヘッダーフィールドを使用します。
+
+`Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==`
+
+Basic 認証用の Authorization ヘッダーを作成するには、Client ID と Client Secret を連結した文字列に対して Base64 エンコードを行う必要があります。これらは、[Developer Console](https://developer.x.com/en/portal/dashboard) 内の App の “Keys and Tokens” ページから取得できます。
+
+<div id="steps-to-connect-using-oauth-20">
+  #### OAuth 2.0 を使用して接続する手順
+</div>
+
+**ステップ 1: Authorize URL を作成する**
+
+App は、App が認可を必要とするスコープを指定して、X 向けの authorize URL を構築する必要があります。たとえば、App がツイートやユーザーを参照し、フォローを管理する必要がある場合、次のスコープをリクエストする必要があります。
+
+`tweet.read%20users.read%20follows.read%20follows.write`
+
+この URL には、他の必須パラメータに加えて、`code_challenge` パラメータと state パラメータも含める必要があります。本番環境では、`code_challenge` にはランダムな文字列を使用してください。
+
+**ステップ 2: GET oauth2/authorize**
+
+ユーザーに認証を行ってもらい、アプリケーションに認可コードを送信してもらいます。App に対して OAuth 2.0 を有効にしている場合、Client ID は App の「Keys and Tokens」ページ内で確認できます。
+
+ユーザーをリダイレクトする例の URL は次のようになります。
+
+```
+https://x.com/i/oauth2/authorize?response_type=code&client_id=M1M5R3BMVy13QmpScXkzTUt5OE46MTpjaQ&redirect_uri=https://www.example.com&scope=tweet.read%20users.read%20follows.read%20follows.write&state=state&code_challenge=challenge&code_challenge_method=plain
+```
+
+`offline_access` スコープを含む URL の例は、次のようになります。
+
+```
+https://x.com/i/oauth2/authorize?response_type=code&client_id=M1M5R3BMVy13QmpScXkzTUt5OE46MTpjaQ&redirect_uri=https://www.example.com&scope=tweet.read%20users.read%20follows.read%20offline.access&state=state&code_challenge=challenge&code_challenge_method=plain
+```
+
+認証が正常に完了すると、`redirect_uri` に `auth_code` パラメータを含むリクエストが送信されます。アプリケーションは `state` パラメータを検証する必要があります。
+
+クライアントのリダイレクト先から送信されるリクエストの例は次のとおりです：
+
+```
+https://www.example.com/?state=state&code=VGNibzFWSWREZm01bjN1N3dicWlNUG1oa2xRRVNNdmVHelJGY2hPWGxNd2dxOjE2MjIxNjA4MjU4MjU6MToxOmFjOjE
+```
+
+**ステップ 3: POST oauth2/token - アクセストークン**
+
+この時点で、認可コードを使用してアクセストークンとリフレッシュトークン（`offline.access` スコープが要求されている場合のみ）を作成できます。次のエンドポイントに POST リクエストを送信できます。
+
+```
+https://api.x.com/2/oauth2/token
+```
+
+ヘッダーで `application/x-www-form-urlencoded` の `Content-Type` を指定する必要があります。さらに、リクエストには `code`、`grant_type`、`client_id`、`redirect_uri`、および `code_verifier` を含める必要があります。
+
+以下は、パブリッククライアント向けのトークンリクエストの例です。
+
+```json
+curl --location --request POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'code=VGNibzFWSWREZm01bjN1N3dicWlNUG1oa2xRRVNNdmVHelJGY2hPWGxNd2dxOjE2MjIxNjA4MjU4MjU6MToxOmFjOjE' \
+--data-urlencode 'grant_type=authorization_code' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ' \
+--data-urlencode 'redirect_uri=https://www.example.com' \
+--data-urlencode 'code_verifier=challenge'
+```
+
+以下は機密クライアントを使用する例です。
+
+```json
+curl --location --request POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='\
+--data-urlencode 'code=VGNibzFWSWREZm01bjN1N3dicWlNUG1oa2xRRVNNdmVHelJGY2hPWGxNd2dxOjE2MjIxNjA4MjU4MjU6MToxOmFjOjE' \
+--data-urlencode 'grant_type=authorization_code' \
+--data-urlencode 'redirect_uri=https://www.example.com' \
+--data-urlencode 'code_verifier=challenge'
+```
+
+**ステップ 4: API に接続する**
+
+これで OAuth 2.0 を使用してエンドポイントに接続する準備が整いました。接続するには、[Bearer Token 認証](/ja/resources/fundamentals/authentication/oauth-2-0/application-only) を使用するときと同様に API にリクエストを送信します。Bearer Token を渡す代わりに、前のステップで生成したアクセス トークンを使用します。レスポンスとして、リクエストしているエンドポイントに対応する適切なペイロードが返されるはずです。このリクエストは、パブリッククライアントと機密クライアントのどちらでも同じです。
+
+送信するリクエストの例は次のとおりです。
+
+```json
+curl --location --request GET 'https://api.x.com/2/tweets?ids=1261326399320715264,1278347468690915330' \
+--header 'Authorization: Bearer Q0Mzb0VhZ0V5dmNXSTEyNER2MFNfVW50RzdXdTN6STFxQlVkTGhTc1lCdlBiOjE2MjIxNDc3NDM5MTQ6MToxOmF0OjE'
+```
+
+**ステップ 5: POST oauth2/token - リフレッシュトークン**
+
+リフレッシュトークンを使用すると、アプリケーションはユーザーに再度操作を求めることなく、新しいアクセストークンを取得できます。次のエンドポイントに対して POST リクエストを送信することで、リフレッシュトークンを作成できます: https://api.x.com/2/oauth2/token ヘッダーで `Content-Type` として `application/x-www-form-urlencoded` を追加する必要があります。さらに、`refresh_token` を渡し、`grant_type` を `refresh_token` に設定し、`client_id` を指定する必要があります。
+
+このリクエストはパブリッククライアントで利用できます:
+
+```json
+POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'refresh_token=bWRWa3gzdnk3WHRGU1o0bmRRcTJ5VUxWX1lZTDdJSUtmaWcxbTVxdEFXcW5tOjE2MjIxNDc3NDM5MTQ6MToxOnJ0OjE' \
+--data-urlencode 'grant_type=refresh_token' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ'
+```
+
+次に、機密クライアント向けの例を示します。
+
+```json
+POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='\
+--data-urlencode 'refresh_token=bWRWa3gzdnk3WHRGU1o0bmRRcTJ5VUxWX1lZTDdJSUtmaWcxbTVxdEFXcW5tOjE2MjIxNDc3NDM5MTQ6MToxOnJ0OjE'\
+--data-urlencode 'grant_type=refresh_token'
+```
+
+**手順 6: POST oauth2/revoke - トークンを失効させる**
+
+revoke token は access token または refresh token を無効化します。これはクライアントにおける「ログアウト」機能を有効にするために使用され、不要になった可能性のある認可フローに関連付けられたセキュリティ資格情報を削除できるようにします。revoke token はユーザーではなく、App がトークンを失効させるためのものです。App が自分に付与されたアクセス権をプログラムから取り消したい場合、次の URL に対して POST リクエストを送信することで revoke token リクエストを作成できます。
+
+```
+https://api.x.com/2/oauth2/revoke
+```
+
+ヘッダーの `Content-Type` に `application/x-www-form-urlencoded` を指定し、トークンと `client_id` を渡す必要があります。
+
+場合によっては、ユーザーがアプリに付与したアクセス権を取り消したいことがあります。その場合は、[connected Apps ページ](https://x.com/settings/connected_apps) にアクセスして、アクセス権を取り消すことができます。
+
+```bash
+curl --location --request POST 'https://api.x.com/2/oauth2/revoke' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'token=Q0Mzb0VhZ0V5dmNXSTEyNER2MFNfVW50RzdXdTN6STFxQlVkTGhTc1lCdlBiOjE2MjIxNDc3NDM5MTQ6MToxOmF0OjE' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ'
+```
+
+このリクエストは機密クライアントで使用できます。
+
+```bash
+curl --location --request POST 'https://api.x.com/2/oauth2/revoke' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='\
+--data-urlencode 'token=Q0Mzb0VhZ0V5dmNXSTEyNER2MFNfVW50RzdXdTN6STFxQlVkTGhTc1lCdlBiOjE2MjIxNDc3NDM5MTQ6MToxOmF0OjE'
+```

@@ -1,0 +1,260 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+description: 集成静音端点的关键概念和最佳实践
+keywords: ["静音功能集成", "静音用户集成", "静音功能指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南介绍将静音（mutes）端点集成到你的应用中所需掌握的关键概念。
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+Mutes 端点需要用户身份验证才能访问私密静音列表：
+
+| Method | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 推荐用于新应用 |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 旧版支持 |
+
+<Warning>
+  不支持仅应用身份验证（App-Only authentication）。你必须代表用户进行身份验证。
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### 必需的 scope（OAuth 2.0）
+</div>
+
+| Scope | 用于 |
+|:------|:-------------|
+| `mute.read` | 获取被静音的账号 |
+| `mute.write` | 静音和取消静音账号 |
+| `users.read` | 与静音相关 scope 一起使用时为必需 |
+
+***
+
+<div id="endpoints-overview">
+  ## 端点概览
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| GET | `/2/users/:id/muting` | 获取已静音的账号列表 |
+| POST | `/2/users/:id/muting` | 将账号静音 |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | 取消账号静音 |
+
+***
+
+<div id="fields-and-expansions">
+  ## 字段和扩展
+</div>
+
+<div id="default-response">
+  ### 默认响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Example User",
+      "username": "example"
+    }
+  ]
+}
+```
+
+<div id="available-fields">
+  ### 可用字段
+</div>
+
+<Accordion title="user.fields">
+  | 字段 | 描述 |
+  |:------|:------------|
+  | `created_at` | 账户创建时间 |
+  | `description` | 用户个人简介 |
+  | `profile_image_url` | 头像 URL |
+  | `public_metrics` | 粉丝/关注数 |
+  | `verified` | 认证状态 |
+</Accordion>
+
+<Accordion title="expansions">
+  | 扩展项 | 描述 |
+  |:----------|:------------|
+  | `pinned_tweet_id` | 用户的置顶帖子 |
+</Accordion>
+
+<div id="example-with-fields">
+  ### 包含字段的示例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=username,verified,created_at&\
+  max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 获取被静音用户，并返回附加字段
+  for page in client.users.get_muting(
+      user_id="123456789",
+      user_fields=["username", "verified", "created_at"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified", "created_at"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="pagination">
+  ## 分页
+</div>
+
+对于静音列表很长的用户，结果会以分页形式返回：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 首次请求
+  curl "https://api.x.com/2/users/123/muting?max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+
+  # 带有分页令牌的后续请求
+  curl "https://api.x.com/2/users/123/muting?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # SDK 会自动处理分页
+  all_muted = []
+
+  for page in client.users.get_muting(user_id="123", max_results=100):
+      if page.data:
+          all_muted.extend(page.data)
+
+  print(f"Muted {len(all_muted)} users")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  async function getAllMutedUsers(userId) {
+    const allMuted = [];
+
+    // SDK 会自动处理分页
+    const paginator = client.users.getMuting(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allMuted.push(...page.data);
+      }
+    }
+
+    return allMuted;
+  }
+
+  // 用法示例
+  const muted = await getAllMutedUsers("123");
+  console.log(`Muted ${muted.length} users`);
+  ```
+</CodeGroup>
+
+<Card title="分页指南" icon="arrow-right" href="/zh/x-api/fundamentals/pagination">
+  了解分页的更多信息
+</Card>
+
+***
+
+<div id="behavior-differences">
+  ## 行为差异
+</div>
+
+<div id="muting-vs-blocking">
+  ### 静音与拉黑
+</div>
+
+| 功能 | 静音 | 拉黑 |
+|:--------|:-----|:------|
+| 你能看到对方的帖子 | 否（隐藏） | 否 |
+| 对方能看到你的帖子 | 是 | 否 |
+| 对方能关注你 | 是（可以关注） | 否（已移除关注） |
+| 对方能给你发私信 | 是 | 否 |
+| 是否发送通知 | 否 | 否 |
+
+<Tip>
+  静音操作是私密的——被静音的用户不会收到通知，也无法察觉自己被静音。
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## 错误处理
+</div>
+
+| 状态码 | 错误 | 解决方案 |
+|:-------|:------|:---------|
+| 400 | 无效请求 | 检查用户 ID 格式 |
+| 401 | 未获授权 | 验证访问令牌 |
+| 403 | 禁止访问 | 检查 scope 和权限设置 |
+| 404 | 未找到 | 用户不存在 |
+| 429 | 请求过于频繁 | 等待后重试 |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="快速入门" icon="rocket" href="/zh/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    发起你的第一个静音请求
+  </Card>
+
+  <Card title="屏蔽" icon="ban" href="/zh/x-api/users/blocks/introduction">
+    选择屏蔽用户而不是静音
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/users/get-muting">
+    完整的端点文档
+  </Card>
+
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    可运行的代码示例
+  </Card>
+</CardGroup>

@@ -1,0 +1,216 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 在几分钟内发出你的第一个帖子查询请求
+keywords: ["post lookup 快速入门", "tweet lookup 快速入门", "查询教程", "查询指南", "获取推文快速入门", "查询示例"]
+---
+
+import { Button } from "/snippets/zh/button.mdx"
+
+本指南将引导你完成使用 X API v2 发起首次帖子查询请求的过程。
+
+<Note>
+  **先决条件**
+
+  在开始之前，你需要准备：
+
+  * 一个拥有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer Token（可在 Developer Console 的“Keys and tokens”下找到）
+</Note>
+
+***
+
+<Steps>
+  <Step title="查找帖子 ID">
+    每条帖子都有唯一的 id。你可以在该帖子的 URL 中找到它：
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── 这是帖子 ID
+    ```
+  </Step>
+
+  <Step title="发起请求">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 通过 ID 获取一条帖子
+      response = client.posts.get("1228393702244134912")
+      print(response.data)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912");
+      console.log(response.data);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应">
+    默认的响应中包含帖子的 `id`、`text` 和 `edit_history_tweet_ids`：
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?\n\nwhile(true) {\n    I = Love(You);\n}",
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="请求更多字段">
+    使用查询参数获取更多数据：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 获取带有额外字段和扩展的帖子
+      response = client.posts.get(
+          "1228393702244134912",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"]
+      )
+
+      print(response.data)
+      print(response.includes)  # 包含作者用户对象
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+      });
+
+      console.log(response.data);
+      console.log(response.includes); // 包含作者用户对象
+      ```
+    </CodeGroup>
+
+    **响应：**
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?...",
+        "created_at": "2020-02-14T19:00:55.000Z",
+        "author_id": "2244994945",
+        "public_metrics": {
+          "retweet_count": 156,
+          "reply_count": 23,
+          "like_count": 892,
+          "quote_count": 12
+        },
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "verified": true
+          }
+        ]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="查询多个帖子">
+    在单个请求中最多可检索 100 条帖子：
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets?\
+      ids=1228393702244134912,1227640996038684673,1199786642791452673&\
+      tweet.fields=created_at,author_id" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 通过多个 id 获取帖子
+      response = client.posts.get_posts(
+          ids=["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+          tweet_fields=["created_at", "author_id"]
+      )
+
+      for post in response.data:
+          print(f"{post.id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.getPosts({
+        ids: ["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+        tweetFields: ["created_at", "author_id"],
+      });
+
+      response.data?.forEach((post) => {
+        console.log(`${post.id}: ${post.text?.slice(0, 50)}...`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="集成指南" icon="book" href="/zh/x-api/posts/lookup/integrate">
+    了解身份验证、速率限制以及最佳实践
+  </Card>
+
+  <Card title="字段和扩展" icon="sliders" href="/zh/x-api/fundamentals/fields">
+    深入掌握字段和扩展机制
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/get-post-by-id">
+    查看所有可用参数
+  </Card>
+
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    查看更多示例
+  </Card>
+</CardGroup>

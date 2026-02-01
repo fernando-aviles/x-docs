@@ -1,0 +1,979 @@
+---
+title: A/B 测试
+keywords: ["AB testing", "A/B testing", "split testing", "ad testing", "campaign testing", "test campaigns"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+<div id="overview">
+  ## 概览
+</div>
+
+<div id="introduction">
+  ### 介绍
+</div>
+
+A/B 测试允许广告主对他们在 X 上触达的用户进行细分分组，从而了解如何最大化优化广告活动表现，并获取洞察以指导其营销策略。
+
+这些分组——称为用户组拆分（user group splits）——是随机且互斥的。通过随机化，影响结果的各类因素会被均匀分布。换句话说，各组之间及其预期行为不存在内在差异。正因如此，当仅对某一个用户组应用某个单一变体、而对其他组不应用时，广告活动表现上的差异就可以归因于该变体。
+
+尽管可以同时测试多个变体，我们强烈建议一次只测试一个变体。这样可以将导致广告活动表现差异的因果因素单独隔离出来。
+
+变体是在广告活动级别设置的。举例来说，如果广告主想测试一个新创意（creative）的效果，应创建两个完全相同的广告活动，并确保唯一的差异就是该创意。未来，我们计划支持在广告单元（line item）级别设置变体。
+
+<div id="use-cases">
+  ### 使用场景
+</div>
+
+A/B 测试最常用于两类场景：（1）面向绩效客户的“优化”类场景，帮助他们了解在 X 上哪些策略效果最佳，从而优化投放投入；以及（2）面向品牌广告主的“学习”类场景，帮助他们利用测试结论来指导营销策略。 
+
+该 API 将支持对任何广告活动变量进行 A/B 测试，包括：
+
+* 创意 
+
+* 定向 
+
+* 出价类型
+
+* 出价单位
+
+<div id="ab-testing">
+  ## A/B 测试
+</div>
+
+A/B 测试使广告主能够对他们在 X 上触达的用户进行分组，从而了解如何以最佳方式优化广告系列表现，并从中获取经验洞察，以指导他们的营销策略。
+
+这些分组——称为用户分组拆分（user group splits）——是随机且互斥的。通过随机化，影响结果的各种因素会被均匀分配。换句话说，各组之间或它们的预期行为之间不存在内在差异。正因如此，当某个变体仅应用于一个用户组而未应用于其他用户组时，广告系列表现的差异可以归因于该变体。
+
+虽然可以同时测试多个变体，但我们强烈建议一次只测试一个变体。这样可以将导致观察到的广告系列表现差异的因果因素单独隔离出来。
+
+变体可以设置在广告系列层级或广告组层级。广告组通过 Ads API 中的 [line item](https://developer.x.com/en/docs/twitter-ads-api/campaign-management/api-reference/line-items) 来设置。以广告组层级的变体为例，如果广告主想测试一个新广告创意的效果，应创建一个广告系列，包含两个完全相同的广告组，二者之间唯一的差异就是广告创意本身。
+
+<div id="use-cases">
+  ### 使用场景
+</div>
+
+A/B 测试最常用于支持两类使用场景：(1) 为绩效型客户提供优化类场景，帮助他们了解在 X 上什么效果最好，从而优化其广告投放投入；以及 (2) 为品牌广告主提供学习类场景，帮助他们利用测试所得洞察来制定营销策略。 
+
+该 API 将支持针对任何广告系列变量进行 A/B 测试，包括：
+
+* 创意
+
+* 定向
+
+* 出价类型
+
+* 出价单位
+
+<div id="attributes">
+  ### 属性
+</div>
+
+A/B 测试以嵌套结构表示。A/B 测试本身有顶层字段，以及一个用户分组对象数组，每个对象都有一组字段用于对其进行描述。
+
+从整体上看，每个 A/B 测试都必须包含以下信息。
+
+* 测试持续时间，由 start&#95;time 和 end&#95;time 字段表示
+
+* 进行流量划分的级别，由 entity&#95;type 字段表示
+
+* 至少两个（且最多 30 个）用户分组，每个分组在 user&#95;groups 数组中表示为一个对象
+
+每个用户分组*必须*包含以下信息。
+
+* 应该分配到该用户分组的用户占比，由 size 字段表示
+
+* 应构成该用户分组用户池的 campaign id/line item id，由 entity&#95;ids 数组表示
+
+可选地，你可以为 A/B 测试和用户分组设置 name 和 description 字段的值。有关验证规则和其他约束的信息可在下方找到。
+
+其他元数据，例如 id 或创建时间，也会包含在内，但由 X 自动设置。
+
+下面展示了一个在 campaign 级别的 A/B 测试实体示例。
+
+```json
+{
+  "created_at": "2020-12-01T00:00:00Z",
+  "created_by": {
+    "user_id": "756201191646691328",
+    "username": "apimctestface"
+  },
+  "deleted": false,
+  "description": "documentation example",
+  "end_time": "2020-12-05T01:00:00Z",
+  "entity_type": "CAMPAIGN",
+  "id": "hr7l0",
+  "name": "first AB test",
+  "start_time": "2020-12-01T01:00:00Z",
+  "status": "SCHEDULED",
+  "user_groups": [
+    {
+      "id": "p1bcx",
+      "name": "first group",
+      "description": null,
+      "size": "50.0",
+      "entity_ids": [
+        "f2qcw",
+        "f2tht"
+      ]
+    },
+    {
+      "id": "p1bcy",
+      "name": "second group",
+      "description": "second AB test group",
+      "size": 50,
+      "entity_ids": [
+        "f2rqi",
+        "f2tws"
+      ]
+    }
+  ],
+  "updated_at": "2020-12-01T00:00:00Z",
+  "updated_by": {
+    "user_id": "756201191646691328",
+    "username": "apimctestface"
+  }
+}
+```
+
+下面是一个广告组级别的 A/B 测试实体示例。
+
+```json
+{
+   "created_by":{
+      "user_id":"756201191646691328",
+      "username":"apimctestface"
+   },
+   "name":"Test2e",
+   "start_time":"2022-08-15T00:00:00Z",
+   "updated_by":{
+      "user_id":"756201191646691328",
+      "username":"apimctestface"
+   },
+   "description":"My Second AB test",
+   "entity_type":"LINE_ITEM",
+   "end_time":"2022-08-30T00:00:00Z",
+   "id":"1ul",
+   "user_groups":[
+      {
+         "name":"first group",
+         "size":"50.0",
+         "description":"first group description",
+         "entity_ids":[
+            "ij9dh"
+         ],
+         "id":"4xe"
+      },
+      {
+         "name":"second group",
+         "size":"50.0",
+         "description":"second group description",
+         "entity_ids":[
+            "ihng8"
+         ],
+         "id":"4xf"
+      }
+   ],
+   "status":"SCHEDULED",
+   "created_at":"2022-08-11T00:10:50Z",
+   "updated_at":"2022-08-11T00:10:50Z",
+   "deleted":false
+}
+```
+
+<div id="usage">
+  ### 使用说明
+</div>
+
+以下小节介绍如何创建和更新 A/B 测试。读取和删除操作的用法与其他 Ads API 端点相同。
+
+<div id="creating">
+  #### 创建
+</div>
+
+使用 [POST accounts/:account&#95;id/ab&#95;tests](https://developer.x.com/en/docs/x-ads-api/measurement/api-reference/ab-tests) 端点创建 A/B 测试。该端点仅接受 JSON POST 请求体。`Content-Type` 必须设置为 `application/json`。
+
+在广告主设置了两个或更多推广活动后，就可以创建 A/B 测试。如上所述，A/B 测试 *必须* 包括：测试时长、拆分层级，以及至少两个用户组。每个用户组必须声明要分配给该组的用户百分比，以及构成其用户池的推广活动 ID。下文将对这些内容分别进行更详细的说明。
+
+测试时长：
+
+* start&#95;time 和 end&#95;time 的值必须
+
+  * 位于未来（相对于创建 A/B 测试的时间）
+
+  * 与推广活动/广告单元的投放日期有重叠
+
+* 对于非应用类推广活动，测试必须至少持续一天；对于应用类推广活动，测试必须至少持续五天
+
+拆分层级：
+
+* entity&#95;type 可以设置为 CAMPAIGN 或 LINE&#95;ITEM
+
+用户组：
+
+* 每个用户组在 user&#95;groups 数组中表示为一个对象
+
+  * 至少需要两个用户组
+
+  * 最多允许 30 个用户组
+
+* 每个用户组的大小通过 1.00 到 99.00 之间数值的字符串表示形式来设置
+
+  * **注意**：各对象的 size 数值之和 **必须** 为 100.00
+
+* 每个用户组的推广活动 ID 应在该用户组的 entity&#95;ids 数组中指定
+
+你也可以选择为 A/B 测试或一个或多个用户组设置 name 和 description 字段。
+
+以下请求在推广活动层级创建一个持续四天的 A/B 测试，并包含两个用户组，每个用户组分配 50% 的用户。第一个用户组基于推广活动 f2qcw 和 f2tht；第二个用户组基于推广活动 f2rqi 和 f2tws。该请求还为该实体的部分内容添加了名称和描述。
+
+twurl -X POST -H ads-api.x.com &quot;/8/accounts/18ce54d4x5t/ab&#95;tests&quot; -d &#39;&#123;&quot;end&#95;time&quot;: &quot;2020-12-05T01:00:00Z&quot;, &quot;entity&#95;type&quot; : &quot;CAMPAIGN&quot;, &quot;start&#95;time&quot;: &quot;2020-12-01T01:00:00Z&quot;, &quot;user&#95;groups&quot;: [&#123;&quot;entity&#95;ids&quot;: [&quot;f2qcw&quot;, &quot;f2tht&quot;], &quot;size&quot;: &quot;50.00&quot;, &quot;name&quot;: &quot;first group&quot;&#125;,&#123;&quot;entity&#95;ids&quot;: [&quot;f2rqi&quot;, &quot;f2tws&quot;], &quot;size&quot;: &quot;50.00&quot;, &quot;name&quot;: &quot;second group&quot;, &quot;description&quot;: &quot;second AB test group&quot;&#125;], &quot;name&quot;: &quot;first AB test&quot;, &quot;description&quot;: &quot;documentation example&quot;&#125;&#39;
+
+```json
+twurl -X POST -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests" -d '{"end_time": "2020-12-05T01:00:00Z", "entity_type" : "CAMPAIGN", "start_time": "2020-12-01T01:00:00Z", "user_groups": [{"entity_ids": ["f2qcw", "f2tht"], "size": "50.00", "name": "first group"},{"entity_ids": ["f2rqi", "f2tws"], "size": "50.00", "name": "second group", "description": "second AB test group"}], "name": "first AB test", "description": "documentation example"}'
+
+{
+  "request": {
+    "params": {
+      "account_id": "18ce54d4x5t",
+      "end_time": "2020-12-05T01:00:00Z",
+      "entity_type": "CAMPAIGN",
+      "start_time": "2020-12-01T01:00:00Z",
+      "user_groups": [
+        {
+          "entity_ids": [
+            "f2qcw",
+            "f2tht"
+          ],
+          "size": "50.0",
+          "name": "first group"
+        },
+        {
+          "entity_ids": [
+            "f2rqi",
+            "f2tws"
+          ],
+          "size": "50.0",
+          "name": "second group",
+          "description": "second AB test group"
+        }
+      ],
+      "name": "first AB test",
+      "description": "documentation example"
+    }
+  },
+  "data": {
+    "created_at": "2020-12-01T00:00:00Z",
+    "created_by": {
+      "user_id": "756201191646691328",
+      "username": "apimctestface"
+    },
+    "deleted": false,
+    "description": "documentation example",
+    "end_time": "2020-12-05T01:00:00Z",
+    "entity_type": "CAMPAIGN",
+    "id": "hr7l0",
+    "name": "first AB test",
+    "start_time": "2020-12-01T01:00:00Z",
+    "status": "SCHEDULED",
+    "user_groups": [
+      {
+        "id": "p1bcx",
+        "name": "first group",
+        "description": null,
+        "size": "50.0",
+        "entity_ids": [
+          "f2qcw",
+          "f2tht"
+        ]
+      },
+      {
+        "id": "p1bcy",
+        "name": "second group",
+        "description": "second AB test group",
+        "size": "50.0",
+        "entity_ids": [
+          "f2rqi",
+          "f2tws"
+        ]
+      }
+    ],
+    "updated_at": "2020-12-01T00:00:00Z",
+    "updated_by": {
+      "user_id": "756201191646691328",
+      "username": "apimctestface"
+    }
+  }
+}
+```
+
+**针对广告单元层级进行 A/B 测试**
+
+在广告系列层级和广告单元层级进行 A/B 测试的主要区别是 entity&#95;type。对于广告单元层级的 A/B 测试，我们需要将其设置为 ‘entity&#95;type’ = ‘LINE&#95;ITEM’。这适用于下文对已创建 A/B 测试执行的所有操作。 
+
+要求：
+
+1. A/B 测试广告系列中的所有广告单元必须包含在该分组测试中。
+2. 在广告单元层级只允许进行均等拆分。
+3. 单次分组测试中允许的用户组（广告单元）数量必须小于或等于 5 个。 
+4. 每个用户组仅允许 1 个广告单元。
+
+<div id="updating">
+  ### 更新
+</div>
+
+使用 [PUT accounts/:account&#95;id/ab&#95;tests/:ab&#95;test&#95;id](https://developer.x.com/en/docs/x-ads-api/measurement/api-reference/ab-tests) 端点更新 A/B 测试。该端点要求在请求中发送一个 JSON 数据块。`Content-Type` 必须设置为 `application/json`。
+
+与其他更新端点类似，[PUT accounts/:account&#95;id/ab&#95;tests/:ab&#95;test&#95;id](/zh/x-ads-api/measurement/ab-testing#get-accounts-account-id-ab-tests) 端点要求在 URL 中包含 A/B 测试 ID。一般来说，只有当状态为 `SCHEDULED` 时，A/B 测试才可以被更新。有一个例外：当 A/B 测试处于 `LIVE` 状态时，可以更新该 A/B 测试的 `end_time`。
+
+此端点支持带对象 ID 的部分 JSON 更新。适用以下原则：
+
+* 若要添加或删除对象或元素，传入整个数组（及其子结构）；这是一次**替换**操作
+
+* 其他情况下，通过引用键名或 ID 来修改（更改、添加、删除）现有*字段*
+
+  * 若要删除字段，将其值设置为 `null`
+
+  * 未传入的字段不会被修改
+
+例如，要在之前创建的 A/B 测试中添加第三个用户组，我们需要在 `user_groups` 数组中同时包含两个现有的用户组对象以及希望添加的新用户组。可以将其视为*重新创建* `user_groups` 数组；传入的数据应好像你一开始就是以这种方式创建它（不要传入用户组对象 ID）。更新请求中的 `user_groups` 数组可以如下所示。
+
+```json
+[
+  {
+    "entity_ids": [
+      "f2qcw",
+      "f2tht"
+    ],
+    "size": "30.0",
+    "name": "first group"
+  },
+  {
+    "entity_ids": [
+      "f2rqi",
+      "f2tws"
+    ],
+    "size": "30.0",
+    "name": "second group",
+    "description": "second AB test group"
+  },
+  {
+    "entity_ids": [
+      "i1vwr",
+      "i1xre"
+    ],
+    "size": "40.0"
+  }
+]
+```
+
+请注意，各对象的 size 字段取值相加后仍然为 100.00。如果我们没有更新前两个对象（它们之前各为 50.00），请求就会失败。
+
+如果我们只是想为第一个用户组添加描述，则在更新请求中，user&#95;groups 数组将表示如下。
+
+```json
+[
+  {
+    "id": "p1bcx",
+    "description": "updated using a PUT request"
+  }
+]
+```
+
+我们通过其 id 引用用户组对象，并且只包含需要修改的字段。
+
+<div id="request-examples">
+  #### 请求示例
+</div>
+
+本节提供了更多更新请求示例。可以将这些请求视为顺序调用。JSON 数据块已为了便于阅读进行格式化。响应已省略。
+
+要进行以下修改，请求如下所示。（这与上面先前使用的示例相同。）
+
+1. 添加第三个没有名称或描述的用户组
+
+2. 更改每个用户组中用户所占的百分比
+
+twurl -X PUT -H ads-api.x.com &quot;/8/accounts/18ce54d4x5t/ab&#95;tests/hr7l0&quot; -d &#39;
+
+```json
+twurl -X PUT -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests/hr7l0" -d '
+{
+  "user_groups": [
+    {
+      "entity_ids": [
+        "f2qcw",
+        "f2tht"
+      ],
+      "size": "30.00",
+      "name": "first group"
+    },
+    {
+      "entity_ids": [
+        "f2rqi",
+        "f2tws"
+      ],
+      "size": "30.00",
+      "name": "second group",
+      "description": "second AB test group"
+    },
+    {
+      "entity_ids": [
+        "i1vwr",
+        "i1xre"
+      ],
+      "size": "40.00"
+    }
+  ]
+}'
+```
+
+要进行以下修改，请求如下所示：
+
+1. 删除 A/B Test 描述
+
+2. 为第一个用户组添加描述
+
+3. 为第二个用户组添加实体 ID（f2syz）
+
+twurl -X PUT -H ads-api.x.com &quot;/8/accounts/18ce54d4x5t/ab&#95;tests/hr7l0&quot; -d &#39;
+
+```json
+twurl -X PUT -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests/hr7l0" -d '
+{
+  "description": null,
+  "user_groups": [
+    {
+      "id": "p1bcx",
+      "description": "first AB test group"
+    },
+    {
+      "id": "p1bcy",
+      "entity_ids": [
+        "f2rqi",
+        "f2tws",
+        "f2syz"
+      ]
+    }
+  ]
+}'
+```
+
+第三项修改要求我们在传入新的实体 ID 的同时，传入两个已有的实体 ID。请注意，第三个用户组没有做任何更改。
+
+要进行以下修改，请求应表示如下：
+
+1. 移除第二个用户组
+
+2. 更改每个用户组中的用户百分比
+
+```json
+twurl -X PUT -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests/hr7l0" -d '
+{
+  "user_groups": [
+    {
+      "entity_ids": [
+        "f2qcw",
+        "f2tht"
+      ],
+      "size": "55.00",
+      "name": "first group"
+    },
+    {
+      "entity_ids": [
+        "i1vwr",
+        "i1xre"
+      ],
+      "size": "45.00"
+    }
+  ]
+}'
+```
+
+<div id="api-reference">
+  ## API 参考
+</div>
+
+<div id="ab-tests">
+  ### A/B 测试
+</div>
+
+[]()
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  在 Postman 中运行
+</Button>
+
+<div id="get-accountsaccount_idab_tests">
+  #### GET accounts/:account_id/ab_tests
+</div>
+
+获取部分或全部 A/B 测试的详细信息。
+
+<div id="resource-url">
+  ##### 资源 URL
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/ab_tests`
+
+<div id="parameters">
+  ##### Parameters
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | 所使用账户的标识符。出现在资源路径中，并且通常是所有 Advertiser API 请求（[GET accounts](/zh/x-ads-api/campaign-management#accounts) 除外）的必需参数。指定的账户必须与已认证的用户关联。<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| ab&#95;test&#95;ids  <br />*optional* | 通过指定以逗号分隔的标识符列表，将响应限定为所需的 A/B 测试。最多可提供 200 个 ID。<br /><br />Type: string<br /><br />Example: `hr7l0` |
+| count  <br />*optional* | 指定每个独立请求尝试检索的记录数。<br /><br />Type: int<br /><br />Default: `200`  <br />Min, Max: `1`, `1000` |
+| cursor  <br />*optional* | 指定用于获取下一页结果的 cursor。有关更多信息，请参阅 [Pagination](/zh/x-ads-api/introduction)。<br /><br />Type: string<br /><br />Example: `8x7v00oow` |
+| live&#95;during  <br />*optional* | 将响应限定为在给定日期范围内曾经或将会处于运行状态的 A/B 测试。此参数会返回其开始和结束时间与给定日期范围部分或全部重叠的 A/B 测试。<br /><br />将值指定为以逗号分隔的日期，并使用 [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 格式表示。应先指定较早的日期。<br /><br />Type: string<br /><br />Example: `2020-11-01T08:00:00Z,2020-12-01T08:00:00Z` |
+| q  <br />*optional* | 一个可选查询，用于根据 `name` 限定资源范围。省略此参数即可检索全部结果。<br /><br />Type: string<br /><br />Min, Max length: `1`, `80` |
+| sort&#95;by  <br />*optional* | 按支持的属性以升序或降序排序。有关更多信息，请参阅 [Sorting](/zh/x-ads-api/fundamentals/sorting)。<br /><br />Type: string<br /><br />Example: `created_at-asc` |
+| status  <br />*optional* | 将响应限定为具有所需状态的 A/B 测试。<br /><br />Type: enum<br /><br />Possible values: `COMPLETED`, `LIVE`, `SCHEDULED` |
+| user&#95;id  <br />*optional* | 将响应限定为由指定用户 ID 创建的 A/B 测试。<br /><br />**Note**: 不能与 `username` 同时指定。<br /><br />Type: long<br /><br />Example: `756201191646691328. |
+| username  <br/>_optional_ | 将响应限定为由指定用户名创建的 A/B 测试。不要包含前导的 "@" 符号。<br/><br/>**Note**: 不能与 `user&#95;id`同时指定。<br/><br/>Type: string<br/><br/>Example:`apimctestface. |
+| with&#95;deleted  <br />*optional* | 在请求中包含已删除的结果。<br /><br />Type: boolean<br /><br />Default: `false`  <br />Possible values: `true`, `false` |
+
+<div id="example-request">
+  ##### 示例请求
+</div>
+
+`GET https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests`
+
+<div id="example-response">
+  ##### 示例响应
+</div>
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data": [
+        {
+          "created_at": "2022-05-25T00:00:00Z",
+          "created_by": {
+            "user_id": "756201191646691328",
+            "username": "apimctestface"
+          },
+          "deleted": false,
+          "description": "documentation example",
+          "end_time": "2022-05-30T01:00:00Z",
+          "entities": [
+            {
+              "id": "p1bcx",
+              "account_id": "18ce54d4x5t"
+            },
+            {
+              "id": "p1bcy",
+              "account_id": "18ce54d4x5t"
+            }
+          ],
+          "entity_type": "CAMPAIGN",
+          "id": "hr7l0",
+          "name": "first AB test",
+          "start_time": "2022-05-25T01:00:00Z",
+          "status": "SCHEDULED",
+          "user_groups": [
+            {
+              "id": "p1bcx",
+              "name": "first group",
+              "description": null,
+              "size": "50.0",
+              "entity_ids": [
+                "f2qcw",
+                "f2tht"
+              ]
+            },
+            {
+              "id": "p1bcy",
+              "name": "second group",
+              "description": "second AB test group",
+              "size": "50.0",
+              "entity_ids": [
+                "f2rqi",
+                "f2tws"
+              ]
+            }
+          ],
+          "updated_at": "2022-05-25T00:00:00Z",
+          "updated_by": {
+            "user_id": "756201191646691328",
+            "username": "apimctestface"
+          }
+        }
+      ],
+      "next_cursor": null
+    }
+```
+
+<div id="post-accountsaccount_idab_tests">
+  #### POST accounts/:account_id/ab_tests
+</div>
+
+创建一个新的 A/B 测试。
+
+所有参数都通过请求体发送，并且必须将 `Content-Type` 设置为 `application/json`。
+
+<div id="resource-url">
+  ##### 资源 URL
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/ab_tests`
+
+##### 参数
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | 所使用的账户标识符。出现在资源路径中，并且通常是除 [GET accounts](/zh/x-ads-api/campaign-management#accounts) 外所有 Advertiser API 请求的必需参数。指定的账户必须与已认证用户关联。<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| end&#95;time  <br />*required* | A/B 测试结束的时间，使用 ISO 8601 格式表示。<br /><br />Type: string<br /><br />Example: `2020-10-02T00:00:00Z` |
+| entity&#95;type  <br />*required* | 用于用户组划分的实体类型。<br /><br />Type: enum<br /><br />Possible values: `CAMPAIGN`, `LINE_ITEM` |
+| start&#95;time  <br />*required* | A/B 测试开始的时间，使用 ISO 8601 格式表示。<br /><br />Type: string<br /><br />Example: `2022-05-30T00:00:00Z` |
+| user&#95;groups  <br />*required* | 对用户组的描述。更多信息见下表。可以指定 2 到 30 个用户组。<br /><br />Type: array of objects |
+| description  <br />*optional* | A/B 测试的描述。最大长度：1,024 个字符。<br /><br />Type: string<br /><br />Example: `documentation example` |
+| name  <br />*optional* | A/B 测试的名称。最大长度：255 个字符。<br /><br />Type: string<br /><br />Example: `first AB test` |
+
+<div id="user-groups">
+  #### 用户组
+</div>
+
+| 名称 | 描述 |
+| :--- | :--- |
+| entity&#95;ids  <br />*必需* | 实体 ID 的数组。<br /><br />**注意**：每个实体只能关联到一个 A/B 测试。<br /><br />类型：数组<br /><br />示例：`["dxi0l", "e66bl"]` |
+| size  <br />*必需* | 要分配到此用户组的用户百分比。该数值为数值类型，以字符串形式表示，小数点后最多两位。例如，可将 40% 表示为：40、40.0 或 40.00。<br /><br />**注意**：所有 *对象* 的 size 值 **必须** 相加为 100.00。<br /><br />类型：数组<br /><br />最小值、最大值：`1.00`, `99.00` |
+| description  <br />*可选* | 用户组的描述。最大长度：1,024 个字符。<br /><br />类型：字符串<br /><br />示例：`second AB test group` |
+| name  <br />*可选* | 用户组的名称。最大长度：255 个字符。<br /><br />类型：字符串<br /><br />示例：`first group` |
+
+### 示例请求
+
+`POST https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests -d '{"end_time": "2022-05-30T01:00:00Z", "entity_type" : "CAMPAIGN", "start_time": "2022-05-25T01:00:00Z", "user_groups": [{"entity_ids": ["f2qcw", "f2tht"], "size": "50.00", "name": "first group"},{"entity_ids": ["f2rqi", "f2tws"], "size": "50.00", "name": "second group", "description": "second AB test group"}], "name": "first AB test", "description": "documentation example"}'`
+
+### 示例响应
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "end_time": "2022-05-30T01:00:00Z",
+          "entity_type": "CAMPAIGN",
+          "start_time": "2022-05-25T01:00:00Z",
+          "user_groups": [
+            {
+              "entity_ids": [
+                "f2qcw",
+                "f2tht"
+              ],
+              "size": "50.0",
+              "name": "first group"
+            },
+            {
+              "entity_ids": [
+                "f2rqi",
+                "f2tws"
+              ],
+              "size": "50.0",
+              "name": "second group",
+              "description": "second AB test group"
+            }
+          ],
+          "name": "first AB test",
+          "description": "documentation example"
+        }
+      },
+      "data": {
+        "created_at": "2022-05-25T00:00:00Z",
+        "created_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        },
+        "deleted": false,
+        "description": "documentation example",
+        "end_time": "2022-05-30T01:00:00Z",
+        "entities": [
+          {
+            "id": "p1bcx",
+            "account_id": "18ce54d4x5t"
+          },
+          {
+            "id": "p1bcy",
+            "account_id": "18ce54d4x5t"
+          }
+        ],
+        "entity_type": "CAMPAIGN",
+        "id": "hr7l0",
+        "name": "first AB test",
+        "start_time": "2022-05-25T01:00:00Z",
+        "status": "SCHEDULED",
+        "user_groups": [
+          {
+            "id": "p1bcx",
+            "name": "first group",
+            "description": null,
+            "size": "50.0",
+            "entity_ids": [
+              "f2qcw",
+              "f2tht"
+            ]
+          },
+          {
+            "id": "p1bcy",
+            "name": "second group",
+            "description": "second AB test group",
+            "size": "50.0",
+            "entity_ids": [
+              "f2rqi",
+              "f2tws"
+            ]
+          }
+        ],
+        "updated_at": "2022-05-25T00:00:00Z",
+        "updated_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        }
+      }
+    }
+```
+
+<div id="put-accountsaccount_idab_testsab_test_id">
+  #### PUT accounts/:account_id/ab_tests/:ab_test_id
+</div>
+
+更新指定的 A/B 测试。
+
+所有参数都通过请求正文发送，并且必须使用 `Content-Type` 为 `application/json` 的请求头。
+
+此端点支持包含对象 ID 的部分 JSON。适用以下原则：
+
+* 若要添加或删除对象或元素，请传入整个数组（及其子结构）；这是一次**替换**操作
+  * 可以将其视为重新创建该数组
+* 在其他情况下，通过引用键名或 ID 来修改（变更、添加、删除）现有字段
+  * 若要删除某个字段，请将其值设为 `null`
+  * 未在请求中传入的字段不会被修改
+
+通常，只有当 `status` 为 `SCHEDULED` 时，A/B 测试才可以更新。有一个例外：当 A/B 测试为 `LIVE` 时，可以更新其 `end_time`。
+
+<div id="resource-url">
+  ##### 资源 URL
+</div>
+
+`https://ads-api.x.com/12/accounts/18ce54d4x5t/:ab_test_id`
+
+##### 参数
+
+| 名称 | 描述 |
+| :--- | :--- |
+| account&#95;id  <br />*必需* | 广告账户的标识符。出现在资源路径中，并且通常是除 [GET accounts](/zh/x-ads-api/campaign-management#accounts) 之外所有 Advertiser API 请求的必需参数。指定的账户必须与已认证用户关联。<br /><br />类型: 字符串<br /><br />示例: `18ce54d4x5t` |
+| ab&#95;test&#95;id  <br />*必需* | 请求中所操作的 A/B Test 的标识符。<br /><br />类型: 字符串<br /><br />示例: `hr7l0` |
+| description  <br />*可选* | A/B Test 的描述。最大长度：1,024 个字符。<br /><br />**注意**：仅当 A/B Test 的 `status` 为 `SCHEDULED` 时才可更新。<br /><br />类型: 字符串<br /><br />示例: `documentation example` |
+| end&#95;time  <br />*可选* | A/B Test 的结束时间，以 ISO 8601 格式表示。<br /><br />**注意**：仅当 A/B Test 的 `status` 为 `SCHEDULED` 或 `LIVE` 时才可更新。<br /><br />类型: 字符串<br /><br />示例: `2020-10-02T00:00:00Z` |
+| name  <br />*可选* | A/B Test 的名称。最大长度：255 个字符。<br /><br />**注意**：仅当 A/B Test 的 `status` 为 `SCHEDULED` 时才可更新。<br /><br />类型: 字符串<br /><br />示例: `first AB test` |
+| start&#95;time  <br />*可选* | A/B Test 的开始时间，以 ISO 8601 格式表示。<br /><br />**注意**：仅当 A/B Test 的 `status` 为 `SCHEDULED` 时才可更新。<br /><br />类型: 字符串<br /><br />示例: `2022-05-30T00:00:00Z` |
+| user&#95;groups  <br />*必需* | 描述用户组。更多信息见下方表格。<br /><br />**注意**：仅当 A/B Test 的 `status` 为 `SCHEDULED` 时才可更新。<br /><br />类型: 对象数组 |
+
+<div id="user-groups">
+  #### 用户组
+</div>
+
+| 名称 | 描述 |
+| :--- | :--- |
+| id  <br />*有时为必需* | 在请求中引用你要操作的用户组对象。<br /><br />**注意**：在修改（更改、添加或删除）用户组对象&#95;字段&#95;时为必需。<br /><br />**注意**：在添加或删除整个用户组对象时不要指定 id。<br /><br />类型: 字符串<br /><br />示例: `p1bcx` |
+| description  <br />*可选* | 用户组的描述。最大长度：1,024 个字符。<br /><br />**注意**：通过将该字段设置为 `null` 值来清除（删除）。<br /><br />类型: 字符串<br /><br />示例: `second AB test group` |
+| entity&#95;ids  <br />*可选* | 实体 id 的数组。<br /><br />**注意**：这是替换操作。它会覆盖之前设置的任何值。<br /><br />**注意**：实体只能与一个 A/B 测试关联。<br /><br />类型: 数组<br /><br />示例: `["dxi0l", "e66bl"]` |
+| name  <br />*可选* | 用户组的名称。最大长度：255 个字符。<br /><br />**注意**：通过将该字段设置为 `null` 值来清除（删除）。<br /><br />类型: 字符串<br /><br />示例: `first group` |
+| size  <br />*可选* | 要分配给此用户组的用户百分比。这是一个以字符串表示的数值，小数点后最多两位。例如，将 40% 表示为：40、40.0 或 40.00。<br /><br />**注意**：各个&#95;对象&#95;的 size 字段取值之和**必须**为 100.00。<br /><br />类型: 字符串<br /><br />最小值、最大值: `1.00`, `99.00` |
+
+<div id="example-request">
+  ##### 示例请求
+</div>
+
+此请求会进行以下修改。
+
+1. 删除 A/B 测试的描述
+2. 修改结束时间
+3. 为第一个用户组添加描述
+4. 修改每个用户组中的用户占比
+5. 向第二个用户组添加实体 ID（`f2syz`）
+
+`PUT https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests/hr7l0 -d '{"description": null, "end_time": "2022-06-01T01:00:00Z", "user_groups": [{"id": "p1bcx", "description": "first AB test group", "size": "60.00"},{"id": "p1bcy", "size": "40.00", "entity_ids": ["f2rqi", "f2tws", "f2syz"]}]}'`
+
+<div id="example-response">
+  ##### 示例响应
+</div>
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "ab_test_id": "hr7l0",
+          "description": null,
+          "end_time": "2022-06-01T01:00:00Z",
+          "user_groups": [
+            {
+              "id": "p1bcx",
+              "description": "first AB test group",
+              "size": "60.0"
+            },
+            {
+              "id": "p1bcy",
+              "size": "40.0",
+              "entity_ids": [
+                "f2rqi",
+                "f2tws",
+                "f2syz"
+              ]
+            }
+          ]
+        }
+      },
+      "data": {
+        "created_at": "2020-05-25T00:00:00Z",
+        "created_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        },
+        "deleted": false,
+        "description": null,
+        "end_time": "2022-06-01T01:00:00Z",
+        "entities": [
+          {
+            "id": "p1bcx",
+            "account_id": "18ce54d4x5t"
+          },
+          {
+            "id": "p1bcy",
+            "account_id": "18ce54d4x5t"
+          }
+        ],
+        "entity_type": "CAMPAIGN",
+        "id": "hr7l0",
+        "name": "first AB test",
+        "start_time": "2022-05-25T01:00:00Z",
+        "status": "SCHEDULED",
+        "user_groups": [
+          {
+            "id": "p1bcx",
+            "name": "first group",
+            "description": "first AB test group",
+            "size": "60.0",
+            "entity_ids": [
+              "f2qcw",
+              "f2tht"
+            ]
+          },
+          {
+            "id": "p1bcy",
+            "name": "second group",
+            "description": "second AB test group",
+            "size": "40.0",
+            "entity_ids": [
+              "f2rqi",
+              "f2tws",
+              "f2syz"
+            ]
+          }
+        ],
+        "updated_at": "2022-05-25T00:17:23Z",
+        "updated_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        }
+      }
+    }
+```
+
+<div id="delete-accountsaccount_idab_testsab_test_id">
+  #### DELETE accounts/:account_id/ab_tests/:ab_test_id
+</div>
+
+删除指定的 A/B 测试。
+
+**注意**：删除 A/B 测试后无法恢复，再次尝试删除该资源将返回 HTTP 404。
+
+<div id="resource-url">
+  ##### 资源 URL
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/ab_tests/:ab_test_id`
+
+##### 参数
+
+| 名称 | 描述 |
+| :--- | :--- |
+| ab&#95;test&#95;id  <br />*必需* | 在此请求中要操作的 A/B 测试的引用 ID。<br /><br />类型：字符串<br /><br />示例：`hr7l0` |
+
+<div id="example-request">
+  ##### 示例请求
+</div>
+
+`DELETE https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests/hr7l0`
+
+### 示例响应
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "ab_test_id": "hr7l0"
+        }
+      },
+      "data": {
+        "created_at": "2022-05-25T00:00:00Z",
+        "created_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        },
+        "deleted": true,
+        "description": null,
+        "end_time": "2022-06-01T01:00:00Z",
+        "entities": [
+          {
+            "id": "p1bcx",
+            "account_id": "18ce54d4x5t"
+          },
+          {
+            "id": "p1bcy",
+            "account_id": "18ce54d4x5t"
+          }
+        ],
+        "entity_type": "CAMPAIGN",
+        "id": "hr7l0",
+        "name": "first AB test",
+        "start_time": "2022-05-25T01:00:00Z",
+        "status": "SCHEDULED",
+        "user_groups": [
+          {
+            "id": "p1bcx",
+            "name": "first group",
+            "description": "first AB test group",
+            "size": "60.0",
+            "entity_ids": [
+              "f2qcw",
+              "f2tht"
+            ]
+          },
+          {
+            "id": "p1bcy",
+            "name": "second group",
+            "description": "second AB test group",
+            "size": "40.0",
+            "entity_ids": [
+              "f2rqi",
+              "f2tws",
+              "f2syz"
+            ]
+          }
+        ],
+        "updated_at": "2022-06-02T00:18:31Z",
+        "updated_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        }
+      }
+    }
+```

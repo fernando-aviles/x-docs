@@ -1,0 +1,317 @@
+---
+title: 統合ガイド
+sidebarTitle: 統合ガイド
+description: 投稿ルックアップを統合する際の重要な概念とベストプラクティス
+keywords: ["投稿ルックアップの統合", "ルックアップ統合ガイド", "ルックアップ実装", "ルックアップ設定", "ツイートルックアップの統合"]
+---
+
+import { Button } from "/snippets/ja/button.mdx"
+
+このガイドでは、投稿ルックアップエンドポイントをアプリケーションに組み込むために必要となる基本的な概念を説明します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+すべての X API v2 エンドポイントでは認証が必要です。ユースケースに合った方法を選択してください。
+
+| 方法 | 最適な用途 | 非公開メトリクスへのアクセス可否 |
+|:-------|:---------|:---------------------------|
+| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | サーバー間通信、公開データ | 不可 |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向けアプリケーション | 可（承認されたユーザーの投稿） |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー連携 | 可（承認されたユーザーの投稿） |
+
+<div id="app-only-authentication">
+  ### App-Only 認証
+</div>
+
+公開されている投稿データには、Bearer Token を使用します。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ID で単一の投稿を取得する
+  response = client.posts.get("1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.posts.get("1234567890");
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="user-context-authentication">
+  ### User Context 認証
+</div>
+
+プライベートメトリクスにアクセスするには、投稿の作成者に代わって認証を行います。
+
+<Warning>
+  次のフィールドにアクセスするには User Context 認証が必要です:
+
+  * `tweet.fields.non_public_metrics`
+  * `tweet.fields.promoted_metrics`
+  * `tweet.fields.organic_metrics`
+  * `media.fields.non_public_metrics`
+  * `media.fields.promoted_metrics`
+  * `media.fields.organic_metrics`
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドと展開
+</div>
+
+X API v2 は、既定では最小限の data のみを返します。必要な情報だけを取得するために、`fields` と `expansions` を使用してください。
+
+<div id="default-response">
+  ### デフォルトレスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "edit_history_tweet_ids": ["1234567890"]
+  }
+}
+```
+
+<div id="available-fields">
+  ### 利用可能なフィールド
+</div>
+
+<Accordion title="tweet.fields">
+  | Field | Description |
+  |:------|:------------|
+  | `created_at` | 投稿の作成日時 |
+  | `author_id` | 投稿者のユーザーID |
+  | `public_metrics` | いいね、リツイート、返信、引用の数 |
+  | `entities` | ハッシュタグ、メンション、URL、キャッシュタグ |
+  | `attachments` | メディアキー、投票ID |
+  | `conversation_id` | スレッド識別子 |
+  | `context_annotations` | トピック／エンティティの分類情報 |
+  | `in_reply_to_user_id` | 返信先のユーザー |
+  | `lang` | 検出された言語 |
+  | `source` | 投稿元クライアント |
+  | `possibly_sensitive` | センシティブなコンテンツかどうかを示すフラグ |
+  | `reply_settings` | 誰が返信できるかの設定 |
+</Accordion>
+
+<Accordion title="user.fields (requires author_id expansion)">
+  | Field | Description |
+  |:------|:------------|
+  | `username` | @ハンドル |
+  | `name` | 表示名 |
+  | `profile_image_url` | アバターのURL |
+  | `verified` | 認証状態 |
+  | `description` | 自己紹介文 |
+  | `public_metrics` | フォロワー数／フォロー数 |
+  | `created_at` | アカウント作成日時 |
+</Accordion>
+
+<Accordion title="media.fields (requires attachments.media_keys expansion)">
+  | Field | Description |
+  |:------|:------------|
+  | `url` | メディアのURL |
+  | `preview_image_url` | サムネイルのURL |
+  | `type` | photo、video、animated&#95;gif |
+  | `duration_ms` | 動画の再生時間 |
+  | `height`, `width` | 縦横サイズ |
+  | `alt_text` | アクセシビリティ向けテキスト |
+</Accordion>
+
+<div id="example-with-fields">
+  ### フィールドを指定した例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890?\
+  tweet.fields=created_at,public_metrics,entities&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 追加のフィールドと展開を指定して投稿を取得します
+  response = client.posts.get(
+      "1234567890",
+      tweet_fields=["created_at", "public_metrics", "entities"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 展開されたユーザーおよびメディアオブジェクトが含まれます
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.posts.get("1234567890", {
+    tweetFields: ["created_at", "public_metrics", "entities"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 展開されたユーザーおよびメディアオブジェクトが含まれます
+  ```
+</CodeGroup>
+
+***
+
+<div id="post-edits">
+  ## 投稿の編集
+</div>
+
+投稿は、作成から30分以内であれば最大5回まで編集できます。
+
+<div id="how-it-works">
+  ### 仕組み
+</div>
+
+* 編集を行うたびに新しい投稿 ID が作成されます
+* `edit_history_tweet_ids` にはすべてのバージョンが含まれます（最も古いものが先頭に来ます）
+* エンドポイントでは常に最新バージョンが返されます
+
+<div id="example-response">
+  ### レスポンス例
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567893",
+    "text": "Hello world! (edited twice)",
+    "edit_history_tweet_ids": [
+      "1234567890",
+      "1234567891",
+      "1234567893"
+    ]
+  }
+}
+```
+
+<Tip>
+  30 分間の編集可能な時間枠を過ぎてから取得された投稿は、最終版となります。リアルタイム性が求められるユースケースでは、公開された直後の投稿は、まだ編集されている可能性があることに留意してください。
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+<div id="common-errors">
+  ### よくあるエラー
+</div>
+
+| ステータス | エラー | 解決方法 |
+|:-------|:------|:---------|
+| 400 | 無効なリクエスト | パラメータの形式を確認してください |
+| 401 | 認証されていません | 認証情報を確認してください |
+| 403 | アクセスが禁止されています | アプリの権限を確認してください |
+| 404 | 見つかりません | 投稿が削除されているか、存在しません |
+| 429 | リクエストが多すぎます | 待機してから再試行してください（レート制限を参照） |
+
+<div id="deleted-or-protected-posts">
+  ### 削除済みまたは保護された投稿
+</div>
+
+投稿が削除されているか、フォローしていない保護されたアカウントからの投稿である場合:
+
+* 単一投稿のルックアップは `404` を返します
+* 複数投稿のルックアップでは、その投稿は結果に含まれず、代わりに `errors` 配列が返されます
+
+```json
+{
+  "data": [
+    { "id": "1234567890", "text": "Available post" }
+  ],
+  "errors": [
+    {
+      "resource_id": "1234567891",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [1234567891]."
+    }
+  ]
+}
+```
+
+***
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="バッチリクエスト" icon="layer-group">
+    最大 100 件の投稿を一度に取得できる multi-Post エンドポイントを使用して、API コールを削減します。
+  </Card>
+
+  <Card title="必要なフィールドのみをリクエスト" icon="filter">
+    必要なフィールドだけを指定して、レスポンスサイズと処理時間を最小限に抑えます。
+  </Card>
+
+  <Card title="レスポンスのキャッシュ" icon="database">
+    同じコンテンツへの繰り返しリクエストを減らすために、投稿データをローカルにキャッシュします。
+  </Card>
+
+  <Card title="編集への対応" icon="clock-rotate-left">
+    リアルタイムアプリでは、30 分の編集ウィンドウ後に投稿を再取得することを検討してください。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/post-lookup-by-post-id">
+    エンドポイントの包括的なドキュメント
+  </Card>
+
+  <Card title="データ辞書" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
+    利用可能なすべてのオブジェクトとフィールドの一覧
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なコード例
+  </Card>
+
+  <Card title="エラー処理" icon="triangle-exclamation" href="/ja/x-api/fundamentals/response-codes-and-errors">
+    エラーを適切に処理する
+  </Card>
+</CardGroup>

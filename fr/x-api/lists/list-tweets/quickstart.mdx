@@ -1,0 +1,156 @@
+---
+title: Démarrage rapide
+sidebarTitle: Démarrage rapide
+description: Récupérer des publications à partir de la chronologie d’une Liste
+keywords: ["démarrage rapide Tweets de liste", "démarrage rapide chronologie de liste", "tutoriel pour obtenir les publications d’une liste"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer des Publications depuis la timeline d’une Liste.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D&#39;un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une application approuvée
+  * Du Bearer Token de votre application
+</Note>
+
+***
+
+<Steps>
+  <Step title="Trouver l’ID d’une Liste" icon="list">
+    Vous pouvez trouver l&#39;ID d&#39;une Liste dans l&#39;URL lorsque vous affichez une Liste sur x.com :
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── Ceci est l’ID de la Liste
+    ```
+  </Step>
+
+  <Step title="Interroger la timeline de la Liste" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/tweets?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Récupérer des Publications d’une Liste avec pagination
+      for page in client.lists.get_tweets(
+          "84839422",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Récupérer des Publications d’une Liste avec pagination
+      const paginator = client.lists.getTweets("84839422", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1458172421115101189",
+          "text": "Découvrez notre dernière annonce...",
+          "author_id": "4172587277",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 42,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 3
+          },
+          "edit_history_tweet_ids": ["1458172421115101189"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "4172587277",
+            "username": "TechNews",
+            "verified": true
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Paginer les résultats" icon="arrow-right">
+    Les SDK gèrent la pagination automatiquement. Pour cURL, utilisez le `next_token` de la réponse pour récupérer davantage de Publications :
+
+    ```bash
+    curl "https://api.x.com/2/lists/84839422/tweets?\
+    max_results=10&\
+    pagination_token=7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Ce point de terminaison renvoie jusqu&#39;à 800 des Publications les plus récentes de la Liste.
+</Note>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Recherche de listes" icon="list" href="/fr/x-api/lists/list-lookup/quickstart">
+    Obtenir les détails de la liste
+  </Card>
+
+  <Card title="Membres de la liste" icon="users" href="/fr/x-api/lists/list-members/introduction">
+    Obtenir les membres de la liste
+  </Card>
+
+  <Card title="Guide d’intégration" icon="book" href="/fr/x-api/lists/list-tweets/integrate">
+    Concepts clés et bonnes pratiques
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/lists/get-list-tweets">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

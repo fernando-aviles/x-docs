@@ -1,0 +1,137 @@
+---
+title: Vue d’ensemble
+sidebarTitle: Vue d’ensemble
+keywords: ["migration des compteurs", "migration des compteurs de Tweet", "compteurs de v1.1 à v2", "guide de migration des compteurs", "migrer les compteurs"]
+---
+
+<div id="comparing-x-apis-post-counts-endpoints">
+  ## Comparaison des endpoints de comptage de Publications de X API
+</div>
+
+Le endpoint v2 de comptage de Publications remplacera éventuellement le [endpoint de comptage de l’enterprise Search API](/fr/x-api/enterprise-gnip-2.0/fundamentals/search-api#counts-requests-post-count). Si vous avez du code, des applications ou des outils qui utilisent une version plus ancienne d’un endpoint de comptage de Publications et que vous envisagez de migrer vers les nouveaux endpoints de X API v2, ce guide est pour vous.
+
+***
+
+<div id="recent-post-counts-comparison">
+  ## Comparaison des décomptes de Publications récentes
+</div>
+
+La version entreprise des endpoints de décompte de Publications vous permet de récupérer des décomptes soit sur 30 jours, soit sur l’archive complète. Par conséquent, l’endpoint v2 de décompte des Publications récentes, qui considère une période de 7 jours, n’est pas un remplacement direct de l’un ou l’autre de ces endpoints.
+
+Cependant, pour faciliter les comparaisons, nous allons examiner comment l’endpoint v2 de décompte des Publications récentes se compare à l’endpoint entreprise sur 30 jours.
+
+Le tableau suivant compare les différents types d’endpoints de décompte de Publications récentes :
+
+| **Description** | **Enterprise** | **X API v2** |
+| :--- | :--- | :--- |
+| Domaine d’hébergement | https://gnip-api.x.com | https://api.x.com |
+| Chemin d’endpoint | /search/30day/accounts/:account&#95;name/:label/counts.json | /2/tweets/counts/recent |
+| [Authentication](/fr/resources/fundamentals/authentication) | Authentification de base | OAuth 2.0 Bearer Token |
+| Format d’horodatage | YYYYMMDDhhmm | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| Renvoie des décomptes de Publications âgées d’au maximum | 31 jours | 7 jours |
+| Méthodes HTTP prises en charge | GET | GET |
+| Limites de débit de requêtes par défaut | 20 requêtes par seconde, agrégées entre les requêtes de données de recherche et de décompte  <br />La limite de débit par minute varie selon le partenaire, comme spécifié dans votre contrat. | 180 requêtes par 15 min et par utilisateur  <br />450 requêtes par 15 min et par App |
+| Prise en charge du filtrage à l’aide des [annotations](/fr/x-api/fundamentals/post-annotations) |     | ✔   |
+| Prise en charge du filtrage à l’aide de [conversation&#95;id](/fr/x-api/fundamentals/conversation-id) |     | ✔   |
+| Nom de clé JSON pour le tableau de données de Publications | results | data |
+| Granularité temporelle | Jour, heure ou minute | Jour, heure ou minute |
+| Fuseau horaire | UTC | UTC |
+| Paramètres de requête pour sélectionner la période | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| Paramètres de requête pour la navigation par ID de Publication |     | since&#95;id  <br />until&#95;id |
+| Nécessite l’utilisation d’identifiants provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [Projet](/fr/resources/fundamentals/developer-apps) |     | ✔   |
+
+<div id="full-archive-post-counts-comparison">
+  ### Comparaison des décomptes de Publications sur l&#39;archive complète
+</div>
+
+Le tableau suivant compare les différents types de points de terminaison de recherche dans l&#39;archive complète :
+
+| Description | Enterprise | X API v2 |
+| :--- | :--- | :--- |
+| Domaine d&#39;hébergement | https://gnip-api.x.com | https://api.x.com |
+| Chemin du point de terminaison | /search/fullarchive/accounts/:account&#95;name/:label/counts | /2/tweets/counts/all |
+| [Authentification](/fr/resources/fundamentals/authentication) | Basic auth | OAuth 2.0 Bearer Token |
+| Format d&#39;horodatage | YYYYMMDDHHMM | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| Renvoie des décomptes de Publications à partir de | L&#39;archive complète depuis mars 2006 | L&#39;archive complète depuis mars 2006 |
+| Méthodes HTTP prises en charge | GET  <br />POST | GET |
+| Limites de fréquence de requêtes par défaut | La limite par minute varie selon le partenaire, comme spécifié dans votre contrat.  <br />20 requêtes par seconde | 300 requêtes par tranche de 15 min et par App  <br />1 requête par seconde et par App |
+| Granularité | Jour, heure, minute | Jour, heure, minute |
+| Prend en charge le filtrage à l&#39;aide des [annotations](/fr/x-api/fundamentals/post-annotations) |     | ✔   |
+| Prend en charge le filtrage à l&#39;aide de [conversation&#95;id](/fr/x-api/fundamentals/conversation-id) |     | ✔   |
+| Nom de la clé JSON pour le tableau de Publications | results | data |
+| Paramètres de requête pour la sélection de la période | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| Paramètres de requête pour la navigation par ID de Publication |     | since&#95;id  <br />until&#95;id |
+| Nom de la clé JSON pour la pagination | next | meta.next&#95;token |
+| Paramètre de requête pour la pagination | next&#95;token | next&#95;token ou pagination&#95;token |
+| Fuseau horaire | UTC | UTC |
+| Nécessite l&#39;utilisation d&#39;identifiants provenant d&#39;une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [Projet](/fr/resources/fundamentals/developer-apps) disposant de l&#39;[accès Academic Research](/fr/x-api/getting-started/about-x-api) |     | ✔   |
+
+<div id="filtering-operator-comparison">
+  ### Comparaison des opérateurs de filtrage
+</div>
+
+Les deux versions (Enterprise et v2) du comptage de Publications se distinguent par les opérateurs disponibles et, au sein de chaque version, par différents niveaux de disponibilité, comme expliqué ci‑dessous.
+
+Enterprise
+
+* Il n&#39;existe pas de sous‑niveaux d&#39;opérateurs Enterprise. Tous les opérateurs Enterprise sont disponibles pour tous les utilisateurs Enterprise.
+
+X API v2
+
+* **De base :** Ces opérateurs sont disponibles pour tout utilisateur de la v2.
+* **Avancé :** Ces opérateurs sont uniquement disponibles pour les utilisateurs qui ont été approuvés pour l&#39;accès Academic Research.
+
+Vous pouvez en savoir plus sur chacun de ces ensembles d&#39;opérateurs dans leurs guides respectifs :
+
+* [Enterprise operators](/fr/x-api/enterprise-gnip-2.0/fundamentals/search-api#building-search-queries)
+* [X API v2 operators](/fr/x-api/posts/search/integrate/build-a-query)
+
+Maintenant que nous comprenons ces différents niveaux d&#39;opérateurs au sein de X API v2, voici le tableau qui indique la disponibilité des opérateurs pour le comptage de Publications (notez que si la cellule est vide, l&#39;opérateur n&#39;est pas disponible) :
+
+|     | Enterprise | v2  |
+| :--- | :--- | :--- |
+| keyword | Disponible | De base |
+| emoji | Disponible | De base |
+| “exact phrase” | Disponible | De base |
+| #   | Disponible | De base |
+| $   | Disponible | Avancé |
+| @   | Disponible | De base |
+| from: | Disponible | De base |
+| to: | Disponible | De base |
+| url: | Disponible | De base |
+| retweets&#95;of: | Disponible | De base |
+| context: |     | De base |
+| entity: |     | De base - Uniquement disponible avec la recherche récente |
+| conversation&#95;id: |     | De base |
+| place: | Disponible | Avancé |
+| place&#95;country: | Disponible | Avancé |
+| point&#95;radius: | Disponible | Avancé |
+| bounding&#95;box: | Disponible | Avancé |
+| is:retweet | Disponible | De base |
+| is:reply | Disponible | De base |
+| is:quote | Disponible | De base |
+| is:verified | Disponible | De base |
+| -is:nullcast | Disponible | Avancé |
+| has:hashtags | Disponible | De base |
+| has:cashtags | Disponible | Avancé |
+| has:links | Disponible | De base |
+| has:mentions | Disponible | De base |
+| has:media | Disponible | De base |
+| has:images | Disponible | De base |
+| has:videos | Disponible | De base |
+| has:geo | Disponible | Avancé |
+| lang: | Disponible | De base |
+| list: |     | Avancé |
+| has:profile&#95;geo | Disponible |     |
+| profile&#95;country | Disponible |     |
+| profile&#95;locality | Disponible |     |
+| profile&#95;region | Disponible |     |
+| proximity | Disponible |     |
+
+**Autres ressources de migration**
+
+[Hub de migration de X API](/fr/x-api/migrate/overview)
+
+[Découvrez quelques exemples de code pour ces points de terminaison](https://github.com/xdevplatform/Twitter-API-v2-sample-code "Découvrez quelques exemples de code pour ces points de terminaison")
+
+[Comptages de Publications : Enterprise vers X API v2](/fr/x-api/posts/counts/migrate/overview)

@@ -1,0 +1,125 @@
+---
+title: Identifiants X
+sidebarTitle: X IDs
+icon: fingerprint
+description: Comprendre les identifiants uniques dans l’API X
+keywords: ["Identifiants X", "identifiants Twitter", "ID utilisateur", "ID de Tweet", "ID Snowflake", "entiers 64 bits", "format d’identifiant", "identifiants uniques"]
+---
+
+Chaque objet dans l’API X — publications, utilisateurs, listes, Messages privés, Spaces — possède un identifiant unique. Comprendre le fonctionnement de ces identifiants vous aidera à créer des intégrations fiables.
+
+***
+
+<div id="id-format">
+  ## Format des ID
+</div>
+
+Les ID X sont des **entiers non signés de 64 bits** générés à l&#39;aide d&#39;un système appelé « Snowflake ». Chaque ID encode :
+
+* **Horodatage** — Date et heure de création de l&#39;objet
+* **Numéro de worker** — Serveur qui a généré l&#39;ID
+* **Numéro de séquence** — Ordre au sein de cette milliseconde
+
+Cela signifie que les ID sont approximativement ordonnés dans le temps : des ID plus élevés représentent généralement des objets plus récents.
+
+<Tip>
+  Les ID sont uniques au niveau mondial dans l’ensemble de X, et pas seulement à l&#39;intérieur d&#39;un seul type d&#39;objet.
+</Tip>
+
+***
+
+<div id="string-vs-integer-representation">
+  ## Représentation en chaîne de caractères ou en entier
+</div>
+
+<Warning>
+  **Utilisez toujours des id sous forme de chaînes de caractères dans votre code.** Certains langages de programmation (comme JavaScript) ne peuvent pas représenter précisément les entiers sur 64 bits.
+</Warning>
+
+En JavaScript, les entiers sont limités à 53 bits. Cela entraîne une perte de précision avec de grands id :
+
+```javascript
+// Cela entraîne une perte de précision !
+const id = 10765432100123456789;
+console.log(id.toString()); // "10765432100123458000" — incorrect !
+
+// Utilisez plutôt des chaînes de caractères
+const id = "10765432100123456789";
+console.log(id); // "10765432100123456789" — correct !
+```
+
+<div id="api-versions">
+  ### Versions de l’API
+</div>
+
+| Version | Format d’ID |
+|:--------|:----------|
+| **X API v2** | Les ID sont renvoyés sous forme de chaînes de caractères par défaut |
+| **X API v1.1** | Renvoie à la fois `id` (entier) et `id_str` (chaîne de caractères) — utilisez toujours `id_str` |
+
+***
+
+<div id="working-with-ids">
+  ## Utilisation des identifiants
+</div>
+
+<div id="storing-ids">
+  ### Stockage des id
+</div>
+
+Stockez les id sous forme de chaînes de caractères ou d&#39;entiers 64 bits dans votre base de données :
+
+| Base de données | Type recommandé |
+|:---------|:-----------------|
+| PostgreSQL | `BIGINT` ou `TEXT` |
+| MySQL | `BIGINT UNSIGNED` ou `VARCHAR(20)` |
+| MongoDB | Chaîne de caractères |
+| SQLite | `TEXT` (les entiers SQLite sont limités à 63 bits) |
+
+<div id="comparing-ids">
+  ### Comparaison des id
+</div>
+
+Pour comparer des id par ordre chronologique :
+
+```python
+# Python - safe for 64-bit integers
+if int(id1) > int(id2):
+    print("id1 is newer")
+
+# JavaScript - comparer en tant que chaînes de caractères (fonctionne lexicographiquement pour les id de même longueur)
+# Ou utiliser BigInt
+if (BigInt(id1) > BigInt(id2)) {
+    console.log("id1 is newer");
+}
+```
+
+***
+
+<div id="common-id-types">
+  ## Types d’ID courants
+</div>
+
+| Objet | Exemple d’ID | Remarques |
+|:-------|:-----------|:------|
+| Publication (Tweet) | `1234567890123456789` | Également appelé identifiant de Tweet |
+| Utilisateur | `2244994945` | Les anciens comptes ont des identifiants plus courts |
+| Liste | `1234567890` | |
+| Space | `1YqGodQbNXDxv` | Alphanumérique, pas au format Snowflake |
+| Événement de DM | `1234567890123456789` | |
+
+***
+
+<div id="related-resources">
+  ## Ressources connexes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Dictionnaire de données" icon="book" href="/fr/x-api/fundamentals/data-dictionary">
+    Consultez les champs d&#39;identifiant pour chaque type d&#39;objet.
+  </Card>
+
+  <Card title="Recherche de publications" icon="magnifying-glass" href="/fr/x-api/posts/lookup/introduction">
+    Récupérez des publications par identifiant.
+  </Card>
+</CardGroup>

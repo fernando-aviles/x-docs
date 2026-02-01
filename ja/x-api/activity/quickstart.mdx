@@ -1,0 +1,194 @@
+---
+title: クイックスタート
+sidebarTitle: クイックスタート
+description: アクティビティストリームのサブスクリプションをセットアップしてイベントを受信する
+keywords: ["アクティビティストリーム クイックスタート", "アクティビティストリーム チュートリアル", "サブスクリプション ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、リアルタイムのアカウントアクティビティイベントを受信するために、アクティビティストリームのサブスクリプションを設定する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  始める前に、以下を用意してください:
+
+  * 承認済みの App を含む [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App の Bearer Token
+</Note>
+
+***
+
+<Steps>
+  <Step title="サブスクリプションを作成する" icon="bell">
+    ユーザーのアクティビティイベントを購読します:
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/activity/subscriptions" \
+          -H "Authorization: Bearer $BEARER_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "user_id": "2244994945",
+            "event_types": ["tweet_create_events", "favorite_events", "follow_events"]
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/activity/subscriptions"
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "user_id": "2244994945",
+            "event_types": ["tweet_create_events", "favorite_events", "follow_events"]
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        print(response.json())
+        ```
+      </Tab>
+    </Tabs>
+
+    **レスポンス:**
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "user_id": "2244994945",
+        "event_types": ["tweet_create_events", "favorite_events", "follow_events"],
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="ストリームに接続する" icon="plug">
+    イベントを受信するために永続接続を開きます:
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl "https://api.x.com/2/activity/stream" \
+          -H "Authorization: Bearer $BEARER_TOKEN"
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/activity/stream"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+
+        response = requests.get(url, headers=headers, stream=True)
+
+        for line in response.iter_lines():
+            if line:
+                print(line.decode("utf-8"))
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="受信イベントを処理する" icon="message">
+    イベントは JSON オブジェクトとしてストリームされます:
+
+    ```json
+    {
+      "for_user_id": "2244994945",
+      "event_type": "tweet_create_events",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "tweet_create_events": [
+        {
+          "id": "1234567890",
+          "text": "Hello from the stream!",
+          "author_id": "2244994945"
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="available-event-types">
+  ## 利用可能なイベントタイプ
+</div>
+
+| Event | 説明 |
+|:------|:------------|
+| `tweet_create_events` | ユーザーが新しい投稿を作成する |
+| `favorite_events` | ユーザーが投稿にいいねする |
+| `follow_events` | ユーザーがフォローする、またはフォローされる |
+| `direct_message_events` | ユーザーがDM（ダイレクトメッセージ）を送信または受信する |
+| `block_events` | ユーザーがブロックする、またはブロックを解除する |
+| `mute_events` | ユーザーがミュートする、またはミュートを解除する |
+
+***
+
+<div id="manage-subscriptions">
+  ## サブスクリプションの管理
+</div>
+
+<AccordionGroup>
+  <Accordion title="サブスクリプションを一覧表示">
+    すべての有効なサブスクリプションを取得します:
+
+    ```bash
+    curl "https://api.x.com/2/activity/subscriptions" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Accordion>
+
+  <Accordion title="サブスクリプションを更新">
+    サブスクリプションのイベントタイプを変更します:
+
+    ```bash
+    curl -X PUT "https://api.x.com/2/activity/subscriptions/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "event_types": ["tweet_create_events", "favorite_events"]
+      }'
+    ```
+  </Accordion>
+
+  <Accordion title="サブスクリプションを削除">
+    サブスクリプションを削除します:
+
+    ```bash
+    curl -X DELETE "https://api.x.com/2/activity/subscriptions/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Account Activity API" icon="bell" href="/ja/x-api/account-activity/introduction">
+    Webhook ベースの代替手段
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/activity/activity-stream">
+    エンドポイントの詳細ドキュメント
+  </Card>
+</CardGroup>

@@ -1,0 +1,255 @@
+---
+title: レスポンスコードとエラー
+sidebarTitle: レスポンスコード
+description: X API の HTTP ステータスコードとエラー処理
+keywords: ["レスポンスコード", "エラーコード", "HTTP ステータスコード", "API エラー", "エラー処理", "デバッグ"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+X API は標準的な HTTP ステータスコードを使用します。成功したリクエストでは 2xx コードが返され、エラーの場合は 4xx または 5xx コードが返され、その詳細はレスポンスボディに含まれます。
+
+***
+
+<div id="http-status-codes">
+  ## HTTP ステータスコード
+</div>
+
+<div id="success-codes">
+  ### 成功コード
+</div>
+
+| Code | Meaning | Description |
+|:-----|:--------|:------------|
+| **200** | OK | リクエストが成功しました |
+| **201** | Created | リソースが作成されました（POST リクエスト） |
+| **204** | No Content | レスポンスボディのない成功レスポンスです（DELETE リクエスト） |
+
+<div id="client-error-codes">
+  ### クライアントエラーコード
+</div>
+
+| Code | Meaning | Common causes |
+|:-----|:--------|:--------------|
+| **400** | 不正なリクエスト (Bad Request) | 無効な JSON、クエリの形式不備、必須パラメータの不足 |
+| **401** | 認証されていません (Unauthorized) | 無効または不足している認証情報 |
+| **403** | 禁止されています (Forbidden) | 認証は有効だが、このリソースまたは操作に対する権限がない |
+| **404** | 見つかりません (Not Found) | リソースが存在しない、または削除されている |
+| **409** | 競合 (Conflict) | ストリームにルールが存在しない（filtered stream のみ） |
+| **429** | リクエストが多すぎます (Too Many Requests) | レート制限または使用量上限の超過 |
+
+<div id="server-error-codes">
+  ### サーバーエラーコード
+</div>
+
+| Code | 意味 | 対処方法 |
+|:-----|:--------|:-----------|
+| **500** | Internal Server Error | しばらく待ってから再試行し、[ステータスページ](/ja/status) を確認してください |
+| **502** | Bad Gateway | しばらく待ってから再試行してください |
+| **503** | Service Unavailable | X が過負荷の状態です。しばらく待ってから再試行してください |
+| **504** | Gateway Timeout | しばらく待ってから再試行してください |
+
+***
+
+<div id="error-response-format">
+  ## エラーレスポンスの形式
+</div>
+
+エラーレスポンスには、次のような構造化された詳細情報が含まれます。
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The 'query' parameter is required.",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+| フィールド    | 説明              |
+| :------- | :-------------- |
+| `type`   | エラーの種類を識別する URI |
+| `title`  | 簡潔なエラーの説明       |
+| `detail` | このエラーに関する具体的な説明 |
+
+エラーの種類に応じて、追加のフィールドが含まれる場合があります。
+
+***
+
+<div id="error-types">
+  ## エラーの種類
+</div>
+
+| タイプ | 説明 |
+|:-----|:------------|
+| `about:blank` | 一般的なエラー（HTTP ステータスコードを参照） |
+| `.../invalid-request` | 不正なリクエストまたは無効なパラメータ |
+| `.../resource-not-found` | 投稿、ユーザー、その他のリソースが存在しない |
+| `.../not-authorized-for-resource` | 非公開/保護されたコンテンツへのアクセス権がない |
+| `.../client-forbidden` | アプリが登録されていない、または必要なアクセス権がない |
+| `.../usage-capped` | 利用上限の超過 |
+| `.../rate-limit-exceeded` | レート制限の超過 |
+| `.../streaming-connection` | ストリーム接続の問題 |
+| `.../rule-cap` | フィルタ済みストリームのルール数が多すぎる |
+| `.../invalid-rules` | ルール構文エラー |
+| `.../duplicate-rules` | ルールがすでに存在する |
+
+***
+
+<div id="partial-errors">
+  ## 部分的なエラー
+</div>
+
+一部のリクエストは、部分的に成功することがあります。200 レスポンスには `data` と `errors` の両方が含まれる場合があります。
+
+```json
+{
+  "data": [
+    {"id": "123", "text": "Hello"}
+  ],
+  "errors": [
+    {
+      "resource_id": "456",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [456].",
+      "type": "https://api.x.com/2/problems/resource-not-found"
+    }
+  ]
+}
+```
+
+これは複数のリソースを同時にリクエストした際に、その一部が利用できない場合に発生します。
+
+***
+
+<div id="troubleshooting-common-errors">
+  ## 一般的なエラーのトラブルシューティング
+</div>
+
+<Accordion title="401 Unauthorized">
+  **認証を確認する:**
+
+  * エンドポイントに対して正しい認証方式を使用しているか確認する
+  * 資格情報が再生成されていないことを確認する
+  * `Authorization` ヘッダーの形式を確認する
+  * OAuth 1.0a の場合、署名の計算が正しいか検証する
+
+  [認証ガイド →](/ja/resources/fundamentals/authentication/overview)
+</Accordion>
+
+<Accordion title="403 Forbidden">
+  **アクセス権を確認する:**
+
+  * アプリにこのエンドポイントへのアクセス権があるか確認する
+  * 一部のエンドポイントは特定の登録や承認が必要
+  * ユーザーコンテキストを持つエンドポイントには適切な OAuth スコープが必要
+  * リソースが非公開または保護されている可能性がある
+</Accordion>
+
+<Accordion title="429 Too Many Requests">
+  **レート制限:**
+
+  * `x-rate-limit-reset` ヘッダーで再試行すべき時刻を確認する
+  * 指数バックオフを実装する
+  * レスポンスのキャッシュを検討する
+  * リクエストをレート制限の時間枠全体に分散させる
+
+  [レート制限ガイド →](/ja/x-api/fundamentals/rate-limits)
+</Accordion>
+
+<Accordion title="400 Bad Request">
+  **リクエストを修正する:**
+
+  * JSON 構文を検証する
+  * 必須パラメーターの欠落がないか確認する
+  * パラメーターのタイプ（文字列 vs 数値）を検証する
+  * クエリ内の特殊文字をエスケープする
+</Accordion>
+
+<Accordion title="Missing expected posts">
+  **次の要因を確認する:**
+
+  * 非公開アカウントの投稿は、認可がある場合にのみ表示される
+  * 削除された投稿は 404 ステータスを返す
+  * 一部の投稿は特定の地域では表示されない場合がある
+  * 検索クエリの構文が正しいか確認する
+</Accordion>
+
+<Accordion title="Stream disconnections">
+  **再接続の処理:**
+
+  * バックオフ付きの自動再接続を実装する
+  * 取りこぼしたデータに対するリカバリ機能を使用する
+  * バッファが一杯になったことによる切断（クライアントの処理が追いついていない状態）を確認する
+  * 少なくとも 1 つのストリームルールが存在することを確認する
+
+  [ストリーミングガイド →](/ja/x-api/posts/filtered-stream/integrate/handling-disconnections)
+</Accordion>
+
+***
+
+<div id="rate-limit-headers">
+  ## レート制限ヘッダー
+</div>
+
+すべてのレスポンスにはレート制限に関する情報が含まれています。
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Header                   | Description                |
+| :----------------------- | :------------------------- |
+| `x-rate-limit-limit`     | 現在のウィンドウ内での最大リクエスト数        |
+| `x-rate-limit-remaining` | 残りリクエスト数                   |
+| `x-rate-limit-reset`     | ウィンドウがリセットされる Unix タイムスタンプ |
+
+***
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ステータスコードを確認する" icon="square-check">
+    レスポンスボディを解析する前に、必ず HTTP ステータスコードを確認してください。
+  </Card>
+
+  <Card title="部分的なエラーに対応する" icon="triangle-exclamation">
+    ステータスコード 200 のレスポンスでも `errors` 配列があるか確認してください。
+  </Card>
+
+  <Card title="リトライロジックを実装する" icon="arrows-rotate">
+    429 および 5xx エラーに対しては指数バックオフを使用してください。
+  </Card>
+
+  <Card title="リクエスト詳細をログに記録する" icon="file-lines">
+    デバッグのために、リクエスト ID とタイムスタンプを含めてください。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="getting-help">
+  ## ヘルプの利用方法
+</div>
+
+エラーに関する質問を投稿する際は、次の情報を含めてください。
+
+* API エンドポイントの URL
+* リクエストヘッダー（認証情報はマスクする）
+* エラーのレスポンス全文
+* 期待していた動作
+* 試した手順
+
+<CardGroup cols={2}>
+  <Card title="Developer Forum" icon="comments" href="https://devcommunity.x.com">
+    質問したり、解決策を検索したりできます。
+  </Card>
+
+  <Card title="API ステータス" icon="signal" href="/ja/status">
+    既知の問題がないか確認します。
+  </Card>
+</CardGroup>

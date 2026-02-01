@@ -1,0 +1,231 @@
+---
+title: 認証済みユーザー取得クイックスタート
+sidebarTitle: 認証済みユーザー
+description: 現在の認証済みユーザーのプロフィールを取得する
+keywords: ["認証済みユーザー", "me エンドポイント", "現在のユーザー", "認証済みユーザー取得"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、`/me` エンドポイントを使用して、現在認証済みのユーザーのプロフィールを取得する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  始める前に、次のものが必要です。
+
+  * 承認済みの App を持つ[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * ユーザーアクセストークン（OAuth 1.0a または OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-the-authenticated-user">
+  ## 認証済みユーザーの取得
+</div>
+
+User Access Token を使用して `/me` エンドポイントにリクエストを行います:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me?\
+  user.fields=created_at,description,verified,public_metrics,profile_image_url" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 認証済みユーザーを取得する
+  response = client.users.get_me(
+      user_fields=["created_at", "description", "verified", "public_metrics", "profile_image_url"]
+  )
+
+  print(f"Username: {response.data.username}")
+  print(f"ID: {response.data.id}")
+  print(f"Followers: {response.data.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 認証済みユーザーを取得する
+  const response = await client.users.getMe({
+    userFields: ["created_at", "description", "verified", "public_metrics", "profile_image_url"],
+  });
+
+  console.log(`Username: ${response.data?.username}`);
+  console.log(`ID: ${response.data?.id}`);
+  console.log(`Followers: ${response.data?.public_metrics?.followers_count}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="response">
+  ## レスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "description": "The voice of the X developer community",
+    "verified": true,
+    "profile_image_url": "https://pbs.twimg.com/profile_images/...",
+    "public_metrics": {
+      "followers_count": 583423,
+      "following_count": 2048,
+      "tweet_count": 14052,
+      "listed_count": 1672
+    }
+  }
+}
+```
+
+***
+
+<div id="use-case">
+  ## ユースケース
+</div>
+
+`/me` エンドポイントは次のような場合に不可欠です:
+
+* **認証の検証** — ユーザーが正しく認証されているか確認する
+* **ユーザー ID の取得** — 他の API 呼び出しで使用するために、認証済みユーザーの ID を取得する
+* **エクスペリエンスのパーソナライズ** — アプリでユーザーのプロフィールを表示する
+* **ユーザーの代理でのリクエスト** — どのユーザーの代理でリクエストしているか把握する
+
+***
+
+<div id="include-pinned-post">
+  ## ピン留めされた投稿を含める
+</div>
+
+ユーザーのピン留めされた投稿を取得します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me?\
+  user.fields=pinned_tweet_id&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 認証済みユーザーの情報をピン留めされた投稿付きで取得
+  response = client.users.get_me(
+      user_fields=["pinned_tweet_id"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at", "text"]
+  )
+
+  print(f"ユーザー名: {response.data.username}")
+  # ピン留めされた投稿は response.includes.tweets に含まれます
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 認証済みユーザーの情報をピン留めされた投稿付きで取得
+  const response = await client.users.getMe({
+    userFields: ["pinned_tweet_id"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at", "text"],
+  });
+
+  console.log(`ユーザー名: ${response.data?.username}`);
+  // ピン留めされた投稿は response.includes?.tweets に含まれます
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 拡張付きレスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "pinned_tweet_id": "1234567890"
+  },
+  "includes": {
+    "tweets": [
+      {
+        "id": "1234567890",
+        "text": "Welcome to my profile!",
+        "created_at": "2024-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="available-fields">
+  ## 利用可能なフィールド
+</div>
+
+| フィールド | 説明 |
+|:------|:------------|
+| `created_at` | アカウント作成日 |
+| `description` | ユーザーの自己紹介 |
+| `profile_image_url` | プロフィール画像のURL |
+| `verified` | 認証ステータス |
+| `public_metrics` | フォロワー数/フォロー数 |
+| `location` | ユーザーが指定した所在地 |
+| `url` | ユーザーのウェブサイト |
+| `protected` | 保護アカウントであるかどうか |
+| `pinned_tweet_id` | ピン留めされた投稿のID |
+
+***
+
+<div id="authentication-requirement">
+  ## 認証要件
+</div>
+
+<Warning>
+  `/me` エンドポイントの利用にはユーザーコンテキストでの認証が必要です。App-Only（Bearer Token）認証はサポートされていません。
+</Warning>
+
+次のいずれかを使用してください：
+
+* [OAuth 1.0a ユーザーコンテキスト](/ja/resources/fundamentals/authentication)
+* [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2)
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ユーザー検索" icon="users" href="/ja/x-api/users/lookup/quickstart/user-lookup">
+    他のユーザーを検索する
+  </Card>
+
+  <Card title="連携ガイド" icon="book" href="/ja/x-api/users/lookup/integrate">
+    基本概念とベストプラクティス
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/authenticated-user-lookup">
+    エンドポイントの網羅的なドキュメント
+  </Card>
+</CardGroup>

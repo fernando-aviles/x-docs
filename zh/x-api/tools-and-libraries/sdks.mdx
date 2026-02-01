@@ -1,0 +1,241 @@
+---
+title: 官方 SDK
+sidebarTitle: SDK
+description: 适用于 TypeScript 和 Python 的官方 X API SDK
+keywords: ["SDK", "软件开发工具包", "客户端 SDK", "API SDK", "官方 SDK"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+X 为 TypeScript 和 Python 提供官方 SDK。这些 SDK 负责处理身份验证、分页，并提供完备的类型安全。
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python" href="/zh/xdks/python/overview">
+    支持异步、类型注解，对 v2 提供全面覆盖。
+  </Card>
+
+  <Card title="TypeScript SDK" icon="js" href="/zh/xdks/typescript/overview">
+    完备的 TypeScript 类型定义、ESM 支持，可在 Node.js 中使用。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="why-use-the-official-sdks">
+  ## 为什么要使用官方 SDK？
+</div>
+
+| 优势 | 说明 |
+|:--------|:------------|
+| **始终保持最新** | 由 X 维护，会随着新增端点及时更新 |
+| **类型安全** | 为所有对象和方法提供完整的类型定义 |
+| **内置身份验证** | 支持 OAuth 2.0 和 OAuth 1.0a |
+| **自动分页** | 无需手动处理令牌即可遍历全部结果 |
+
+***
+
+<div id="quick-start">
+  ## 快速开始
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ### 安装
+
+    ```bash
+    pip install xdk
+    ```
+
+    ### 基本用法
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+    # 搜索帖子（返回一个迭代器）
+    for page in client.posts.search_recent(query="api", max_results=10):
+        if page.data and len(page.data) > 0:
+            first_post = page.data[0]
+            print(first_post.text)
+            break
+    ```
+
+    <Button href="/zh/xdks/python/overview">完整 Python 指南</Button>
+  </Tab>
+
+  <Tab title="TypeScript">
+    ### 安装
+
+    ```bash
+    npm install @xdevplatform/xdk
+    ```
+
+    ### 基本用法
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+
+    // 查找用户
+    const userResponse = await client.users.getByUsername('XDevelopers');
+    console.log(userResponse.data?.username);
+    ```
+
+    <Button href="/zh/xdks/typescript/overview">完整 TypeScript 指南</Button>
+  </Tab>
+</Tabs>
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+两个 SDK 都支持多种身份验证方法：
+
+<Tabs>
+  <Tab title="Bearer Token（仅应用）">
+    读取公开数据的最简单方式。
+
+    **Python：**
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+    ```
+
+    **TypeScript：**
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0（用户上下文）">
+    代表用户执行操作（发布帖子、关注等）。
+
+    **Python：**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth2_auth import OAuth2PKCEAuth
+
+    auth = OAuth2PKCEAuth(
+        client_id="YOUR_CLIENT_ID",
+        redirect_uri="YOUR_CALLBACK_URL",
+        scope="tweet.read users.read offline.access"
+    )
+
+    # 获取授权 URL
+    auth_url = auth.get_authorization_url()
+
+    # 在用户授权之后，用授权码（code）换取令牌
+    tokens = auth.fetch_token(authorization_response=callback_url)
+    client = Client(bearer_token=tokens["access_token"])
+    ```
+
+    **TypeScript：**
+
+    ```typescript
+    import { Client, OAuth2, generateCodeVerifier, generateCodeChallenge } from '@xdevplatform/xdk';
+
+    const oauth2 = new OAuth2({
+      clientId: 'YOUR_CLIENT_ID',
+      clientSecret: 'YOUR_CLIENT_SECRET',
+      redirectUri: 'https://your-app.com/callback',
+      scope: ['tweet.read', 'users.read', 'offline.access'],
+    });
+
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    oauth2.setPkceParameters(codeVerifier, codeChallenge);
+    const authUrl = await oauth2.getAuthorizationUrl('state');
+
+    // 授权完成后，用授权码（code）交换令牌
+    const tokens = await oauth2.exchangeCode(authCode, codeVerifier);
+    const client = new Client({ accessToken: tokens.access_token });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 1.0a（用户上下文）">
+    适用于旧版应用或特定用例。
+
+    **Python：**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth1_auth import OAuth1
+
+    oauth1 = OAuth1(
+        api_key="YOUR_API_KEY",
+        api_secret="YOUR_API_SECRET",
+        access_token="YOUR_ACCESS_TOKEN",
+        access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+    )
+
+    client = Client(auth=oauth1)
+    ```
+
+    **TypeScript：**
+
+    ```typescript
+    import { Client, OAuth1 } from '@xdevplatform/xdk';
+
+    const oauth1 = new OAuth1({
+      apiKey: 'YOUR_API_KEY',
+      apiSecret: 'YOUR_API_SECRET',
+      accessToken: 'YOUR_ACCESS_TOKEN',
+      accessTokenSecret: 'YOUR_ACCESS_TOKEN_SECRET'
+    });
+
+    const client = new Client({ oauth1: oauth1 });
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="available-methods">
+  ## 可用方法
+</div>
+
+这些 SDK 为所有 X API v2 端点提供了对应方法：
+
+| 分类 | Python | TypeScript |
+|:---------|:-------|:-----------|
+| **帖子** | `client.posts.search_recent()` | `client.posts.search()` |
+| **用户** | `client.users.get_me()` | `client.users.getMe()` |
+| **Spaces** | `client.spaces.get()` | `client.spaces.findSpaceById()` |
+| **Lists** | `client.lists.get()` | `client.lists.getList()` |
+| **DMs** | `client.direct_messages.get()` | `client.directMessages.lookup()` |
+
+请参阅 SDK 完整文档以获取所有方法的详细说明。
+
+***
+
+<div id="resources">
+  ## 资源
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Python SDK 文档" icon="book" href="/zh/xdks/python/overview">
+    完整的 Python 文档。
+  </Card>
+
+  <Card title="TypeScript SDK 文档" icon="book" href="/zh/xdks/typescript/overview">
+    完整的 TypeScript 文档。
+  </Card>
+
+  <Card title="Python GitHub" icon="github" href="https://github.com/xdevplatform/xdk-py">
+    源代码和问题反馈。
+  </Card>
+
+  <Card title="TypeScript GitHub" icon="github" href="https://github.com/xdevplatform/twitter-api-typescript-sdk">
+    源代码和问题反馈。
+  </Card>
+</CardGroup>

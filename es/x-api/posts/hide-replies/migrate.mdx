@@ -1,0 +1,102 @@
+---
+title: Guía de migración
+sidebarTitle: Guía de migración
+keywords: ["migración de ocultar respuestas", "migrar ocultar respuestas", "guía de migración", "migrar ocultar respuestas", "migración v2"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+<div id="comparing-x-apis-hide-replies-endpoints">
+  ## Comparación de los endpoints para ocultar respuestas de X API
+</div>
+
+El endpoint v2 de ocultar respuestas está reemplazando el endpoint de ocultar respuestas de Labs. Si tienes código, apps o herramientas que usan la versión de Labs de este endpoint y estás considerando migrar al nuevo endpoint de X API v2, esta guía es para ti.
+
+Para poder usar X API v2 (incluido el endpoint de ocultar respuestas), deberás [optar por usar la nueva Developer Console](https://developer.x.com/en/portal/opt-in), crear un [Project](/es/resources/fundamentals/developer-apps) y agregar una App a ese Project. Luego podrás usar las credenciales asociadas con esa App para hacer solicitudes al endpoint de ocultar respuestas. Agregar la misma App que está inscrita para el endpoint de ocultar respuestas de Labs v2 mantendrá a tus usuarios autenticados.
+
+La siguiente tabla compara las diferencias entre Labs y el nuevo endpoint de X API v2:
+
+| **Descripción** | **Labs v2** | **X API v2** |
+| :--- | :--- | :--- |
+| Dominio del host | https://api.x.com | https://api.x.com |
+| Ruta del endpoint | /labs/2/tweets/:id/hidden | /2/tweets/:id/hidden |
+| Autenticación | OAuth 1.0a User Context | OAuth 1.0a User Context |
+| Métodos HTTP compatibles | PUT | PUT |
+| Límites de frecuencia de solicitudes predeterminados | 10 solicitudes cada 15 minutos (compartidas entre todos los usuarios autenticados) | 50 solicitudes cada 15 minutos (para cada usuario autenticado) |
+| Puede ocultar respuestas | ✔︎  | ✔︎  |
+| Puede dejar de ocultar una respuesta previamente oculta | ✔︎  | ✔︎  |
+| Puede ocultar o dejar de ocultar respuestas varias veces | ✔︎  | ✔︎  |
+| Requiere el uso de credenciales de una [developer App](/es/resources/fundamentals/developer-apps) asociada con un [project](/es/resources/fundamentals/developer-apps) |     | ✔   |
+
+***
+
+<div id="code-examples">
+  ## Ejemplos de código
+</div>
+
+<div id="hide-a-reply-v2">
+  ### Ocultar una respuesta (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/tweets/1234567890/hidden" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"hidden": true}'
+  ```
+
+  ```python Python
+  # Requiere autenticación con OAuth 1.0a User Context
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/tweets/1234567890/hidden"
+  response = requests.put(url, auth=auth, json={"hidden": True})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Ocultar una respuesta
+  response = client.posts.hide_reply("1234567890", hidden=True)
+  print(f"Hidden: {response.data.hidden}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Ocultar una respuesta
+  const response = await client.posts.hideReply("1234567890", { hidden: true });
+  console.log(`Hidden: ${response.data?.hidden}`);
+  ```
+</CodeGroup>
+
+**Otros recursos para la migración**
+
+[X API migration hub](/es/x-api/migrate/overview)

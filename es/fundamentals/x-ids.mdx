@@ -1,0 +1,125 @@
+---
+title: ID de X
+sidebarTitle: ID de X
+icon: fingerprint
+description: Comprender los identificadores únicos en la X API
+keywords: ["ID de X", "ID de Twitter", "ID de usuario", "ID de tuit", "ID snowflake", "enteros de 64 bits", "formato de ID", "identificadores únicos"]
+---
+
+Cada objeto en la X API—publicaciones, usuarios, listas, mensajes directos, Spaces—tiene un identificador único. Comprender cómo funcionan estos identificadores te ayuda a crear integraciones confiables.
+
+***
+
+<div id="id-format">
+  ## Formato de ID
+</div>
+
+Los ID de X son **enteros de 64 bits sin signo** generados mediante un sistema llamado &quot;Snowflake&quot;. Cada ID codifica:
+
+* **Marca de tiempo** — cuándo se creó el objeto
+* **Número de trabajador** — qué servidor generó el ID
+* **Número de secuencia** — orden dentro de ese milisegundo
+
+Esto significa que los ID están aproximadamente ordenados cronológicamente: los ID más altos generalmente representan objetos más recientes.
+
+<Tip>
+  Los ID son globalmente únicos en todo X, no solo dentro de un único tipo de objeto.
+</Tip>
+
+***
+
+<div id="string-vs-integer-representation">
+  ## Representación en cadena de texto frente a enteros
+</div>
+
+<Warning>
+  **Utiliza siempre id de tipo cadena de texto en tu código.** Algunos lenguajes de programación (como JavaScript) no pueden representar con precisión enteros de 64 bits.
+</Warning>
+
+En JavaScript, los enteros están limitados a 53 bits. Esto provoca pérdida de precisión con ids grandes:
+
+```javascript
+// ¡Esto pierde precisión!
+const id = 10765432100123456789;
+console.log(id.toString()); // "10765432100123458000" — ¡incorrecto!
+
+// Usa cadenas de texto en su lugar
+const id = "10765432100123456789";
+console.log(id); // "10765432100123456789" — ¡correcto!
+```
+
+<div id="api-versions">
+  ### Versiones de la API
+</div>
+
+| Versión | Formato del id |
+|:--------|:----------|
+| **X API v2** | Los id se devuelven como cadenas de texto de forma predeterminada |
+| **X API v1.1** | Devuelve tanto `id` (entero) como `id_str` (cadena de texto) — utiliza siempre `id_str` |
+
+***
+
+<div id="working-with-ids">
+  ## Uso de id
+</div>
+
+<div id="storing-ids">
+  ### Almacenamiento de ID
+</div>
+
+Almacena los ID como cadenas de texto o enteros de 64 bits en tu base de datos:
+
+| Base de datos | Tipo recomendado |
+|:---------|:-----------------|
+| PostgreSQL | `BIGINT` o `TEXT` |
+| MySQL | `BIGINT UNSIGNED` o `VARCHAR(20)` |
+| MongoDB | Cadena de texto |
+| SQLite | `TEXT` (los enteros de SQLite tienen un máximo de 63 bits) |
+
+<div id="comparing-ids">
+  ### Comparación de id
+</div>
+
+Al comparar id para ordenarlos cronológicamente:
+
+```python
+# Python - safe for 64-bit integers
+if int(id1) > int(id2):
+    print("id1 is newer")
+
+# JavaScript - comparar como cadenas (funciona lexicográficamente para IDs de la misma longitud)
+# O usar BigInt
+if (BigInt(id1) > BigInt(id2)) {
+    console.log("id1 is newer");
+}
+```
+
+***
+
+<div id="common-id-types">
+  ## Tipos comunes de ID
+</div>
+
+| Objeto | ID de ejemplo | Notas |
+|:-------|:-----------|:------|
+| Publicación (Tuit) | `1234567890123456789` | También llamado identificador de Tuit |
+| Usuario | `2244994945` | Las cuentas más antiguas tienen ID más cortos |
+| List | `1234567890` | |
+| Space | `1YqGodQbNXDxv` | Alfanumérico, no está en formato Snowflake |
+| DM Event | `1234567890123456789` | |
+
+***
+
+<div id="related-resources">
+  ## Recursos relacionados
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Diccionario de datos" icon="book" href="/es/x-api/fundamentals/data-dictionary">
+    Consulta los campos de ID de cada tipo de objeto.
+  </Card>
+
+  <Card title="Búsqueda de publicaciones" icon="magnifying-glass" href="/es/x-api/posts/lookup/introduction">
+    Obtén publicaciones por ID.
+  </Card>
+</CardGroup>

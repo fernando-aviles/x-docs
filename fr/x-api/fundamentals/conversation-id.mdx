@@ -1,0 +1,207 @@
+---
+title: ID de conversation
+sidebarTitle: ID de conversation
+description: Suivre et reconstituer les fils de conversation
+keywords: ["ID de conversation", "fils de conversation", "fils de réponses", "suivi des fils", "suivi des conversations"]
+---
+
+Chaque réponse sur X fait partie d’un fil de conversation. Le champ `conversation_id` vous permet d’identifier, de suivre et de reconstituer des arbres de conversation complets.
+
+***
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Lorsqu’une personne publie une publication et que d’autres y répondent, toutes les réponses partagent le même `conversation_id` — l’id de la publication d’origine qui a lancé la conversation.
+
+```
+Original post (ID: 1234567890)  ← conversation_id for all replies
+├── Reply 1 (ID: 1234567891)    → conversation_id: 1234567890
+│   └── Reply to Reply 1        → conversation_id: 1234567890
+└── Reply 2 (ID: 1234567892)    → conversation_id: 1234567890
+    └── Reply to Reply 2        → conversation_id: 1234567890
+```
+
+Quelle que soit la profondeur du fil, toutes les publications partagent le même `conversation_id`.
+
+***
+
+<div id="requesting-conversation_id">
+  ## Demander le champ conversation_id
+</div>
+
+Ajoutez `conversation_id` à vos `tweet.fields` :
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_reply_to_user_id,referenced_tweets" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Réponse :
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "@user Great point!",
+    "conversation_id": "1234567890",
+    "in_reply_to_user_id": "2244994945",
+    "referenced_tweets": [{
+      "type": "replied_to",
+      "id": "1234567890"
+    }]
+  }
+}
+```
+
+***
+
+<div id="getting-a-full-conversation">
+  ## Obtenir une conversation complète
+</div>
+
+Utilisez `conversation_id` comme opérateur de recherche pour récupérer toutes les publications d&#39;un fil :
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=conversation_id:1234567890&\
+tweet.fields=author_id,created_at,in_reply_to_user_id&\
+expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Cela renvoie toutes les réponses à la publication d’origine, triées par ordre chronologique inverse.
+
+***
+
+<div id="use-cases">
+  ## Cas d’usage
+</div>
+
+<Tabs>
+  <Tab title="Reconstruction d’un fil de conversation">
+    Reconstruisez l’arborescence complète de la conversation :
+
+    ```python
+    import requests
+
+    conversation_id = "1234567890"
+    url = f"https://api.x.com/2/tweets/search/recent"
+    params = {
+        "query": f"conversation_id:{conversation_id}",
+        "tweet.fields": "author_id,in_reply_to_user_id,referenced_tweets,created_at",
+        "max_results": 100
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    replies = response.json()["data"]
+
+    # Triez par created_at pour obtenir l’ordre chronologique
+    replies.sort(key=lambda x: x["created_at"])
+    ```
+  </Tab>
+
+  <Tab title="Suivi de conversation">
+    Diffusez en temps réel les réponses à des conversations spécifiques :
+
+    ```bash
+    # Ajoutez une règle de flux filtré pour une conversation
+    curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"add": [{"value": "conversation_id:1234567890"}]}'
+    ```
+  </Tab>
+
+  <Tab title="Analyse de conversation">
+    Comptez les réponses dans une conversation :
+
+    ```bash
+    curl "https://api.x.com/2/tweets/counts/recent?\
+    query=conversation_id:1234567890" \
+      -H "Authorization: Bearer $TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="related-fields">
+  ## Champs associés
+</div>
+
+| Champ | Description |
+|:------|:------------|
+| `conversation_id` | ID de la publication d&#39;origine qui a commencé le fil |
+| `in_reply_to_user_id` | ID de l&#39;utilisateur de la publication à laquelle on répond |
+| `referenced_tweets` | Tableau contenant `type: "replied_to"` et l&#39;ID de la publication parente |
+
+***
+
+<div id="example-full-thread-retrieval">
+  ## Exemple : récupération d’un fil de discussion complet
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567893",
+      "text": "@user2 @user1 I agree with you both!",
+      "conversation_id": "1234567890",
+      "author_id": "3333333333",
+      "created_at": "2024-01-15T12:05:00.000Z",
+      "in_reply_to_user_id": "2222222222",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567892"}]
+    },
+    {
+      "id": "1234567892",
+      "text": "@user1 That's interesting!",
+      "conversation_id": "1234567890",
+      "author_id": "2222222222",
+      "created_at": "2024-01-15T12:03:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    },
+    {
+      "id": "1234567891",
+      "text": "@user1 Great point!",
+      "conversation_id": "1234567890",
+      "author_id": "4444444444",
+      "created_at": "2024-01-15T12:02:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    }
+  ],
+  "meta": {
+    "result_count": 3
+  }
+}
+```
+
+***
+
+<div id="notes">
+  ## Remarques
+</div>
+
+* Le `conversation_id` de la publication d’origine est égal à son propre `id`
+* `conversation_id` est disponible sur tous les endpoints v2 qui renvoient des publications
+* À utiliser avec le [flux filtré](/fr/x-api/posts/filtered-stream/introduction) pour surveiller les conversations en temps réel
+* À combiner avec la [pagination](/fr/x-api/fundamentals/pagination) pour les longs fils de discussion
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Rechercher des publications" icon="magnifying-glass" href="/fr/x-api/posts/search/introduction">
+    Recherchez par conversation&#95;id.
+  </Card>
+
+  <Card title="Flux filtré" icon="signal-stream" href="/fr/x-api/posts/filtered-stream/introduction">
+    Surveillez les conversations en temps réel.
+  </Card>
+</CardGroup>

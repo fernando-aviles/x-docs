@@ -1,0 +1,298 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+description: Conceptos clave y prácticas recomendadas para integrar endpoints de consulta de mensajes directos (DM)
+keywords: ["integración de mensajes directos", "integración de DM", "integración de consulta de DM"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía cubre los conceptos clave que necesitas para integrar los endpoints de consulta de Mensajes Directos en tu aplicación.
+
+***
+
+<div id="authentication">
+  ## Autenticación
+</div>
+
+Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para acceder a conversaciones privadas:
+
+| Método | Descripción |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recomendado |
+| [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Compatibilidad con versiones anteriores |
+
+<Warning>
+  La autenticación App-Only no es compatible. Todos los mensajes directos son privados.
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### Permisos (scopes) obligatorios (OAuth 2.0)
+</div>
+
+| Alcance | Obligatorio para |
+|:------|:-------------|
+| `dm.read` | Lectura de eventos de mensajes directos (MD) |
+| `tweet.read` | Obligatorio con dm.read |
+| `users.read` | Obligatorio con dm.read |
+
+***
+
+<div id="conversation-types">
+  ## Tipos de conversación
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Uno a uno" icon="message">
+    Siempre tiene exactamente dos participantes. Formato del id de la conversación: `{smaller_user_id}-{larger_user_id}`
+  </Card>
+
+  <Card title="Grupo" icon="comments">
+    Dos o más participantes. La composición del grupo puede cambiar con el tiempo.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="event-types">
+  ## Tipos de eventos
+</div>
+
+| Evento | Descripción | Campos clave |
+|:------|:------------|:-----------|
+| `MessageCreate` | Se envió un mensaje | `text`, `sender_id` |
+| `ParticipantsJoin` | Un usuario se unió al grupo | `participant_ids`, `sender_id` |
+| `ParticipantsLeave` | Un usuario abandonó el grupo | `participant_ids` |
+
+<div id="example-events">
+  ### Ejemplos de eventos
+</div>
+
+<AccordionGroup>
+  <Accordion title="MessageCreate">
+    ```json
+    {
+      "id": "1582838499983564806",
+      "event_type": "MessageCreate",
+      "text": "Hi everyone.",
+      "sender_id": "944480690",
+      "dm_conversation_id": "1578398451921985538",
+      "created_at": "2022-10-19T20:58:00.000Z"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ParticipantsJoin">
+    ```json
+    {
+      "id": "1582835469712138240",
+      "event_type": "ParticipantsJoin",
+      "participant_ids": ["944480690"],
+      "sender_id": "17200003",
+      "dm_conversation_id": "1578398451921985538",
+      "created_at": "2022-10-19T20:45:58.000Z"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ParticipantsLeave">
+    ```json
+    {
+      "id": "1582838535115067392",
+      "event_type": "ParticipantsLeave",
+      "participant_ids": ["944480690"],
+      "dm_conversation_id": "1578398451921985538",
+      "created_at": "2022-10-19T20:58:09.000Z"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="fields-and-expansions">
+  ## Campos y expansions
+</div>
+
+<div id="default-fields">
+  ### Campos predeterminados
+</div>
+
+| Tipo de evento | Campos predeterminados |
+|:-----------|:---------------|
+| MessageCreate | `id`, `event_type`, `text` |
+| ParticipantsJoin/Leave | `id`, `event_type`, `participant_ids` |
+
+<div id="available-fields">
+  ### Campos disponibles
+</div>
+
+| Field | Description | Events |
+|:------|:------------|:-------|
+| `dm_conversation_id` | ID de la conversación | All |
+| `created_at` | Marca de tiempo del evento | All |
+| `sender_id` | Quién envió/invitó | MessageCreate, Join |
+| `attachments` | Archivos multimedia adjuntos | MessageCreate |
+| `referenced_tweets` | Publicaciones compartidas | MessageCreate |
+
+<div id="available-expansions">
+  ### Expansions disponibles
+</div>
+
+| Expansión | Devuelve |
+|:----------|:--------|
+| `sender_id` | Objeto de usuario del remitente |
+| `participant_ids` | Objetos de usuario de los participantes |
+| `attachments.media_keys` | Objetos multimedia |
+| `referenced_tweets.id` | Objetos de publicaciones |
+
+<div id="example-with-expansions">
+  ### Ejemplo con expansions
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,attachments&\
+  expansions=sender_id,attachments.media_keys&\
+  user.fields=username,profile_image_url&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtener eventos de mensajes directos (DM) con expansions
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "attachments"],
+      expansions=["sender_id", "attachments.media_keys"],
+      user_fields=["username", "profile_image_url"],
+      media_fields=["url", "type"],
+      max_results=100
+  ):
+      for event in page.data:
+          print(f"Event: {event.event_type} - {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "attachments"],
+    expansions: ["sender_id", "attachments.media_keys"],
+    userFields: ["username", "profile_image_url"],
+    mediaFields: ["url", "type"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`Event: ${event.event_type} - ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="pagination">
+  ## Paginación
+</div>
+
+Los eventos de MD se devuelven en orden cronológico inverso (los más recientes primero):
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # Primera solicitud
+  curl "https://api.x.com/2/dm_events?max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+
+  # Solicitud posterior con token de paginación
+  curl "https://api.x.com/2/dm_events?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # El SDK gestiona la paginación automáticamente
+  all_events = []
+
+  for page in client.dm_events.list(max_results=100):
+      if page.data:
+          all_events.extend(page.data)
+
+  print(f"Found {len(all_events)} DM events")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  async function getAllDMEvents() {
+    const allEvents = [];
+
+    // El SDK gestiona la paginación automáticamente
+    const paginator = client.dmEvents.list({ maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allEvents.push(...page.data);
+      }
+    }
+
+    return allEvents;
+  }
+
+  // Uso
+  const events = await getAllDMEvents();
+  console.log(`Found ${events.length} DM events`);
+  ```
+</CodeGroup>
+
+<Note>
+  Los eventos de hasta **30 días de antigüedad** están disponibles.
+</Note>
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## Compatibilidad de IDs con v1.1
+</div>
+
+Los IDs de conversación y de eventos se comparten entre los endpoints v1.1 y v2. Esto significa que puedes:
+
+* Usar v2 para obtener eventos y luego usar v1.1 para eliminar mensajes específicos
+* Hacer referencia a IDs de conversación de URL de x.com en solicitudes a la API
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Guía de inicio rápido" icon="rocket" href="/es/x-api/direct-messages/lookup/quickstart">
+    Realiza tu primera solicitud para consultar Mensajes Directos
+  </Card>
+
+  <Card title="Enviar Mensajes Directos" icon="paper-plane" href="/es/x-api/direct-messages/manage/introduction">
+    Envía Mensajes Directos
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/direct-messages/get-dm-events">
+    Documentación completa del endpoint
+  </Card>
+
+  <Card title="Código de ejemplo" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Ejemplos de código listos para usar
+  </Card>
+</CardGroup>

@@ -1,0 +1,218 @@
+---
+title: Champs
+sidebarTitle: Champs
+description: Demander des champs de données spécifiques dans les réponses de l'API
+keywords: ["champs", "champs de Tweet", "champs d'utilisateur", "paramètres de champ", "champs d'API", "champs de données", "personnaliser la réponse"]
+---
+
+Par défaut, X API v2 renvoie un volume minimal de données. Utilisez les **paramètres `fields`** pour demander des données supplémentaires pour chaque type d&#39;objet.
+
+***
+
+<div id="how-fields-work">
+  ## Fonctionnement des champs
+</div>
+
+Par défaut, une recherche de publication ne renvoie que `id`, `text` et `edit_history_tweet_ids`. Pour obtenir davantage de données, ajoutez des paramètres de champs à votre requête :
+
+```bash
+# Réponse par défaut - champs minimaux
+curl "https://api.x.com/2/tweets/1234567890" \
+  -H "Authorization: Bearer $TOKEN"
+
+# With additional fields
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=created_at,public_metrics,author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="available-field-parameters">
+  ## Paramètres de champs disponibles
+</div>
+
+Chaque type d&#39;objet dispose de son propre paramètre de champs :
+
+| Objet | Paramètre | Documentation |
+|:-------|:----------|:--------------|
+| Publication (Tweet) | `tweet.fields` | [Champs de la publication](/fr/x-api/fundamentals/data-dictionary#tweet) |
+| Utilisateur | `user.fields` | [Champs utilisateur](/fr/x-api/fundamentals/data-dictionary#user) |
+| Média | `media.fields` | [Champs du média](/fr/x-api/fundamentals/data-dictionary#media) |
+| Sondage | `poll.fields` | [Champs du sondage](/fr/x-api/fundamentals/data-dictionary#poll) |
+| Lieu | `place.fields` | [Champs du lieu](/fr/x-api/fundamentals/data-dictionary#place) |
+
+***
+
+<div id="example-post-fields">
+  ## Exemple : champs de publication
+</div>
+
+Demandez des champs spécifiques pour les publications avec `tweet.fields` :
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=created_at,public_metrics,lang" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Réponse :
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "edit_history_tweet_ids": ["1234567890"],
+    "created_at": "2024-01-15T12:00:00.000Z",
+    "lang": "en",
+    "public_metrics": {
+      "retweet_count": 10,
+      "reply_count": 5,
+      "like_count": 100,
+      "quote_count": 2
+    }
+  }
+}
+```
+
+***
+
+<div id="example-user-fields">
+  ## Exemple : champs utilisateur
+</div>
+
+Demandez des champs utilisateur spécifiques à l’aide du paramètre `user.fields` :
+
+```bash
+curl "https://api.x.com/2/users/by/username/xdevelopers?user.fields=created_at,description,public_metrics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Réponse :
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "xdevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "description": "The voice of the X Developer Platform",
+    "public_metrics": {
+      "followers_count": 570842,
+      "following_count": 2048,
+      "tweet_count": 14052,
+      "listed_count": 1672
+    }
+  }
+}
+```
+
+***
+
+<div id="fields-for-related-objects">
+  ## Champs des objets associés
+</div>
+
+Pour obtenir les champs des objets associés (comme l’auteur d’une publication), vous avez besoin de deux éléments :
+
+1. Une **expansion** pour inclure l’objet associé
+2. Le **paramètre de champs** pour ce type d’objet
+
+```bash
+# Récupérer une publication avec les détails de l'auteur
+curl "https://api.x.com/2/tweets/1234567890?expansions=author_id&user.fields=description,public_metrics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Réponse :
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "author_id": "2244994945"
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers",
+      "description": "The voice of the X Developer Platform",
+      "public_metrics": {
+        "followers_count": 570842,
+        "following_count": 2048
+      }
+    }]
+  }
+}
+```
+
+[En savoir plus sur les expansions →](/fr/x-api/fundamentals/expansions)
+
+***
+
+<div id="common-field-combinations">
+  ## Combinaisons de champs courantes
+</div>
+
+<Tabs>
+  <Tab title="Statistiques de la publication">
+    ```
+    tweet.fields=created_at,public_metrics,possibly_sensitive
+    ```
+  </Tab>
+
+  <Tab title="Profils d’utilisateurs">
+    ```
+    user.fields=created_at,description,location,public_metrics,verified
+    ```
+  </Tab>
+
+  <Tab title="Contexte complet de la publication">
+    ```
+    tweet.fields=created_at,author_id,conversation_id,in_reply_to_user_id,referenced_tweets
+    expansions=author_id,referenced_tweets.id
+    user.fields=username,name
+    ```
+  </Tab>
+
+  <Tab title="Détails des médias">
+    ```
+    tweet.fields=attachments
+    expansions=attachments.media_keys
+    media.fields=url,preview_image_url,alt_text,public_metrics
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="important-notes">
+  ## Remarques importantes
+</div>
+
+<Warning>
+  **Vous ne pouvez pas demander de sous-champs.** Lorsque vous demandez `public_metrics`, vous obtenez toutes les métriques (mentions J’aime, republications, réponses, citations). Vous ne pouvez pas demander uniquement `public_metrics.like_count`.
+</Warning>
+
+* L’ordre des champs dans les réponses peut différer de celui de la requête
+* Les champs manquants dans les réponses indiquent que la valeur est `null` ou vide
+* Certains champs nécessitent une authentification spécifique (par exemple, les métriques privées nécessitent un contexte utilisateur)
+* Consultez la Référence de l’API de chaque endpoint pour connaître les champs disponibles
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Expansions" icon="expand" href="/fr/x-api/fundamentals/expansions">
+    Inclure les objets associés dans les réponses.
+  </Card>
+
+  <Card title="Dictionnaire de données" icon="book" href="/fr/x-api/fundamentals/data-dictionary">
+    Référence complète des champs pour tous les objets.
+  </Card>
+</CardGroup>

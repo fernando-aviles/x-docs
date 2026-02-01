@@ -1,0 +1,120 @@
+---
+title: Acceso a cuentas de anuncios
+keywords: ["cuentas de anuncios", "cuentas de anuncios", "acceder a cuentas de anuncios", "acceso a cuentas", "gestión de cuentas de anuncios", "jerarquía de cuentas"]
+---
+
+<div id="user-accounts-vs-ad-accounts">
+  # Cuentas de usuario vs cuentas publicitarias
+</div>
+
+Hay dos tipos diferentes de cuentas involucradas en el uso de la Ads API: cuentas publicitarias y cuentas de usuario de X. A lo largo de la documentación de la Ads API, el término «account» generalmente se refiere a la cuenta publicitaria.
+
+* Las cuentas publicitarias se registran en **business.x.com** y se identifican en la API mediante account&#95;id. Las cuentas publicitarias se vinculan directamente a fuentes de financiación y utilizan contenido de una o más cuentas de usuario de X como «promotable users». Cada cuenta publicitaria puede otorgar permisos a una o más cuentas de usuario de X. La cuenta publicitaria, o «current account», está representada en casi todas las URL que se ejecutan como un parámetro en línea :account&#95;id.
+* Las cuentas de usuario de X (como @AdsAPI) se identifican mediante user&#95;id en la Ads API. Una o más de estas cuentas se pueden asociar con una cuenta publicitaria. La cuenta de usuario de X autenticada que realiza solicitudes a la API se denomina el «current user». Un listado de las cuentas publicitarias a las que el current user tiene acceso se puede encontrar con [GET accounts](/es/x-ads-api/campaign-management#accounts). Los «promotable users» son handles de X que pueden ser promocionados por una cuenta publicitaria específica. Para más detalles sobre esto, consulta [Obtaining Ads Account Access](/es/x-ads-api/introduction).
+
+<div id="methods-for-ad-account-access">
+  ## Métodos para acceder a cuentas de anuncios
+</div>
+
+Hay dos métodos que puedes usar para realizar solicitudes a la Ads API para la cuenta de un anunciante:
+
+1. Realizar solicitudes en nombre de un anunciante (**recomendado**)
+2. Realizar solicitudes usando tu cuenta, a la que se le ha concedido acceso a la cuenta de un anunciante, por ejemplo, una [Agency](https://business.x.com/en/blog/agencies-manage-multiple-Twitter-Ads-accounts.html) que da soporte a varias cuentas.
+
+Este documento ofrece una breve descripción general de las diferencias entre estas opciones y debe usarse junto con nuestros otros recursos, como las [preguntas frecuentes sobre inicio de sesión multiusuario](https://business.x.com/en/help/troubleshooting/multi-user-login-faq.html). 
+
+Como se describe en [Autorizar una solicitud](/es/resources/fundamentals/authentication#authorizing-a-request#authorizing-a-request), todas las solicitudes a la Ads API requieren encabezados de autorización usando [OAuth 1.0a](/es/resources/fundamentals/authentication) con un token de acceso obtenido mediante el flujo [3-legged](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow)[OAuth](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow). Tu aplicación deberá implementar un flujo OAuth basado en la web para [obtener tokens de acceso](/es/resources/fundamentals/authentication#oauth-1-0a-2). Los desarrolladores de la Ads API nunca deben solicitar a nuestros anunciantes de X que compartan sus credenciales de inicio de sesión.
+
+De forma predeterminada, cada [aplicación de desarrollador de X](/es/resources/fundamentals/developer-apps) contiene un **token de acceso** estático que se puede usar para realizar solicitudes a la Ads API para la cuenta que es propietaria de la aplicación. Estas credenciales son ideales para casos de uso de una sola cuenta, sin requerir un flujo OAuth [3-legged](/es/resources/fundamentals/authentication#oauth-1-0a-2) o basado en [PIN](/es/resources/fundamentals/authentication#pin-based-authorization). Si no vas a acceder a otra cuenta de anuncios de X, usa estas credenciales de [usuario único](/es/resources/fundamentals/authentication#oauth-1-0a-2) en lugar de seguir los pasos que se indican a continuación.
+
+<div id="levels-of-access">
+  ## Niveles de acceso
+</div>
+
+<div id="app-level-permissions">
+  ### Permisos a nivel de aplicación
+</div>
+
+Cada usuario tendrá un nivel de acceso según lo solicitado al [solicitar acceso a la Ads API](/es/x-ads-api/getting-started/step-by-step-guide):
+
+* **Solo conversiones**: El usuario tiene acceso a los endpoints de [móviles](/es/x-ads-api/measurement/mobile-conversions) y de [conversiones web](/es/x-ads-api/measurement/web-conversions) con acceso de [lectura y escritura](/es/resources/fundamentals/developer-apps).
+* **Acceso estándar**: El usuario tiene acceso a los endpoints de [Analytics](/es/x-ads-api/analytics), [Campaign Management](https://developer.x.com/en/docs/twitter-ads-api/campaign-management/overview), [Creatives](https://developer.x.com/en/docs/twitter-ads-api/creatives/overview), [Custom Audiences](https://developer.x.com/en/docs/twitter-ads-api/audiences/overview) y [Conversion](/es/x-ads-api/measurement/web-conversions) con acceso de [lectura y escritura](/es/resources/fundamentals/developer-apps).
+
+**Nota:** Los desarrolladores de la Ads API que solicitaron acceso antes de julio de 2023 pueden tener diferentes niveles de acceso y permisos, y pueden estar limitados a cinco tokens OAuth. Consulta nuestra guía sobre [aumentar el acceso](/es/x-ads-api/getting-started/increasing-access) para obtener acceso a endpoints adicionales o levantar los límites de tokens para aplicaciones existentes.
+
+<div id="ad-account-level-permissions">
+  ### Permisos a nivel de cuenta de anuncios
+</div>
+
+Cada usuario que tenga acceso a una cuenta de anuncios tendrá un permiso específico a nivel de cuenta: **Administrador de cuenta**, **Administrador de anuncios**, **Analista de campañas**, **Analista orgánico** y **Administrador creativo**; consulta **business.x.com** para la documentación más reciente sobre los permisos a nivel de cuenta. Las aplicaciones deben obtener los permisos del usuario autenticado actual mediante el endpoint de API [Authenticated User Access](/es/x-ads-api/campaign-management#authenticated-user-access) para determinar a qué endpoints de la API y a qué funcionalidades de Ads puede acceder.
+
+**Nota:** Cualquier token de usuario utilizado con la [Conversion API](/es/x-ads-api/measurement/web-conversions) debe pertenecer a usuarios con permisos a nivel de cuenta de **Administrador de cuenta** o **Administrador de anuncios**.                                                                                                                                              
+
+<div id="methods-of-obtaining-access-tokens">
+  ## Métodos para obtener tokens de acceso
+</div>
+
+<div id="1-obtain-an-advertisers-user-access-token">
+  ### 1. Obtén el token de acceso (Usuario) de un anunciante
+</div>
+
+Hay dos métodos para obtener el **token de acceso** de un anunciante. El método más común es mediante un [flujo OAuth de 3 partes (3-legged)](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) directamente desde tu interfaz web. Las aplicaciones que no tienen una interfaz de usuario públicamente accesible para los anunciantes pueden implementar un proceso OAuth [basado en PIN](/es/resources/fundamentals/authentication#pin-based-authorization). Después de que el usuario complete el flujo de 3 partes, tu aplicación tendrá credenciales para realizar solicitudes a su cuenta de anuncios (Ads) a través de la API.
+
+Obtener credenciales de usuario mediante un flujo OAuth es el método que **recomendamos encarecidamente** a la mayoría de los desarrolladores de la Ads API para obtener acceso a una cuenta de anunciante. Te permite llamar a la API en nombre de un usuario y realizar acciones como ese usuario. Estos tokens no expiran, pero el usuario puede revocarlos en cualquier momento.
+
+<div id="2-obtain-your-developer-access-token">
+  ### 2. Obtén tu token de acceso (desarrollador)
+</div>
+
+Esta opción requiere que el anunciante [conceda a tu @username](https://business.x.com/en/help/troubleshooting/multi-user-login-faq.html) (o @usernames) acceso a su cuenta de X Ads a través de la interfaz de X en business.x.com. Los **tokens de acceso** obtenidos mediante el flujo OAuth con 3 participantes (3-legged OAuth) para tu cuenta podrán acceder a la cuenta de X Ads del anunciante.
+
+Esto te permite llamar a la API usando los tokens OAuth de tu propio @username en lugar de los tokens OAuth del anunciante. La diferencia clave de esta opción es que solo podrás crear Publicaciones solo promocionadas si a tu @username se le ha concedido el permiso de delegación o de composición de Publicaciones.
+
+Para obtener acceso para crear Publicaciones solo promocionadas en nombre del usuario promocionable `FULL` de la cuenta, también se te debe conceder acceso para crear Publicaciones en este flujo. Esto habilitará el acceso mediante el permiso `TWEET_COMPOSER` en el endpoint [GET accounts/:account&#95;id/authenticated&#95;user&#95;access](/es/x-ads-api/campaign-management#accounts).
+
+<div id="differences-between-these-methods">
+  ## Diferencias entre estos métodos
+</div>
+
+|     |     |     |
+| :--- | :--- | :--- |
+|     | Token OAuth del anunciante (usuario) | Token OAuth del desarrollador  <br /> (@username añadido a cuenta separada) |
+| Acceder a la cuenta de anuncios | ✔   | ✔   |
+| Crear publicaciones en nombre del usuario | ✔   | ✔*  |
+| Administrar campañas | ✔   | ✔   |
+| Acceder a las analíticas | ✔   | ✔   |
+| Crear Cards en nombre del usuario | ✔   | ✔   |
+| Capacidad del desarrollador de acceder  <br />a través de la interfaz de usuario de X Ads |     | ✔   |
+| [Límites de frecuencia](/es/x-api/enterprise-gnip-2.0/fundamentals/rate-limits) | Específico de cada anunciante | Específico de cada cuenta de anunciante |
+
+<Note>
+  **Nota:** Consulta la sección **[Obtain your (Developer) access token](/es/x-ads-api/fundamentals/accessing-ads-accounts#2-obtain-your-developer-access-token)** anterior para más detalles.
+</Note>
+
+<div id="sample-use-case">
+  ## Ejemplo de caso de uso
+</div>
+
+<div id="advertisers-access-token-via-oauth-3-legged-web-flow">
+  ### Token de acceso del anunciante mediante el flujo web OAuth de 3 partes
+</div>
+
+El flujo estándar es web y utiliza el flujo OAuth de [autorización de 3 partes](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow). Las capturas de pantalla descritas aquí forman parte de un ejemplo cuyo código fuente puedes ver en [https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web).
+
+En algún punto de tu aplicación, querrás redirigir al usuario a X para autorizar tu aplicación
+
+<Frame>
+  <img src="https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/images/twauth-web-2.png" alt="image0" />
+</Frame>
+
+Cuando rediriges a X con el token de solicitud, se le pedirá al usuario que autorice tu aplicación
+
+<Frame>
+  <img src="https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/images/twauth-web-3.png" alt="image1" />
+</Frame>
+
+Una vez que el usuario autorice tu aplicación, será redirigido a la URL de callback que proporcionaste cuando generaste el token de solicitud. Usarás esa redirección para obtener el token de acceso permanente para este usuario y almacenarlo localmente.
+
+<Frame>
+  <img src="https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/images/twauth-web-4.png" alt="image" />
+</Frame>

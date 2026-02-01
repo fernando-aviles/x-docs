@@ -1,0 +1,147 @@
+---
+title: 認証付きリクエストの実行
+keywords: ["Ads API authentication", "authenticated requests", "Ads API auth", "OAuth Ads API", "Ads API requests", "authentication"]
+---
+
+X Ads APIのエンドポイントにアクセスするには、アプリケーションから https://ads-api.x.com に対して、TLS を使用した安全な認証付きの Web リクエストを送信する必要があります。
+
+以下のセクションでは、認証付き API リクエストの概要、API と連携するための [Twurl](https://github.com/twitter/twurl#getting-started) のセットアップ方法、そしてアプリケーションを拡張して OAuth 1.0a に対応させ、Ads アカウントに対してリクエストを送信する方法について説明します。
+
+<div id="requirements">
+  ## 要件
+</div>
+
+X Ads API に対して認証付きリクエストを送信する前に、次のものが必要です。
+
+* [承認済みの開発者アカウント](/ja/resources/fundamentals/developer-portal)
+* [Ads API](/ja/x-ads-api/introduction) へのアクセスが承認されているアプリケーション
+* [アプリ管理 UI](/ja/resources/fundamentals/developer-apps) を通じて取得した API キーとシークレット
+* X Ads アカウントへのアクセス権を持つユーザーの [アクセストークン](/ja/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow)
+
+<div id="using-the-api">
+  ## API の使用
+</div>
+
+Advertising API には https://ads-api.x.com からアクセスします。[標準 REST API](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/overview) と Advertising API は、同じクライアントアプリケーションで併用できます。Advertising API では HTTPS が必須のため、HTTP でエンドポイントへアクセスしようとするとエラーメッセージが返されます。
+
+Ads API は JSON を出力します。すべての識別子は文字列であり、すべての文字列は UTF-8 です。Advertising API は[バージョン管理](/ja/x-ads-api/fundamentals/versioning)されており、バージョンはすべてのリソース URL において先頭のパス要素として指定されます。
+
+`https://ads-api.x.com/&lt;version&gt;/accounts`
+
+<div id="http-verbs-typical-response-codes">
+  ## HTTP メソッドと一般的なレスポンスコード
+</div>
+
+Ads API で使用される HTTP メソッドは次の 4 種類です:
+
+* **GET** はデータを取得します
+* **POST** はキャンペーンなどの新しいデータを作成します
+* **PUT** はラインアイテムのような既存データを更新します
+* **DELETE** はデータを削除します。
+
+削除操作は恒久的ですが、リソースを取得するときに明示的に `with_deleted=true` パラメータを含めることで、ほとんどの GET ベースのメソッドから削除済みデータを閲覧できます。指定しない場合、削除済みレコードは HTTP 404 を返します。
+
+リソースの作成、削除、更新が成功したリクエストは、対象オブジェクトを表す JSON レスポンスとともに HTTP 200 番台のレスポンスを返します。
+
+HTTP PUT でデータを更新する場合、指定されたフィールドのみが更新されます。パラメータに空文字列を指定することで任意の項目の値を未設定にできます。例として、次のパラメーターの組み合わせは、すでに指定されている `end_time` を未設定にします: `&end_time=&paused=false`。
+
+エラーレスポンスの詳細については、[Error Codes &amp; Responses](/ja/x-ads-api/fundamentals/error-codes-and-responses) を参照してください。
+
+<div id="in-line-parameters">
+  ## インラインパラメーター
+</div>
+
+ほとんどのリソース URL には 1 つ以上のインラインパラメーターがあります。多くの URL は、クエリ文字列で明示的に指定されたパラメーターや、POST や PUT リクエストの場合にはボディ内のパラメーターも受け取ります。
+
+インラインパラメーターは、各リソースの **Resource Path** セクション内で、先頭にコロン（&quot;:&quot;）を付けた形式で表記されます。たとえば、作業対象のアカウントの識別子が `"abc1"` で、そのアカウントに関連付けられたキャンペーンを[取得する](/ja/x-ads-api/campaign-management#campaigns)場合、URL `https://ads-api.x.com/6/accounts/abc1/campaigns` を使用してその一覧にアクセスします。リソース URL（`https://ads-api.x.com/6/accounts/:account_id/campaigns`）で示されているインラインの `account_id` パラメーターを指定することで、そのリクエストの対象範囲を、そのアカウントに関連付けられたオブジェクトのみに限定することになります。
+
+<div id="using-access-tokens">
+  ## アクセストークンの使用
+</div>
+
+X Ads API は署名付き HTTPS リクエストを使用してアプリケーションの ID を検証し、アプリケーションが代理で API リクエストを行っているエンドユーザーに付与された権限を取得します。これはユーザーのアクセストークンによって表されます。Ads API へのすべての HTTP リクエストには、HTTPS プロトコル上で OAuth 1.0a を使用した Authorization リクエストヘッダーを含める必要があります。
+
+X Ads API と統合するには、アプリケーションで OAuth 1.0a の Authorization リクエストヘッダーを生成できるようにする必要があります。ただし、署名付きリクエストを生成する処理は複雑であるため、X API をサポートしている、または OAuth 1.0a のリクエスト処理を実装している既存のライブラリをパートナーの皆様にご利用いただくことを強く推奨します。こちらに [推奨 OAuth ライブラリ](/ja/resources/fundamentals/authentication#oauth-1-0a-2) と [認証コードサンプル](/ja/resources/fundamentals/authentication#oauth-1-0a-2) の一覧があります。
+
+既知のライブラリを使用していて認証エラーが発生したパートナーには支援を提供できますが、独自実装の OAuth についてはサポートできない点にご注意ください。
+
+<div id="http-oauth">
+  ## HTTP と OAuth
+</div>
+
+X REST API v1.1 と同様に、Advertising API では [OAuth 1.0A](/ja/resources/fundamentals/authentication) と HTTPS の両方を使用する必要があります。API キーは [app management console](/ja/resources/fundamentals/developer-apps) から取得できます。アクセストークンは「現在のユーザー」を表すためにも使用しなければなりません。現在のユーザーとは、広告機能を持つ X アカウントのことです。
+
+パートナーには、自前で実装するのではなく、OAuth ライブラリを使用することを強く推奨します。既知のライブラリを使用している場合はデバッグのサポートが可能ですが、自作の OAuth 実装についてはサポートできません。使用できる [ライブラリ](/ja/resources/fundamentals/authentication#oauth-1-0a-2) を参照してください。
+
+この API は HTTP/1.1 と OAuth に関して厳格です。OAuth 署名ベース文字列を準備する前に、URL および POST ボディ内で [予約文字をエンコード](https://tools.ietf.org/html/rfc3986#section-2.2) していることを確認してください。特に Advertising API では、時間を指定する際に「:」文字を、オプションの集合を指定する際に「,」文字を使用します。どちらの文字も、次の予約文字セットに含まれます。
+
+| Symbol | URL Encoded |
+| :--- | :--- |
+| !   | %21 |
+| #   | %23 |
+| $   | %24 |
+| &amp;   | %26 |
+| &#39;   | %27 |
+| (   | %28 |
+| )   | %29 |
+| *   | %2A |
+| +   | %2B |
+| ,   | %2C |
+| /   | %2F |
+| :   | %3A |
+| ;   | %3B |
+| =   | %3D |
+| ?   | %3F |
+| @   | %40 |
+| [   | %5B |
+| ]   | %5D |
+
+<div id="making-your-first-api-request-with-twurl">
+  ## Twurl を使って初めての API リクエストを行う
+</div>
+
+X は、コマンドラインツール [Twurl](https://developer.x.com/en/docs/tutorials/using-twurl) の開発・保守に関わっており、これは [cURL](https://en.wikipedia.org/wiki/CURL) の代替として OAuth 1.0a 認可ヘッダーをサポートします。Twurl を使用すると、認証付きの API リクエストを簡単に送信でき、アプリケーションに認証を組み込む前に Ads API を手軽に試すことができます。
+
+[Twurl をインストールして認可](https://github.com/twitter/twurl#getting-started) を行った後は、アクセストークンをすばやく生成し、Ads API への認証付きリクエストを実行できます。
+
+```bash
+twurl -H "ads-api.x.com" "/5/accounts/"
+```
+
+Twurl と API の使い方に慣れるために、API を通じてキャンペーンを作成する [ステップバイステップ](/ja/x-ads-api/campaign-management#creating-a-campaign-step-by-step) チュートリアルを一通り実行してみてください。
+
+<div id="testing-with-postman">
+  ## Postman でのテスト
+</div>
+
+コマンドラインツールの利用に慣れていない方のために、X Ads API のエンドポイント向けの Postman コレクションも提供しています。
+
+[Postman](https://www.getpostman.com/products) は、現在業界で最も広く利用されている API 開発ツールの 1 つです。複雑な API リクエストを簡単に送信できるようにし、生産性を高める優れたユーザーインターフェースを備えた HTTP クライアントです。
+
+Postman をインストールして Ads API 用 Postman コレクションの利用を開始するには、[セットアップガイド](https://github.com/xdevplatform/postman-twitter-ads-api#installation)を参照してください。
+
+<Button href="https://app.getpostman.com/run-collection/369a02c0adc626ff6a06#?env%5BTwitter%20Ads%20API%5D=W3sia2V5IjoiYWNjb3VudF9pZCIsInZhbHVlIjoieW91cl9hZHNfYWNjb3VudF9pZCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidmVyc2lvbiIsInZhbHVlIjoiNiIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY29uc3VtZXJfa2V5IiwidmFsdWUiOiJ5b3VyX2NvbnN1bWVyX2tleSIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY29uc3VtZXJfc2VjcmV0IiwidmFsdWUiOiJ5b3VyX2NvbnN1bWVyX3NlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiYWNjZXNzX3Rva2VuIiwidmFsdWUiOiJ5b3VyX2FjY2Vzc190b2tlbiIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidG9rZW5fc2VjcmV0IiwidmFsdWUiOiJ5b3VyX3Rva2VuX3NlY3JldCIsImVuYWJsZWQiOnRydWV9XQ==">
+  Postman で実行
+</Button>
+
+<div id="extending-your-application-to-make-authenticated-requests">
+  ### 認証付きリクエストを行うようにアプリケーションを拡張する
+</div>
+
+Twurl を使って Ads API へのリクエスト方法に慣れたら、次はアプリケーションに OAuth 1.0a 認証ヘッダーを作成する機能への対応を追加します。
+
+[OAuth 1.0a](/ja/resources/fundamentals/authentication) 認証ヘッダーには、アプリケーションとユーザーの両方の身元を検証し、リクエストの改ざんを防ぐための情報が含まれます。アプリケーションは、各 API リクエストごとに新しい Authorization ヘッダーを作成する必要があります。多くの言語には、この認証ヘッダーを作成して X への API リクエストを行う処理をサポートするオープンソースライブラリがあります。
+
+C#、PHP、Ruby、Python を使用した例については、[コードサンプル](/ja/resources/fundamentals/authentication#oauth-1-0a-2)を参照してください。
+
+<div id="custom-implementation">
+  ## カスタム実装
+</div>
+
+一部のケースでは、オープンソースライブラリに依存せずに OAuth 1.0a 認証を実装する必要があります。[リクエストの認可](/ja/resources/fundamentals/authentication#authorizing-a-request)では、Authorization ヘッダーを作成するための実装手順を詳しく説明しています。コミュニティによってサポートされているライブラリの使用を強く推奨します。
+
+全体の流れ:
+
+1. ヘッダー用に、先頭が oauth&#95; の 7 つのキー/値ペアを収集します
+2. これらのキー/値ペアを使用して [OAuth 1.0a HMAC-SHA1 署名](/ja/resources/fundamentals/authentication#creating-a-signature)を生成します
+3. 上記の値を使用して [Authorization ヘッダー](/ja/resources/fundamentals/authentication#authorizing-a-request)を構築します

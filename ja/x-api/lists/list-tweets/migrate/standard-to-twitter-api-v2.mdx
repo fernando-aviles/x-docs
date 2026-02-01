@@ -1,0 +1,180 @@
+---
+title: v1 から v2 へ
+sidebarTitle: v1 から v2 へ
+keywords: ["v1.1 から v2 への移行", "リストツイートの移行", "リストツイートを移行する方法", "Standard v1.1 から v2 へのリストツイート移行", "v1 から v2 へのリストツイート移行", "移行ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="list-posts-lookup-standard-v11-compared-to-x-api-v2">
+  ### List 投稿ルックアップ：Standard v1.1 と X API v2 の比較
+</div>
+
+Standard v1.1 の [GET lists/statuses](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-statuses) エンドポイントを利用している場合、このガイドの目的は、Standard v1.1 と X API v2 の各エンドポイントの共通点と相違点を理解するのに役立てることです。
+
+* **類似点**
+  * 認証方法
+  * レート制限
+* **相違点**
+  * エンドポイント URL
+  * アプリおよび Project の要件
+  * リクエストごとのデータオブジェクト数の上限
+  * レスポンスのデータ形式
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+どちらのエンドポイントバージョンも、[OAuth 1.0a ユーザーコンテキスト](/ja/resources/fundamentals/authentication#oauth-2-0) をサポートしています。したがって、以前に Standard v1.1 の List 投稿ルックアップエンドポイントのいずれかを使用していた場合は、X API v2 バージョンに移行しても、同じ認証方法を引き続き使用できます。
+
+使用する認証ライブラリ／パッケージによっては、アプリ専用認証が最も簡単な始め方となる可能性が高く、シンプルなリクエストヘッダーで設定できます。アプリ専用アクセストークンの生成方法については、[このアプリ専用ガイド](/ja/resources/fundamentals/authentication#bearer-token-also-known-as-app-only)を参照してください。
+
+**レート制限**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| /1.1/lists/statuses.json<br /><br />OAuth 1.0a ユーザーコンテキストで 15 分間に 900 リクエスト<br /><br />アプリ専用で 15 分間に 900 リクエスト | /2/lists/:id/tweets<br /><br />OAuth 1.0a ユーザーコンテキストで 15 分間に 900 リクエスト<br /><br />OAuth 2.0 Authorization Code with PKCE で 15 分間に 900 リクエスト<br /><br />アプリ専用で 15 分間に 900 リクエスト |
+
+<div id="differences">
+  #### 相違点
+</div>
+
+**エンドポイント URL**
+
+* 標準 v1.1 エンドポイント:
+  * GET https://api.x.com/1.1/lists/statuses.json
+    (指定したリストからツイートを取得)
+* X API v2 エンドポイント:
+  * GET https://api.x.com/2/lists/:id/tweets
+    (指定したリストからツイートを取得)
+
+**App および Project の要件**
+
+X API v2 のエンドポイントでは、リクエストを認証する際に、[Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報を使用する必要があります。すべての X API v1.1 エンドポイントは、単体の App または Project に関連付けられた App の認証情報を使用できます。
+
+**1 回のリクエストあたりのデータオブジェクト数の制限**
+
+標準 v1.1 の /lists/statuses エンドポイントでは、1 回のリクエストで最大 5000 件の投稿を返すことができます。新しい v2 エンドポイントでは、1 回のリクエストで最大 100 件の投稿を返すことができます。デフォルトでは 100 個のユーザーオブジェクトが返されます。結果数を変更するには、クエリパラメータ max&#95;results= に 1〜100 の数値を指定する必要があります。その後、レスポンス ペイロードで返される next&#95;token を、次のリクエストの pagination&#95;token クエリパラメータに指定できます。
+
+**レスポンスデータ形式**
+
+標準 v1.1 と X API v2 のエンドポイントバージョンの最大の違いの 1 つは、どのフィールドをペイロードに含めるかの選択方法です。
+
+標準エンドポイントでは、多くのレスポンスフィールドがデフォルトで返され、そのうえで、追加で返したいフィールドやフィールドセットを特定するためのパラメータを使用できます。
+
+X API v2 のエンドポイントでは、デフォルトでは投稿の id と text フィールドのみが返されます。追加のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) および [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。このエンドポイントからリクエストした投稿フィールドは、すべてプライマリ投稿オブジェクト内で返されます。展開されたオブジェクトのフィールドは、レスポンス内の includes オブジェクトで返されます。その後、プライマリオブジェクトと展開されたオブジェクトの ID を照合することで、展開されたオブジェクトをプライマリ投稿オブジェクトに対応付けることができます。
+
+以下は、指定可能な投稿フィールドと展開の例です。
+
+* attachments
+* author&#95;id
+* context&#95;annotations
+* created&#95;at
+* geo
+* lang
+
+|     |     |
+| :--- | :--- |
+| **Endpoint** | **Expansion** |
+| /2/lists/:id/tweets | author&#95;id |
+
+これらの新しいパラメータの詳細については、それぞれのガイド、もしくは [fields と expansions の使用方法](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドを参照することをお勧めします。
+
+また、標準 v1.1 のフィールドを新しい v2 のフィールドにマッピングするのに役立つ [データ形式移行ガイド](/ja/x-api/migrate/data-format-migration) も用意しています。このガイドでは、特定のフィールドを返すために、v2 リクエストで指定する必要がある具体的な expansion および field パラメータも示しています。
+
+特定のフィールドのリクエスト方法の変更に加えて、X API v2 では、[Post](/ja/x-api/fundamentals/data-dictionary#tweet) や [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトを含む、API が返すオブジェクトの新しい JSON 設計も導入しています。
+
+* JSON のルートレベルでは、標準エンドポイントは投稿オブジェクトを **statuses** 配列で返しますが、X API v2 は **data** 配列で返します。
+
+* リツイートおよび引用「statuses」を参照する代わりに、X API v2 の JSON ではリツイートおよび引用ツイートを参照します。**contributors** や **user.translator&#95;type** など、多くのレガシー／非推奨フィールドは削除されます。
+
+* 投稿オブジェクトでの **favorites** と user オブジェクトでの **favourites** の両方を使用する代わりに、X API v2 では **like** という用語を使用します。
+
+* X では、値を持たない JSON 値 (たとえば **null**) はペイロードに書き込まないという規約を採用しています。投稿およびユーザー属性は、値が null でない場合にのみ含まれます。
+
+**リクエストパラメータ**
+
+次の標準 v1.1 のリクエストパラメータには、X API v2 で次のような対応があります。
+
+|     |     |
+| :--- | :--- |
+| Standard v1.1 | X API v2 |
+| list&#95;id | id  |
+| slug | 対応なし |
+| owner&#95;screen&#95;name | 対応なし |
+| owner&#95;id | expansions パラメータで author&#95;id を指定してリクエスト |
+| since&#95;id | 対応なし |
+| max&#95;id | 対応なし |
+| include&#95;entities | tweet.fields パラメータで entities を指定してリクエスト |
+| include&#95;rts | 対応なし |
+| count | max&#95;results |
+
+***
+
+<div id="code-examples">
+  ## コード例
+</div>
+
+<div id="get-posts-from-a-list-v2">
+  ### リストから投稿を取得する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422/tweets?tweet.fields=created_at,public_metrics&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/lists/84839422/tweets"
+
+  params = {
+      "tweet.fields": "created_at,public_metrics",
+      "max_results": 100
+  }
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  response = requests.get(url, headers=headers, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # リストから投稿を取得する
+  for page in client.lists.get_tweets(
+      "84839422",
+      tweet_fields=["created_at", "public_metrics"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // リストから投稿を取得する
+  const paginator = client.lists.getTweets("84839422", {
+    tweetFields: ["created_at", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>

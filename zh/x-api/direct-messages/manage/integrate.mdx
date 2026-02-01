@@ -1,0 +1,315 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+description: 发送私信的关键概念与最佳实践
+keywords: ["管理私信集成", "私信管理集成", "发送私信集成"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南介绍在你的应用中集成 Direct Messages 管理端点所需的关键概念。
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+DM 端点需要通过用户身份验证：
+
+| 方法 | 描述 |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 推荐 |
+| [OAuth 1.0a 用户上下文](/zh/resources/fundamentals/authentication) | 遗留支持 |
+
+<Warning>
+  不支持仅应用程序身份验证（App-Only authentication）。所有私信（Direct Message）都是私密的。
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### 必需的 scope（OAuth 2.0）
+</div>
+
+| Scope | 所需场景 |
+|:------|:-------------|
+| `dm.write` | 发送和删除消息 |
+| `dm.read` | 与 `dm.write` 搭配时必需 |
+| `tweet.read` | 使用任意 DM 相关 scope 时必需 |
+| `users.read` | 使用任意 DM 相关 scope 时必需 |
+
+***
+
+<div id="endpoints-overview">
+  ## 端点概览
+</div>
+
+| 方法 | 端点 | 说明 |
+|:-------|:---------|:------------|
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 发送一对一消息 |
+| POST | `/2/dm_conversations` | 创建群组会话 |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 向会话添加消息 |
+| DELETE | `/2/dm_events/:event_id` | 删除消息 |
+
+***
+
+<div id="sending-messages">
+  ## 发送消息
+</div>
+
+<div id="one-to-one-message">
+  ### 一对一私信
+</div>
+
+向指定用户发送私信。如果会话尚不存在，则会创建一个新会话：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 发送一条一对一私信
+  response = client.dm_conversations.create_message(
+      participant_id="9876543210",
+      text="Hello!"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 发送一条一对一私信
+  const response = await client.dmConversations.createMessage({
+    participantId: "9876543210",
+    text: "Hello!",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="group-conversation">
+  ### 群组会话
+</div>
+
+创建一个新的群组会话并发送第一条消息：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "conversation_type": "Group",
+      "participant_ids": ["944480690", "906948460078698496"],
+      "message": {"text": "Welcome to our group!"}
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 创建一个群组会话
+  response = client.dm_conversations.create(
+      conversation_type="Group",
+      participant_ids=["944480690", "906948460078698496"],
+      message={"text": "Welcome to our group!"}
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 创建一个群组会话
+  const response = await client.dmConversations.create({
+    conversationType: "Group",
+    participantIds: ["944480690", "906948460078698496"],
+    message: { text: "Welcome to our group!" },
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Note>
+  `conversation_type` 字段必须设置为 `"Group"`（区分大小写）。
+</Note>
+
+<div id="add-to-existing-conversation">
+  ### 向现有会话添加消息
+</div>
+
+向你所在的任何会话发送消息：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Another message"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 向现有会话添加消息
+  response = client.dm_conversations.add_message(
+      dm_conversation_id="1582103724607971328",
+      text="Another message"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 向现有会话添加消息
+  const response = await client.dmConversations.addMessage({
+    dmConversationId: "1582103724607971328",
+    text: "Another message",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-attachments">
+  ## 媒体附件
+</div>
+
+在每条消息中附加一条媒体内容（照片、视频或 GIF）。
+
+<Steps>
+  <Step title="上传媒体">
+    使用 [Media Upload endpoint](/zh/x-api/media/quickstart/media-upload-chunked) 上传你的文件并获取一个 `media_id`。
+  </Step>
+
+  <Step title="在消息中包含">
+    ```json
+    {
+      "text": "Check out this image!",
+      "attachments": [{"media_id": "1583157113245011970"}]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  * 已认证用户必须是该媒体的上传者
+  * 媒体在上传后的 24 小时内可用
+  * 每条消息仅支持一个附件
+</Note>
+
+***
+
+<div id="sharing-posts">
+  ## 分享帖子
+</div>
+
+在消息内容中添加帖子 URL，即可在消息中包含该帖子：
+
+```json
+{
+  "text": "Have you seen this? https://x.com/XDevelopers/status/1580559079470145536"
+}
+```
+
+该响应将包含一个 `referenced_tweets` 字段，其中带有帖子 id。
+
+***
+
+<div id="message-requirements">
+  ## 消息要求
+</div>
+
+| 字段 | 是否必需 | 说明 |
+|:------|:---------|:------|
+| `text` | 是* | 如果没有附件则为必需 |
+| `attachments` | 是* | 如果没有文本则为必需 |
+
+*`text` 或 `attachments` 至少必须提供一个。
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## ID 与 v1.1 的兼容性
+</div>
+
+会话和事件 id 在 v1.1 和 v2 端点之间是共享的。这使你可以采用混合工作流：
+
+* 使用 v2 创建消息
+* 使用 v1.1 删除消息（v2 中尚不可用）
+* 通过 x.com URL 引用会话 id
+
+***
+
+<div id="error-handling">
+  ## 错误处理
+</div>
+
+| 状态码 | 错误 | 解决方案 |
+|:-------|:------|:---------|
+| 400 | 无效请求 | 检查请求体格式 |
+| 401 | 未授权 | 验证访问令牌 |
+| 403 | 禁止访问 | 检查作用域（scope）和用户权限 |
+| 429 | 请求过多 | 等待后重试 |
+
+<div id="common-issues">
+  ### 常见问题
+</div>
+
+<AccordionGroup>
+  <Accordion title="无法向用户发送消息">
+    接收方的私信设置可能阻止接收来自陌生用户的消息，或者对方已将你拉黑。
+  </Accordion>
+
+  <Accordion title="媒体附件失败">
+    确保媒体由同一已通过身份验证的用户上传，且上传时间在 24 小时以内。
+  </Accordion>
+
+  <Accordion title="群组创建失败">
+    确认所有参与者的 id 均有效，且这些用户允许接收群组私信邀请。
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="快速开始" icon="rocket" href="/zh/x-api/direct-messages/manage/quickstart">
+    发送你的第一条私信
+  </Card>
+
+  <Card title="私信查询" icon="inbox" href="/zh/x-api/direct-messages/lookup/introduction">
+    获取私信会话记录
+  </Card>
+
+  <Card title="媒体上传" icon="image" href="/zh/x-api/media/quickstart/media-upload-chunked">
+    上传用于附件的媒体
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/direct-messages/create-dm-message-by-participant-id">
+    完整端点参考文档
+  </Card>
+</CardGroup>

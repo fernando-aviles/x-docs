@@ -1,0 +1,234 @@
+---
+title: 过滤流
+sidebarTitle: 介绍
+description: 实时获取符合你的过滤规则的帖子流
+keywords: ["过滤流", "流式 API", "实时流", "流式传输推文", "过滤规则", "流式端点", "实时推文", "实时数据", "Webhook 流"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+Filtered Stream 端点让你能够接收与过滤规则匹配的实时帖子。使用强大的运算符创建规则，然后连接到持久流，在帖子发布的同时接收匹配的帖子。
+
+<div id="overview">
+  ## 概览
+</div>
+
+<CardGroup cols={2}>
+  <Card title="实时推送" icon="bolt">
+    在帖子发布后的数秒内即可收到
+  </Card>
+
+  <Card title="持久规则" icon="filter">
+    无需断开连接即可添加和删除规则
+  </Card>
+
+  <Card title="强大运算符" icon="magnifying-glass">
+    匹配关键词、话题标签、用户等
+  </Card>
+
+  <Card title="Webhook 推送" icon="webhook">
+    可选择通过 Webhook 接收帖子
+  </Card>
+</CardGroup>
+
+***
+
+<div id="how-it-works">
+  ## 工作原理
+</div>
+
+1. **创建规则** — 使用运算符定义过滤规则
+2. **连接到流** — 建立持久的 HTTP 连接
+3. **接收帖子** — 实时接收匹配的帖子
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│ Create/     │      │ Connect to  │      │ Receive     │
+│ manage      │  →   │ streaming   │  →   │ matching    │
+│ rules       │      │ endpoint    │      │ Posts       │
+└─────────────┘      └─────────────┘      └─────────────┘
+```
+
+***
+
+<div id="endpoints">
+  ## 端点
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| GET | [`/2/tweets/search/stream`](/zh/x-api/stream/stream-filtered-posts) | 连接到流式端点 |
+| POST | [`/2/tweets/search/stream/rules`](/zh/x-api/stream/update-stream-rules) | 添加或删除规则 |
+| GET | [`/2/tweets/search/stream/rules`](/zh/x-api/stream/get-stream-rules) | 列出当前规则 |
+
+***
+
+<div id="access-levels">
+  ## 访问级别
+</div>
+
+| 功能 | 按使用量付费 | 企业版 |
+|:--------|:------------|:-----------|
+| 每个 Project 的规则数 | 1,000 | 25,000+ |
+| 规则长度 | 1,024 字符 | 2,048 字符 |
+| 连接数 | 1 | 多个 |
+| 所有运算符 | ✓ | ✓ |
+
+<Card title="联系企业版团队" icon="building" href="https://developer.x.com/en/products/x-api/enterprise/enterprise-api-interest-form">
+  获取更高限额和更多功能
+</Card>
+
+***
+
+<div id="building-rules">
+  ## 创建规则
+</div>
+
+规则使用的运算符与搜索查询相同：
+
+```
+(AI OR "machine learning") lang:en -is:retweet
+```
+
+<div id="example-rules">
+  ### 示例规则
+</div>
+
+| 规则 | 匹配内容 |
+|:-----|:--------|
+| `#python` | 带有 #python 话题标签的帖子 |
+| `from:elonmusk` | 由 @elonmusk 发布的帖子 |
+| `"breaking news" has:images` | 同时包含该短语且带图片的帖子 |
+| `(@XDevelopers OR @X) -is:retweet` | 提及这些账号的帖子（不包括转发） |
+
+<Card title="构建规则" icon="filter" href="/zh/x-api/posts/filtered-stream/integrate/build-a-rule">
+  了解规则语法和运算符
+</Card>
+
+***
+
+<div id="connecting-to-the-stream">
+  ## 连接到流
+</div>
+
+建立一个持久的 HTTP 连接以接收帖子：
+
+```python
+import requests
+
+def stream_posts(bearer_token):
+    url = "https://api.x.com/2/tweets/search/stream"
+    headers = {"Authorization": f"Bearer {bearer_token}"}
+    
+    response = requests.get(url, headers=headers, stream=True)
+    
+    for line in response.iter_lines():
+        if line:
+            print(line.decode("utf-8"))
+```
+
+<div id="keep-alive-signals">
+  ### 保活信号
+</div>
+
+该流每 20 秒发送一行空行（`\r\n`）以维持连接。如果在 20 秒内既未收到任何 data，也未收到保活信号，请重新连接。
+
+<CardGroup cols={2}>
+  <Card title="处理断线" icon="plug" href="/zh/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    优雅地重新连接
+  </Card>
+
+  <Card title="处理流式数据" icon="stream" href="/zh/x-api/posts/filtered-stream/integrate/consuming-streaming-data">
+    高效处理帖子
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-delivery">
+  ## Webhook 投递
+</div>
+
+你无需维护持久连接，就可以通过 webhook 接收帖子：
+
+<Card title="Webhook 投递" icon="webhook" href="/zh/x-api/webhooks/stream/introduction">
+  为过滤流配置 webhook 投递
+</Card>
+
+***
+
+<div id="post-edits">
+  ## 帖子编辑
+</div>
+
+该流会传送已编辑的帖子及其编辑历史。每次编辑都会生成一个新的 Post id：
+
+```json
+{
+  "data": {
+    "id": "1234567893",
+    "text": "Hello world! (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891", "1234567893"]
+  }
+}
+```
+
+<Card title="帖子编辑基础知识" icon="clock-rotate-left" href="/zh/x-api/fundamentals/edit-posts">
+  详细了解帖子编辑
+</Card>
+
+***
+
+<div id="getting-started">
+  ## 入门
+</div>
+
+<Note>
+  **先决条件**
+
+  * 拥有已获批准的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 在 Developer Console 中创建的一个 [Project 和 App](/zh/resources/fundamentals/developer-apps)
+  * 你的 App 的 [Bearer Token](/zh/resources/fundamentals/authentication)
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="快速开始" icon="rocket" href="/zh/x-api/posts/filtered-stream/quickstart">
+    几分钟内即可连接到流
+  </Card>
+
+  <Card title="构建规则" icon="filter" href="/zh/x-api/posts/filtered-stream/integrate/build-a-rule">
+    学习规则语法
+  </Card>
+
+  <Card title="运算符参考" icon="list-check" href="/zh/x-api/posts/filtered-stream/integrate/operators">
+    所有可用的运算符
+  </Card>
+
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    可直接运行的代码示例
+  </Card>
+</CardGroup>
+
+***
+
+<div id="advanced-topics">
+  ## 高级主题
+</div>
+
+<CardGroup cols={2}>
+  <Card title="处理断开连接" icon="plug" href="/zh/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    优雅地重新连接
+  </Card>
+
+  <Card title="高流量处理能力" icon="gauge-high" href="/zh/x-api/posts/filtered-stream/integrate/handling-high-volume-capacity">
+    处理高吞吐量
+  </Card>
+
+  <Card title="恢复与冗余" icon="shield" href="/zh/x-api/posts/filtered-stream/integrate/recovery-and-redundancy-features">
+    构建具备高弹性的应用程序
+  </Card>
+
+  <Card title="匹配返回的帖子" icon="crosshairs" href="/zh/x-api/posts/filtered-stream/integrate/matching-returned-tweets">
+    识别匹配的规则
+  </Card>
+</CardGroup>

@@ -1,0 +1,197 @@
+---
+title: Consulta de marcadores
+sidebarTitle: Consulta de marcadores
+description: Recupera tus Publicaciones en Marcadores
+keywords: ["inicio rápido para consultar marcadores", "inicio rápido para consultar marcadores", "tutorial para consultar marcadores", "guía para consultar marcadores"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te muestra cómo recuperar tus Publicaciones guardadas en marcadores mediante X API.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * Un token de acceso de usuario (User Access Token) con el alcance `bookmark.read` (OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-bookmarks">
+  ## Obtén tus marcadores
+</div>
+
+<Steps>
+  <Step title="Obtén tu ID de usuario">
+    Necesitas el ID del usuario autenticado. Puedes obtenerlo usando el endpoint `/2/users/me` o el [endpoint de búsqueda de usuarios](/es/x-api/users/lookup/introduction).
+  </Step>
+
+  <Step title="Solicita tus marcadores">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/bookmarks?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      max_results=10" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # Obtener publicaciones marcadas con paginación
+      for page in client.bookmarks.get(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // Obtener publicaciones marcadas con paginación
+      const paginator = client.bookmarks.get("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Revisa la respuesta">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1501258597237342208",
+          "text": "¿Has creado un proyecto usando la X API que te gustaría compartir con la comunidad? ¡Nos encantaría saber de ti!",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 15,
+            "reply_count": 8,
+            "like_count": 89,
+            "quote_count": 3
+          }
+        },
+        {
+          "id": "1501258542258348032",
+          "text": "Esta es solo una de las maneras en que la innovación de los desarrolladores ayuda a hacer de X un lugar mejor...",
+          "created_at": "2024-01-15T09:15:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 22,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 7
+          }
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw4539n0vybdnx19ylpayqf16fjt4l"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-author-information">
+  ## Incluir información del autor
+</div>
+
+Utiliza expansions para obtener datos sobre los autores de las publicaciones:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/bookmarks?\
+  tweet.fields=created_at,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtener marcadores con información del autor
+  for page in client.bookmarks.get(
+      "2244994945",
+      tweet_fields=["created_at", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"]
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}...")
+      # La información del autor está en page.includes.users
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtener marcadores con información del autor
+  const paginator = client.bookmarks.get("2244994945", {
+    tweetFields: ["created_at", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}...`);
+    });
+    // La información del autor está en page.includes?.users
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="required-scopes">
+  ## Ámbitos obligatorios
+</div>
+
+Cuando uses OAuth 2.0 PKCE, tu token de acceso debe incluir estos ámbitos:
+
+| Ámbito | Descripción |
+|:------|:------------|
+| `bookmark.read` | Leer marcadores |
+| `tweet.read` | Leer datos de Publicación |
+| `users.read` | Leer datos de usuario (para el parámetro `expansions`) |
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Administrar marcadores" icon="bookmark" href="/es/x-api/posts/bookmarks/quickstart/manage-bookmarks">
+    Añadir y eliminar marcadores
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/posts/get-users-bookmarks">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

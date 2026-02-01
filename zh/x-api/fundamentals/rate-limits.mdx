@@ -1,0 +1,610 @@
+---
+title: X API 速率限制
+sidebarTitle: 速率限制
+description: X API v2 各端点的速率限制
+keywords: ["速率限制", "API 速率限制", "请求限制", "速率限制机制", "限流", "15 分钟窗口"]
+---
+
+速率限制控制你对每个端点可发起的请求次数。超出限制会返回 429 错误，直到时间窗口重置为止。
+
+***
+
+<div id="how-rate-limits-work">
+  ## 速率限制的工作原理
+</div>
+
+| 概念 | 描述 |
+|:--------|:------------|
+| **时间窗口** | 通常为 15 分钟或 24 小时 |
+| **按用户限制** | 适用于 OAuth 1.0a 或 OAuth 2.0 用户令牌 |
+| **按应用限制** | 适用于 Bearer Token（仅应用） |
+| **按端点限制** | 每个端点都有自己的限制 |
+
+***
+
+<div id="checking-your-limits">
+  ## 检查你的速率限制
+</div>
+
+响应头会显示你当前的速率限制情况：
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Header                   | Description       |
+| :----------------------- | :---------------- |
+| `x-rate-limit-limit`     | 允许的最大请求数          |
+| `x-rate-limit-remaining` | 当前时间窗口内剩余的请求数     |
+| `x-rate-limit-reset`     | 时间窗口重置时的 Unix 时间戳 |
+
+***
+
+<div id="rate-limit-tables">
+  ## 速率限制表
+</div>
+
+在下方查看每个端点的速率限制。你也可以在 [Developer Console](https://console.x.com) 中查看这些限制。
+
+<Note>
+  除非另有说明（例如“/24hrs”或“/sec”），否则所有限制均表示每 15 分钟的配额。
+</Note>
+
+<div id="posts-25-endpoints">
+  ### 帖子（25 个端点）
+</div>
+
+<div id="tweets-lookup">
+  #### 推文查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets` | 3,500/15min | 5,000/15min |
+| GET | `/2/tweets/:id` | 450/15min | 900/15min |
+
+<div id="recent-search">
+  #### 最近搜索
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 | 说明 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/recent` | 450/15 分钟 | 300/15 分钟 | 默认返回 10 条结果，最多 100 条；最大查询长度为 512 个字符 |
+
+<div id="full-archive-search">
+  #### 全量存档搜索
+</div>
+
+| Method | Endpoint | Per App | Per User | Notes |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/all` | 1/sec, 300/15min | 1/sec | 默认返回 10 条，最多 500 条结果；查询字符串长度上限为 1024 个字符 |
+
+<div id="post-counts">
+  #### 帖子数量
+</div>
+
+| Method | Endpoint | Per App | Per User | 说明 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/counts/recent` | 300/15min | — | 查询长度上限 512 |
+| GET | `/2/tweets/counts/all` | 300/15min | — | 查询长度上限 1024 |
+
+<div id="filtered-stream">
+  #### 过滤流
+</div>
+
+| Method | Endpoint | Per App | Per User | Notes |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/stream` | 50/15min | — | 1 个连接；1000 条规则；规则长度为 1024；每秒 250 条帖子 |
+| GET | `/2/tweets/search/stream/rules` | 450/15min | — | 1 个连接；1000 条规则；规则长度为 1024 |
+| POST | `/2/tweets/search/stream/rules` | 100/15min | — | 1 个连接；1000 条规则；规则长度为 1024 |
+
+<div id="manage-posts">
+  #### 管理帖子
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/tweets` | 10,000/24 小时 | 100/15 分钟 |
+| DELETE | `/2/tweets/:id` | — | 50/15 分钟 |
+
+<div id="timelines">
+  #### 时间线
+</div>
+
+| 方法 | 端点 | 每个应用程序 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/tweets` | 10,000/15 分钟 | 900/15 分钟 |
+| GET | `/2/users/:id/mentions` | 450/15 分钟 | 300/15 分钟 |
+| GET | `/2/users/:id/timelines/reverse_chronological` | — | 180/15 分钟 |
+
+<div id="likes-lookup">
+  #### 点赞查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/:id/liking_users` | 75/15min | 75/15min |
+| GET | `/2/users/:id/liked_tweets` | 75/15min | 75/15min |
+
+<div id="manage-likes">
+  #### 管理点赞
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/likes` | — | 50/15 分钟，1,000/24 小时 |
+| DELETE | `/2/users/:id/likes/:tweet_id` | — | 50/15 分钟，1,000/24 小时 |
+
+<div id="retweets-lookup">
+  #### 转发查询
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 | 备注 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/:id/retweeted_by` | 75/15min | 75/15min | — |
+| GET | `/2/tweets/:id/quote_tweets` | 75/15min | 75/15min | — |
+| GET | `/2/users/reposts_of_me` | — | 75/15min | 最多返回 100 条结果 |
+
+<div id="manage-retweets">
+  #### 管理转发
+</div>
+
+| 请求方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/retweets` | — | 50/15min |
+| DELETE | `/2/users/:id/retweets/:tweet_id` | — | 50/15min |
+
+<div id="hide-replies">
+  #### 隐藏回复
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| PUT | `/2/tweets/:tweet_id/hidden` | — | 50/15min |
+
+***
+
+<div id="users-14-endpoints">
+  ### 用户（14 个端点）
+</div>
+
+<div id="users-lookup">
+  #### 用户查找
+</div>
+
+| 方法 | Endpoint | 每个应用 | 每位用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users` | 300/15min | 900/15min |
+| GET | `/2/users/:id` | 300/15min | 900/15min |
+| GET | `/2/users/by` | 300/15min | 900/15min |
+| GET | `/2/users/by/username/:username` | 300/15min | 900/15min |
+| GET | `/2/users/me` | — | 75/15min |
+
+<div id="search-users">
+  #### 搜索用户
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/search` | 300/15min | 900/15min |
+
+<div id="follows-lookup">
+  #### 关注关系查询
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/following` | 300/15min | 300/15min |
+| GET | `/2/users/:id/followers` | 300/15min | 300/15min |
+
+<div id="manage-follows">
+  #### 管理关注
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/following` | — | 50/15 分钟 |
+| DELETE | `/2/users/:source_user_id/following/:target_user_id` | — | 50/15 分钟 |
+
+<div id="blocks-lookup">
+  #### 屏蔽查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/blocking` | — | 15/15min |
+
+<div id="mutes-lookup">
+  #### 静音查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/muting` | — | 15/15min |
+
+<div id="manage-mutes">
+  #### 管理静音
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/muting` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | — | 50/15min |
+
+***
+
+<div id="spaces-6-endpoints">
+  ### Spaces（6 个端点）
+</div>
+
+<div id="spaces-lookup">
+  #### Spaces 查询
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/:id` | 300/15min | 300/15min |
+| GET | `/2/spaces` | 300/15min | 300/15min |
+| GET | `/2/spaces/:id/tweets` | 300/15min | 300/15min |
+| GET | `/2/spaces/by/creator_ids` | 300/15min, 1/sec | 300/15min, 1/sec |
+| GET | `/2/spaces/:id/buyers` | 300/15min | 300/15min |
+
+<div id="search-spaces">
+  #### 搜索 Space
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/search` | 300/15min | 300/15min |
+
+***
+
+<div id="direct-messages-8-endpoints">
+  ### 私信（8 个接口）
+</div>
+
+<div id="direct-messages-lookup">
+  #### 私信查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/dm_events` | — | 15/15min |
+| GET | `/2/dm_events/:id` | — | 15/15min |
+| GET | `/2/dm_conversations/:dm_conversation_id/dm_events` | — | 15/15min |
+| GET | `/2/dm_conversations/with/:participant_id/dm_events` | — | 15/15min |
+
+<div id="manage-direct-messages">
+  #### 管理私信
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/dm_conversations` | 1,440/24hrs | 15/15min, 1,440/24hrs |
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 1,440/24hrs | 15/15min, 1,440/24hrs |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 1,440/24hrs | 15/15min, 1,440/24hrs |
+| DELETE | `/2/dm_events/:id` | 4,000/24hrs | 300/15min, 1,500/24hrs |
+
+***
+
+<div id="lists-14-endpoints">
+  ### 列表（14 个端点）
+</div>
+
+<div id="lists-lookup">
+  #### 列表查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id` | 75/15min | 75/15min |
+| GET | `/2/users/:id/owned_lists` | 15/15min | 15/15min |
+
+<div id="list-tweets-lookup">
+  #### 列表推文查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/tweets` | 900/15min | 900/15min |
+
+<div id="list-member-lookup">
+  #### 列表成员查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/members` | 900/15min | 900/15min |
+| GET | `/2/users/:id/list_memberships` | 75/15min | 75/15min |
+
+<div id="manage-lists">
+  #### 管理列表
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists` | — | 300/15 分钟 |
+| DELETE | `/2/lists/:id` | — | 300/15 分钟 |
+| PUT | `/2/lists/:id` | — | 300/15 分钟 |
+
+<div id="manage-list-members">
+  #### 管理列表成员
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists/:id/members` | — | 300/15min |
+| DELETE | `/2/lists/:id/members/:user_id` | — | 300/15min |
+
+<div id="manage-list-follows">
+  #### 管理关注的列表
+</div>
+
+| Method | Endpoint | Per App（每个应用） | Per User（每个用户） |
+|:-------|:---------|:--------------------|:---------------------|
+| POST | `/2/users/:id/followed_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/followed_lists/:list_id` | — | 50/15min |
+
+<div id="pinned-lists">
+  #### 置顶列表
+</div>
+
+| 方法 | 端点 | 每个应用 | 每位用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/pinned_lists` | 15/15min | 15/15min |
+| POST | `/2/users/:id/pinned_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/pinned_lists/:list_id` | — | 50/15min |
+
+***
+
+<div id="bookmarks-5-endpoints">
+  ### 书签（5 个端点）
+</div>
+
+<div id="bookmarks-lookup">
+  #### 书签查询
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/bookmarks` | — | 180/15min |
+| GET | `/2/users/:id/bookmarks/folders` | 50/15min | 50/15min |
+| GET | `/2/users/:id/bookmarks/folders/:folder_id` | 50/15min | 50/15min |
+
+<div id="manage-bookmarks">
+  #### 管理书签
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/bookmarks` | — | 50/15min |
+| DELETE | `/2/users/:id/bookmarks/:tweet_id` | — | 50/15min |
+
+***
+
+<div id="compliance-3-endpoints">
+  ### 合规性（3 个端点）
+</div>
+
+<div id="batch-compliance">
+  #### 批量合规
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/compliance/jobs` | 150/15min | — |
+| GET | `/2/compliance/jobs/:job_id` | 150/15min | — |
+| GET | `/2/compliance/jobs` | 150/15min | — |
+
+***
+
+<div id="usage-1-endpoint">
+  ### 使用量（1 个端点）
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/usage/tweets` | 50/15 分钟 | — |
+
+***
+
+<div id="trends-2-endpoints">
+  ### 趋势（2 个端点）
+</div>
+
+<div id="personalized-trends">
+  #### 个性化趋势
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/personalized_trends` | 200/24 小时, 200/15 分钟 | 100/24 小时, 10/15 分钟 |
+
+<div id="trends-by-woeid">
+  #### 按 WOEID 划分的趋势
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/trends/by/woeid/:id` | 75/15min | — |
+
+***
+
+<div id="communities-2-endpoints">
+  ### 社区（2 个端点）
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 | 说明 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/communities/:id` | 300/15min | 300/15min | — |
+| GET | `/2/communities/search` | 300/15min | 300/15min | 最多 100 个结果 |
+
+***
+
+<div id="analytics-1-endpoint">
+  ### 分析（1 个端点）
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/analytics` | 300/15min | 300/15min |
+
+***
+
+<div id="media-8-endpoints">
+  ### 媒体（8 个端点）
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/media/upload` | 50,000/24 小时 | 500/15 分钟 |
+| GET | `/2/media/upload` | 100,000/24 小时 | 1,000/15 分钟 |
+| POST | `/2/media/upload/initialize` | 180,000/24 小时 | 1,875/15 分钟 |
+| POST | `/2/media/upload/:id/append` | 180,000/24 小时 | 1,875/15 分钟 |
+| POST | `/2/media/upload/:id/finalize` | 180,000/24 小时 | 1,875/15 分钟 |
+| POST | `/2/media/metadata` | 50,000/24 小时 | 500/15 分钟 |
+| POST | `/2/media/subtitles` | 10,000/24 小时 | 100/15 分钟 |
+| DELETE | `/2/media/subtitles` | 10,000/24 小时 | 100/15 分钟 |
+
+***
+
+<div id="activity-webhooks">
+  ### 活动与 Webhooks
+</div>
+
+| Method | Endpoint | 每个应用 | 每个用户 | 备注 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/activity/stream` | 450/15min | — | 2 个连接；每秒 250 条帖子 |
+| POST | `/2/activity/subscriptions` | 500/15min | — | — |
+| GET | `/2/activity/subscriptions` | 500/15min | — | — |
+| PUT | `/2/activity/subscriptions/:subscription_id` | 500/15min | — | — |
+| DELETE | `/2/activity/subscriptions/:subscription_id` | 500/15min | — | — |
+| POST | `/2/webhooks` | 450/15min | — | — |
+| GET | `/2/webhooks` | 450/15min | — | — |
+| PUT | `/2/webhooks/:webhook_id` | 450/15min | — | — |
+| DELETE | `/2/webhooks/:webhook_id` | 450/15min | — | — |
+| POST | `/2/webhooks/replay` | 100/15min | — | — |
+
+***
+
+<div id="other-endpoints">
+  ### 其他端点
+</div>
+
+| 方法 | 端点 | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/sample10/stream` | 100/15 分钟 | — |
+| GET | `/2/news/:id` | 200/15 分钟 | — |
+| GET | `/2/news/search` | 200/15 分钟 | 200/15 分钟 |
+| POST | `/2/users/:id/dm/block` | 25/15 分钟，1,000/24 小时 | 10/15 分钟，400/24 小时 |
+| POST | `/2/users/:id/dm/unblock` | 25/15 分钟，1,000/24 小时 | 10/15 分钟，400/24 小时 |
+| GET | `/2/users/by/username/:username/tweets` | 1,500/15 分钟 | 900/15 分钟 |
+| GET | `/2/users/by/username/:username/mentions` | 450/15 分钟 | 180/15 分钟 |
+| GET | `/2/users/:id/following/spaces` | 300/15 分钟 | 300/15 分钟 |
+| GET | `/2/tweets/:id/retweets` | 75/15 分钟 | 75/15 分钟 |
+| DELETE | `/2/connections/all` | 25/15 分钟 | 25/15 分钟 |
+
+***
+
+<div id="handling-rate-limits">
+  ## 处理速率限制
+</div>
+
+当你达到速率限制时，会收到一个 429 响应：
+
+```json
+{
+  "errors": [{
+    "code": 88,
+    "message": "Rate limit exceeded"
+  }]
+}
+```
+
+<div id="recovery-strategy">
+  ### 恢复策略
+</div>
+
+1. 检查 `x-rate-limit-reset` 以确定窗口何时重置
+2. 等待到该时间点后再重试
+3. 如有需要，使用指数退避策略
+
+```python
+import time
+
+def make_request_with_backoff(url, headers):
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 429:
+        reset_time = int(response.headers.get('x-rate-limit-reset', 0))
+        wait_time = max(reset_time - time.time(), 60)
+        time.sleep(wait_time)
+        return make_request_with_backoff(url, headers)
+    
+    return response
+```
+
+***
+
+<div id="best-practices">
+  ## 最佳实践
+</div>
+
+<CardGroup cols={2}>
+  <Card title="缓存响应" icon="database">
+    在本地存储结果，以减少重复请求。
+  </Card>
+
+  <Card title="使用流式传输" icon="signal-stream">
+    对于实时数据，请使用 filtered stream，而不是轮询。
+  </Card>
+
+  <Card title="监控响应头" icon="gauge-high">
+    跟踪剩余请求数，以避免触及速率限制。
+  </Card>
+
+  <Card title="分散请求" icon="clock">
+    在时间窗口内均匀分布请求。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="rate-limits-vs-billing">
+  ## 速率限制与计费
+</div>
+
+速率限制和计费是彼此独立的：
+
+| 概念 | 目的 |
+|:--------|:--------|
+| **速率限制** | 控制请求频率以保障系统稳定性 |
+| **用量计费** | 按检索到的 data 收费（按使用量付费） |
+
+你可以在速率限制范围内但仍产生用量费用，也可能达到速率限制但不产生额外费用。
+
+***
+
+<div id="enterprise-rate-limits">
+  ## 企业级速率限制
+</div>
+
+企业客户适用自定义的速率限制。请联系您的客户经理，或[申请企业级访问权限](/zh/enterprise/forms/enterprise-api-interest)。
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="错误处理" icon="triangle-exclamation" href="/zh/x-api/fundamentals/response-codes-and-errors">
+    处理 429 和其他错误。
+  </Card>
+
+  <Card title="快速开始" icon="rocket" href="/zh/x-api/getting-started/about-x-api">
+    了解访问级别和可用功能。
+  </Card>
+</CardGroup>

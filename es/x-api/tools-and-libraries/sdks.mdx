@@ -1,0 +1,241 @@
+---
+title: SDK oficiales
+sidebarTitle: SDKs
+description: SDK oficiales de X API para TypeScript y Python
+keywords: ["SDK", "kit de desarrollo de software", "SDK de cliente", "SDK de API", "SDK oficial"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+X ofrece SDK oficiales para TypeScript y Python. Estas bibliotecas gestionan la autenticación, la paginación y ofrecen seguridad de tipos completa.
+
+<CardGroup cols={2}>
+  <Card title="SDK de Python" icon="python" href="/es/xdks/python/overview">
+    Soporte asíncrono, anotaciones de tipo y cobertura completa de la v2.
+  </Card>
+
+  <Card title="SDK de TypeScript" icon="js" href="/es/xdks/typescript/overview">
+    Tipos de TypeScript completos, compatibilidad con ESM y funciona con Node.js.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="why-use-the-official-sdks">
+  ## ¿Por qué usar los SDK oficiales?
+</div>
+
+| Beneficio | Descripción |
+|:--------|:------------|
+| **Siempre al día** | Mantenido por X, actualizado con nuevos endpoints |
+| **Tipado seguro** | Definiciones de tipos completas para todos los objetos y métodos |
+| **Autenticación integrada** | Compatibilidad con OAuth 2.0 y OAuth 1.0a |
+| **Paginación automática** | Recorre los resultados sin tener que gestionar manualmente los tokens |
+
+***
+
+<div id="quick-start">
+  ## Inicio rápido
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ### Instalación
+
+    ```bash
+    pip install xdk
+    ```
+
+    ### Uso básico
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+    # Buscar publicaciones (devuelve un iterador)
+    for page in client.posts.search_recent(query="api", max_results=10):
+        if page.data and len(page.data) > 0:
+            first_post = page.data[0]
+            print(first_post.text)
+            break
+    ```
+
+    <Button href="/es/xdks/python/overview">Guía completa de Python</Button>
+  </Tab>
+
+  <Tab title="TypeScript">
+    ### Instalación
+
+    ```bash
+    npm install @xdevplatform/xdk
+    ```
+
+    ### Uso básico
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+
+    // Buscar un usuario
+    const userResponse = await client.users.getByUsername('XDevelopers');
+    console.log(userResponse.data?.username);
+    ```
+
+    <Button href="/es/xdks/typescript/overview">Guía completa de TypeScript</Button>
+  </Tab>
+</Tabs>
+
+***
+
+<div id="authentication">
+  ## Autenticación
+</div>
+
+Ambos SDKs admiten varios métodos de autenticación:
+
+<Tabs>
+  <Tab title="Bearer Token (solo aplicación)">
+    La opción más sencilla para leer datos públicos.
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0 (Contexto de usuario)">
+    Para realizar acciones en nombre de usuarios (publicar, seguir, etc.).
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth2_auth import OAuth2PKCEAuth
+
+    auth = OAuth2PKCEAuth(
+        client_id="YOUR_CLIENT_ID",
+        redirect_uri="YOUR_CALLBACK_URL",
+        scope="tweet.read users.read offline.access"
+    )
+
+    # Obtener la URL de autorización
+    auth_url = auth.get_authorization_url()
+
+    # Después de que el usuario autorice, intercambia el código por tokens
+    tokens = auth.fetch_token(authorization_response=callback_url)
+    client = Client(bearer_token=tokens["access_token"])
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth2, generateCodeVerifier, generateCodeChallenge } from '@xdevplatform/xdk';
+
+    const oauth2 = new OAuth2({
+      clientId: 'YOUR_CLIENT_ID',
+      clientSecret: 'YOUR_CLIENT_SECRET',
+      redirectUri: 'https://your-app.com/callback',
+      scope: ['tweet.read', 'users.read', 'offline.access'],
+    });
+
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    oauth2.setPkceParameters(codeVerifier, codeChallenge);
+    const authUrl = await oauth2.getAuthorizationUrl('state');
+
+    // Después de la autorización, intercambia el código
+    const tokens = await oauth2.exchangeCode(authCode, codeVerifier);
+    const client = new Client({ accessToken: tokens.access_token });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 1.0a (Contexto de usuario)">
+    Para aplicaciones heredadas o casos de uso específicos.
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth1_auth import OAuth1
+
+    oauth1 = OAuth1(
+        api_key="YOUR_API_KEY",
+        api_secret="YOUR_API_SECRET",
+        access_token="YOUR_ACCESS_TOKEN",
+        access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+    )
+
+    client = Client(auth=oauth1)
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth1 } from '@xdevplatform/xdk';
+
+    const oauth1 = new OAuth1({
+      apiKey: 'YOUR_API_KEY',
+      apiSecret: 'YOUR_API_SECRET',
+      accessToken: 'YOUR_ACCESS_TOKEN',
+      accessTokenSecret: 'YOUR_ACCESS_TOKEN_SECRET'
+    });
+
+    const client = new Client({ oauth1: oauth1 });
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="available-methods">
+  ## Métodos disponibles
+</div>
+
+Los SDK proporcionan métodos para todos los endpoints de X API v2:
+
+| Categoría | Python | TypeScript |
+|:---------|:-------|:-----------|
+| **Publicaciones** | `client.posts.search_recent()` | `client.posts.search()` |
+| **Usuarios** | `client.users.get_me()` | `client.users.getMe()` |
+| **Spaces** | `client.spaces.get()` | `client.spaces.findSpaceById()` |
+| **Listas** | `client.lists.get()` | `client.lists.getList()` |
+| **DMs** | `client.direct_messages.get()` | `client.directMessages.lookup()` |
+
+Consulta la documentación completa del SDK para ver la referencia detallada de todos los métodos.
+
+***
+
+<div id="resources">
+  ## Recursos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Documentación del SDK de Python" icon="book" href="/es/xdks/python/overview">
+    Documentación completa de Python.
+  </Card>
+
+  <Card title="Documentación del SDK de TypeScript" icon="book" href="/es/xdks/typescript/overview">
+    Documentación completa de TypeScript.
+  </Card>
+
+  <Card title="GitHub de Python" icon="github" href="https://github.com/xdevplatform/xdk-py">
+    Código fuente y problemas.
+  </Card>
+
+  <Card title="GitHub de TypeScript" icon="github" href="https://github.com/xdevplatform/twitter-api-typescript-sdk">
+    Código fuente y problemas.
+  </Card>
+</CardGroup>

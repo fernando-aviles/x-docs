@@ -1,0 +1,231 @@
+---
+title: Editar publicaciones
+sidebarTitle: Editar publicaciones
+description: Trabajar con publicaciones editadas en X API
+keywords: ["editar publicaciones", "editar tuits", "historial de ediciones", "ediciones de publicaciones", "metadatos de edición", "ventana de edición"]
+---
+
+Las publicaciones en X se pueden editar en los 30 minutos posteriores a su publicación, hasta 5 veces. X API proporciona acceso completo a todo el historial de ediciones y a los metadatos de edición.
+
+***
+
+<div id="edit-rules">
+  ## Reglas de edición
+</div>
+
+| Regla | Detalles |
+|:-----|:--------|
+| **Ventana de tiempo** | 30 minutos desde la publicación original |
+| **Límite de ediciones** | Máximo de 5 ediciones |
+| **Comportamiento del identificador** | Cada edición crea un nuevo identificador de la publicación |
+| **Eliminación** | Eliminar cualquier versión elimina toda la cadena |
+
+***
+
+<div id="what-cant-be-edited">
+  ## Qué no se puede editar
+</div>
+
+Algunos tipos de publicaciones no se pueden editar:
+
+* Publicaciones promocionadas (anuncios)
+* Publicaciones con encuestas
+* Respuestas a otros (que no son parte de un hilo propio)
+* Reposts (las publicaciones con cita *sí* se pueden editar)
+* Publicaciones en comunidades
+* Publicaciones colaborativas
+* Publicaciones programadas
+
+***
+
+<div id="edit-data-in-responses">
+  ## Editar los datos en las respuestas
+</div>
+
+<div id="default-fields">
+  ### Campos predeterminados
+</div>
+
+Todas las respuestas de publicaciones incluyen `edit_history_tweet_ids` por defecto:
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"]
+  }
+}
+```
+
+* Un solo id = nunca se ha editado
+* Varios id = historial de ediciones (de la más antigua a la más reciente)
+
+<div id="edit-controls">
+  ### Controles de edición
+</div>
+
+Solicita el campo `edit_controls` para obtener el estado de edición:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=edit_controls" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  }
+}
+```
+
+| Field              | Description                                            |
+| :----------------- | :----------------------------------------------------- |
+| `is_edit_eligible` | Indica si la publicación se puede editar               |
+| `editable_until`   | Marca de tiempo en que se cierra la ventana de edición |
+| `edits_remaining`  | Número de ediciones restantes (0-5)                    |
+
+***
+
+<div id="getting-edit-history">
+  ## Obtener el historial de edición
+</div>
+
+Usa la expansión `edit_history_tweet_ids` para obtener objetos de publicación completos para todas las versiones:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?\
+tweet.fields=edit_controls&\
+expansions=edit_history_tweet_ids" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Texto actualizado (editado)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  },
+  "includes": {
+    "tweets": [{
+      "id": "1234567890",
+      "text": "Texto original (con error)",
+      "edit_history_tweet_ids": ["1234567890", "1234567891"],
+      "edit_controls": {
+        "is_edit_eligible": true,
+        "editable_until": "2024-01-15T12:30:00.000Z",
+        "edits_remaining": 3
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="which-version-is-returned">
+  ## ¿Qué versión se devuelve?
+</div>
+
+De forma predeterminada, la API devuelve la **versión más reciente** de una publicación editada.
+
+Para obtener una versión específica, solicítala directamente mediante el id de la publicación:
+
+```bash
+# Obtener versión original
+curl "https://api.x.com/2/tweets/1234567890" -H "Authorization: Bearer $TOKEN"
+
+# Get edited version  
+curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="metrics-for-edited-posts">
+  ## Métricas para publicaciones editadas
+</div>
+
+Cada versión de una publicación editada tiene sus propias métricas de interacción. Las métricas se atribuyen a la versión que estaba visible cuando se produjo la interacción.
+
+***
+
+<div id="availability">
+  ## Disponibilidad
+</div>
+
+Los metadatos de edición están disponibles:
+
+* Para todas las publicaciones creadas desde el 29 de septiembre de 2022
+* En todos los endpoints v2 que devuelven publicaciones
+* Incluidos búsqueda, timelines, stream y lookup
+
+Las publicaciones creadas antes de esta fecha no tienen metadatos de edición.
+
+***
+
+<div id="use-cases">
+  ## Casos de uso
+</div>
+
+<Tabs>
+  <Tab title="Realizar seguimiento de cambios">
+    Supervisa las publicaciones para detectar ediciones y registra las diferencias:
+
+    ```python
+    def check_for_edits(post):
+        history = post.get("edit_history_tweet_ids", [])
+        if len(history) > 1:
+            print(f"Publicación {post['id']} has been edited {len(history) - 1} times")
+    ```
+  </Tab>
+
+  <Tab title="Mostrar indicador de edición">
+    Muestra una insignia de &quot;editado&quot; en tu interfaz de usuario:
+
+    ```javascript
+    const isEdited = post.edit_history_tweet_ids?.length > 1;
+    if (isEdited) {
+      showEditedBadge();
+    }
+    ```
+  </Tab>
+
+  <Tab title="Obtener contenido original">
+    Recupera la versión original de una publicación editada:
+
+    ```python
+    original_id = post["edit_history_tweet_ids"][0]
+    original = api.get_tweet(original_id)
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Consulta de publicaciones" icon="magnifying-glass" href="/es/x-api/posts/lookup/introduction">
+    Obtén publicaciones con historial de edición.
+  </Card>
+
+  <Card title="Diccionario de datos" icon="book" href="/es/x-api/fundamentals/data-dictionary">
+    Referencia completa del objeto publicación.
+  </Card>
+</CardGroup>

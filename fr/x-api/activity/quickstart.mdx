@@ -1,0 +1,194 @@
+---
+title: Démarrage rapide
+sidebarTitle: Démarrage rapide
+description: Configurez des abonnements au flux d'activité et recevez des événements
+keywords: ["démarrage rapide flux d'activité", "tutoriel flux d'activité", "guide des abonnements"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment configurer des abonnements au flux d’activité afin de recevoir en temps réel les événements d’activité de compte.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin de :
+
+  * D&#39;un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * Du Bearer Token de votre App
+</Note>
+
+***
+
+<Steps>
+  <Step title="Créer un abonnement" icon="bell">
+    Abonnez-vous aux événements d&#39;activité d&#39;un utilisateur :
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/activity/subscriptions" \
+          -H "Authorization: Bearer $BEARER_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "user_id": "2244994945",
+            "event_types": ["tweet_create_events", "favorite_events", "follow_events"]
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/activity/subscriptions"
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "user_id": "2244994945",
+            "event_types": ["tweet_create_events", "favorite_events", "follow_events"]
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        print(response.json())
+        ```
+      </Tab>
+    </Tabs>
+
+    **Réponse :**
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "user_id": "2244994945",
+        "event_types": ["tweet_create_events", "favorite_events", "follow_events"],
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Se connecter au flux" icon="plug">
+    Ouvrez une connexion persistante pour recevoir les événements :
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl "https://api.x.com/2/activity/stream" \
+          -H "Authorization: Bearer $BEARER_TOKEN"
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/activity/stream"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+
+        response = requests.get(url, headers=headers, stream=True)
+
+        for line in response.iter_lines():
+            if line:
+                print(line.decode("utf-8"))
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Traiter les événements entrants" icon="message">
+    Les événements sont diffusés sous forme d&#39;objets JSON :
+
+    ```json
+    {
+      "for_user_id": "2244994945",
+      "event_type": "tweet_create_events",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "tweet_create_events": [
+        {
+          "id": "1234567890",
+          "text": "Hello from the stream!",
+          "author_id": "2244994945"
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="available-event-types">
+  ## Types d’événements disponibles
+</div>
+
+| Événement | Description |
+|:------|:------------|
+| `tweet_create_events` | L’utilisateur publie une nouvelle Publication |
+| `favorite_events` | L’utilisateur aime une Publication |
+| `follow_events` | L’utilisateur suit ou est suivi |
+| `direct_message_events` | L’utilisateur envoie ou reçoit un DM |
+| `block_events` | L’utilisateur bloque ou débloque |
+| `mute_events` | L’utilisateur met en sourdine ou rétablit le son |
+
+***
+
+<div id="manage-subscriptions">
+  ## Gérer les abonnements
+</div>
+
+<AccordionGroup>
+  <Accordion title="Lister les abonnements">
+    Récupérez tous les abonnements actifs :
+
+    ```bash
+    curl "https://api.x.com/2/activity/subscriptions" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Accordion>
+
+  <Accordion title="Mettre à jour un abonnement">
+    Modifiez les types d’événements pour un abonnement :
+
+    ```bash
+    curl -X PUT "https://api.x.com/2/activity/subscriptions/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "event_types": ["tweet_create_events", "favorite_events"]
+      }'
+    ```
+  </Accordion>
+
+  <Accordion title="Supprimer un abonnement">
+    Supprimez un abonnement :
+
+    ```bash
+    curl -X DELETE "https://api.x.com/2/activity/subscriptions/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Account Activity API" icon="bell" href="/fr/x-api/account-activity/introduction">
+    Alternative basée sur les webhooks
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/activity/activity-stream">
+    Documentation complète des endpoints
+  </Card>
+</CardGroup>

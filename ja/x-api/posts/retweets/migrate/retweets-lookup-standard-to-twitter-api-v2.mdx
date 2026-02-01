@@ -1,0 +1,147 @@
+---
+title: リツイートの取得
+sidebarTitle: リツイートの取得
+keywords: ["リツイート取得の移行", "v1.1 から v2 へのリツイート取得", "リツイート取得の移行方法", "Standard v1.1 から v2 へのリツイート取得", "リツイートの移行"]
+---
+
+<div id="retweets-lookup-standard-v11-compared-to-x-api-v2">
+  ### リツイートのルックアップ: standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の [v1.1 GET statuses/retweets/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweets-id)、[v1.1 GET statuses/retweets/:ids](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweeters-ids) を利用している場合、このガイドは、standard v1.1 と X API v2 の Retweets lookup エンドポイントの共通点と相違点を理解するのに役立ちます。
+
+* **類似点**
+  * 認証
+  * 1 リクエストあたりのユーザー数の上限
+* **相違点**
+  * エンドポイント URL
+
+  * リクエストの制約
+
+  * アプリおよび Project の要件
+
+  * レスポンスデータ形式
+
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+標準 v1.1 と X API v2 の両方の Retweets lookup エンドポイント（[v1.1 GET statuses/retweets/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweets-id) および [v1.1 GET statuses/retweeters/:ids](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweeters-ids)）は、[OAuth 1.0a ユーザーコンテキスト](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) または OAuth 2.0 Bearer Token を使用します。
+
+**リクエストあたりのユーザー数の上限**
+
+v1.1 と v2 の両方の GET エンドポイントでは、Retweets lookup エンドポイントによって返されるユーザー数の最大は 100 ユーザーです。v2 の Retweets lookup エンドポイントでは、ページネーション用トークンは使用されず、デフォルトで 100 ユーザーが返され、これが返される上限となります。
+
+<div id="differences">
+  #### 相違点
+</div>
+
+**エンドポイント URL**
+
+* 標準 v1.1 エンドポイント:
+  * https://api.x.com/1.1/statuses/retweets/:id.json
+    (`id` パラメータで指定した投稿がリツイートされた直近 100 件のリツイートのコレクションを返します)
+  * `https://api.x.com/1.1/statuses/retweeters/ids.json`
+    (`id` パラメータで指定した投稿をリツイートしたユーザーの、最大 100 件のユーザー ID のコレクションを返します)
+* X API v2 エンドポイント:
+  * https://api.x.com/2/tweets/:id/retweeted&#95;by
+    (指定した投稿をリツイートしたアカウントのリストを返します)
+
+**App および Project の要件**
+
+X API v2 エンドポイントでは、リクエストの認証時に、[開発者用 App](/ja/resources/fundamentals/developer-apps) と、その App が関連付けられている [Project](/ja/resources/fundamentals/developer-apps) の認証情報を使用する必要があります。すべての X API v1.1 エンドポイントは、Project に関連付けられていない App または Project に関連付けられた App の認証情報を使用できます。
+
+**レスポンスの data フォーマット**
+
+標準 v1.1 と X API v2 のエンドポイントのバージョン間の最も大きな違いの 1 つは、ペイロード内でどのフィールドを返すかの選択方法です。
+
+標準エンドポイントでは、多くのレスポンスフィールドがデフォルトで返され、そのうえでパラメータを使用して、どのフィールドまたはフィールドのセットをペイロード内で返すかを指定できます。
+
+X API v2 では、デフォルトでユーザーの id、名前、username フィールドのみが返されます。その他のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。このエンドポイントからリクエストしたユーザーフィールドは、すべてプライマリの user オブジェクト内で返されます。展開された投稿オブジェクトとそのフィールドは、レスポンス内の includes オブジェクト内で返されます。その後、user と展開された投稿オブジェクトの両方に含まれる ID を照合することで、展開されたオブジェクトを user オブジェクトに対応付けることができます。 
+
+これらの新しいパラメータの詳細については、それぞれのガイド、または [fields と expansions の使用方法](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドを参照することをお勧めします。 
+
+また、標準 v1.1 のフィールドと新しい v2 のフィールドとのマッピングに役立つ [data フォーマット移行ガイド](/ja/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) も用意しています。このガイドでは、特定のフィールドを返すために v2 のリクエストとともに渡す必要がある、具体的な expansions パラメータおよび fields パラメータについても説明しています。 
+ 
+
+特定のフィールドのリクエスト方法の変更に加え、X API v2 では API によって返されるオブジェクト ( [Post](/ja/x-api/fundamentals/data-dictionary#tweet) や [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトなど) に対して、新しい JSON 構造も導入しています。
+
+* JSON のルートレベルでは、標準エンドポイントは投稿オブジェクトを statuses 配列で返す一方、X API v2 は data 配列で返します。 
+* リツイートおよび引用された「statuses」を参照する代わりに、X API v2 の JSON ではリツイートおよび引用されたツイートを参照します。contributors や user.translator&#95;type など、多くのレガシーおよび非推奨フィールドは削除されます。 
+* 投稿オブジェクト内の favorites と user オブジェクト内の favourites の両方を使用する代わりに、X API v2 では like という用語を使用します。 
+* 値を持たない JSON 値 (たとえば null) はペイロードに書き出さない、という規約を X では採用しています。投稿およびユーザーの属性は、非 null の値を持つ場合にのみ含まれます。 
+   
+
+また、次のようなフィールドを含む、新しいフィールドセットを [Post オブジェクト](/ja/x-api/fundamentals/data-dictionary#tweet) に導入しました:
+
+* [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) フィールド
+* context と entities を含む 2 つの新しい [annotations](/ja/x-api/fundamentals/post-annotations) フィールド
+* 複数の新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド 
+* 指定した投稿に誰が返信できるかを示す、新しい reply&#95;setting フィールド
+
+**リクエストパラメータ**
+
+次の標準 v1.1 リクエストパラメータは、2 つのクエリパラメータ (user&#95;id または screen&#95;name) を受け付けていました。X API v2 では数値のユーザー ID のみが受け付けられ、エンドポイントパスの一部として渡す必要があります。
+
+***
+
+<div id="code-examples">
+  ## コード例
+</div>
+
+<div id="get-users-who-retweeted-a-post-v2">
+  ### 投稿をリポストしたユーザーを取得する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/retweeted_by?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1234567890/retweeted_by"
+
+  params = {"user.fields": "username,verified"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  response = requests.get(url, headers=headers, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 投稿をリポストしたユーザーを取得する
+  response = client.posts.get_retweeted_by(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 投稿をリポストしたユーザーを取得する
+  const response = await client.posts.getRetweetedBy("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>

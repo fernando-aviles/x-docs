@@ -1,0 +1,206 @@
+---
+title: Recherche de Retweets
+sidebarTitle: Recherche de Retweets
+description: Récupérer les utilisateurs qui ont retweeté une Publication
+keywords: ["recherche de retweets", "démarrage rapide pour les retweets", "obtenir les retweets", "tutoriel sur les retweets", "guide des retweets", "exemple de retweets"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer les utilisateurs qui ont Retweeté une Publication spécifique.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D’un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une application approuvée
+  * Du Bearer Token de votre application (pour les données publiques) ou du User Access Token (pour les métriques privées)
+</Note>
+
+***
+
+<div id="get-users-who-retweeted-a-post">
+  ## Obtenir les utilisateurs qui ont retweeté une Publication
+</div>
+
+<Steps>
+  <Step title="Trouver l’ID de la Publication">
+    Récupérez l’ID de la Publication pour laquelle vous souhaitez consulter les Retweets :
+
+    ```
+    https://x.com/XDevelopers/status/1354143047324299264
+                                    └── Ceci est l’ID de la Publication
+    ```
+  </Step>
+
+  <Step title="Effectuer la requête">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+      user.fields=created_at,username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Obtenir les utilisateurs qui ont retweeté une Publication avec pagination
+      for page in client.posts.get_retweeted_by(
+          "1354143047324299264",
+          user_fields=["created_at", "username", "verified"]
+      ):
+          for user in page.data:
+              print(f"{user.username} - Date d’inscription : {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Obtenir les utilisateurs qui ont retweeté une Publication avec pagination
+      const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+        userFields: ["created_at", "username", "verified"],
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Date d’inscription : ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse">
+    ```json
+    {
+      "data": [
+        {
+          "created_at": "2008-12-04T18:51:57.000Z",
+          "id": "17874544",
+          "username": "TwitterSupport",
+          "name": "Twitter Support",
+          "verified": true
+        },
+        {
+          "created_at": "2007-02-20T14:35:54.000Z",
+          "id": "783214",
+          "username": "Twitter",
+          "name": "Twitter",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## Inclure des données supplémentaires
+</div>
+
+Utilisez le paramètre `expansions` pour obtenir des données associées, comme les publications épinglées :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer les utilisateurs qui ont retweeté avec expansions
+  for page in client.posts.get_retweeted_by(
+      "1354143047324299264",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # Les publications épinglées se trouvent dans page.includes.tweets
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Récupérer les utilisateurs qui ont retweeté avec expansions
+  const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // Les publications épinglées se trouvent dans page.includes?.tweets
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Réponse avec expansions
+</div>
+
+```json
+{
+  "data": [
+    {
+      "pinned_tweet_id": "1389270063807598594",
+      "created_at": "2018-11-21T14:24:58.000Z",
+      "id": "1065249714214457345",
+      "username": "TwitterSpaces",
+      "name": "Spaces"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-05-03T17:26:09.000Z",
+        "id": "1389270063807598594",
+        "text": "now, everyone with 600 or more followers can host a Space..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gérer les retweets" icon="retweet" href="/fr/x-api/posts/retweets/quickstart/manage-retweets">
+    Retweeter et annuler des retweets
+  </Card>
+
+  <Card title="Citer des publications" icon="quote-left" href="/fr/x-api/posts/quote-tweets/quickstart">
+    Obtenir des publications citées
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/posts/get-retweeted-by">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

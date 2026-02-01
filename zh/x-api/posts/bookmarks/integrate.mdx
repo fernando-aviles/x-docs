@@ -1,0 +1,145 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+keywords: ["书签集成", "书签指南", "书签集成指南", "书签实现", "书签设置"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本页介绍了在将用于管理书签（Bookmarks）的端点集成到你的系统时需要了解的一些工具和关键概念。我们将本页内容划分为以下几个部分：
+
+* [实用工具](/zh/x-api/users/blocks/integrate#helpful-tools)
+* 关键概念
+  * [身份验证](/zh/x-api/users/blocks/integrate#authentication)
+  * [Developer Console、Project 和 App](/x-api/users/blocks/integrate#Developer Console-projects-and-developer-apps)
+  * [速率限制](/zh/x-api/users/blocks/integrate#rate-limits)
+
+<div id="helpful-tools">
+  ### 实用工具
+</div>
+
+在介绍一些有助于你集成此 endpoint 的关键概念之前，我们建议你先熟悉：
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman 是一款非常适合用于测试 API 端点的工具。每个 Postman 请求都包含所有路径参数和请求体参数，帮助你快速了解有哪些可用选项。要进一步了解我们的 Postman 集合，请访问我们的[使用 Postman](/zh/tutorials/postman-getting-started)页面。
+
+<div id="code-samples">
+  #### 代码示例
+</div>
+
+想要使用你常用的编程语言，通过一些代码来完成该 endpoint 的集成吗？我们在 [GitHub 页面](https://github.com/xdevplatform/Twitter-API-v2-sample-code) 上提供了多种代码示例，你可以将其作为起点。
+
+<div id="third-party-libraries">
+  #### 第三方库
+</div>
+
+利用我们社区提供的[第三方库](/zh/x-api/tools-and-libraries/overview)来帮助你入门。你可以通过查找合适的版本标签来找到与 v2 端点兼容的库。
+
+<div id="key-concepts">
+  ### 关键概念
+</div>
+
+<div id="authentication">
+  #### 身份验证
+</div>
+
+所有 X API v2 端点都要求你使用一组凭证（也称为密钥和令牌）对请求进行身份验证。
+
+这些特定的端点需要使用[带 PKCE 的 OAuth 2.0 授权码流程](/zh/resources/fundamentals/authentication/oauth-2-0/authorization-code)，这意味着你必须使用一组密钥和用户 Access Tokens 才能成功发出请求。Access Tokens 必须与你代其发起请求的用户关联。如果你想为另一位用户生成一组 Access Tokens，则他们必须使用 [Authorize URL](/zh/resources/fundamentals/authentication#authorize-url) 授权或验证你的 App。
+
+请注意，OAuth 2.0 在使用上可能比较复杂。如果你不熟悉这种身份验证方法，我们建议使用一个[库](/zh/x-api/tools-and-libraries/overview)或 Postman 等工具来正确地对你的请求进行身份验证。
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Developer Console、Project 和开发者 App
+</div>
+
+要获取一组可用于 X API v2 端点的认证凭证，你需要拥有一个[开发者账号](/zh/resources/fundamentals/developer-portal)，在该账号下设置一个 [Project](/zh/resources/fundamentals/developer-apps)，并在该 Project 中创建一个[开发者 App](/zh/resources/fundamentals/developer-apps)。然后你可以在你的开发者 App 中找到密钥和令牌。
+
+<div id="rate-limits">
+  #### 速率限制
+</div>
+
+每天都有成千上万的开发者向 X API 发起请求。为了管理如此庞大的请求量，我们在每个端点上都设置了[速率限制](/zh/resources/fundamentals/rate-limits)，以限制你代表你的应用或代表经过认证的用户可以发起的请求数量。
+
+这些端点在用户层面进行速率限制，这意味着你代表其发起请求的已认证用户，在任何开发者 App 中，对该端点的调用次数都有上限。对于 `GET` 方法，用户级速率限制为每 15 分钟 180 次请求。通过 Bookmarks 查询端点的 `GET` 方法，你将会获取到最近添加书签的 800 条帖子。此外，对于 `POST` 和 `DELETE` 方法，用户级速率限制为每 15 分钟 50 次请求。
+
+***
+
+<div id="code-examples">
+  ### 代码示例
+</div>
+
+<div id="get-bookmarks">
+  #### 获取书签
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/bookmarks?tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 获取用户书签
+  for page in client.bookmarks.get(user_id="123", tweet_fields=["created_at", "public_metrics"]):
+      for post in page.data:
+          print(f"{post.text} - 点赞数: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 获取用户书签
+  const paginator = client.bookmarks.get("123", {
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - 点赞数: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="create-a-bookmark">
+  #### 创建书签
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/bookmarks" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 将帖子添加到书签
+  response = client.bookmarks.create(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 将帖子添加到书签
+  const response = await client.bookmarks.create("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

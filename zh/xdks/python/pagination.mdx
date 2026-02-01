@@ -1,0 +1,75 @@
+---
+title: 分页
+sidebarTitle: 分页
+---
+
+X API 在需要返回多页结果的端点（例如时间线、搜索等）中使用分页机制。每次 API 调用的响应都会包含一个带有 `result_count`、`previous_token` 和 `next_token` 的 `meta` 对象。XDK 会负责基于 `next_token` 发起多次 API 调用，因此开发者只需指定所需的数据量，而无需手动发起多次请求。
+SDK 通过以下方式简化了这一流程：
+
+- **内置迭代器**：使用生成器函数无缝获取多页数据。
+- **显式 token 处理**：在需要时通过传入 `pagination_token`，实现灵活的手动控制。
+- **最大结果数约束**：在每次调用中遵守 `max_results`（受 API 限制，例如搜索最多为 100）。
+
+<div id="automatic-pagination-recommended">
+  ## 自动分页（推荐）
+</div>
+
+对分页响应使用 `iterate()` 方法，以惰性方式获取全部结果。
+**示例：分页搜索**
+
+```python
+from xdk import Client
+client = Client(bearer_token="your_bearer_token")
+# 使用自动分页搜索
+all_posts = []
+for page in client.posts.search_recent(
+    query="python",
+    max_results=100,  # 每页
+    tweet_fields=["created_at", "author_id"]  # 可选扩展
+):
+    all_posts.extend(page.data)
+    print(f"Fetched {len(page.data)} Posts (total: {len(all_posts)})")
+print(f"Total tweets: {len(all_posts)}")
+```
+
+* 迭代器会自动处理 `next_token`。
+* 当不存在 `next_token` 时停止。
+* 支持在触发速率限制时进行退避，以避免 429 错误。
+
+
+<div id="manual-pagination">
+  ## 手动分页
+</div>
+
+如果你需要为了某些自定义逻辑控制结果（例如逐页处理），仍然可以使用 `next_token`，并按如下方式手动分页：
+
+```python
+# 获取第一页 - search_recent 返回一个迭代器
+first_page = next(client.posts.search_recent(
+    query="xdk python sdk",
+    max_results=100,
+    pagination_token=None  # First page
+))
+print(f"First page: {len(first_page.data) if first_page.data else 0} Posts")
+# Extract next_token from meta
+next_token = None
+if hasattr(first_page, 'meta') and first_page.meta:
+    if hasattr(first_page.meta, 'next_token'):
+        next_token = first_page.meta.next_token
+    elif isinstance(first_page.meta, dict):
+        next_token = first_page.meta.get('next_token')
+if next_token:
+    second_page = next(client.posts.search_recent(
+        query="xdk python sdk",
+        max_results=100,
+        pagination_token=next_token
+    ))
+    print(f"Second page: {len(second_page.data) if second_page.data else 0} Posts")
+```
+
+**提示**：
+
+* 始终指定 `max_results` 参数以优化请求（默认值因端点而异）。
+* 监控 `meta.result_count` 字段以便调试。
+* 对于非常大的查询，考虑使用异步迭代以避免阻塞。
+  如需基于 Python xdk 的详细代码示例，请查看我们的[代码示例 GitHub 仓库](https://github.com/xdevplatform/samples/tree/main/python)。

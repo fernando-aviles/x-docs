@@ -1,0 +1,148 @@
+---
+title: Inicio rápido
+sidebarTitle: Inicio rápido
+description: Obtén Publicaciones citadas para una Publicación específica
+keywords: ["inicio rápido de publicaciones citadas", "tutorial de publicaciones citadas", "guía para obtener publicaciones citadas"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te explica cómo recuperar Publicaciones citadas (Publicaciones que citan otra Publicación).
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * El Bearer Token de tu App
+</Note>
+
+***
+
+<Steps>
+  <Step title="Find the Post ID" icon="message">
+    Obtén el ID de la Publicación para la que quieres encontrar publicaciones que la citen. Puedes encontrarlo en la URL de la Publicación:
+
+    ```
+    https://x.com/XDevelopers/status/1409931481552543749
+                                    └── Este es el ID de la Publicación
+    ```
+  </Step>
+
+  <Step title="Request Quote Posts" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1409931481552543749/quote_tweets?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Obtener Publicaciones citadas con paginación
+      for page in client.posts.get_quote_tweets(
+          "1409931481552543749",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Obtener Publicaciones citadas con paginación
+      const paginator = client.posts.getQuoteTweets("1409931481552543749", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Review the response" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1495979553889697792",
+          "text": "Great thread on the new API features! https://t.co/...",
+          "author_id": "29757971",
+          "created_at": "2022-02-22T04:31:34.000Z",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          },
+          "edit_history_tweet_ids": ["1495979553889697792"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "29757971",
+            "username": "developer",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1,
+        "next_token": "avdjwk0udyx6"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Paginate through results" icon="arrow-right">
+    Los SDK gestionan la paginación automáticamente. Para cURL, usa el `next_token` para obtener más Publicaciones citadas:
+
+    ```bash
+    curl "https://api.x.com/2/tweets/1409931481552543749/quote_tweets?\
+    max_results=10&\
+    pagination_token=avdjwk0udyx6" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Retuits" icon="retweet" href="/es/x-api/posts/retweets/introduction">
+    Consultar Retuits
+  </Card>
+
+  <Card title="Búsqueda de publicaciones" icon="magnifying-glass" href="/es/x-api/posts/lookup/introduction">
+    Consultar publicaciones por ID
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/posts/get-quoted-posts">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

@@ -1,0 +1,216 @@
+---
+title: Démarrage rapide
+sidebarTitle: Démarrage rapide
+description: Effectuez votre première requête de consultation de publication en quelques minutes
+keywords: ["démarrage rapide consultation de publication", "démarrage rapide recherche de Tweet", "tutoriel de recherche", "guide de recherche", "démarrage rapide pour obtenir un Tweet", "exemple de recherche"]
+---
+
+import { Button } from "/snippets/fr/button.mdx"
+
+Ce guide vous explique comment effectuer votre première requête de consultation de Publication à l&#39;aide de X API v2.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin de :
+
+  * Un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * Le Bearer Token de votre App (disponible dans le Developer Console sous « Keys and tokens »)
+</Note>
+
+***
+
+<Steps>
+  <Step title="Trouver l’id d’une publication">
+    Chaque Publication possède un identifiant unique. Vous pouvez le trouver dans l’URL de la Publication :
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── Il s'agit de l'ID de la Publication
+    ```
+  </Step>
+
+  <Step title="Envoyer une requête">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Récupérer une seule publication par ID
+      response = client.posts.get("1228393702244134912")
+      print(response.data)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912");
+      console.log(response.data);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examinez la réponse">
+    La réponse par défaut comprend l’`id` de la Publication, son `text` et `edit_history_tweet_ids` :
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?\n\nwhile(true) {\n    I = Love(You);\n}",
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Demander des champs supplémentaires">
+    Utilisez des paramètres de requête pour obtenir plus de données :
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python SDK Python
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Récupérez une Publication avec des champs supplémentaires et des expansions
+      response = client.posts.get(
+          "1228393702244134912",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"]
+      )
+
+      print(response.data)
+      print(response.includes)  # Contient l'objet utilisateur de l'auteur
+      ```
+
+      ```javascript SDK JavaScript
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+      });
+
+      console.log(response.data);
+      console.log(response.includes); // Contient l'objet utilisateur de l'auteur
+      ```
+    </CodeGroup>
+
+    **Réponse :**
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?...",
+        "created_at": "2020-02-14T19:00:55.000Z",
+        "author_id": "2244994945",
+        "public_metrics": {
+          "retweet_count": 156,
+          "reply_count": 23,
+          "like_count": 892,
+          "quote_count": 12
+        },
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "verified": true
+          }
+        ]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Rechercher plusieurs publications">
+    Récupérez jusqu’à 100 Publications en une seule requête :
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets?\
+      ids=1228393702244134912,1227640996038684673,1199786642791452673&\
+      tweet.fields=created_at,author_id" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Récupérez plusieurs Publications par identifiants
+      response = client.posts.get_posts(
+          ids=["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+          tweet_fields=["created_at", "author_id"]
+      )
+
+      for post in response.data:
+          print(f"{post.id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.getPosts({
+        ids: ["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+        tweetFields: ["created_at", "author_id"],
+      });
+
+      response.data?.forEach((post) => {
+        console.log(`${post.id}: ${post.text?.slice(0, 50)}...`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## Étapes suivantes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Guide d'intégration" icon="book" href="/fr/x-api/posts/lookup/integrate">
+    Découvrez l’authentification, les limites de débit et les bonnes pratiques
+  </Card>
+
+  <Card title="Champs et expansions" icon="sliders" href="/fr/x-api/fundamentals/fields">
+    Maîtrisez le système de champs et d’expansions
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/posts/get-post-by-id">
+    Consultez tous les paramètres disponibles
+  </Card>
+
+  <Card title="Exemples de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Explorez d’autres exemples
+  </Card>
+</CardGroup>

@@ -1,0 +1,133 @@
+---
+title: v1 a v2
+sidebarTitle: v1 a v2
+keywords: ["migración de v1.1 a v2", "migración de consulta de listas", "migrar consulta de listas", "consulta de listas estándar a v2", "consulta de listas de v1 a v2", "guía de migración"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+<div id="list-lookup-standard-v11-compared-to-x-api-v2">
+  ### Búsqueda de listas: estándar v1.1 en comparación con X API v2
+</div>
+
+Si has estado trabajando con los endpoints estándar v1.1 [GET lists/show](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-show) y [GET lists/ownerships](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-ownerships), el objetivo de esta guía es ayudarte a comprender las similitudes y diferencias entre los endpoints de búsqueda de listas de la versión estándar v1.1 y de X API v2.
+
+* **Similitudes**
+  * Métodos de autenticación
+  * Límites de frecuencia
+* **Diferencias**
+  * URLs de los endpoints
+  * Requisitos de App y Project
+  * Límites de objetos de datos por solicitud
+  * Formatos de datos de la respuesta
+  * Parámetros de la solicitud
+
+<div id="similarities">
+  #### Similitudes
+</div>
+
+**Autenticación**
+
+Ambas versiones de endpoints admiten tanto [OAuth 1.0a User Context](/es/resources/fundamentals/authentication#oauth-1-0a-2) como [App only](/es/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token). Por lo tanto, si antes utilizabas uno de los endpoints estándar v1.1 de consulta de listas, puedes seguir utilizando el mismo método de autenticación si migras a la versión de X API v2.
+
+Según la biblioteca o paquete de autenticación que elijas, la autenticación App only probablemente sea la forma más sencilla de comenzar y puede configurarse con un encabezado de solicitud sencillo. Para saber cómo generar un App only Access Token, consulta [esta guía de App only](/es/resources/fundamentals/authentication#using-and-generating-an-app-only-bearer-token).
+
+**Límites de frecuencia**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| /1.1/lists/show.json<br /><br />75 solicitudes por ventana de 15 minutos con OAuth 1.0a User Context<br /><br />75 solicitudes por ventana de 15 minutos con App only | /2/lists/:id<br /><br />75 solicitudes por ventana de 15 minutos con OAuth 1.0a User Context<br /><br />75 solicitudes por ventana de 15 minutos con OAuth 2.0 Authorization Code with PKCE |
+| /1.1/lists/ownerships.json<br /><br />15 solicitudes por ventana de 15 minutos con OAuth 1.0a User Context<br /><br />15 solicitudes por ventana de 15 minutos con App only | /2/users/:id/owned&#95;lists<br /><br />15 solicitudes por ventana de 15 minutos con OAuth 1.0a User Context<br /><br />15 solicitudes por ventana de 15 minutos con OAuth 2.0 Authorization Code with PKCE<br /><br />15 solicitudes por ventana de 15 minutos con App only |
+
+<div id="differences">
+  #### Diferencias
+</div>
+
+**URLs de endpoints**
+
+* Endpoints estándar v1.1:
+  * GET https://api.x.com/1.1/lists/show.json
+    (Consulta una Lista específica)
+  * GET https://api.x.com/1.1/lists/ownerships.json
+    (Consulta Listas propiedad de un usuario específico)
+* Endpoint de X API v2:
+  * GET https://api.x.com/2/lists/:id
+    (Consulta una Lista específica)
+
+  * GET https://api.x.com/2/users/:id/owned&#95;lists
+    (Consulta Listas propiedad de un usuario específico)
+
+**Requisitos de App y Project**
+
+Los endpoints de X API v2 requieren que utilices credenciales de una [developer App](/es/resources/fundamentals/developer-apps) que esté asociada con un [Project](/es/resources/fundamentals/developer-apps) cuando autentiques tus solicitudes. Todos los endpoints de X API v1.1 pueden usar credenciales de Apps o de Apps asociadas con un Project.
+
+**Límites de objetos de datos por solicitud**
+
+El endpoint estándar v1.1 /lists/ownerships te permite recuperar hasta 1000 Listas por solicitud. Los nuevos endpoints v2 te permiten recuperar hasta 100 Listas por solicitud. De forma predeterminada se devolverán 100 objetos de usuario; para cambiar el número de resultados tendrás que pasar un parámetro de consulta max&#95;results= con un número entre 1‑100; luego puedes pasar el next&#95;token devuelto en el payload de la respuesta al parámetro de consulta pagination&#95;token en tu siguiente solicitud.
+
+**Formato de los datos de la respuesta**
+
+Una de las mayores diferencias entre las versiones de endpoints estándar v1.1 y X API v2 es cómo seleccionas qué campos se devuelven en tu payload.
+
+Para los endpoints estándar, recibes muchos de los campos de la respuesta de forma predeterminada y luego tienes la opción de usar parámetros para identificar qué campos adicionales o conjuntos de campos se deben devolver en el payload.
+
+La versión de X API v2 solo entrega los campos id y nombre de la Lista de forma predeterminada. Para solicitar campos u objetos adicionales, tendrás que usar los parámetros [fields](/es/x-api/fundamentals/fields) y [expansions](/es/x-api/fundamentals/expansions). Cualquier campo de Lista que solicites desde este endpoint se devolverá en el objeto primario de Lista. Cualquier objeto y campos de Publicación o usuario expandidos se devolverán en un objeto includes dentro de tu respuesta. Luego podrás hacer coincidir cualquier objeto expandido con el objeto Lista haciendo coincidir las ID ubicadas tanto en el usuario como en el objeto de Publicación expandida. 
+
+Aquí tienes ejemplos de posibles campos de Lista y expansions:
+
+* created&#95;at
+
+* follower&#95;count
+
+* member&#95;count
+
+* owner&#95;id
+
+* description
+
+* private
+
+|     |     |
+| :--- | :--- |
+| **Endpoint** | **Expansion** |
+| /2/lists/:id | owner&#95;id |
+| /2/users/:id/owned&#95;lists | owner&#95;id |
+
+Te recomendamos leer más sobre estos nuevos parámetros en sus guías respectivas o leyendo nuestra guía sobre [cómo usar fields y expansions](/es/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions). 
+
+También hemos preparado una [guía de migración de formato de datos](/es/x-api/migrate/data-format-migration) que puede ayudarte a mapear campos estándar v1.1 a los campos más recientes de v2. Esta guía también te proporcionará el parámetro específico de expansión y de campo que tendrás que pasar con tu solicitud v2 para devolver campos específicos. 
+
+Además de los cambios en cómo solicitas ciertos campos, X API v2 también está introduciendo nuevos diseños JSON para los objetos devueltos por las APIs, incluidos los objetos de [Publicación](/es/x-api/fundamentals/data-dictionary#tweet) y de [usuario](/es/x-api/fundamentals/data-dictionary#user).
+
+* En el nivel raíz de JSON, los endpoints estándar devuelven objetos de Publicación en un array statuses, mientras que X API v2 devuelve un array data. 
+
+* En lugar de hacer referencia a &quot;statuses&quot; Retweeted y Quoted, el JSON de X API v2 hace referencia a Tuits Retweeted y Quoted. Muchos campos heredados y obsoletos, como contributors y user.translator&#95;type, se están eliminando. 
+
+* En lugar de usar tanto favorites (en el objeto de Publicación) como favourites (en el objeto de usuario), X API v2 utiliza el término like. 
+
+* X está adoptando la convención de que los valores JSON sin valor (por ejemplo, null) no se escriben en el payload. Los atributos de Publicación y usuario solo se incluyen si tienen valores distintos de null.
+
+**Parámetros de solicitud**
+
+Los siguientes parámetros de solicitud estándar v1.1 tienen equivalentes en X API v2:
+
+**Consulta de Lista por ID**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| list&#95;id | id  |
+| slug | Sin equivalente |
+| owner&#95;screen&#95;name | Sin equivalente |
+| owner&#95;id | Se solicita con el parámetro expansions/fields |
+
+**Consulta de Listas propiedad de un usuario**
+
+|     |     |
+| :--- | :--- |
+| **Estándar v1.1** | **X API v2** |
+| user&#95;id | id  |
+| screen&#95;name | Sin equivalente |
+| count | max&#95;results |
+| cursor | pagination&#95;token |

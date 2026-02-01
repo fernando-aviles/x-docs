@@ -1,0 +1,174 @@
+---
+title: 认证
+sidebarTitle: 认证
+---
+
+X API 要求对所有端点进行认证。XDK 支持三种认证方式：
+
+1. Bearer Token（仅限应用）
+2. 带 PKCE 的 OAuth 2.0
+3. OAuth 1.0a（用户上下文）
+
+- **Bearer Token**：用于对支持应用认证的端点进行只读访问（例如搜索帖子、使用流式端点）。
+- **OAuth 2.0 PKCE**：用于基于权限范围（scope）的、安全的用户授权访问（例如获取已认证用户帖子中的非公开指标）。
+- **OAuth 1.0a**：用于用户特定操作的旧版认证方式（例如代表用户发帖、管理列表）。
+
+从 [X Developer Console](https://developer.x.com/en/portal/dashboard) 获取凭据。你需要一个已获批准的开发者账号，以及一个具备适当权限（例如读取 + 写入）的应用。
+
+<div id="creating-a-client">
+  ## 创建 Client 实例
+</div>
+
+所有身份验证流程都会创建一个 `Client` 实例：
+
+```python
+from xdk import Client
+```
+
+
+<div id="1-bearer-token-app-only">
+  ### 1. Bearer Token（仅应用模式）
+</div>
+
+用于无用户上下文的只读操作。
+**步骤**：
+
+1. 在 Developer Console 中为你的应用生成一个 Bearer Token。
+2. 将其传入 `Client`。
+   **示例**：
+
+```python
+client = Client(bearer_token="XXXXX")
+```
+
+**用法**：
+
+```python
+# search_recent 返回一个迭代器,因此对其进行迭代
+for page in client.posts.search_recent(query="python", max_results=10):
+    if page.data and len(page.data) > 0:
+        first_post = page.data[0]
+        post_text = first_post.text if hasattr(first_post, 'text') else first_post.get('text', '')
+        print(post_text)  # Access first Post
+        break
+```
+
+
+<div id="2-oauth-20-with-pkce-user-context">
+  ### 2. 使用 PKCE 的 OAuth 2.0（用户上下文）
+</div>
+
+本示例演示如何使用带有代码交换证明密钥（PKCE）的 OAuth 2.0。将其用于特定用户的访问（例如代表用户发帖、为用户上传媒体等）。
+**步骤**：
+
+1. 在 Developer Console 中，为你的应用注册一个重定向 URI（例如 `http://localhost:8080/callback`）。
+2. 获取 Client ID（PKCE 不需要 secret）。
+3. 启动流程，引导用户前往授权 URL 并处理回调。
+   **示例**（使用 web 服务器处理回调）：
+
+```python
+from xdk.oauth2_auth import OAuth2PKCEAuth
+from urllib.parse import urlparse
+import webbrowser
+# Step 1: Create PKCE instance
+auth = OAuth2PKCEAuth(
+    client_id="YOUR_CLIENT_ID",
+    redirect_uri="YOUR_CALLBACK_URL",
+    scope="tweet.read users.read offline.access"
+)
+# Step 2: Get authorization URL
+auth_url = auth.get_authorization_url()
+print(f"Visit this URL to authorize: {auth_url}")
+webbrowser.open(auth_url)
+# Step 3: Handle callback (in a real app, use a web framework like Flask)
+# 假设 callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE"
+callback_url = input("Paste the full callback URL here: ")
+# Step 4: Exchange code for tokens
+tokens = auth.fetch_token(authorization_response=callback_url)
+access_token = tokens["access_token"]
+refresh_token = tokens["refresh_token"]  # Store for renewal
+# Step 5: Create client
+# Option 1: Use bearer_token (OAuth2 access tokens work as bearer tokens)
+client = Client(bearer_token=access_token)
+# Option 2: Pass the full token dict for automatic refresh support
+# client = Client(token=tokens)
+```
+
+**令牌刷新**（在长时间会话中由 SDK 自动完成）：
+
+```python
+# 如果访问令牌过期,使用存储的 refresh_token 刷新
+# refresh_token 方法使用 OAuth2PKCEAuth 实例中存储的令牌
+tokens = auth.refresh_token()
+# 使用刷新后的令牌
+client = Client(bearer_token=tokens["access_token"])
+# 或传递完整的令牌字典: client = Client(token=tokens)
+```
+
+
+<div id="3-oauth-10a-user-context">
+  ### 3. OAuth 1.0a（用户上下文）
+</div>
+
+对于需要使用 OAuth 1.0a 认证的遗留应用或特定用例：
+**步骤**：
+
+1. 在 Developer Console 中获取你的 API Key 和 API Secret。
+2. 如果你已经有访问令牌，直接使用它们。否则，完成 OAuth 1.0a 流程以获取访问令牌。
+3. 创建一个 OAuth1 实例并将其传入 Client。
+   **示例**（使用已有访问令牌）：
+
+```python
+from xdk import Client
+from xdk.oauth1_auth import OAuth1
+# 步骤 1:使用凭据创建 OAuth1 实例
+oauth1 = OAuth1(
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+    callback="http://localhost:8080/callback",
+    access_token="YOUR_ACCESS_TOKEN",
+    access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+)
+# Step 2: Create client with OAuth1
+client = Client(auth=oauth1)
+# Step 3: Use the client
+response = client.users.get_me()
+me = response.data
+print(me)
+```
+
+**示例**（完整的 OAuth 1.0a 流程）：
+
+```python
+from xdk import Client
+from xdk.oauth1_auth import OAuth1
+import webbrowser
+# 步骤 1:创建 OAuth1 实例
+oauth1 = OAuth1(
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+    callback="http://localhost:8080/callback"
+)
+# 步骤 2:获取请求令牌
+request_token = oauth1.get_request_token()
+# 步骤 3:获取授权 URL
+auth_url = oauth1.get_authorization_url(login_with_x=False)
+print(f"Visit this URL to authorize: {auth_url}")
+webbrowser.open(auth_url)
+# 步骤 4:用户授权后您将收到 oauth_verifier
+# 在实际应用中,通过回调 URL 处理此操作
+oauth_verifier = input("Enter the OAuth verifier from the callback: ")
+# 步骤 5:交换访问令牌
+access_token = oauth1.get_access_token(oauth_verifier)
+# 步骤 6:创建客户端
+client = Client(auth=oauth1)
+# 现在您可以使用客户端
+response = client.users.get_me()
+```
+
+**注意**：
+
+* 在生产环境中切勿将密钥硬编码；请使用环境变量或机密管理服务（例如 `os.getenv("X_BEARER_TOKEN")`）。
+* 对于 PKCE，确保生产环境中的重定向 URI 使用 HTTPS。
+* SDK 会验证令牌，并在验证失败时抛出 `xdk.AuthenticationError`。
+  若要查看使用 Python XDK 的详细代码示例，请参阅我们的 [代码示例 GitHub 仓库](https://github.com/xdevplatform/samples/tree/main/python)。

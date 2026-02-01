@@ -1,0 +1,308 @@
+---
+title: 퀵스타트
+sidebarTitle: 퀵스타트
+description: 필터링된 스트림에 연결하여 실시간 포스트를 수신합니다
+keywords: ["필터링된 스트림 퀵스타트", "스트리밍 퀵스타트", "필터링된 스트림 튜토리얼", "스트림 가이드", "스트리밍 예제"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 필터링된 스트림에 연결하여 필터 규칙과 일치하는 포스트를 실시간으로 수신하는 방법을 안내합니다.
+
+<Note>
+  **사전 준비사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 앱의 Bearer Token (Developer Console의 &quot;Keys and tokens&quot;에서 확인 가능)
+</Note>
+
+***
+
+<Steps>
+  <Step title="필터 규칙 만들기" icon="filter">
+    규칙은 어떤 포스트를 받을지 결정합니다. 연산자를 사용해 키워드, 해시태그, 사용자 등을 기준으로 포스트를 매칭할 수 있습니다.
+
+    **규칙 예시:** &quot;cat&quot;이라는 단어와 이미지를 포함하는 포스트 매칭:
+
+    ```
+    cat has:images
+    ```
+
+    <Card title="규칙 만들기" icon="filter" href="/ko/x-api/posts/filtered-stream/integrate/build-a-rule">
+      규칙 구문과 연산자를 알아보세요
+    </Card>
+  </Step>
+
+  <Step title="스트림에 규칙을 추가하세요" icon="plus">
+    규칙 엔드포인트를 사용하여 규칙을 추가합니다. 각 포스트에 대해 어떤 규칙이 일치했는지 식별할 수 있도록 `tag`를 포함하세요:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "add": [
+            {"value": "cat has:images", "tag": "cats with images"}
+          ]
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Add a rule to the filtered stream
+      response = client.filtered_stream.add_rules(
+          add=[{"value": "cat has:images", "tag": "cats with images"}]
+      )
+
+      for rule in response.data:
+          print(f"Rule added: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Add a rule to the filtered stream
+      const response = await client.filteredStream.addRules({
+        add: [{ value: "cat has:images", tag: "cats with images" }],
+      });
+
+      response.data?.forEach((rule) => {
+        console.log(`Rule added: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+
+    **응답:**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1273026480692322304",
+          "value": "cat has:images",
+          "tag": "cats with images"
+        }
+      ],
+      "meta": {
+        "sent": "2024-01-15T10:30:00.000Z",
+        "summary": {
+          "created": 1,
+          "not_created": 0,
+          "valid": 1,
+          "invalid": 0
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="규칙을 확인하세요" icon="check">
+    활성 규칙 전체를 조회해 규칙이 추가되었는지 확인하세요:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 모든 활성 규칙 가져오기
+      response = client.filtered_stream.get_rules()
+
+      for rule in response.data:
+          print(f"Active rule: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 모든 활성 규칙 가져오기
+      const response = await client.filteredStream.getRules();
+
+      response.data?.forEach((rule) => {
+        console.log(`Active rule: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="스트림에 연결하기" icon="plug">
+    일치하는 포스트를 수신할 수 있도록 지속 연결을 엽니다:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream?\
+      tweet.fields=created_at,author_id&\
+      expansions=author_id&\
+      user.fields=username" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 필터링된 스트림에 연결합니다.
+      for post in client.filtered_stream.stream(
+          tweet_fields=["created_at", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username"]
+      ):
+          print(f"New post: {post.data.text}")
+          print(f"Matching rules: {post.matching_rules}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      # 필터링된 스트림에 연결합니다.
+      const stream = client.filteredStream.stream({
+        tweetFields: ["created_at", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username"],
+      });
+
+      for await (const post of stream) {
+        console.log(`New post: ${post.data?.text}`);
+        console.log(`Matching rules: ${post.matching_rules}`);
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="수신 포스트 처리" icon="message">
+    일치하는 포스트 스트림(JSON 객체 형식):
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "text": "Look at this cute cat! 🐱",
+        "author_id": "9876543210",
+        "created_at": "2024-01-15T10:35:00.000Z",
+        "edit_history_tweet_ids": ["1234567890"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "catperson"
+          }
+        ]
+      },
+      "matching_rules": [
+        {
+          "id": "1273026480692322304",
+          "tag": "cats with images"
+        }
+      ]
+    }
+    ```
+
+    <Tip>
+      `matching_rules` 배열은 사용자가 정의한 태그를 기준으로 어떤 규칙이 해당 포스트와 일치했는지를 보여줍니다.
+    </Tip>
+  </Step>
+
+  <Step title="규칙 삭제(선택 사항)" icon="trash">
+    ID로 규칙을 삭제합니다:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "delete": {
+            "ids": ["1273026480692322304"]
+          }
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ID로 규칙 삭제
+      response = client.filtered_stream.delete_rules(
+          delete={"ids": ["1273026480692322304"]}
+      )
+      print(f"Deleted: {response.meta.summary.deleted}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // ID로 규칙 삭제
+      const response = await client.filteredStream.deleteRules({
+        delete: { ids: ["1273026480692322304"] },
+      });
+      console.log(`Deleted: ${response.meta?.summary?.deleted}`);
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="managing-your-connection">
+  ## 연결 관리
+</div>
+
+<AccordionGroup>
+  <Accordion title="Keep-alive 신호">
+    스트림은 20초마다 빈 줄(`\r\n`)을 전송합니다. 20초 동안 data나 keep-alive 신호를 받지 못하면 다시 연결하세요.
+  </Accordion>
+
+  <Accordion title="연결 해제">
+    `Ctrl+C`를 눌러 연결을 종료하거나 터미널 창을 닫습니다.
+  </Accordion>
+
+  <Accordion title="연결 제한">
+    앱당 하나의 연결만 허용됩니다. 새 연결을 열면 기존 연결이 종료됩니다.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="규칙 만들기" icon="filter" href="/ko/x-api/posts/filtered-stream/integrate/build-a-rule">
+    규칙 구문 알아보기
+  </Card>
+
+  <Card title="연산자 레퍼런스" icon="list-check" href="/ko/x-api/posts/filtered-stream/integrate/operators">
+    사용 가능한 모든 연산자
+  </Card>
+
+  <Card title="연결 해제 처리" icon="plug" href="/ko/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    안정적으로 다시 연결하기
+  </Card>
+
+  <Card title="API 레퍼런스" icon="code" href="/ko/x-api/posts/filtered-stream">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

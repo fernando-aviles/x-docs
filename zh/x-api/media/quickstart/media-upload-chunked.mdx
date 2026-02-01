@@ -1,0 +1,365 @@
+---
+title: 分块媒体上传
+sidebarTitle: 快速开始
+description: 使用分块上传视频和大型媒体文件
+keywords: ["分块上传", "媒体上传", "分块媒体", "视频上传", "大型文件上传", "分块上传指南"]
+---
+
+本指南将演示如何使用分块上传流程来上传视频和大型媒体文件。
+
+在上传视频或大型媒体文件时，你需要：
+
+1. **INIT** — 初始化上传并获取一个 `media_id`
+2. **APPEND** — 上传文件的每个分块
+3. **FINALIZE** — 完成上传
+4. **STATUS** —（如有需要）等待处理完成
+
+<Note>
+  请参阅[此示例代码](https://github.com/xdevplatform/large-video-upload-python)以获取完整的 Python 示例。
+</Note>
+
+***
+
+<div id="step-1-initialize-upload-init">
+  ## 步骤 1：初始化上传（INIT）
+</div>
+
+开始上传会话以获取 `media_id`：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=INIT" \
+    -F "media_type=video/mp4" \
+    -F "total_bytes=1048576" \
+    -F "media_category=amplify_video"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 初始化分块上传
+  response = client.media.init_upload(
+      media_type="video/mp4",
+      total_bytes=1048576,
+      media_category="amplify_video"
+  )
+
+  media_id = response.data.id
+  print(f"Media ID: {media_id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 初始化分块上传
+  const response = await client.media.initUpload({
+    mediaType: "video/mp4",
+    totalBytes: 1048576,
+    mediaCategory: "amplify_video",
+  });
+
+  const mediaId = response.data?.id;
+  console.log(`Media ID: ${mediaId}`);
+  ```
+</CodeGroup>
+
+**响应：**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "expires_after_secs": 1295999
+  }
+}
+```
+
+***
+
+<div id="step-2-upload-chunks-append">
+  ## 步骤 2：上传分块（APPEND）
+</div>
+
+上传文件的每个分块。例如，将一个 3 MB 的文件切分为 3 个分块：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=APPEND" \
+    -F "media_id=1880028106020515840" \
+    -F "segment_index=0" \
+    -F "media=@/path/to/chunk1.mp4"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 上传分块
+  chunk_size = 1024 * 1024  # 1 MB 分块
+
+  with open("video.mp4", "rb") as f:
+      segment_index = 0
+      while True:
+          chunk = f.read(chunk_size)
+          if not chunk:
+              break
+          
+          client.media.append_upload(
+              media_id=media_id,
+              segment_index=segment_index,
+              media=chunk
+          )
+          segment_index += 1
+          print(f"Uploaded chunk {segment_index}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+  import fs from "fs";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 上传分块
+  const chunkSize = 1024 * 1024; // 1 MB 分块
+  const fileBuffer = fs.readFileSync("video.mp4");
+
+  let segmentIndex = 0;
+  for (let offset = 0; offset < fileBuffer.length; offset += chunkSize) {
+    const chunk = fileBuffer.slice(offset, offset + chunkSize);
+    
+    await client.media.appendUpload({
+      mediaId,
+      segmentIndex,
+      media: chunk,
+    });
+    
+    console.log(`Uploaded chunk ${segmentIndex + 1}`);
+    segmentIndex++;
+  }
+  ```
+</CodeGroup>
+
+<Info>
+  **分块上传的优势：**
+
+  * 在慢速网络环境下可靠性更高
+  * 上传支持暂停和恢复
+  * 失败的分块可以单独重试
+</Info>
+
+***
+
+<div id="step-3-finalize-upload-finalize">
+  ## 步骤 3：完成上传（FINALIZE）
+</div>
+
+在发送完所有分片后，完成上传：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=FINALIZE" \
+    -F "media_id=1880028106020515840"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 完成上传
+  response = client.media.finalize_upload(media_id=media_id)
+
+  print(f"Processing state: {response.data.processing_info.state}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 完成上传
+  const response = await client.media.finalizeUpload({ mediaId });
+
+  console.log(`Processing state: ${response.data?.processing_info?.state}`);
+  ```
+</CodeGroup>
+
+**响应：**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "size": 1048576,
+    "expires_after_secs": 86400,
+    "processing_info": {
+      "state": "pending",
+      "check_after_secs": 1
+    }
+  }
+}
+```
+
+<Note>
+  如果返回了 `processing_info`，请继续执行步骤 4 等待处理完成。如果没有返回，则说明媒体已可用。
+</Note>
+
+***
+
+<div id="step-4-check-status-status">
+  ## 步骤 4：检查状态（STATUS）
+</div>
+
+如果响应中返回了 `processing_info`，轮询直到处理完成：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/media/upload?command=STATUS&media_id=1880028106020515840" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  import time
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 等待处理完成
+  while True:
+      response = client.media.get_status(media_id=media_id)
+      state = response.data.processing_info.state
+      
+      if state == "succeeded":
+          print("Media ready!")
+          break
+      elif state == "failed":
+          print("Processing failed")
+          break
+      else:
+          check_after = response.data.processing_info.check_after_secs
+          print(f"Processing... checking again in {check_after}s")
+          time.sleep(check_after)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 等待处理完成
+  while (true) {
+    const response = await client.media.getStatus({ mediaId });
+    const state = response.data?.processing_info?.state;
+    
+    if (state === "succeeded") {
+      console.log("Media ready!");
+      break;
+    } else if (state === "failed") {
+      console.log("Processing failed");
+      break;
+    } else {
+      const checkAfter = response.data?.processing_info?.check_after_secs ?? 1;
+      console.log(`Processing... checking again in ${checkAfter}s`);
+      await new Promise((r) => setTimeout(r, checkAfter * 1000));
+    }
+  }
+  ```
+</CodeGroup>
+
+**处理状态：** `pending` → `in_progress` → `succeeded` 或 `failed`
+
+***
+
+<div id="step-5-create-post-with-media">
+  ## 步骤 5：创建包含媒体的帖子
+</div>
+
+处理完成后，使用该媒体创建一个帖子：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "text": "来看这个视频！",
+      "media": {
+        "media_ids": ["1880028106020515840"]
+      }
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 创建包含媒体的帖子
+  response = client.posts.create(
+      text="来看这个视频！",
+      media={"media_ids": [media_id]}
+  )
+
+  print(f"已发布：{response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 创建包含媒体的帖子
+  const response = await client.posts.create({
+    text: "来看这个视频！",
+    media: { mediaIds: [mediaId] },
+  });
+
+  console.log(`已发布：${response.data?.id}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-categories">
+  ## 媒体类别
+</div>
+
+| Category | Description |
+|:---------|:------------|
+| `tweet_image` | 用于帖子的图片 |
+| `tweet_gif` | 用于帖子的动画 GIF |
+| `tweet_video` | 用于帖子的视频 |
+| `amplify_video` | Amplify 视频 |
+--------------------------------
+
+## 后续步骤
+
+<CardGroup cols={2}>
+  <Card title="最佳实践" icon="book" href="/zh/x-api/media/quickstart/best-practices">
+    文件限制和要求
+  </Card>
+
+  <Card title="创建帖子" icon="message" href="/zh/x-api/posts/manage-tweets/quickstart">
+    包含媒体的帖子
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/media/media-upload-init">
+    完整的端点文档
+  </Card>
+</CardGroup>

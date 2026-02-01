@@ -1,0 +1,199 @@
+---
+title: Démarrage rapide
+sidebarTitle: Démarrage rapide
+description: Créer et exécuter une tâche de conformité par lots
+keywords: ["démarrage rapide de la conformité", "tutoriel sur la conformité par lots", "guide des tâches de conformité"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment créer une tâche de conformité par lot afin de vérifier l&#39;état de conformité des Publications ou des utilisateurs.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D&#39;un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une application (App) approuvée
+  * Du Bearer Token de votre App
+</Note>
+
+***
+
+<Steps>
+  <Step title="Créer une tâche" icon="plus">
+    Créez une nouvelle tâche de conformité en spécifiant le type (tweets ou users) :
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/compliance/jobs" \
+          -H "Authorization: Bearer $BEARER_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "type": "tweets",
+            "name": "my-compliance-job"
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/compliance/jobs"
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "type": "tweets",
+            "name": "my-compliance-job"
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        print(response.json())
+        ```
+      </Tab>
+    </Tabs>
+
+    **Réponse :**
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "type": "tweets",
+        "name": "my-compliance-job",
+        "status": "created",
+        "upload_url": "https://storage.googleapis.com/...",
+        "download_url": "https://storage.googleapis.com/...",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    }
+    ```
+
+    Enregistrez `upload_url` et `download_url` pour les prochaines étapes.
+  </Step>
+
+  <Step title="Préparer votre fichier de données" icon="file">
+    Créez un fichier texte avec un ID par ligne :
+
+    ```
+    1234567890
+    1234567891
+    1234567892
+    1234567893
+    ```
+
+    Enregistrez-le sous `ids.txt`.
+  </Step>
+
+  <Step title="Téléverser vos données" icon="upload">
+    Téléversez le fichier à l&#39;adresse `upload_url` fournie :
+
+    ```bash
+    curl -X PUT "UPLOAD_URL_FROM_RESPONSE" \
+      -H "Content-Type: text/plain" \
+      --data-binary @ids.txt
+    ```
+  </Step>
+
+  <Step title="Vérifier l'état de la tâche" icon="clock">
+    Interrogez régulièrement l&#39;état de la tâche jusqu&#39;à ce qu&#39;elle soit terminée :
+
+    ```bash
+    curl "https://api.x.com/2/compliance/jobs/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+
+    **Statuts de la tâche :**
+
+    | Statut        | Description                              |
+    | :------------ | :--------------------------------------- |
+    | `created`     | Tâche créée, en attente de téléversement |
+    | `in_progress` | Traitement des données                   |
+    | `complete`    | Résultats prêts à être téléchargés       |
+    | `failed`      | Échec de la tâche                        |
+    | `expired`     | Tâche expirée avant la fin du traitement |
+  </Step>
+
+  <Step title="Télécharger les résultats" icon="download">
+    Une fois que le statut est `complete`, téléchargez le fichier à partir de `download_url` :
+
+    ```bash
+    curl "DOWNLOAD_URL_FROM_RESPONSE" -o results.json
+    ```
+
+    **Format des résultats** (un objet JSON par ligne) :
+
+    ```json
+    {"id": "1234567890", "action": "delete", "created_at": "2024-01-10T12:00:00.000Z", "redacted_at": "2024-01-12T08:30:00.000Z", "reason": "deleted"}
+    {"id": "1234567891", "action": "delete", "created_at": "2024-01-10T12:00:00.000Z", "redacted_at": "2024-01-13T14:20:00.000Z", "reason": "suspended"}
+    ```
+
+    Seuls les ID avec des événements de conformité apparaissent dans les résultats. Les ID qui ne figurent pas dans les résultats sont toujours valides.
+  </Step>
+</Steps>
+
+***
+
+<div id="compliance-actions">
+  ## Actions de conformité
+</div>
+
+<AccordionGroup>
+  <Accordion title="Événements de conformité pour les publications">
+    | Action | Raison | Description |
+    |:-------|:-------|:------------|
+    | `delete` | `deleted` | La publication a été supprimée |
+    | `delete` | `bounced` | La publication n’a pas passé le contrôle de conformité |
+    | `delete` | `protected` | Le compte est devenu protégé |
+    | `delete` | `suspended` | Le compte a été suspendu |
+    | `delete` | `scrub_geo` | Les données de géolocalisation ont été supprimées |
+  </Accordion>
+
+  <Accordion title="Événements de conformité relatifs aux comptes utilisateur">
+    | Action | Raison | Description |
+    |:-------|:-------|:------------|
+    | `delete` | `deleted` | Le compte a été supprimé |
+    | `delete` | `suspended` | Le compte a été suspendu |
+    | `delete` | `protected` | Le compte est devenu protégé |
+    | `delete` | `deactivated` | Le compte a été désactivé |
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="list-all-jobs">
+  ## Lister tous les jobs
+</div>
+
+Récupérez tous les jobs de conformité de votre application :
+
+```bash
+curl "https://api.x.com/2/compliance/jobs?type=tweets" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Guide d’intégration" icon="book" href="/fr/x-api/compliance/batch-compliance/integrate">
+    Concepts fondamentaux et bonnes pratiques
+  </Card>
+
+  <Card title="Flux de conformité" icon="stream" href="/fr/x-api/compliance/streams/introduction">
+    Événements de conformité en temps réel
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/compliance/create-job">
+    Documentation complète de l’endpoint API
+  </Card>
+</CardGroup>
