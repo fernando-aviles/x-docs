@@ -1,0 +1,133 @@
+---
+title: 웹훅
+sidebarTitle: 소개
+description: 웹훅 전달을 통해 실시간 데이터를 수신합니다
+keywords: ["웹훅", "웹훅 API", "실시간 웹훅", "웹훅 전달", "이벤트 웹훅"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+웹훅은 실시간으로 데이터를 서버에 전달할 수 있게 해 줍니다. 업데이트를 주기적으로 폴링하는 대신, 이벤트가 발생하는 즉시 데이터를 받아볼 수 있습니다.
+
+<div id="overview">
+  ## 개요
+</div>
+
+<CardGroup cols={2}>
+  <Card title="실시간 전송" icon="bolt">
+    이벤트를 즉시 수신합니다
+  </Card>
+
+  <Card title="푸시 기반" icon="arrow-right">
+    데이터가 서버로 직접 전송됩니다
+  </Card>
+
+  <Card title="효율적" icon="gauge">
+    폴링이 필요하지 않습니다
+  </Card>
+
+  <Card title="신뢰성" icon="shield">
+    재시도 및 복구를 지원합니다
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-types">
+  ## Webhook 유형
+</div>
+
+| 유형 | 설명 |
+|:-----|:------------|
+| [Filtered Stream Webhooks](/ko/x-api/webhooks/stream/introduction) | 웹훅을 통해 필터링된 스트림 포스트를 수신합니다 |
+| [Account Activity API](/ko/x-api/account-activity/introduction) | 계정 활동 이벤트를 수신합니다 |
+
+***
+
+<div id="how-webhooks-work">
+  ## 웹훅의 동작 방식
+</div>
+
+```
+┌──────────┐      ┌──────────┐      ┌──────────┐
+│ X Event  │  →   │ X Server │  →   │ Your     │
+│ Occurs   │      │          │      │ Webhook  │
+└──────────┘      └──────────┘      └──────────┘
+```
+
+1. **이벤트 발생** — 사용자가 게시물을 작성하거나 DM(다이렉트 메시지)을 보내는 등의 작업을 합니다.
+2. **X가 요청 전송** — 웹훅 URL로 POST 요청을 전송합니다.
+3. **서버에서 처리** — 서버가 해당 이벤트를 처리합니다.
+4. **200 응답** — 수신을 확인하기 위해 200 OK를 반환합니다.
+
+***
+
+<div id="webhook-requirements">
+  ## 웹훅 요구 사항
+</div>
+
+| 요구 사항 | 설명 |
+|:------------|:------------|
+| **HTTPS** | 웹훅 URL은 HTTPS를 사용해야 합니다 |
+| **공개** | URL은 공개적으로 접근 가능해야 합니다 |
+| **빠른 응답** | 10초 이내에 응답해야 합니다 |
+| **200 OK** | 수신을 확인하기 위해 200 상태 코드를 반환해야 합니다 |
+
+***
+
+<div id="security">
+  ## 보안
+</div>
+
+<div id="challenge-response-check-crc">
+  ### Challenge-Response Check (CRC)
+</div>
+
+X는 CRC 요청을 보내 webhook을 검증합니다. HMAC-SHA256 해시로 응답하세요:
+
+```python
+import hmac
+import hashlib
+import base64
+
+def handle_crc(crc_token, consumer_secret):
+    sha256_hash = hmac.new(
+        consumer_secret.encode(),
+        crc_token.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    return {
+        "response_token": "sha256=" + base64.b64encode(sha256_hash).decode()
+    }
+```
+
+<div id="signature-verification">
+  ### 서명 검증
+</div>
+
+`x-twitter-webhooks-signature` 헤더를 사용해 웹훅의 진위를 검증하세요.
+
+***
+
+<div id="getting-started">
+  ## 시작하기
+</div>
+
+<Note>
+  **사전 준비 사항**
+
+  * 승인이 완료된 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 개발자 콘솔의 [Project 및 App](/ko/resources/fundamentals/developer-apps)
+  * 공개적으로 접근 가능한 HTTPS 엔드포인트
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Filtered Stream Webhooks" icon="filter" href="/ko/x-api/webhooks/stream/introduction">
+    웹훅을 통해 필터링된 포스트를 받아옵니다
+  </Card>
+
+  <Card title="Account Activity API" icon="bell" href="/ko/x-api/account-activity/introduction">
+    웹훅을 통해 계정 이벤트를 받아옵니다
+  </Card>
+</CardGroup>

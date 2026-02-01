@@ -1,0 +1,191 @@
+---
+title: 管理转推
+sidebarTitle: 管理转推
+keywords: ["manage retweets migration", "v1.1 to v2 manage retweets", "migrate manage retweets", "standard to v2 retweets", "retweets migration"]
+---
+
+<div id="manage-retweets-standard-v11-compared-to-x-api-v2">
+  ### 管理转发：标准版 v1.1 与 X API v2 的比较
+</div>
+
+如果你之前一直在使用标准版 v1.1 的 [POST statuses/retweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-retweet-id) 和 [POST statuses/unretweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-unretweet-id) 端点，那么本指南旨在帮助你理解标准版端点与 X API v2 转发端点之间的异同。
+
+* **相似之处**
+  * 身份验证
+* **不同之处**
+  * 端点 URL 和 HTTP 方法
+  * 请求限制
+  * App 和 Project 要求
+  * 请求参数
+
+<div id="similarities">
+  #### 相似之处
+</div>
+
+**身份验证**
+
+标准 v1.1 和 X API v2 中用于管理转推的端点（[POST statuses/retweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-retweet-id) 和 [POST statuses/unretweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-unretweet-id)）都使用 [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication)。因此，如果你之前使用的是标准 v1.1 的某个转推查询端点，那么在迁移到对应的 X API v2 版本时，可以继续使用相同的身份验证方法。 
+
+<div id="differences">
+  #### 差异
+</div>
+
+**Endpoint URL 和 HTTP 方法**
+
+* 标准 v1.1 endpoint：
+  * https://api.x.com/1.1/statuses/retweet/:id.json\
+    （转发一条帖子。返回包含转发详情的原始帖子）
+  * https://api.x.com/1.1/statuses/unretweet/:id.json\
+    （撤销一次转发。返回包含转发详情的原始帖子）
+* X API v2 endpoint：
+  * https://api.x.com/2/tweets/:id/retweets\
+    （转发指定帖子）
+  * https://api.x.com/2/users/:id/retweets/:source&#95;tweet&#95;id\
+    （撤销对指定帖子的转发） 
+
+**App 和 Project 要求**
+
+在对请求进行认证时，X API v2 的 endpoint 要求你使用与某个 [developer App](/zh/resources/fundamentals/developer-apps) 关联的 [Project](/zh/resources/fundamentals/developer-apps) 中的凭证。所有 X API v1.1 endpoint 则可以使用来自 App 的凭证，或来自与某个 App 关联的 Project 的凭证。
+
+**请求参数**
+
+以下标准 v1.1 endpoint 接受两个查询参数（user&#95;id 或 screen&#95;name）。X API v2 只接受数值型用户 ID，并且必须作为 endpoint 路径的一部分传入。
+
+| 标准 v1.1 | X API v2 |
+| :--- | :--- |
+| **id** | **id** |
+| **includes&#95;entities** | 无对应项 |
+
+请注意，标准 v1.1 参数是作为查询参数传递的，而 X API v2 参数则是作为 POST endpoint 的请求体参数，或 DELETE endpoint 的路径参数传递的。
+
+另外，在使用标准 v1.1 endpoint 时，不需要提供发起转发某条帖子的用户 id，因为与 [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) 一起传递的 [Access Tokens](/zh/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) 会推断出是哪位用户在发起或撤销该次转发。
+
+***
+
+<div id="code-examples">
+  ## 代码示例
+</div>
+
+<div id="retweet-a-post-v2">
+  ### 转发帖子（v2）
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/retweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python
+  # 需要使用 OAuth 1.0a 用户上下文身份验证
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/retweets"
+  response = requests.post(url, auth=auth, json={"tweet_id": "1234567890"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 转发帖子
+  response = client.posts.retweet(user_id="123456789", tweet_id="1234567890")
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 转发帖子
+  const response = await client.posts.retweet("123456789", { tweetId: "1234567890" });
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>
+
+<div id="undo-a-retweet-v2">
+  ### 撤销转推 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/retweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # 需要使用 OAuth 1.0a 用户上下文认证
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/retweets/1234567890"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 撤销转推
+  response = client.posts.unretweet(user_id="123456789", tweet_id="1234567890")
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 撤销转推
+  const response = await client.posts.unretweet("123456789", "1234567890");
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>

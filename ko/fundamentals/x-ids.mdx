@@ -1,0 +1,125 @@
+---
+title: X ID
+sidebarTitle: X ID
+icon: fingerprint
+description: X API 고유 식별자 이해하기
+keywords: ["X ID", "Twitter ID", "user ID", "tweet ID", "snowflake ID", "64-bit 정수", "ID 형식", "고유 식별자"]
+---
+
+X API의 모든 객체(포스트, 사용자, 리스트, DM, Space)는 고유한 ID를 가집니다. 이러한 ID가 어떻게 동작하는지 이해하면 안정적인 통합을 구축하는 데 도움이 됩니다.
+
+***
+
+<div id="id-format">
+  ## ID 형식
+</div>
+
+X ID는 &quot;Snowflake&quot;라는 시스템으로 생성되는 **64비트 부호 없는 정수**입니다. 각 ID에는 다음 정보가 인코딩됩니다.
+
+* **타임스탬프** — 객체가 생성된 시점
+* **워커 번호** — 어떤 서버가 해당 ID를 생성했는지
+* **시퀀스 번호** — 해당 밀리초 내에서의 순서
+
+이는 ID가 대략적으로 생성 시각 순으로 증가한다는 뜻으로, 값이 더 큰 ID일수록 일반적으로 더 최신 객체를 나타냅니다.
+
+<Tip>
+  ID는 단일 객체 type 내에서만이 아니라, X 전체에서 전역적으로 고유합니다.
+</Tip>
+
+***
+
+<div id="string-vs-integer-representation">
+  ## 문자열 vs. 정수 표현
+</div>
+
+<Warning>
+  **코드에서는 항상 문자열 ID를 사용해야 합니다.** JavaScript와 같은 일부 프로그래밍 언어는 64비트 정수를 정확하게 표현하지 못할 수 있습니다.
+</Warning>
+
+JavaScript에서 정수는 53비트로 제한됩니다. 이로 인해 큰 ID 값을 다룰 때 정밀도가 손실될 수 있습니다:
+
+```javascript
+// This loses precision!
+const id = 10765432100123456789;
+console.log(id.toString()); // "10765432100123458000" — 잘못됨!
+
+// Use strings instead
+const id = "10765432100123456789";
+console.log(id); // "10765432100123456789" — correct!
+```
+
+<div id="api-versions">
+  ### API 버전
+</div>
+
+| 버전 | ID 형식 |
+|:--------|:----------|
+| **X API v2** | ID는 기본적으로 문자열로 반환됩니다 |
+| **X API v1.1** | `id`(정수)와 `id_str`(문자열)을 모두 반환합니다 — 항상 `id_str`를 사용하세요 |
+
+***
+
+<div id="working-with-ids">
+  ## ID 다루기
+</div>
+
+<div id="storing-ids">
+  ### ID 저장
+</div>
+
+데이터베이스에 ID를 문자열 또는 64비트 정수로 저장하세요:
+
+| Database | 권장 형식 |
+|:---------|:-----------------|
+| PostgreSQL | `BIGINT` 또는 `TEXT` |
+| MySQL | `BIGINT UNSIGNED` 또는 `VARCHAR(20)` |
+| MongoDB | 문자열 |
+| SQLite | `TEXT` (SQLite 정수는 최대 63비트까지 지원합니다) |
+
+<div id="comparing-ids">
+  ### id 비교
+</div>
+
+시간 순서를 기준으로 id를 비교할 때:
+
+```python
+# Python - safe for 64-bit integers
+if int(id1) > int(id2):
+    print("id1 is newer")
+
+# JavaScript - 문자열로 비교 (같은 길이의 ID에 대해 사전순으로 작동)
+# 또는 BigInt 사용
+if (BigInt(id1) > BigInt(id2)) {
+    console.log("id1 is newer");
+}
+```
+
+***
+
+<div id="common-id-types">
+  ## 일반적인 ID 유형
+</div>
+
+| 객체 | 예시 ID | 비고 |
+|:-------|:-----------|:------|
+| 게시물 (Tweet) | `1234567890123456789` | Tweet ID라고도 합니다 |
+| 사용자 | `2244994945` | 더 오래된 계정일수록 ID가 더 짧습니다 |
+| 리스트 | `1234567890` | |
+| Space | `1YqGodQbNXDxv` | 영숫자 조합이며 Snowflake 형식이 아닙니다 |
+| DM 이벤트 | `1234567890123456789` | |
+
+***
+
+<div id="related-resources">
+  ## 관련 리소스
+</div>
+
+<CardGroup cols={2}>
+  <Card title="데이터 사전" icon="book" href="/ko/x-api/fundamentals/data-dictionary">
+    각 객체 type의 id 필드를 확인하세요.
+  </Card>
+
+  <Card title="게시물 조회" icon="magnifying-glass" href="/ko/x-api/posts/lookup/introduction">
+    ID로 포스트를 조회하세요.
+  </Card>
+</CardGroup>

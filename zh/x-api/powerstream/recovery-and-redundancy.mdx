@@ -1,0 +1,46 @@
+---
+title: 恢复与冗余
+sidebarTitle: 恢复与冗余
+keywords: ["powerstream recovery", "powerstream redundancy", "recovery features", "redundancy features", "fault tolerance", "error recovery"]
+---
+
+在消费流式数据时，尽可能延长连接时间并接收所有匹配的数据是一个基本目标。这意味着，充分利用冗余连接、自动检测断连并快速重连，以及制定丢失数据的恢复方案，都非常重要。
+
+在本集成指南中，我们将讨论不同的恢复与冗余功能：冗余连接、数据回填以及数据恢复。
+ 
+
+<div id="redundant-connections">
+  ## 冗余连接
+</div>
+
+冗余连接允许你同时建立多个到同一流的并发连接。通过让你使用两个独立的消费者连接到同一个流，并在这两个连接上接收相同的数据，从而提供冗余能力。因此，在诸如某个流连接被断开或你的应用程序主服务器发生故障等情况下，你的 App 具备热备切换能力。
+
+要使用冗余流，只需连接到与你的主连接相同的 URL。你的流数据会通过这两个连接同时发送。
+
+<div id="backfill">
+  ## 回填
+</div>
+
+在你检测到连接中断之后，你的系统应当能够自动重新连接到流。如果可能，你的系统还应该记录中断持续的时间，以便你可以使用合适的恢复功能来回填数据。 
+
+如果你确认中断持续了五分钟或更短时间，你可以使用回填参数 `backfillMinutes`。当你在 `GET /powerstream` 请求中传入这个参数时，你会收到在过去一到五分钟内与你的规则匹配的帖子。通常我们会先发送这些较早的帖子，然后再发送任何新匹配到的帖子，而且不会对帖子进行去重。这意味着，如果你中断了 90 秒，但请求了两分钟的回填数据，你会收到 30 秒的重复帖子，你的系统应该能够容忍这些重复。下面是一个带有回填参数的请求示例：
+
+`curl 'https://api.x.com/2/powerstream?backfillMinutes=5' -H "Authorization: Bearer $ACCESS_TOKEN"`
+
+如果你确认中断时间超过了五分钟，你可以使用[最近搜索端点](/zh/x-api/posts/search/introduction)或恢复功能来请求遗漏的数据。 
+
+<div id="recovery">
+  ## 恢复
+</div>
+
+如果你无法在 5 分钟的回补时间窗口内重新连接，可以使用 Recovery 功能在过去 24 小时内恢复遗漏的数据。
+
+流式恢复功能允许你将回补时间窗口扩展到 24 小时。Recovery 使你能够“重放”遗漏数据的这段时间。当你在连接请求中使用 `startTime` 和 `endTime` 请求参数时，将启动一个恢复流。一旦连接成功，Recovery 会重新流式传输所指定时间段的数据，然后断开连接。  
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Name** | **Type** | **Description** |
+| `startTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339)。<br /><br />以 UTC 表示的日期，表示要从哪个时间点开始恢复。 |
+| `endTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339)。<br /><br />以 UTC 表示的日期，表示要恢复到哪个时间点结束。 |
+
+示例请求 URL：`https://api.x.com/2/powerstream?startTime=2022-07-12T15:10:00Z&endTime=2022-07-12T15:20:00Z`

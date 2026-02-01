@@ -1,0 +1,147 @@
+---
+title: Recherche de Retweets
+sidebarTitle: Recherche de Retweets
+keywords: ["migration de la recherche de Retweets", "recherche de Retweets de v1.1 vers v2", "migration de la recherche de Retweets", "recherche de Retweets standard vers v2", "migration des Retweets"]
+---
+
+<div id="retweets-lookup-standard-v11-compared-to-x-api-v2">
+  ### Recherche de Retweets : comparaison entre la v1.1 standard et la X API v2
+</div>
+
+Si vous avez déjà travaillé avec les endpoints de la v1.1 standard [v1.1 GET statuses/retweets/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweets-id), [v1.1 GET statuses/retweets/:ids](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweeters-ids), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints de recherche de Retweets de la v1.1 standard et de la X API v2.
+
+* **Similarités**
+  * Authentification
+  * Limite d’utilisateurs par requête
+* **Différences**
+  * URL d’endpoint
+
+  * Restrictions de requête
+
+  * Exigences relatives à l’App et au Project
+
+  * Format des données de réponse
+
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Authentification**
+
+Les endpoints Retweets lookup des versions standard v1.1 et X API v2 ([v1.1 GET statuses/retweets/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweets-id) et [v1.1 GET statuses/retweeters/:ids](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-retweeters-ids)) utilisent tous deux [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) ou un Jeton Bearer OAuth 2.0.
+
+**Limites d&#39;utilisateurs par requête**
+
+Pour les endpoints GET v1.1 et v2, le nombre maximal d&#39;utilisateurs que l&#39;endpoint Retweets lookup peut renvoyer est de 100. Pour l&#39;endpoint Retweets lookup v2, aucun jeton de pagination n&#39;est transmis ; par défaut, nous renvoyons 100 utilisateurs, ce qui correspond au maximum renvoyé.
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL d’endpoint**
+
+* Endpoints standard v1.1 :
+  * https://api.x.com/1.1/statuses/retweets/:id.json
+    (Renvoie une collection des 100 Retweets les plus récents de la Publication spécifiée par le paramètre `id`)
+  * `https://api.x.com/1.1/statuses/retweeters/ids.json`
+    (Renvoie une collection allant jusqu’à 100 identifiants d’utilisateurs appartenant aux utilisateurs qui ont fait un Retweet de la Publication spécifiée par le paramètre `id`)
+* Endpoint X API v2 :
+  * https://api.x.com/2/tweets/:id/retweeted&#95;by
+    (Renvoie une liste de comptes qui ont fait un Retweet d’une Publication donnée)
+
+**Conditions requises pour l’App et le projet**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants issus d’une [developer App](/fr/resources/fundamentals/developer-apps) qui est associée à un [Project](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un projet.
+
+**Format des données de réponse**
+
+L’une des plus grandes différences entre les versions d’endpoints standard v1.1 et X API v2 réside dans la façon dont vous sélectionnez les champs renvoyés dans votre payload.
+
+Pour les endpoints standard, vous recevez par défaut de nombreux champs de réponse, puis avez la possibilité d’utiliser des paramètres pour identifier quels champs ou ensembles de champs doivent être renvoyés dans le payload.
+
+La version X API v2 ne fournit par défaut que les champs user id, name et username. Pour demander des champs ou objets supplémentaires, vous devrez utiliser les paramètres [fields](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). Tous les champs d’utilisateur que vous demandez à partir de cet endpoint seront renvoyés dans l’objet utilisateur principal. Tout objet Publication étendu et ses champs seront renvoyés dans un objet includes au sein de votre réponse. Vous pouvez ensuite faire correspondre tout objet étendu à l’objet utilisateur en faisant correspondre les ID présents à la fois dans l’utilisateur et dans l’objet Publication étendu. 
+
+Nous vous encourageons à en savoir plus sur ces nouveaux paramètres dans leurs guides respectifs, ou en lisant notre guide sur [comment utiliser fields et expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions). 
+
+Nous avons également élaboré un [guide de migration de format de données](/fr/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) qui peut vous aider à faire correspondre les champs standard v1.1 aux nouveaux champs v2. Ce guide vous fournit aussi le paramètre d’expansion et de champ spécifique que vous devrez transmettre avec votre requête v2 pour renvoyer des champs précis. 
+ 
+
+En plus des changements concernant la façon de demander certains champs, X API v2 introduit également de nouvelles structures JSON pour les objets renvoyés par les API, notamment les objets [Post](/fr/x-api/fundamentals/data-dictionary#tweet) et [user](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine JSON, les endpoints standard renvoient des objets Publication dans un tableau statuses, tandis que X API v2 renvoie un tableau data. 
+* Au lieu de faire référence à des « statuses » Retweeted et Quoted, le JSON X API v2 fait référence à des Tweets Retweeted et Quoted. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont supprimés. 
+* Au lieu d’utiliser à la fois favorites (dans l’objet Publication) et favourites (dans l’objet utilisateur), X API v2 utilise le terme like. 
+* X adopte la convention selon laquelle les valeurs JSON vides (par exemple null) ne sont pas écrites dans le payload. Les attributs de Publication et d’utilisateur ne sont inclus que s’ils ont des valeurs non nulles. 
+   
+
+Nous avons également introduit un nouvel ensemble de champs pour l’[objet Post](/fr/x-api/fundamentals/data-dictionary#tweet), notamment les éléments suivants :
+
+* Un champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id)
+* Deux nouveaux champs [annotations](/fr/x-api/fundamentals/post-annotations), notamment context et entities
+* Plusieurs nouveaux champs [metrics](/fr/x-api/fundamentals/metrics) 
+* Un nouveau champ reply&#95;setting, qui vous indique qui peut répondre à une Publication donnée
+
+**Paramètres de requête**
+
+Les paramètres de requête standard v1.1 suivants acceptaient deux paramètres de requête (user&#95;id ou screen&#95;name). X API v2 n’accepte que l’identifiant numérique de l’utilisateur, qui doit être transmis dans le chemin de l’endpoint.
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="get-users-who-retweeted-a-post-v2">
+  ### Obtenir les utilisateurs qui ont retweeté une publication (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/retweeted_by?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1234567890/retweeted_by"
+
+  params = {"user.fields": "username,verified"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  response = requests.get(url, headers=headers, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtenir les utilisateurs qui ont retweeté une publication
+  response = client.posts.get_retweeted_by(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtenir les utilisateurs qui ont retweeté une publication
+  const response = await client.posts.getRetweetedBy("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>

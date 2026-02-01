@@ -1,0 +1,257 @@
+---
+title: クイックスタート
+sidebarTitle: クイックスタート
+description: ユーザーをブロックおよびブロック解除し、ブロックしているユーザーのリストを取得する
+keywords: ["ブロック クイックスタート", "ユーザーブロック クイックスタート", "ブロック チュートリアル", "ブロック ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、ユーザーをブロックおよびブロック解除する方法と、ブロックしているユーザーのリスト（ブロックリスト）を取得する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  作業を始める前に、以下を用意してください。
+
+  * 承認済みの App を持つ[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * User Access Token（OAuth 1.0a または OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-blocked-users">
+  ## ブロックしているユーザーを取得する
+</div>
+
+<Steps>
+  <Step title="自分のユーザーIDを取得する">
+    ブロックリストを取得するには、認証済みのユーザーのIDが必要です。`/2/users/me` エンドポイントから取得するか、トークンに含まれているIDを使用できます。
+  </Step>
+
+  <Step title="ブロックリストを取得する">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/blocking?\
+      user.fields=username,verified,created_at&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # ページネーションを使ってブロックしているユーザーを取得する
+      for page in client.users.get_blocking(
+          "123456789",
+          user_fields=["username", "verified", "created_at"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Created: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // ページネーションを使ってブロックしているユーザーを取得する
+      const paginator = client.users.getBlocking("123456789", {
+        userFields: ["username", "verified", "created_at"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Created: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": [
+        {
+          "id": "17874544",
+          "name": "Example User",
+          "username": "example_user",
+          "verified": false,
+          "created_at": "2008-12-04T18:51:57.000Z"
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "abc123"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="block-a-user">
+  ## ユーザーをブロックする
+</div>
+
+<Steps>
+  <Step title="対象ユーザーを特定する">
+    ブロックしたいアカウントのユーザー ID を取得します。
+  </Step>
+
+  <Step title="ブロックリクエストを送信する">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/blocking" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"target_user_id": "9876543210"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # ユーザーをブロックする
+      response = client.users.block(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+      print(f"Blocking: {response.data.blocking}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // ユーザーをブロックする
+      const response = await client.users.block("123456789", {
+        targetUserId: "9876543210",
+      });
+      console.log(`Blocking: ${response.data?.blocking}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="ブロックを確認する">
+    ```json
+    {
+      "data": {
+        "blocking": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unblock-a-user">
+  ## ユーザーのブロックを解除する
+</div>
+
+<Steps>
+  <Step title="ブロック解除リクエストを送信する">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X DELETE "https://api.x.com/2/users/123456789/blocking/9876543210" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # ユーザーのブロックを解除する
+      response = client.users.unblock(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+      print(f"Blocking: {response.data.blocking}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // ユーザーのブロックを解除する
+      const response = await client.users.unblock("123456789", "9876543210");
+      console.log(`Blocking: ${response.data?.blocking}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="ブロック解除を確認する">
+    ```json
+    {
+      "data": {
+        "blocking": false
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ミュート" icon="volume-xmark" href="/ja/x-api/users/mutes/introduction">
+    ユーザーをブロックする代わりにミュートする
+  </Card>
+
+  <Card title="フォロー" icon="user-plus" href="/ja/x-api/users/follows/introduction">
+    フォローを管理する
+  </Card>
+
+  <Card title="連携ガイド" icon="book" href="/ja/x-api/users/blocks/integrate">
+    主要な概念とベストプラクティス
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-blocking">
+    エンドポイントの完全なリファレンス
+  </Card>
+</CardGroup>

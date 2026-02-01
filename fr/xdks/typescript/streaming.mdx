@@ -1,0 +1,112 @@
+---
+title: "Diffusion en continu"
+sidebarTitle: "Diffusion en continu"
+---
+
+Le SDK TypeScript offre des capacités de diffusion en continu en temps réel pour les flux de données en direct.
+
+<div id="basic-streaming">
+  ## Streaming de base
+</div>
+
+Connectez-vous aux publications échantillonnées en temps réel :
+
+<CodeGroup>
+
+```typescript stream.ts theme={null}
+import { Client } from '@xdevplatform/xdk';
+
+const client: Client = new Client({ bearerToken: 'your-bearer-token' });
+
+// Publications publiques échantillonnées à 1 %
+const stream = await client.stream.postsSample({
+  tweetFields: ['id','text','created_at'],
+  expansions: ['author_id'],
+  userFields: ['id','username','name']
+});
+
+// Écouter les événements
+stream.on('data', (event) => {
+  // event correspond à la ligne JSON analysée (data/includes/matching_rules)
+  console.log('Nouvelles données :', event);
+});
+
+stream.on('error', (e) => console.error('Erreur de flux :', e));
+stream.on('close', () => console.log('Flux fermé'));
+```
+
+```javascript stream.js theme={null}
+import { Client } from '@xdevplatform/xdk';
+
+const client = new Client({ bearerToken: 'your-bearer-token' });
+const stream = await client.stream.postsSample({ tweetFields: ['id','text'] });
+
+stream.on('data', (event) => {
+  console.log('Nouvelles données :', event);
+});
+stream.on('error', (e) => console.error('Erreur de flux :', e));
+stream.on('close', () => console.log('Flux fermé'));
+```
+
+</CodeGroup>
+
+<div id="async-iteration">
+  ## Itération asynchrone
+</div>
+
+Consommez le flux en utilisant l’itération asynchrone :
+
+<CodeGroup>
+
+```typescript async.ts theme={null}
+const stream = await client.stream.postsSample();
+for await (const event of stream) {
+  // Chaque événement est une ligne JSON analysée (data/includes/matching_rules)
+  console.log(event);
+}
+```
+
+```javascript async.js theme={null}
+const stream = await client.stream.postsSample();
+for await (const event of stream) {
+  console.log(event);
+}
+```
+
+</CodeGroup>
+
+<div id="stream-management">
+  ## Gestion du flux
+</div>
+
+Gérez le cycle de vie à partir du flux d’événements :
+
+```typescript
+// Fermer le flux
+stream.close();
+
+// Reconnexion automatique (si activée par votre wrapper)
+// L'EventDrivenStream par défaut expose des hooks de reconnexion de base
+```
+
+
+<div id="error-handling">
+  ## Gestion des erreurs
+</div>
+
+Gérez les erreurs de streaming et les reconnexions :
+
+```typescript
+stream.on('error', (event) => {
+  const err = event.error || event;
+  console.error('Stream error:', err);
+});
+
+stream.on('keepAlive', () => {
+  // événement heartbeat
+});
+```
+
+<Info>
+  Pour consulter des exemples de code détaillés avec le XDK JavaScript/TypeScript, rendez-vous sur notre [dépôt GitHub d&#39;exemples de code](https://github.com/xdevplatform/samples/tree/main/javascript).
+</Info>

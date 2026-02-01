@@ -1,0 +1,182 @@
+---
+title: 列表成员查询
+sidebarTitle: 列表成员查询
+description: 获取某个列表的成员
+keywords: ["列表成员查询快速入门", "列表成员查询", "获取列表成员快速入门", "列表成员关系查询"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你获取某个列表的成员。
+
+<Note>
+  **前提条件**
+
+  在开始之前，你需要：
+
+  * 一个拥有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer 令牌
+</Note>
+
+***
+
+<div id="get-list-members">
+  ## 获取列表成员
+</div>
+
+<Steps>
+  <Step title="查找列表 ID">
+    在查看某个列表时，你可以在 URL 中找到该列表的 ID：
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── 这里是列表 ID
+    ```
+  </Step>
+
+  <Step title="请求列表成员">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/members?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 使用分页获取列表成员
+      for page in client.lists.get_members(
+          "84839422",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Joined: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 使用分页获取列表成员
+      const paginator = client.lists.getMembers("84839422", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Joined: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1319036828964454402",
+          "name": "Birdwatch",
+          "username": "birdwatch",
+          "created_at": "2020-10-21T22:04:47.000Z",
+          "verified": true
+        },
+        {
+          "id": "1065249714214457345",
+          "name": "Spaces",
+          "username": "TwitterSpaces",
+          "created_at": "2018-11-21T14:24:58.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "5349804505549807616"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 包含附加数据
+</div>
+
+使用 expansions 参数来获取相关数据，例如置顶帖子：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422/members?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 使用 expansions 获取列表成员及其关联数据
+  for page in client.lists.get_members(
+      "84839422",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # 置顶帖子位于 page.includes.tweets 中
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 使用 expansions 获取列表成员及其关联数据
+  const paginator = client.lists.getMembers("84839422", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // 置顶帖子位于 page.includes?.tweets 中
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="管理列表成员" icon="user-plus" href="/zh/x-api/lists/list-members/quickstart/manage-list-members">
+    添加和删除成员
+  </Card>
+
+  <Card title="列表查询" icon="list" href="/zh/x-api/lists/list-lookup/quickstart">
+    获取列表详情
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/lists/get-list-members">
+    完整接口文档
+  </Card>
+</CardGroup>

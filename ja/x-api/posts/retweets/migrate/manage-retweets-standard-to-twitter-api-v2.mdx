@@ -1,0 +1,191 @@
+---
+title: リツイートの管理
+sidebarTitle: リツイートの管理
+keywords: ["リツイート管理の移行", "v1.1 から v2 へのリツイート管理", "リツイート管理を移行する", "Standard から v2 へのリツイート", "リツイートの移行"]
+---
+
+<div id="manage-retweets-standard-v11-compared-to-x-api-v2">
+  ### リツイートの管理: standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の [POST statuses/retweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-retweet-id) および [POST statuses/unretweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-unretweet-id) エンドポイントを使用している場合、本ガイドは standard v1.1 と X API v2 のリツイート用エンドポイントの類似点と相違点を理解するのに役立つことを目的としています。
+
+* **類似点**
+  * 認証
+* **相違点**
+  * エンドポイント URL と HTTP メソッド
+  * リクエスト制限
+  * App と Project の要件
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+標準 v1.1 と X API v2 の両方にある Retweets を管理するエンドポイント（[POST statuses/retweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-retweet-id) および [POST statuses/unretweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-unretweet-id)）では、[OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) を使用します。したがって、以前に標準 v1.1 の Retweets lookup エンドポイントのいずれかを使用していた場合、X API v2 の対応エンドポイントに移行しても、同じ認証方法を引き続き使用できます。 
+
+<div id="differences">
+  #### 違い
+</div>
+
+**エンドポイント URL と HTTP メソッド**
+
+* Standard v1.1 エンドポイント:
+  * https://api.x.com/1.1/statuses/retweet/:id.json
+    (ポストをリツイートします。リツイートの詳細が埋め込まれた元のポストを返します)
+  * https://api.x.com/1.1/statuses/unretweet/:id.json
+    (リツイートを取り消します。リツイートの詳細が埋め込まれた元のポストを返します)
+* X API v2 エンドポイント:
+  * https://api.x.com/2/tweets/:id/retweets
+    (指定されたポストをリツイートします)
+  * https://api.x.com/2/users/:id/retweets/:source&#95;tweet&#95;id
+    (指定されたポストのリツイートを取り消します) 
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストを認証する際に、[developer App](/ja/resources/fundamentals/developer-apps) の資格情報を使用する必要があります。この App は [Project](/ja/resources/fundamentals/developer-apps) に関連付けられている必要があります。すべての X API v1.1 エンドポイントは、App からの資格情報、または App に関連付けられた App からの資格情報を使用できます。
+
+**リクエストパラメータ**
+
+次の Standard v1.1 リクエストパラメータは、2 つのクエリパラメータ (user&#95;id または screen&#95;name) を受け付けていました。X API v2 では数値のユーザー ID のみを受け付け、エンドポイントパスの一部として渡す必要があります。
+
+| Standard v1.1 | X API v2 |
+| :--- | :--- |
+| **id** | **id** |
+| **includes&#95;entities** | 対応するものはありません |
+
+Standard v1.1 のパラメータはクエリパラメータとして渡されるのに対し、X API v2 のパラメータは、POST エンドポイントではボディパラメータとして、DELETE エンドポイントではパスパラメータとして渡されることに注意してください。
+
+また、Standard v1.1 エンドポイントを使用する場合は、ポストをリツイートするユーザーの id は必須ではありません。[OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) とともに渡される [Access Tokens](/ja/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) によって、どのユーザーがリツイートを実行または取り消しているかが判断されるためです。
+
+***
+
+<div id="code-examples">
+  ## コード例
+</div>
+
+<div id="retweet-a-post-v2">
+  ### ポストをリツイートする (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/retweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/retweets"
+  response = requests.post(url, auth=auth, json={"tweet_id": "1234567890"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ポストをリツイートする
+  response = client.posts.retweet(user_id="123456789", tweet_id="1234567890")
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ポストをリツイートする
+  const response = await client.posts.retweet("123456789", { tweetId: "1234567890" });
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>
+
+<div id="undo-a-retweet-v2">
+  ### リツイートの取り消し (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/retweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/retweets/1234567890"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # リツイートを取り消す
+  response = client.posts.unretweet(user_id="123456789", tweet_id="1234567890")
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // リツイートを取り消す
+  const response = await client.posts.unretweet("123456789", "1234567890");
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>

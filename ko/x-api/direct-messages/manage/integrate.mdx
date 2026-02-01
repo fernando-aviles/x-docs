@@ -1,0 +1,315 @@
+---
+title: 통합 가이드
+sidebarTitle: 통합 가이드
+description: 다이렉트 메시지 전송을 위한 핵심 개념 및 모범 사례
+keywords: ["다이렉트 메시지 통합 관리", "DM 관리 통합", "DM 전송 통합"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 Direct Messages를 관리하는 엔드포인트를 애플리케이션에 통합하는 데 필요한 핵심 개념을 다룹니다.
+
+***
+
+<div id="authentication">
+  ## 인증
+</div>
+
+DM 엔드포인트에는 사용자 인증이 필요합니다:
+
+| Method | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/ko/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 권장 |
+| [OAuth 1.0a User Context](/ko/resources/fundamentals/authentication) | 레거시 지원 |
+
+<Warning>
+  App-Only 인증은 지원되지 않습니다. 모든 다이렉트 메시지는 비공개입니다.
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### 필수 스코프 (OAuth 2.0)
+</div>
+
+| Scope | 필요한 기능 |
+|:------|:-------------|
+| `dm.write` | 메시지 보내기 및 삭제 |
+| `dm.read` | `dm.write`와 함께 필요 |
+| `tweet.read` | DM 스코프에 필요 |
+| `users.read` | DM 스코프에 필요 |
+
+***
+
+<div id="endpoints-overview">
+  ## 엔드포인트 개요
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 일대일 메시지 전송 |
+| POST | `/2/dm_conversations` | 그룹 대화 생성 |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 대화에 메시지 추가 |
+| DELETE | `/2/dm_events/:event_id` | 메시지 삭제 |
+
+***
+
+<div id="sending-messages">
+  ## 메시지 보내기
+</div>
+
+<div id="one-to-one-message">
+  ### 일대일 메시지
+</div>
+
+특정 사용자에게 메시지를 보냅니다. 기존 대화가 없다면 새 대화를 생성합니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 일대일 DM 보내기
+  response = client.dm_conversations.create_message(
+      participant_id="9876543210",
+      text="Hello!"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 일대일 DM 보내기
+  const response = await client.dmConversations.createMessage({
+    participantId: "9876543210",
+    text: "Hello!",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="group-conversation">
+  ### 그룹 대화
+</div>
+
+새 그룹을 만들고 첫 메시지를 보냅니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "conversation_type": "Group",
+      "participant_ids": ["944480690", "906948460078698496"],
+      "message": {"text": "Welcome to our group!"}
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 그룹 대화 생성
+  response = client.dm_conversations.create(
+      conversation_type="Group",
+      participant_ids=["944480690", "906948460078698496"],
+      message={"text": "Welcome to our group!"}
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 그룹 대화 생성
+  const response = await client.dmConversations.create({
+    conversationType: "Group",
+    participantIds: ["944480690", "906948460078698496"],
+    message: { text: "Welcome to our group!" },
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Note>
+  `conversation_type` 필드는 반드시 `"Group"`으로 설정해야 합니다(대소문자 구분).
+</Note>
+
+<div id="add-to-existing-conversation">
+  ### 기존 대화에 추가
+</div>
+
+참여 중인 대화에 메시지를 보내세요:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Another message"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 기존 대화에 메시지 추가
+  response = client.dm_conversations.add_message(
+      dm_conversation_id="1582103724607971328",
+      text="Another message"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 기존 대화에 메시지 추가
+  const response = await client.dmConversations.addMessage({
+    dmConversationId: "1582103724607971328",
+    text: "Another message",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-attachments">
+  ## 미디어 첨부
+</div>
+
+메시지당 하나의 미디어(사진, 동영상 또는 GIF)를 첨부할 수 있습니다.
+
+<Steps>
+  <Step title="미디어 업로드">
+    [Media Upload 엔드포인트](/ko/x-api/media/quickstart/media-upload-chunked)를 사용해 파일을 업로드하고 `media_id`를 받습니다.
+  </Step>
+
+  <Step title="메시지에 포함">
+    ```json
+    {
+      "text": "Check out this image!",
+      "attachments": [{"media_id": "1583157113245011970"}]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  * 인증된 사용자가 해당 미디어를 직접 업로드했어야 합니다.
+  * 미디어는 업로드 후 24시간 동안만 사용할 수 있습니다.
+  * 메시지당 하나의 첨부만 지원됩니다.
+</Note>
+
+***
+
+<div id="sharing-posts">
+  ## 포스트 공유
+</div>
+
+메시지 텍스트에 게시물 URL을 추가하여 해당 게시물을 포함하세요:
+
+```json
+{
+  "text": "Have you seen this? https://x.com/XDevelopers/status/1580559079470145536"
+}
+```
+
+응답에는 게시물 id가 들어 있는 `referenced_tweets` 필드가 포함됩니다.
+
+***
+
+<div id="message-requirements">
+  ## 메시지 요건
+</div>
+
+| Field | Required | Notes |
+|:------|:---------|:------|
+| `text` | 예* | 첨부 파일이 없을 경우 필수 |
+| `attachments` | 예* | 텍스트가 없을 경우 필수 |
+
+*`text` 또는 `attachments` 중 하나 이상은 반드시 제공되어야 합니다.
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## v1.1과의 ID 호환성
+</div>
+
+대화 및 이벤트 ID는 v1.1과 v2 엔드포인트 간에 공유됩니다. 이를 통해 다음과 같은 하이브리드 워크플로우를 구현할 수 있습니다:
+
+* v2로 메시지 생성
+* v1.1로 메시지 삭제(아직 v2에서는 지원되지 않음)
+* x.com URL에 포함된 대화 ID 참조
+
+***
+
+<div id="error-handling">
+  ## 오류 처리
+</div>
+
+| Status | 오류 | 해결 방법 |
+|:-------|:------|:---------|
+| 400 | 잘못된 요청 | 요청 본문 형식을 확인하세요 |
+| 401 | 인증 실패 | 액세스 토큰을 확인하세요 |
+| 403 | 권한 없음 | 스코프 및 사용자 권한을 확인하세요 |
+| 429 | 요청 과다 | 대기 후 다시 시도하세요 |
+
+<div id="common-issues">
+  ### 일반적인 문제
+</div>
+
+<AccordionGroup>
+  <Accordion title="사용자에게 전송할 수 없음">
+    수신자가 알지 못하는 사용자로부터 오는 메시지를 차단하도록 DM 설정을 해 두었거나, 귀하를 차단했을 수 있습니다.
+  </Accordion>
+
+  <Accordion title="미디어 첨부 실패">
+    같은 인증된 사용자 계정으로 업로드된 미디어인지, 그리고 업로드된 지 24시간이 지나지 않았는지 확인하세요.
+  </Accordion>
+
+  <Accordion title="그룹 생성 실패">
+    모든 참가자 id가 유효한지, 해당 사용자들이 그룹 DM 초대를 허용하는지 확인하세요.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="빠른 시작" icon="rocket" href="/ko/x-api/direct-messages/manage/quickstart">
+    첫 번째 다이렉트 메시지를 보내세요
+  </Card>
+
+  <Card title="DM 조회" icon="inbox" href="/ko/x-api/direct-messages/lookup/introduction">
+    DM 대화를 조회하세요
+  </Card>
+
+  <Card title="미디어 업로드" icon="image" href="/ko/x-api/media/quickstart/media-upload-chunked">
+    첨부할 미디어를 업로드하세요
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/direct-messages/create-dm-message-by-participant-id">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

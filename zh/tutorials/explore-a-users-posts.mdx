@@ -1,0 +1,174 @@
+---
+title: 使用 X API v2 浏览某个用户的帖子和提及
+description: "用户帖子时间线和用户提及时间线端点允许开发者检索由某个用户发布的，或提及该用户的公开帖子。"
+sidebarTitle: 浏览某个用户的帖子
+mode: wide
+keywords: ["用户时间线", "用户提及", "推文时间线", "提及时间线", "用户帖子", "教程", "API 教程", "用户推文"]
+---
+
+<div id="introduction">
+  ## 介绍
+</div>
+
+[最近搜索端点](/zh/x-api/posts/search/introduction) 只允许你获取最近 7 天内发布的帖子，而用户帖子时间线和用户提及时间线端点则允许你为已授权用户（使用用户 ID）检索早于这 7 天时间范围的帖子和提及。开发者可以使用这些端点来研究某个用户时间线或提及中的帖子主题、实体和情绪。在本教程中，我们将向你展示如何使用用户 Tweet 时间线和用户提及时间线端点来探索某个用户的帖子和提及。
+ 
+
+<div id="prerequisites">
+  ## 先决条件
+</div>
+
+* 要使用用户推文时间线和用户提及时间线端点，你需要拥有一个有效的开发者账号。 
+* 你还需要已创建一个 [Project](/zh/resources/fundamentals/developer-apps)。
+* 你必须已经[注册](https://developer.x.com/en/portal/petition/essential/basic-info)开发者账号，并激活[新的开发者控制台体验](https://developer.x.com/en/portal/opt-in.html)。 
+* 你需要拥有在[开发者控制台](/zh/resources/fundamentals/developer-portal)中创建、并附加到 [Project](/zh/resources/fundamentals/developer-apps) 的开发者 App 的有效密钥和令牌才能访问。
+* 你需要一个来自你在 [X 开发者控制台](/zh/resources/fundamentals/developer-portal)中 App 的 Bearer 令牌。
+* 如果你还没有获批的开发者账号，可以[申请一个](https://developer.x.com/en/apply-for-access)。
+
+<div id="approved-developer-account">
+  ## 已获批准的开发者账号
+</div>
+
+如果你还没有开发者账号，可以[申请一个](https://developer.x.com/en/apply-for-access)。
+
+<div id="create-a-project-and-connect-an-app">
+  ## 创建 Project 并连接 App
+</div>
+
+在 [开发者控制台](https://developer.x.com/en/portal/dashboard) 中，点击 “Create a new App”。
+
+<Frame>
+  <img src="/images/projects.png.twimg.1920.png" />
+</Frame>
+
+为它命名，选择合适的使用场景，并提供 Project 描述。接下来，你可以创建一个新的 App，或连接一个已有的 [App](/zh/resources/fundamentals/developer-apps)（App 是一个包含你的 API 密钥的容器，你需要这些密钥来向 X API 发起 HTTP 请求）。
+
+<Frame>
+  <img src="/images/add-your-app.png.twimg.1920.png" />
+</Frame>
+
+点击 “create a new App instead”，并为你的 App 命名，以创建一个新的 App。
+
+<Frame>
+  <img src="/images/last-step-name-your-app.png.twimg.1920.png" />
+</Frame>
+
+点击完成后，你会获得 API 密钥和 Bearer 令牌，之后就可以使用它们连接到 X API v2 中的新端点。
+
+<Frame>
+  <img src="/images/here-are-your-keys.png.twimg.1920.png" />
+</Frame>
+
+点击 API key、API secret key 和 Bearer 令牌旁边的 (+)，并将这些值复制到本地机器上的安全位置。你将在下一步中使用它们来发起 API 调用。
+
+注意：上方截图中的密钥是隐藏的，但在你自己的开发者控制台中，你将能够看到 API key、API secret key 和 Bearer 令牌的实际值。
+ 
+
+<div id="how-to-get-the-user-id-for-a-user-to-use-in-the-user-tweet-timeline-and-user-mention-timeline-endpoints">
+  ## 如何获取用户 Tweet 时间线和用户提及时间线端点所需的用户 ID
+</div>
+
+用户 Tweet 时间线和用户提及时间线端点允许你通过用户 ID 来获取帖子。要从用户名获取用户 ID，你可以使用 [用户查询端点 v2](/zh/x-api/users/lookup/quickstart/user-lookup)。将 USER&#95;NAME 替换为你要查询的用户名，将 XXXX 替换为你在上面获取的 Bearer 令牌。
+
+```bash
+  curl --request GET 'https://api.x.com/2/users/by/username/USER_NAME --header 'Authorization: Bearer XXXXXX'
+```
+
+你将在响应中看到如下所示的用户 ID：
+
+```json
+{
+   "data": {
+       "id": "2244994945",
+       "name": "Developers",
+       "username": "XDevelopers"
+   }
+}
+```
+
+<div id="connecting-to-the-user-tweet-timeline-and-user-mention-timeline-endpoints">
+  ## 连接到用户推文时间线和用户提及时间线端点
+</div>
+
+为了获取某个用户的推文时间线，请在终端中运行以下 curl 命令（请确保将 USER&#95;ID 替换为你选择的用户 ID，并将 XXXX 替换为你在上文获取的自己的 Bearer 令牌）
+
+```bash
+curl --request GET 'https://api.x.com/2/users/USER_ID/tweets' --header 'Authorization: Bearer XXXXXX'
+```
+
+你会发现，这些请求的 JSON 响应默认会包含帖子对应的 `id` 和文本内容（示例如下）。
+
+```yaml
+{
+   "id": "1334200897081987072",
+   "text": "👀 If you are new to the X API v2, check out this step-by-step guide to making your first request https://t.co/4rZqThpSbp"
+}
+```
+
+如果你希望在响应中返回更多字段（例如用户信息、额外的推文字段，如上下文注释等），则需要在请求中显式指定这些字段。你可以在[关于使用字段和 expansions 的指南](/zh/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions)中了解如何进行设置。
+
+你也可以使用你选择的编程语言获取这些帖子。请查看我们在 Python、Node（JavaScript）、Java 和 Ruby 中为用户推文时间线和用户提及时间线端点提供的示例代码，这些示例代码位于我们的 [GitHub 代码库](https://github.com/xdevplatform/Twitter-API-v2-sample-code) 中。
+
+<div id="exploring-the-users-posts">
+  ## 探索用户的帖子
+</div>
+
+一旦你了解了如何通过用户推文时间线和用户提及时间线这两个 endpoint 获取帖子，就可以开始探索他们的帖子了。比如，如果你想识别出某个用户收到的提及中常见的命名实体，可以按如下方式操作：
+
+在 API 请求中，指定要在 Tweet 响应中返回 context&#95;annotations 对象：
+
+```bash
+curl --request GET 'https://api.x.com/2/users/USER_ID/mentions?tweet.fields=context_annotations' --header 'Authorization: Bearer XXXXXX'
+```
+
+在响应中，您可以看到这些提及中是否存在任何命名实体。下面是一个示例：
+
+```json
+{
+   "domain": {
+       "id": "47",
+       "name": "Brand",
+       "description": "品牌与公司"
+   },
+   "entity": {
+       "id": "783214",
+       "name": "X"
+   }
+}
+```
+
+如果你想查看在你的提及中出现了哪些热门实体，你可以通过解析提及中的每条推文来统计这些热门实体的出现次数。
+
+如果你想查看时间线上所有包含媒体的帖子所对应的预览图片 URL，可以执行以下操作：
+
+在 API 请求中，指定在 tweet.media 字段中返回 preview&#95;image&#95;url，并通过 attachments.media&#95;keys 的 expansions 获取相应的数据。
+
+```bash
+curl --request GET 'https://api.x.com/2/users/2244994945/mentions?max_results=100&media.fields=preview_image_url&expansions=attachments.media_keys' --header 'Authorization: Bearer XXXXXX'
+```
+
+在响应中，你可以在 includes 对象中看到 preview&#95;image&#95;url，如下所示：
+
+```json
+{
+   "includes": {
+       "media": [
+           {
+               "media_key": "16_1334657439640121344",
+               "preview_image_url": "https://pbs.twimg.com/tweet_video_thumb/EoWn3rqU8AAtFWL.jpg",
+               "type": "animated_gif"
+           }
+       ]
+   }
+}
+```
+
+当你掌握了如何浏览某个用户的帖子之后，还可以配合其他 API 和服务，对这些帖子执行更多操作。下面是一些在使用用户推文时间线和用户提及时间线端点时可随时查阅的资源。
+
+<div id="resources">
+  ## 资源
+</div>
+
+* 进一步了解 [用户推文时间线和用户提及时间线端点](/zh/x-api/posts/timelines/introduction)。
+* 查看[用户推文时间线端点的 API 参考](/zh/x-api/posts/user-posts-timeline-by-user-id)，了解可用的功能。
+* 查看[用户提及时间线端点的 API 参考](/zh/x-api/posts/user-mention-timeline-by-user-id)，了解可用的功能。
+* 阅读我们的其他[教程](/zh/tutorials)，获取灵感。

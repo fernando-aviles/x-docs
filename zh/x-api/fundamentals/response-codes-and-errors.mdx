@@ -1,0 +1,255 @@
+---
+title: 响应状态码与错误
+sidebarTitle: 响应状态码
+description: X API 的 HTTP 状态码和错误处理
+keywords: ["response codes", "error codes", "HTTP status codes", "API errors", "error handling", "debugging"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+X API 使用标准 HTTP 状态码。成功的请求会返回 2xx 状态码；出错时会返回 4xx 或 5xx 状态码，并在响应正文中提供详细信息。
+
+***
+
+<div id="http-status-codes">
+  ## HTTP 状态码
+</div>
+
+<div id="success-codes">
+  ### 成功状态码
+</div>
+
+| Code | Meaning | Description |
+|:-----|:--------|:------------|
+| **200** | OK | 请求成功 |
+| **201** | Created | 资源已创建（POST 请求） |
+| **204** | No Content | 成功，且无响应体（DELETE 请求） |
+
+<div id="client-error-codes">
+  ### 客户端错误状态码
+</div>
+
+| Code | 含义 | 常见原因 |
+|:-----|:--------|:--------------|
+| **400** | 错误的请求（Bad Request） | JSON 无效、查询格式错误、缺少必需参数 |
+| **401** | 未授权（Unauthorized） | 身份验证凭据无效或缺失 |
+| **403** | 禁止访问（Forbidden） | 身份验证有效但没有此资源或操作的权限 |
+| **404** | 未找到（Not Found） | 资源不存在或已被删除 |
+| **409** | 冲突（Conflict） | 流没有规则（仅适用于过滤流） |
+| **429** | 请求过多（Too Many Requests） | 触发速率限制或超出用量上限 |
+
+<div id="server-error-codes">
+  ### 服务器错误状态码
+</div>
+
+| Code | 含义 | 处理方式 |
+|:-----|:--------|:-----------|
+| **500** | 内部服务器错误 | 稍后重试；检查 [状态页](/zh/status) |
+| **502** | 错误网关 | 稍后重试 |
+| **503** | 服务不可用 | X 负载过高；稍后重试 |
+| **504** | 网关超时 | 稍后重试 |
+
+***
+
+<div id="error-response-format">
+  ## 错误响应格式
+</div>
+
+错误响应包含结构化的详细信息：
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The 'query' parameter is required.",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+| 字段       | 描述            |
+| :------- | :------------ |
+| `type`   | 用于标识错误类型的 URI |
+| `title`  | 简短的错误描述       |
+| `detail` | 针对此错误的具体说明    |
+
+根据错误类型，可能还会包含其他字段。
+
+***
+
+<div id="error-types">
+  ## 错误类型
+</div>
+
+| 类型 | 描述 |
+|:-----|:------------|
+| `about:blank` | 通用错误（参见 HTTP 状态码） |
+| `.../invalid-request` | 请求格式错误或参数无效 |
+| `.../resource-not-found` | 帖子、用户或其他资源不存在 |
+| `.../not-authorized-for-resource` | 无权访问私密/受保护内容 |
+| `.../client-forbidden` | App 未注册或缺少所需访问权限 |
+| `.../usage-capped` | 超出使用上限 |
+| `.../rate-limit-exceeded` | 超出速率限制 |
+| `.../streaming-connection` | 流式连接问题 |
+| `.../rule-cap` | 筛选流规则数量过多 |
+| `.../invalid-rules` | 规则语法错误 |
+| `.../duplicate-rules` | 规则已存在 |
+
+***
+
+<div id="partial-errors">
+  ## 部分错误
+</div>
+
+某些请求可能会部分成功。200 响应可能同时包含 `data` 和 `errors`：
+
+```json
+{
+  "data": [
+    {"id": "123", "text": "Hello"}
+  ],
+  "errors": [
+    {
+      "resource_id": "456",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [456].",
+      "type": "https://api.x.com/2/problems/resource-not-found"
+    }
+  ]
+}
+```
+
+当请求多个资源时，其中部分不可用，就会出现这种情况。
+
+***
+
+<div id="troubleshooting-common-errors">
+  ## 排查常见错误
+</div>
+
+<Accordion title="401 未授权">
+  **检查认证：**
+
+  * 验证你是否为该 endpoint 使用了正确的认证方式
+  * 确认凭证没有被重新生成
+  * 检查 `Authorization` 头部的格式
+  * 对于 OAuth 1.0a，验证签名计算是否正确
+
+  [认证指南 →](/zh/resources/fundamentals/authentication/overview)
+</Accordion>
+
+<Accordion title="403 禁止访问">
+  **检查访问权限：**
+
+  * 验证你的 App 是否具有该 endpoint 的访问权限
+  * 部分 endpoint 需要特定的注册或审批
+  * 用户上下文的 endpoint 需要合适的 OAuth scope
+  * 资源可能是私有或受保护的
+</Accordion>
+
+<Accordion title="429 请求过多">
+  **触发速率限制：**
+
+  * 检查 `x-rate-limit-reset` 头部以确定何时重试
+  * 实现指数退避机制
+  * 考虑对响应进行缓存
+  * 将请求分布在整个时间窗口内
+
+  [速率限制指南 →](/zh/x-api/fundamentals/rate-limits)
+</Accordion>
+
+<Accordion title="400 错误的请求">
+  **修复请求：**
+
+  * 验证 JSON 语法
+  * 检查是否缺少必需参数
+  * 验证参数类型（字符串 vs. 数字）
+  * 在查询中转义特殊字符
+</Accordion>
+
+<Accordion title="缺少预期的帖子">
+  **检查以下因素：**
+
+  * 受保护账号的帖子只有在授权后才可见
+  * 已删除的帖子会返回 404
+  * 某些帖子在特定地区会被屏蔽
+  * 验证搜索查询语法是否正确
+</Accordion>
+
+<Accordion title="流式连接中断">
+  **处理重连：**
+
+  * 实现带退避的自动重连
+  * 使用恢复功能获取错过的数据
+  * 检查是否由于缓冲区已满导致连接断开（客户端消费速度不够快）
+  * 验证至少存在一条流规则
+
+  [流式传输指南 →](/zh/x-api/posts/filtered-stream/integrate/handling-disconnections)
+</Accordion>
+
+***
+
+<div id="rate-limit-headers">
+  ## 速率限制相关响应头
+</div>
+
+每个响应都会包含速率限制相关信息：
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| 标头                       | 说明                |
+| :----------------------- | :---------------- |
+| `x-rate-limit-limit`     | 当前时间窗口内的最大请求数     |
+| `x-rate-limit-remaining` | 剩余请求数             |
+| `x-rate-limit-reset`     | 时间窗口重置时的 Unix 时间戳 |
+
+***
+
+<div id="best-practices">
+  ## 最佳实践
+</div>
+
+<CardGroup cols={2}>
+  <Card title="检查状态码" icon="square-check">
+    在解析响应体之前，始终先检查 HTTP 状态码。
+  </Card>
+
+  <Card title="处理部分错误" icon="triangle-exclamation">
+    即使是 200 响应，也要检查 `errors` 数组。
+  </Card>
+
+  <Card title="实现重试逻辑" icon="arrows-rotate">
+    对 429 和 5xx 错误使用指数退避策略。
+  </Card>
+
+  <Card title="记录请求详情" icon="file-lines">
+    为便于调试，记录请求 ID 和时间戳。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="getting-help">
+  ## 获取帮助
+</div>
+
+在提问关于错误的问题时，请包含：
+
+* API endpoint URL
+* 请求头（请对凭证进行脱敏）
+* 完整的错误响应
+* 你期望的结果
+* 你已经尝试过的步骤
+
+<CardGroup cols={2}>
+  <Card title="Developer Forum" icon="comments" href="https://devcommunity.x.com">
+    提出问题并搜索解决方案。
+  </Card>
+
+  <Card title="API Status" icon="signal" href="/zh/status">
+    检查已知问题。
+  </Card>
+</CardGroup>

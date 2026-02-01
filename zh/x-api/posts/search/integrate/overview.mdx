@@ -1,0 +1,299 @@
+---
+title: 集成指南
+sidebarTitle: 概览
+description: 用于集成 Search Posts 的关键概念和最佳实践
+keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "推文搜索集成"]
+---
+
+本指南介绍你在将 Search Posts 端点集成到应用中时所需的关键概念。
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+<div id="recent-search">
+  ### 近期搜索
+</div>
+
+近期搜索支持多种身份验证方法：
+
+| 方法 | 使用场景 |
+|:-------|:---------|
+| [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 公开帖子数据 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 私密指标数据 |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 私密指标数据 |
+
+<div id="full-archive-search">
+  ### 全量归档搜索
+</div>
+
+全量归档搜索仅支持 [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) 身份验证。
+
+<Warning>
+  由于全量归档搜索仅支持 App-Only 身份验证，`non_public_metrics`、`organic_metrics`、`promoted_metrics` 等私有指标无法获取。
+</Warning>
+
+***
+
+<div id="building-queries">
+  ## 构建查询
+</div>
+
+查询使用运算符来匹配帖子，并可通过布尔逻辑将运算符组合起来：
+
+```
+(AI OR "machine learning") lang:en -is:retweet has:links
+```
+
+<div id="query-length-limits">
+  ### 查询长度限制
+</div>
+
+| 访问级别 | 最近搜索 | 全量存档搜索 |
+|:-------------|:--------------|:--------------------|
+| 自助版 | 512 字符 | 1,024 字符 |
+| 企业版 | 4,096 字符 | 4,096 字符 |
+
+<div id="operator-types">
+  ### 运算符类型
+</div>
+
+| 类型 | 说明 | 示例 |
+|:-----|:------------|:--------|
+| **Standalone** | 可单独使用 | `#python`, `from:user` |
+| **Conjunction-required** | 必须与独立运算符配合使用 | `has:media`, `is:retweet` |
+
+<Card title="构建查询" icon="magnifying-glass" href="/zh/x-api/posts/search/integrate/build-a-query">
+  深入了解查询语法
+</Card>
+
+<Card title="运算符参考" icon="list-check" href="/zh/x-api/posts/search/integrate/operators">
+  查看所有可用运算符
+</Card>
+
+***
+
+<div id="fields-and-expansions">
+  ## 字段和 expansions
+</div>
+
+默认情况下，响应仅包含 `id`、`text` 和 `edit_history_tweet_ids`。使用参数来请求更多数据。
+
+<div id="example-request">
+  ### 示例请求
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/recent?\
+  query=python&\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 搜索最近的帖子
+  for page in client.posts.search_recent(
+      query="python",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text} - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 搜索最近的帖子
+  const paginator = client.posts.searchRecent("python", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="available-expansions">
+  ### 可用的 expansions
+</div>
+
+| Expansion | 返回内容 |
+|:----------|:--------|
+| `author_id` | 作者的用户对象 |
+| `attachments.media_keys` | 关联的媒体对象 |
+| `attachments.poll_ids` | 关联的投票对象 |
+| `referenced_tweets.id` | 被引用或被回复的帖子 |
+| `geo.place_id` | 地点对象 |
+| `entities.mentions.username` | 被提及的用户对象 |
+
+<Card title="字段和 expansions 指南" icon="sliders" href="/zh/x-api/fundamentals/fields">
+  了解更多自定义响应的方式
+</Card>
+
+***
+
+<div id="pagination">
+  ## 分页
+</div>
+
+搜索端点会以分页形式返回结果。使用响应中的 `next_token` 来获取后续页面。
+
+<div id="how-it-works">
+  ### 工作原理
+</div>
+
+1. 使用 `max_results` 参数发起初始请求
+2. 在 `meta` 对象中检查 `next_token`
+3. 在后续请求中传入 `next_token`
+4. 重复上述步骤，直到不再返回 `next_token`
+
+<div id="example">
+  ### 示例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 首次请求
+  curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # 携带分页令牌的后续请求
+  curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100&next_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK 会自动处理分页
+  all_posts = []
+
+  for page in client.posts.search_recent(query="python", max_results=100):
+      if page.data:
+          all_posts.extend(page.data)
+
+  print(f"Found {len(all_posts)} posts")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllResults(query) {
+    const allPosts = [];
+
+    // SDK 会自动处理分页
+    const paginator = client.posts.searchRecent(query, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allPosts.push(...page.data);
+      }
+    }
+
+    return allPosts;
+  }
+
+  // 使用示例
+  const posts = await getAllResults("python");
+  console.log(`Found ${posts.length} posts`);
+  ```
+</CodeGroup>
+
+<Card title="分页指南" icon="arrow-right" href="/zh/x-api/posts/search/integrate/paginate">
+  详细了解分页
+</Card>
+
+***
+
+<div id="post-edits">
+  ## 帖子编辑
+</div>
+
+帖子可以在 30 分钟内最多被编辑 5 次。搜索端点始终返回最新版本。
+
+<div id="considerations">
+  ### 注意事项
+</div>
+
+* `edit_history_tweet_ids` 包含所有帖子 ID（从最早到最新）
+* 在 30 分钟窗口之后获取的帖子即为最终版本
+* 对于近实时场景，最近发布的帖子可能仍在被编辑
+
+<Card title="编辑帖子基础知识" icon="clock-rotate-left" href="/zh/x-api/fundamentals/edit-posts">
+  详细了解帖子编辑
+</Card>
+
+***
+
+<div id="best-practices">
+  ## 最佳实践
+</div>
+
+<CardGroup cols={2}>
+  <Card title="从具体入手" icon="crosshairs">
+    使用多个运算符来缩小结果范围并减少噪声。
+  </Card>
+
+  <Card title="迭代测试" icon="flask">
+    先从宽泛条件开始，再根据结果不断优化。
+  </Card>
+
+  <Card title="处理分页" icon="arrow-right">
+    为大型结果集实现合适的分页方案。
+  </Card>
+
+  <Card title="缓存结果" icon="database">
+    将结果存储在本地以避免重复请求。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="构建查询" icon="magnifying-glass" href="/zh/x-api/posts/search/integrate/build-a-query">
+    掌握查询语法
+  </Card>
+
+  <Card title="运算符参考" icon="list-check" href="/zh/x-api/posts/search/integrate/operators">
+    所有可用的运算符
+  </Card>
+
+  <Card title="分页" icon="arrow-right" href="/zh/x-api/posts/search/integrate/paginate">
+    处理大型结果集
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/recent-search">
+    完整的端点文档
+  </Card>
+</CardGroup>

@@ -1,0 +1,234 @@
+---
+title: フィルタ済みストリーム
+sidebarTitle: 概要
+description: フィルタールールにマッチする投稿をリアルタイムでストリーミングする
+keywords: ["フィルタ済みストリーム", "ストリーミング API", "リアルタイムストリーム", "ツイートのストリーミング", "フィルタルール", "ストリーミングエンドポイント", "ライブツイート", "リアルタイムデータ", "Webhook ストリーム"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+Filtered Stream エンドポイントを使用すると、フィルタールールに一致する投稿をリアルタイムで受信できます。強力なオペレーターを使ってルールを作成し、永続ストリームに接続して、投稿が公開され次第、一致するものを受信します。
+
+<div id="overview">
+  ## 概要
+</div>
+
+<CardGroup cols={2}>
+  <Card title="リアルタイム配信" icon="bolt">
+    公開から数秒以内に投稿を受信できます
+  </Card>
+
+  <Card title="永続的なルール" icon="filter">
+    接続を維持したままルールを追加・削除できます
+  </Card>
+
+  <Card title="強力な検索演算子" icon="magnifying-glass">
+    キーワード、ハッシュタグ、ユーザーなどにマッチできます
+  </Card>
+
+  <Card title="Webhook 配信" icon="webhook">
+    必要に応じて Webhook 経由で投稿を受信できます
+  </Card>
+</CardGroup>
+
+***
+
+<div id="how-it-works">
+  ## 仕組み
+</div>
+
+1. **ルールを作成する** — 演算子を使用してフィルタールールを定義します
+2. **ストリームに接続する** — 永続的な HTTP 接続を確立します
+3. **投稿を受信する** — 一致する投稿をリアルタイムで受信します
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│ Create/     │      │ Connect to  │      │ Receive     │
+│ manage      │  →   │ streaming   │  →   │ matching    │
+│ rules       │      │ endpoint    │      │ Posts       │
+└─────────────┘      └─────────────┘      └─────────────┘
+```
+
+***
+
+<div id="endpoints">
+  ## エンドポイント
+</div>
+
+| Method | Endpoint | 説明 |
+|:-------|:---------|:------------|
+| GET | [`/2/tweets/search/stream`](/ja/x-api/stream/stream-filtered-posts) | ストリームに接続する |
+| POST | [`/2/tweets/search/stream/rules`](/ja/x-api/stream/update-stream-rules) | ルールを追加または削除する |
+| GET | [`/2/tweets/search/stream/rules`](/ja/x-api/stream/get-stream-rules) | 現在のルールを一覧表示する |
+
+***
+
+<div id="access-levels">
+  ## アクセスレベル
+</div>
+
+| 機能 | 従量課金 | Enterprise |
+|:--------|:------------|:-----------|
+| プロジェクトごとのルール数 | 1,000 | 25,000+ |
+| ルールの長さ | 1,024文字 | 2,048文字 |
+| 同時接続数 | 1 | 複数 |
+| 全オペレーター対応 | ✓ | ✓ |
+
+<Card title="Enterprise についてお問い合わせ" icon="building" href="https://developer.x.com/en/products/x-api/enterprise/enterprise-api-interest-form">
+  より高い上限と追加機能をご利用いただけます
+</Card>
+
+***
+
+<div id="building-rules">
+  ## ルールの作成
+</div>
+
+ルールでは、検索クエリと同じ演算子を使用できます。
+
+```
+(AI OR "machine learning") lang:en -is:retweet
+```
+
+<div id="example-rules">
+  ### ルールの例
+</div>
+
+| ルール | 一致する投稿 |
+|:-----|:--------|
+| `#python` | #python ハッシュタグが付いた投稿 |
+| `from:elonmusk` | @elonmusk による投稿 |
+| `"breaking news" has:images` | 指定フレーズと画像を含む投稿 |
+| `(@XDevelopers OR @X) -is:retweet` | メンションを含む投稿（リツイートを除く） |
+
+<Card title="ルールを作成する" icon="filter" href="/ja/x-api/posts/filtered-stream/integrate/build-a-rule">
+  ルールの構文と演算子について学ぶ
+</Card>
+
+***
+
+<div id="connecting-to-the-stream">
+  ## ストリームへの接続
+</div>
+
+投稿を受信するために、永続的な HTTP 接続を確立します。
+
+```python
+import requests
+
+def stream_posts(bearer_token):
+    url = "https://api.x.com/2/tweets/search/stream"
+    headers = {"Authorization": f"Bearer {bearer_token}"}
+    
+    response = requests.get(url, headers=headers, stream=True)
+    
+    for line in response.iter_lines():
+        if line:
+            print(line.decode("utf-8"))
+```
+
+<div id="keep-alive-signals">
+  ### キープアライブ信号
+</div>
+
+ストリームは接続を維持するために、20秒ごとに空行（`\r\n`）のみを送信します。20秒間データやキープアライブ信号を受信しない場合は、再接続してください。
+
+<CardGroup cols={2}>
+  <Card title="切断の処理" icon="plug" href="/ja/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    スムーズに再接続する
+  </Card>
+
+  <Card title="ストリーミングデータの処理" icon="stream" href="/ja/x-api/posts/filtered-stream/integrate/consuming-streaming-data">
+    投稿を効率的に処理する
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-delivery">
+  ## Webhook 配信
+</div>
+
+常時接続を維持する代わりに、Webhook を使用して投稿を受信できます。
+
+<Card title="Webhook 配信" icon="webhook" href="/ja/x-api/webhooks/stream/introduction">
+  フィルタ済みストリーム用の Webhook 配信を設定する
+</Card>
+
+***
+
+<div id="post-edits">
+  ## ポストの編集
+</div>
+
+このストリームは、編集履歴とともに編集済みの投稿を配信します。編集のたびに新しいポストIDが生成されます。
+
+```json
+{
+  "data": {
+    "id": "1234567893",
+    "text": "Hello world! (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891", "1234567893"]
+  }
+}
+```
+
+<Card title="ポスト編集の基本" icon="clock-rotate-left" href="/ja/x-api/fundamentals/edit-posts">
+  ポストの編集についてさらに詳しく学ぶ
+</Card>
+
+***
+
+<div id="getting-started">
+  ## はじめに
+</div>
+
+<Note>
+  **前提条件**
+
+  * 承認済みの[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 開発者コンソールで作成された [Project と App](/ja/resources/fundamentals/developer-apps)
+  * あなたの App の[ベアラートークン](/ja/resources/fundamentals/authentication)
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/posts/filtered-stream/quickstart">
+    数分でストリームに接続
+  </Card>
+
+  <Card title="ルールを作成" icon="filter" href="/ja/x-api/posts/filtered-stream/integrate/build-a-rule">
+    ルール構文を学ぶ
+  </Card>
+
+  <Card title="オペレーターリファレンス" icon="list-check" href="/ja/x-api/posts/filtered-stream/integrate/operators">
+    利用可能なすべてのオペレーター
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なコード例
+  </Card>
+</CardGroup>
+
+***
+
+<div id="advanced-topics">
+  ## 高度なトピック
+</div>
+
+<CardGroup cols={2}>
+  <Card title="切断時の処理" icon="plug" href="/ja/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    スムーズに再接続する
+  </Card>
+
+  <Card title="高トラフィック対応" icon="gauge-high" href="/ja/x-api/posts/filtered-stream/integrate/handling-high-volume-capacity">
+    高スループットに対応する
+  </Card>
+
+  <Card title="復旧と冗長性" icon="shield" href="/ja/x-api/posts/filtered-stream/integrate/recovery-and-redundancy-features">
+    堅牢なアプリケーションを構築する
+  </Card>
+
+  <Card title="返された投稿の照合" icon="crosshairs" href="/ja/x-api/posts/filtered-stream/integrate/matching-returned-tweets">
+    どのルールにマッチしたか特定する
+  </Card>
+</CardGroup>

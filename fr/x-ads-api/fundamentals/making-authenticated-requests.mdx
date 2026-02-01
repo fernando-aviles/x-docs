@@ -1,0 +1,147 @@
+---
+title: Effectuer des requêtes authentifiées
+keywords: ["authentification de l’Ads API", "requêtes authentifiées", "auth Ads API", "OAuth Ads API", "requêtes Ads API", "authentification"]
+---
+
+L’accès aux endpoints de l’Ads API X nécessite que votre application envoie des requêtes web authentifiées de manière sécurisée via TLS à destination de https://ads-api.x.com.
+
+Les sections suivantes présentent une vue d’ensemble de l’envoi de requêtes API authentifiées, de la configuration de [Twurl](https://github.com/twitter/twurl#getting-started) pour interagir avec l’API, ainsi que de la façon d’étendre votre application pour qu’elle prenne en charge OAuth 1.0a et effectue des requêtes sur votre compte Ads.
+
+<div id="requirements">
+  ## Prérequis
+</div>
+
+Avant d&#39;effectuer des requêtes authentifiées à l&#39;API X Ads, vous devez disposer des éléments suivants :
+
+* un [compte développeur approuvé](/fr/resources/fundamentals/developer-portal)
+* une application qui a été [approuvée pour l&#39;accès à l&#39;API X Ads](/fr/x-ads-api/introduction)
+* une clé API et un secret obtenus via l&#39;[interface de gestion des Apps](/fr/resources/fundamentals/developer-apps) et
+* des [jetons d&#39;accès](/fr/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) pour un utilisateur ayant accès à un compte X Ads
+
+<div id="using-the-api">
+  ## Utilisation de l’API
+</div>
+
+L’Advertising API est accessible sur https://ads-api.x.com. L’[API REST standard](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/overview) et l’Advertising API peuvent être utilisées conjointement avec la même application cliente. L’Advertising API impose l’utilisation de HTTPS ; par conséquent, toute tentative d’accès à un point de terminaison en HTTP entraînera un message d’erreur.
+
+L’Ads API renvoie des réponses au format JSON. Tous les identifiants sont des chaînes et toutes les chaînes sont en UTF-8. L’Advertising API est [versionnée](/fr/x-ads-api/fundamentals/versioning) et la version est spécifiée comme premier élément de chemin de toute URL de ressource.
+
+`https://ads-api.x.com/<version>/accounts`
+
+<div id="http-verbs-typical-response-codes">
+  ## Verbes HTTP et codes de réponse typiques
+</div>
+
+Quatre verbes HTTP sont utilisés dans l’Ads API :
+
+* **GET** récupère des données 
+* **POST** crée de nouvelles données, comme des campagnes
+* **PUT** met à jour des données existantes, comme des line items
+* **DELETE** supprime des données.
+
+Bien que les suppressions soient permanentes, les données supprimées peuvent toujours être consultées via la plupart des méthodes GET en incluant explicitement le paramètre `with_deleted=true` lors de la demande de la ressource. Sinon, les enregistrements supprimés renverront un code HTTP 404.
+
+Une requête réussie renverra une réponse HTTP de la série 200 ainsi que la charge utile JSON représentant l’objet lors de la création, de la suppression ou de la mise à jour d’une ressource.
+
+Lors de la mise à jour de données avec HTTP PUT, seuls les champs spécifiés seront mis à jour. Vous pouvez réinitialiser une valeur facultative en spécifiant le paramètre avec une chaîne vide. Par exemple, ce groupe de paramètres réinitialiserait toute valeur déjà définie pour `end_time` : `&end_time=&paused=false`.
+
+Consultez [Error Codes &amp; Responses](/fr/x-ads-api/fundamentals/error-codes-and-responses) pour plus de détails sur les réponses d’erreur.
+
+<div id="in-line-parameters">
+  ## Paramètres intégrés à l’URL
+</div>
+
+La plupart des URL de ressource comportent un ou plusieurs paramètres intégrés à l’URL. De nombreuses URL acceptent également des paramètres explicitement déclarés dans la chaîne de requête ou, pour les requêtes POST ou PUT, dans le corps.
+
+Les paramètres intégrés à l’URL sont indiqués par un deux-points précédé (« : ») dans la section **Resource Path** de chaque ressource. Par exemple, si le compte sur lequel vous travaillez est identifié par `"abc1"` et que vous [récupérez les campagnes associées à un compte](/fr/x-ads-api/campaign-management#campaigns), vous accéderez à cette liste en utilisant l’URL `https://ads-api.x.com/6/accounts/abc1/campaigns`. En spécifiant le paramètre intégré `account_id` décrit dans l’URL de ressource (`https://ads-api.x.com/6/accounts/:account_id/campaigns`), vous limitez la requête aux objets associés uniquement à ce compte.
+
+<div id="using-access-tokens">
+  ## Utilisation des jetons d’accès
+</div>
+
+L’Ads API de X utilise des requêtes HTTPS signées pour valider l’identité d’une application et obtenir les autorisations accordées à l’utilisateur final pour le compte duquel l’application effectue une requête API, représentées par le jeton d’accès de l’utilisateur. Tous les appels HTTP à l’Ads API doivent inclure un en-tête de requête Authorization (utilisant OAuth 1.0a) via le protocole HTTPS.
+
+Vous devrez ajouter à votre application la capacité de générer des en-têtes de requête Authorization OAuth 1.0a afin de l’intégrer à l’Ads API de X. Cependant, en raison de la complexité liée à la génération de requêtes signées, nous recommandons vivement aux partenaires d’utiliser une bibliothèque existante qui prend en charge X API ou implémente la gestion des requêtes OAuth 1.0a – voici une liste de [bibliothèques OAuth recommandées](/fr/resources/fundamentals/authentication#oauth-1-0a-2) et d’[exemples de code d’authentification](/fr/resources/fundamentals/authentication#oauth-1-0a-2).
+
+Notez que nous pouvons aider les partenaires qui rencontrent des erreurs d’authentification avec une bibliothèque reconnue, mais nous ne pouvons pas assurer le support des implémentations OAuth personnalisées.
+
+<div id="http-oauth">
+  ## HTTP et OAuth
+</div>
+
+Comme pour l’API REST X v1.1, l’Advertising API nécessite à la fois l’utilisation d’[OAuth 1.0A](/fr/resources/fundamentals/authentication) et de HTTPS. Les clés d’API peuvent être obtenues via la [console de gestion des Apps](/fr/resources/fundamentals/developer-apps). Des jetons d’accès doivent également être utilisés pour représenter « l’utilisateur actuel ». L’utilisateur actuel est un compte X disposant de fonctionnalités publicitaires.
+
+Il est fortement recommandé aux partenaires d’utiliser une bibliothèque OAuth plutôt que d’écrire la leur. Nous pouvons vous aider au débogage lorsque vous utilisez une bibliothèque connue, mais pas si vous implémentez OAuth vous‑même. Consultez les [bibliothèques](/fr/resources/fundamentals/authentication#oauth-1-0a-2) que vous pouvez utiliser.
+
+L’API est stricte concernant HTTP 1.1 et OAuth. Assurez‑vous d’[encoder correctement les caractères réservés](https://tools.ietf.org/html/rfc3986#section-2.2) dans les URL et les corps de requêtes POST avant de préparer les chaînes de base de signature OAuth. L’Advertising API, en particulier, utilise les caractères « : » pour indiquer l’heure et « , » pour fournir une collection d’options. Ces deux caractères font partie de cet ensemble de caractères réservés :
+
+| Symbole | Encodage URL |
+| :--- | :--- |
+| !   | %21 |
+| #   | %23 |
+| $   | %24 |
+| &amp;   | %26 |
+| &#39;   | %27 |
+| (   | %28 |
+| )   | %29 |
+| *   | %2A |
+| +   | %2B |
+| ,   | %2C |
+| /   | %2F |
+| :   | %3A |
+| ;   | %3B |
+| =   | %3D |
+| ?   | %3F |
+| @   | %40 |
+| [   | %5B |
+| ]   | %5D |
+
+<div id="making-your-first-api-request-with-twurl">
+  ## Effectuer votre première requête API avec Twurl
+</div>
+
+X maintient un outil en ligne de commande, [Twurl](https://developer.x.com/en/docs/tutorials/using-twurl), qui prend en charge les en-têtes d’autorisation OAuth 1.0a comme alternative à [cURL](https://en.wikipedia.org/wiki/CURL). Twurl fournit un moyen simple d’effectuer des requêtes API authentifiées et d’explorer l’API Ads avant d’ajouter l’authentification à votre application.
+
+Après avoir [installé et autorisé Twurl](https://github.com/twitter/twurl#getting-started), vous pouvez rapidement générer des jetons d’accès et effectuer des requêtes authentifiées à l’API Ads.
+
+```bash
+twurl -H "ads-api.x.com" "/5/accounts/"
+```
+
+Prenez le temps de vous familiariser avec Twurl et l’API en suivant ce tutoriel [pas à pas](/fr/x-ads-api/campaign-management#creating-a-campaign-step-by-step) pour créer une campagne au moyen de l’API.
+
+<div id="testing-with-postman">
+  ## Tester avec Postman
+</div>
+
+Pour celles et ceux qui ne sont pas à l’aise avec un outil en ligne de commande, nous fournissons également une collection Postman pour les points de terminaison de l’API X Ads.
+
+[Postman](https://www.getpostman.com/products) est l’un des outils de développement d’API les plus répandus dans l’industrie aujourd’hui. C’est un client HTTP doté d’une excellente interface utilisateur, qui vous permet de simplifier l’envoi de requêtes API complexes et d’augmenter votre productivité.
+
+Pour installer Postman et commencer à utiliser la collection Postman de l’API X Ads, veuillez consulter notre [guide de configuration](https://github.com/xdevplatform/postman-twitter-ads-api#installation).
+
+<Button href="https://app.getpostman.com/run-collection/369a02c0adc626ff6a06#?env%5BTwitter%20Ads%20API%5D=W3sia2V5IjoiYWNjb3VudF9pZCIsInZhbHVlIjoieW91cl9hZHNfYWNjb3VudF9pZCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidmVyc2lvbiIsInZhbHVlIjoiNiIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY29uc3VtZXJfa2V5IiwidmFsdWUiOiJ5b3VyX2NvbnN1bWVyX2tleSIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY29uc3VtZXJfc2VjcmV0IiwidmFsdWUiOiJ5b3VyX2NvbnN1bWVyX3NlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiYWNjZXNzX3Rva2VuIiwidmFsdWUiOiJ5b3VyX2FjY2Vzc190b2tlbiIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidG9rZW5fc2VjcmV0IiwidmFsdWUiOiJ5b3VyX3Rva2VuX3NlY3JldCIsImVuYWJsZWQiOnRydWV9XQ==">
+  Exécuter dans Postman
+</Button>
+
+<div id="extending-your-application-to-make-authenticated-requests">
+  ### Étendre votre application pour effectuer des requêtes authentifiées
+</div>
+
+Après vous être familiarisé avec l’envoi de requêtes vers l’API Ads à l’aide de Twurl, il est temps d’ajouter à votre application la prise en charge de la création d’en-têtes d’authentification OAuth 1.0a.
+
+Les en-têtes d’authentification [OAuth 1.0a](/fr/resources/fundamentals/authentication) incluent des informations qui permettent de vérifier à la fois l’identité de l’application et de l’utilisateur, et qui empêchent toute altération de la requête. Votre application devra créer un nouvel en-tête Authorization pour chaque requête d’API. De nombreux langages disposent de bibliothèques open source qui prennent en charge la création de cet en-tête d’autorisation pour effectuer des requêtes d’API vers X.
+
+Voici quelques exemples en C#, PHP, Ruby et Python - [exemples de code](/fr/resources/fundamentals/authentication#oauth-1-0a-2).
+
+<div id="custom-implementation">
+  ## Implémentation personnalisée
+</div>
+
+Certains scénarios nécessitent d’implémenter l’authentification OAuth 1.0a sans recourir à une bibliothèque open source. [Authorizing a request](/fr/resources/fundamentals/authentication#authorizing-a-request) fournit des instructions détaillées pour implémenter la prise en charge de la création de l’en-tête Authorization. Nous recommandons fortement d’utiliser une bibliothèque maintenue par la communauté.
+
+Schéma général :
+
+1. Rassembler 7 paires clé/valeur pour l’en-tête – qui commencent par oauth&#95;
+2. Générer une [signature OAuth 1.0a HMAC-SHA1](/fr/resources/fundamentals/authentication#creating-a-signature) à partir de ces paires clé/valeur
+3. Construire l’[en-tête Authorization](/fr/resources/fundamentals/authentication#authorizing-a-request) en utilisant les valeurs ci-dessus

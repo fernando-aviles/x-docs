@@ -1,0 +1,258 @@
+---
+title: Fil des mentions d’utilisateur
+sidebarTitle: Mentions d’utilisateur
+description: Obtenir les Publications qui mentionnent un utilisateur spécifique
+keywords: ["mentions d’utilisateur", "fil des mentions", "Démarrage rapide des mentions", "tutoriel sur les mentions", "fil de mentions", "obtenir les mentions"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer les Publications qui mentionnent un utilisateur spécifique.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin de :
+
+  * D&#39;un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * Du Jeton Bearer de votre App (pour les données publiques) ou d&#39;un jeton d&#39;accès utilisateur (pour les métriques privées)
+</Note>
+
+***
+
+<div id="get-user-mentions">
+  ## Obtenir les mentions d’un utilisateur
+</div>
+
+<Steps>
+  <Step title="Obtenir l’ID de l’utilisateur">
+    Trouvez l’ID de l’utilisateur à l’aide du [point de terminaison de recherche d’utilisateurs](/fr/x-api/users/lookup/introduction). Par exemple, @XDevelopers a pour ID d’utilisateur `2244994945`.
+  </Step>
+
+  <Step title="Effectuer une requête pour la timeline des mentions">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/mentions?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Récupérer la timeline des mentions avec pagination
+      for page in client.posts.get_user_mentions(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"@{post.author_id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Récupérer la timeline des mentions avec pagination
+      const paginator = client.posts.getUserMentions("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`@${post.author_id}: ${post.text?.slice(0, 50)}...`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1301573587187331074",
+          "text": "Salut @XDevelopers, j’adore la nouvelle API !",
+          "author_id": "1234567890",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          }
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "1234567890",
+            "username": "developer",
+            "name": "Dev Person",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "newest_id": "1301573587187331074",
+        "oldest_id": "1301573587187331074",
+        "result_count": 1,
+        "next_token": "t3buvdr5pujq9g7bggsnf3ep2ha28"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="filter-mentions">
+  ## Filtrer les mentions
+</div>
+
+<div id="exclude-replies">
+  ### Exclure les réponses
+</div>
+
+Récupérez uniquement les Publications originales qui mentionnent l’utilisateur :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?\
+  exclude=replies&\
+  max_results=10" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer les mentions en excluant les réponses
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      exclude=["replies"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Récupérer les mentions en excluant les réponses
+  const paginator = client.posts.getUserMentions("2244994945", {
+    exclude: ["replies"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="get-mentions-in-a-time-range">
+  ### Obtenir les mentions dans un intervalle de temps donné
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?\
+  start_time=2024-01-01T00%3A00%3A00Z&\
+  end_time=2024-01-31T23%3A59%3A59Z" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtenir les mentions dans un intervalle de temps donné
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      start_time="2024-01-01T00:00:00Z",
+      end_time="2024-01-31T23:59:59Z"
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtenir les mentions dans un intervalle de temps donné
+  const paginator = client.posts.getUserMentions("2244994945", {
+    startTime: "2024-01-01T00:00:00Z",
+    endTime: "2024-01-31T23:59:59Z",
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="common-parameters">
+  ## Paramètres communs
+</div>
+
+| Paramètre | Description | Valeur par défaut |
+|:----------|:------------|:--------|
+| `max_results` | Nombre de résultats par page (1-100) | 10 |
+| `start_time` | Horodatage de la Publication la plus ancienne (ISO 8601) | — |
+| `end_time` | Horodatage de la Publication la plus récente (ISO 8601) | — |
+| `since_id` | Renvoyer les Publications après cet identifiant | — |
+| `until_id` | Renvoyer les Publications avant cet identifiant | — |
+| `exclude` | Exclure `retweets`, `replies` ou les deux | — |
+| `pagination_token` | Jeton pour la page suivante | — |
+
+***
+
+<div id="next-steps">
+  ## Étapes suivantes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Fil d’accueil" icon="house" href="/fr/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
+    Récupérer le fil d’accueil d’un utilisateur
+  </Card>
+
+  <Card title="Guide d’intégration" icon="book" href="/fr/x-api/posts/timelines/integrate">
+    Concepts clés et bonnes pratiques
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/posts/user-mention-timeline-by-user-id">
+    Documentation complète de l’endpoint
+  </Card>
+
+  <Card title="Guide de pagination" icon="arrow-right" href="/fr/x-api/fundamentals/pagination">
+    Parcourir de grands ensembles de résultats
+  </Card>
+</CardGroup>

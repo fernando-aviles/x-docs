@@ -1,0 +1,315 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+description: Conceptos clave y prácticas recomendadas para el envío de Mensajes Directos
+keywords: ["integración para gestionar Mensajes Directos", "integración de gestión de MD", "integración para enviar MD"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía cubre los conceptos clave que necesitas para integrar los endpoints para administrar los Mensajes Directos en tu aplicación.
+
+***
+
+<div id="authentication">
+  ## Autenticación
+</div>
+
+Los endpoints de Mensajes Directos requieren autenticación de usuario:
+
+| Método | Descripción |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recomendado |
+| [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Compatibilidad heredada |
+
+<Warning>
+  La autenticación App-Only no está admitida. Todos los mensajes directos son privados.
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### Scopes requeridos (OAuth 2.0)
+</div>
+
+| Scope | Requerido para |
+|:------|:---------------|
+| `dm.write` | Enviar y eliminar mensajes |
+| `dm.read` | Requerido junto con `dm.write` |
+| `tweet.read` | Requerido con los scopes de DM |
+| `users.read` | Requerido con los scopes de DM |
+
+***
+
+<div id="endpoints-overview">
+  ## Descripción general de los endpoints
+</div>
+
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| POST | `/2/dm_conversations/with/:participant_id/messages` | Enviar un mensaje uno a uno |
+| POST | `/2/dm_conversations` | Crear una conversación de grupo |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | Agregar un mensaje a la conversación |
+| DELETE | `/2/dm_events/:event_id` | Eliminar un mensaje |
+
+***
+
+<div id="sending-messages">
+  ## Enviar mensajes
+</div>
+
+<div id="one-to-one-message">
+  ### Mensaje uno a uno
+</div>
+
+Envía un mensaje a un usuario específico. Crea una nueva conversación si aún no existe ninguna:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "¡Hola!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Enviar un MD uno a uno
+  response = client.dm_conversations.create_message(
+      participant_id="9876543210",
+      text="¡Hola!"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Enviar un MD uno a uno
+  const response = await client.dmConversations.createMessage({
+    participantId: "9876543210",
+    text: "¡Hola!",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="group-conversation">
+  ### Conversación de grupo
+</div>
+
+Crea un nuevo grupo y envía el primer mensaje:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "conversation_type": "Group",
+      "participant_ids": ["944480690", "906948460078698496"],
+      "message": {"text": "¡Bienvenido a nuestro grupo!"}
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Crear una conversación de grupo
+  response = client.dm_conversations.create(
+      conversation_type="Group",
+      participant_ids=["944480690", "906948460078698496"],
+      message={"text": "¡Bienvenido a nuestro grupo!"}
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Crear una conversación de grupo
+  const response = await client.dmConversations.create({
+    conversationType: "Group",
+    participantIds: ["944480690", "906948460078698496"],
+    message: { text: "¡Bienvenido a nuestro grupo!" },
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Note>
+  El campo `conversation_type` debe configurarse en `"Group"` (distingue entre mayúsculas y minúsculas).
+</Note>
+
+<div id="add-to-existing-conversation">
+  ### Agregar a una conversación existente
+</div>
+
+Envía un mensaje a cualquier conversación en la que participes:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Another message"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Agregar un mensaje a una conversación existente
+  response = client.dm_conversations.add_message(
+      dm_conversation_id="1582103724607971328",
+      text="Another message"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Agregar un mensaje a una conversación existente
+  const response = await client.dmConversations.addMessage({
+    dmConversationId: "1582103724607971328",
+    text: "Another message",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-attachments">
+  ## Archivos multimedia adjuntos
+</div>
+
+Adjunta un archivo multimedia (foto, video o GIF) por mensaje.
+
+<Steps>
+  <Step title="Subir contenido multimedia">
+    Usa el [endpoint Media Upload](/es/x-api/media/quickstart/media-upload-chunked) para subir tu archivo y obtener un `media_id`.
+  </Step>
+
+  <Step title="Incluir en el mensaje">
+    ```json
+    {
+      "text": "¡Mira esta imagen!",
+      "attachments": [{"media_id": "1583157113245011970"}]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  * El usuario autenticado debe haber subido el archivo multimedia
+  * El archivo multimedia estará disponible durante 24 horas después de haberse subido
+  * Solo se admite un archivo adjunto por mensaje
+</Note>
+
+***
+
+<div id="sharing-posts">
+  ## Compartir publicaciones
+</div>
+
+Incluye una Publicación en tu mensaje añadiendo la URL de la Publicación al texto:
+
+```json
+{
+  "text": "Have you seen this? https://x.com/XDevelopers/status/1580559079470145536"
+}
+```
+
+La respuesta incluirá un campo `referenced_tweets` con el ID de la Publicación.
+
+***
+
+<div id="message-requirements">
+  ## Requisitos de los mensajes
+</div>
+
+| Campo | Obligatorio | Notas |
+|:------|:---------|:------|
+| `text` | Sí* | Obligatorio si no hay archivos adjuntos |
+| `attachments` | Sí* | Obligatorio si no hay texto |
+
+*Se debe proporcionar al menos uno de `text` o `attachments`.
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## Compatibilidad de id con v1.1
+</div>
+
+Los id de conversación y de eventos se comparten entre los endpoints de v1.1 y v2. Esto permite flujos de trabajo híbridos:
+
+* Crear mensajes con v2
+* Eliminar mensajes con v1.1 (aún no disponible en v2)
+* Hacer referencia a id de conversación desde URL de x.com
+
+***
+
+<div id="error-handling">
+  ## Manejo de errores
+</div>
+
+| Estado | Error | Solución |
+|:-------|:------|:---------|
+| 400 | Solicitud no válida | Comprueba el formato del cuerpo de la solicitud |
+| 401 | No autorizado | Comprueba el token de acceso |
+| 403 | Acceso denegado | Comprueba los scopes y los permisos del usuario |
+| 429 | Demasiadas solicitudes | Espera y vuelve a intentarlo |
+
+<div id="common-issues">
+  ### Problemas comunes
+</div>
+
+<AccordionGroup>
+  <Accordion title="No se puede enviar al usuario">
+    Es posible que el destinatario tenga una configuración de MD que impida recibir mensajes de usuarios desconocidos o que te haya bloqueado.
+  </Accordion>
+
+  <Accordion title="Error al adjuntar el contenido multimedia">
+    Asegúrate de que el contenido multimedia fue cargado por el mismo usuario autenticado y tenga menos de 24 horas de antigüedad.
+  </Accordion>
+
+  <Accordion title="Error al crear el grupo">
+    Verifica que todos los id de participantes sean válidos y que los usuarios permitan recibir invitaciones a MD grupales.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Inicio rápido" icon="rocket" href="/es/x-api/direct-messages/manage/quickstart">
+    Envía tu primer mensaje directo (DM)
+  </Card>
+
+  <Card title="Búsqueda de DM" icon="inbox" href="/es/x-api/direct-messages/lookup/introduction">
+    Recupera conversaciones de DM
+  </Card>
+
+  <Card title="Carga de medios" icon="image" href="/es/x-api/media/quickstart/media-upload-chunked">
+    Sube archivos multimedia para adjuntarlos
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/direct-messages/create-dm-message-by-participant-id">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

@@ -1,0 +1,167 @@
+---
+title: 3-legged OAuth フローによるアクセストークンの取得
+sidebarTitle: ユーザーアクセストークン（3-legged OAuth フロー）
+keywords: ["3-legged OAuth", "ユーザーアクセストークン", "OAuth フロー", "アクセストークンの取得", "OAuth 1.0a フロー", "アクセストークンの生成"]
+---
+
+import { Button } from "/snippets/ja/button.mdx";
+
+<div id="obtaining-access-tokens-using-3-legged-oauth-flow">
+  ### 3-legged OAuth フローを使用してアクセストークンを取得する
+</div>
+
+他のユーザーに代わって操作を行うには、そのユーザーのアクセストークンを取得する必要があります。アクセストークンは、リクエストがどの X アカウントに対して行われているかを指定するため、これを取得するには、まず相手があなたにアクセス権を付与する必要があります。これらのトークンには有効期限がありませんが、ユーザーが任意のタイミングで失効させることができます。
+
+X では、3-legged OAuth フローを通じてユーザーアクセストークンを取得できます。このフローでは、ユーザーを X にリダイレクトしてアプリケーションを承認してもらうことで、**access token** と access token secret をアプリケーションが取得できるようにします。このフローは、[Log in with X の実装](/ja/resources/fundamentals/authentication/guides/log-in-with-x) で説明しているフローとほとんど同一ですが、次の 2 点が異なります。
+
+* [GET oauth/authenticate](/ja/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) の代わりに [GET oauth/authorize](/ja/resources/fundamentals/authentication/api-reference#get-oauth-authorize) エンドポイントを使用します。
+* 以前にアクセスが付与されていた場合でも、ユーザーにはアプリケーションへのアクセスを承認するように **必ず** プロンプトが表示されます。
+   
+
+作業を始める前に、[アプリケーション](/ja/resources/fundamentals/developer-apps) の権限を確認し、consumer key と callback URL を把握しておく必要があります。callback URL や外部からアクセス可能な UI がない場合は、承認後にユーザーをリダイレクトするために Web ブラウザへアクセスしたりブラウザを埋め込んだりできないアプリケーション向けに設計されている [PIN ベースの認可](/ja/resources/fundamentals/authentication/oauth-1-0a/pin-based-oauth) の利用を検討してください。 
+
+3-legged サインイン処理で取りうる状態は、次のフローチャートで図示されています。
+
+![](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/obtaining-access-tokens.png.twimg.1920.png)
+
+<div id="overview-of-the-process">
+  #### プロセスの概要
+</div>
+
+大まかには、3-Legged OAuth のプロセスは次のような流れになります。
+
+1. コンシューマーアプリケーションがリクエストトークンを取得するためのリクエストを作成する。
+2. ユーザーが認証を行い、コンシューマーアプリケーションにリクエストトークンを送信する。
+3. リクエストトークンを、実際に利用できるユーザーアクセストークンに変換する。
+
+**用語の説明**
+
+このガイドでは、同じものを指していても異なる用語が使われている場合があります。
+
+**Client 資格情報:**
+
+* App Key === API Key === Consumer API Key === Consumer Key === Customer Key === `oauth_consumer_key`
+* App Key Secret === API Secret Key === Consumer Secret === Consumer Key === Customer Key === `oauth_consumer_secret`
+* Callback URL === `oauth_callback`
+   
+
+**一時資格情報:**
+
+* Request Token === `oauth_token`
+* Request Token Secret === `oauth_token_secret`
+* oauth&#95;verifier
+   
+
+**トークン資格情報:**
+
+* Access token === Token === 生成される `oauth_token`
+* Access token secret === Token Secret === 生成される `oauth_token_secret`
+
+<div id="walkthrough-steps">
+  #### 手順のウォークスルー
+</div>
+
+**ステップ 1: [POST oauth/request&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-request-token)**
+
+コンシューマーアプリケーションがリクエストトークンを取得するためのリクエストを作成します。
+
+このリクエストで固有となるパラメータは `oauth_callback` のみであり、これはステップ 2 を完了した際にユーザーをリダイレクトしたい URL を [URL エンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) した値である必要があります。残りのパラメータは OAuth 署名プロセスによって追加されます。
+
+注意: [POST oauth/request&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-request-token) エンドポイントで使用するコールバック URL はすべて、開発者コンソールの App 詳細ページにある [developer App](/ja/resources/fundamentals/developer-apps) の設定内であらかじめ構成しておく必要があります。
+ 
+
+**リクエストに含まれるもの:**
+
+`oauth_callback="https%3A%2F%2FyourCallbackUrl.com"`
+
+`oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w" `
+
+アプリはレスポンスの HTTP ステータスを確認する必要があります。200 以外の値は失敗を示します。レスポンスボディには `oauth_token`、`oauth_token_secret`、`oauth_callback_confirmed` パラメータが含まれます。アプリは `oauth_callback_confirmed` が true であることを検証し、残り 2 つの値を次の手順のために保存しておく必要があります。
+ 
+
+**レスポンスに含まれるもの**
+
+`oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
+
+`oauth_token_secret=veNRnAWe6inFuo8o2u8SLLZLjolYDmDP7SzL0YfYI`
+
+`oauth_callback_confirmed=true`
+
+**ステップ 2: [GET oauth/authorize](/ja/resources/fundamentals/authentication/api-reference#get-oauth-authorize)**
+
+ユーザーに認証を行わせ、コンシューマーアプリケーションにリクエストトークンを送信させます。
+ 
+
+**ユーザーをリダイレクトするための URL の例:**
+
+`https://api.x.com/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
+
+認証が成功すると、`callback_url` は `oauth_token` と `oauth_verifier` パラメータを含むリクエストを受信します。アプリケーションは、このトークンがステップ 1 で受け取ったリクエストトークンと一致することを検証する必要があります。
+ 
+
+**クライアントのリダイレクトからのリクエスト:**
+
+`https://yourCallbackUrl.com?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
+
+**ステップ 3: [POST oauth/access&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-access-token)**
+
+リクエストトークンを使用可能なアクセストークンに変換します。
+
+リクエストトークンを使用可能なアクセストークンに変換するには、アプリケーションはステップ 2 で取得した `oauth_verifier` の値を含む [POST oauth/access&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-access-token) エンドポイントへのリクエストを送信する必要があります。リクエストトークンはヘッダーの `oauth_token` の一部としても渡されますが、これは署名プロセスによって追加されます。
+ 
+
+**リクエストに含まれるもの:**
+
+`POST /oauth/access_token`
+
+`oauth_consumer_key=cChZNFj6T5R0TigYB9yd1w`
+
+`oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
+
+`oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
+
+成功したレスポンスには `oauth_token`、`oauth_token_secret` パラメータが含まれます。トークンおよびトークンシークレットは保存しておき、今後 X API への認証済みリクエストで使用する必要があります。ユーザーの識別情報を判別するには、[GET account/verify&#95;credentials](/ja/resources/fundamentals/authentication/api-reference) を使用します。
+ 
+
+**レスポンスに含まれるもの:**
+
+`oauth_token=7588892-kagSNqWge8gB1WwE3plnFsJHAZVfxWD7Vb57p0b4`
+
+`oauth_token_secret=PbKfYqSryyeKDWz4ebtY3o5ogNLG11WJuZBc9fQrQo`
+
+**これらのクレデンシャルを、OAuth 1.0a（アプリケーション＋ユーザーコンテキスト）が必要なリクエストで使用する**
+
+これでユーザーアクセストークンが取得できたので、これを使用して、ユーザーに代わってツイートを作成するための [POST statuses/update](/ja/x-api/posts/manage-tweets/introduction) など、特定のAPIにアクセスできます。
+ 
+
+**リクエスト内容:**
+
+`POST statuses/update.json`
+
+`oauth_consumer_key=cChZNFj6T5R0TigYB9yd1w`
+
+`oauth_token=7588892-kagSNqWge8gB1WwE3plnFsJHAZVfxWD7Vb57p0b4`
+
+<div id="sample-use-case">
+  #### サンプルユースケース
+</div>
+
+標準的なフローは Web ベースで、3-legged OAuth 認可フローを使用します。ここで示しているスクリーンショットは、[https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web) でソースを閲覧できるサンプルの一部です。
+
+アプリケーションのある時点で、アプリケーションを認可するために X にリダイレクトする必要があります。
+
+<Frame>
+  <img src="/images/twauth-web-2.png" alt="" />
+</Frame>
+
+リクエストトークンを添えて X にリダイレクトすると、ユーザーはアプリケーションの認可を求められます。
+
+<Frame>
+  <img src="/images/twauth-web-3.png" alt="" />
+</Frame>
+
+ユーザーがアプリケーションを認可すると、リクエストトークンを生成した際に指定したコールバック URL にリダイレクトされます。これを使って、そのユーザー用の永続的なアクセス・トークンを取得し、ローカルに保存します。
+
+<Frame>
+  <img src="/images/twauth-web-4.png" alt="" />
+</Frame>

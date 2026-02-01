@@ -1,0 +1,234 @@
+---
+title: Flujo filtrado
+sidebarTitle: Introducción
+description: Transmite Publicaciones en tiempo real que coincidan con tus reglas de filtrado
+keywords: ["flujo filtrado", "API de streaming", "flujo en tiempo real", "transmitir Tweets", "reglas de filtrado", "endpoint de streaming", "Tweets en vivo", "datos en tiempo real", "flujo de webhook"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Los endpoints de Filtered Stream te permiten recibir Publicaciones en tiempo real que coincidan con tus reglas de filtrado. Crea reglas utilizando operadores potentes y luego conéctate a un stream persistente para recibir las publicaciones coincidentes a medida que se van publicando.
+
+<div id="overview">
+  ## Descripción general
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Entrega en tiempo real" icon="bolt">
+    Recibe Publicaciones en cuestión de segundos tras su publicación
+  </Card>
+
+  <Card title="Reglas persistentes" icon="filter">
+    Agrega y elimina reglas sin desconectarte
+  </Card>
+
+  <Card title="Operadores potentes" icon="magnifying-glass">
+    Realiza coincidencias por palabras clave, hashtags, usuarios y más
+  </Card>
+
+  <Card title="Entrega mediante webhook" icon="webhook">
+    Opcionalmente recibe Publicaciones mediante webhooks
+  </Card>
+</CardGroup>
+
+***
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+1. **Crear reglas** — Definir reglas de filtrado usando operadores
+2. **Conectarse al flujo** — Establecer una conexión HTTP persistente
+3. **Recibir Publicaciones** — Recibir Publicaciones coincidentes en tiempo real
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│ Crear/      │      │ Conectar al │      │ Recibir     │
+│ gestionar   │  →   │ endpoint de │  →   │ Publicacio- │
+│ reglas      │      │ streaming   │      │ nes         │
+└─────────────┘      └─────────────┘      └─────────────┘
+```
+
+***
+
+<div id="endpoints">
+  ## Endpoints
+</div>
+
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| GET | [`/2/tweets/search/stream`](/es/x-api/stream/stream-filtered-posts) | Conectar al stream |
+| POST | [`/2/tweets/search/stream/rules`](/es/x-api/stream/update-stream-rules) | Agregar o eliminar reglas |
+| GET | [`/2/tweets/search/stream/rules`](/es/x-api/stream/get-stream-rules) | Obtener las reglas actuales |
+
+***
+
+<div id="access-levels">
+  ## Niveles de acceso
+</div>
+
+| Característica | Pago por uso | Enterprise |
+|:--------|:--------------|:-----------|
+| Reglas por proyecto | 1,000 | 25,000+ |
+| Longitud de la regla | 1,024 caracteres | 2,048 caracteres |
+| Conexiones | 1 | Múltiples |
+| Todos los operadores | ✓ | ✓ |
+
+<Card title="Contacto para Enterprise" icon="building" href="https://developer.x.com/en/products/x-api/enterprise/enterprise-api-interest-form">
+  Obtén límites más altos y características adicionales
+</Card>
+
+***
+
+<div id="building-rules">
+  ## Definición de reglas
+</div>
+
+Las reglas utilizan los mismos operadores que las consultas de búsqueda:
+
+```
+(AI OR "machine learning") lang:en -is:retweet
+```
+
+<div id="example-rules">
+  ### Reglas de ejemplo
+</div>
+
+| Regla | Coincidencias |
+|:-----|:--------|
+| `#python` | Publicaciones con el hashtag #python |
+| `from:elonmusk` | Publicaciones de @elonmusk |
+| `"breaking news" has:images` | Publicaciones que contienen la frase y tienen imágenes |
+| `(@XDevelopers OR @X) -is:retweet` | Menciones que no sean retweets |
+
+<Card title="Crear una regla" icon="filter" href="/es/x-api/posts/filtered-stream/integrate/build-a-rule">
+  Conoce la sintaxis de las reglas y los operadores
+</Card>
+
+***
+
+<div id="connecting-to-the-stream">
+  ## Conectarse al stream
+</div>
+
+Establece una conexión HTTP persistente para recibir publicaciones:
+
+```python
+import requests
+
+def stream_posts(bearer_token):
+    url = "https://api.x.com/2/tweets/search/stream"
+    headers = {"Authorization": f"Bearer {bearer_token}"}
+    
+    response = requests.get(url, headers=headers, stream=True)
+    
+    for line in response.iter_lines():
+        if line:
+            print(line.decode("utf-8"))
+```
+
+<div id="keep-alive-signals">
+  ### Señales de keep-alive
+</div>
+
+El stream envía líneas en blanco (`\r\n`) cada 20 segundos para mantener activa la conexión. Si no recibes datos ni una señal de keep-alive durante 20 segundos, vuelve a conectarte.
+
+<CardGroup cols={2}>
+  <Card title="Gestión de desconexiones" icon="plug" href="/es/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    Volver a conectarse de forma controlada
+  </Card>
+
+  <Card title="Consumo de datos en streaming" icon="stream" href="/es/x-api/posts/filtered-stream/integrate/consuming-streaming-data">
+    Procesar Publicaciones de forma eficiente
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-delivery">
+  ## Entrega mediante webhooks
+</div>
+
+En lugar de mantener una conexión persistente, puedes recibir Publicaciones mediante webhooks:
+
+<Card title="Entrega mediante webhooks" icon="webhook" href="/es/x-api/webhooks/stream/introduction">
+  Configura la entrega mediante webhooks para el flujo filtrado
+</Card>
+
+***
+
+<div id="post-edits">
+  ## Ediciones de Publicaciones
+</div>
+
+El stream transmite Publicaciones editadas junto con su historial de edición. Cada edición crea un nuevo id de Publicación:
+
+```json
+{
+  "data": {
+    "id": "1234567893",
+    "text": "Hello world! (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891", "1234567893"]
+  }
+}
+```
+
+<Card title="Fundamentos de la edición de Publicaciones" icon="clock-rotate-left" href="/es/x-api/fundamentals/edit-posts">
+  Obtén más información sobre cómo editar Publicaciones
+</Card>
+
+***
+
+<div id="getting-started">
+  ## Primeros pasos
+</div>
+
+<Note>
+  **Requisitos previos**
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) aprobada
+  * Un [Project and App](/es/resources/fundamentals/developer-apps) en la Consola de desarrollador
+  * El [Bearer Token](/es/resources/fundamentals/authentication) de tu App
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Inicio rápido" icon="rocket" href="/es/x-api/posts/filtered-stream/quickstart">
+    Conéctate al stream en minutos
+  </Card>
+
+  <Card title="Crea una regla" icon="filter" href="/es/x-api/posts/filtered-stream/integrate/build-a-rule">
+    Aprende la sintaxis de las reglas
+  </Card>
+
+  <Card title="Referencia de operadores" icon="list-check" href="/es/x-api/posts/filtered-stream/integrate/operators">
+    Todos los operadores disponibles
+  </Card>
+
+  <Card title="Código de ejemplo" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Ejemplos de código que funcionan
+  </Card>
+</CardGroup>
+
+***
+
+<div id="advanced-topics">
+  ## Temas avanzados
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gestión de desconexiones" icon="plug" href="/es/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    Restablece la conexión sin problemas
+  </Card>
+
+  <Card title="Capacidad para altos volúmenes" icon="gauge-high" href="/es/x-api/posts/filtered-stream/integrate/handling-high-volume-capacity">
+    Gestiona un alto volumen de tráfico
+  </Card>
+
+  <Card title="Recuperación y redundancia" icon="shield" href="/es/x-api/posts/filtered-stream/integrate/recovery-and-redundancy-features">
+    Crea aplicaciones resilientes
+  </Card>
+
+  <Card title="Coincidencia de las Publicaciones devueltas" icon="crosshairs" href="/es/x-api/posts/filtered-stream/integrate/matching-returned-tweets">
+    Identifica qué reglas se aplicaron
+  </Card>
+</CardGroup>

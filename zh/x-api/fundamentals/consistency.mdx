@@ -1,0 +1,215 @@
+---
+title: API 一致性
+sidebarTitle: 一致性
+description: 在所有 X API v2 端点中使用一致的设计模式
+keywords: ["一致性", "API 一致性", "统一 API", "一致的端点", "API 设计"]
+---
+
+X API v2 在所有端点上都采用了一致的设计模式。一旦你掌握了某个端点的用法，就可以将同样的模式应用到所有其他端点。
+
+***
+
+<div id="consistent-patterns">
+  ## 统一模式
+</div>
+
+<div id="url-structure">
+  ### URL 结构
+</div>
+
+所有 v2 端点都遵循一个可预期的模式：
+
+```
+/version/resource/{id}?parameters
+/version/resource/verb?parameters
+```
+
+示例：
+
+```
+/2/tweets/1234567890                    # Get a specific post
+/2/tweets/search/recent                 # Search recent posts
+/2/users/by/username/xdevelopers        # 根据用户名获取用户
+/2/users/1234/followers                 # Get user's followers
+```
+
+<div id="response-structure">
+  ### 响应结构
+</div>
+
+所有响应的顶层结构相同：
+
+```json
+{
+  "data": { ... },       // 主要对象
+  "includes": { ... },   // 扩展对象
+  "meta": { ... },       // 分页、计数
+  "errors": [ ... ]      // 部分错误(如有)
+}
+```
+
+<div id="id-format">
+  ### ID 格式
+</div>
+
+所有 id 均以字符串形式返回，以确保语言间的兼容性：
+
+```json
+{
+  "id": "1234567890123456789",
+  "author_id": "2244994945"
+}
+```
+
+***
+
+<div id="fields-and-expansions">
+  ## 字段和 expansions
+</div>
+
+相同的 [字段](/zh/x-api/fundamentals/fields) 和 [expansions](/zh/x-api/fundamentals/expansions) 参数在各处的行为是一致的：
+
+| 对象 | 字段参数 | 适用范围 |
+|:-------|:-----------------|:-------------|
+| 帖子 | `tweet.fields` | 所有返回帖子对象的端点 |
+| 用户 | `user.fields` | 所有返回用户对象的端点 |
+| 媒体 | `media.fields` | 所有支持 media expansions 的端点 |
+| 投票 | `poll.fields` | 所有支持 poll expansions 的端点 |
+| 地点 | `place.fields` | 所有支持 place expansions 的端点 |
+
+***
+
+<div id="object-schemas">
+  ## 对象架构
+</div>
+
+同一种对象 type 具有相同的字段，而不论是由哪个 endpoint 返回：
+
+* 搜索返回的 Post 与查找（lookup）返回的 Post 拥有相同的字段
+* 粉丝列表（followers）中返回的 User 与搜索中返回的 User 拥有相同的字段
+* 展开后的对象与其独立返回时的对象形式相同
+
+***
+
+<div id="authentication">
+  ## 认证
+</div>
+
+所有端点都使用相同的认证方式：
+
+| 方法 | 请求头格式 |
+|:-------|:--------------|
+| Bearer 令牌 | `Authorization: Bearer {token}` |
+| OAuth 1.0a | `Authorization: OAuth {parameters}` |
+| OAuth 2.0 | `Authorization: Bearer {user_token}` |
+
+***
+
+<div id="error-handling">
+  ## 错误处理
+</div>
+
+errors 字段遵循统一的格式：
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The query parameter is missing",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+[查看全部错误类型 →](/zh/x-api/fundamentals/response-codes-and-errors)
+
+***
+
+<div id="pagination">
+  ## 分页
+</div>
+
+所有支持分页的端点都采用相同的令牌机制：
+
+| 参数 | 描述 |
+|:----------|:------------|
+| `max_results` | 每页返回的结果数 |
+| `pagination_token` | 来自 `next_token` 或 `previous_token` 的令牌 |
+
+[了解分页的更多信息 →](/zh/x-api/fundamentals/pagination)
+
+***
+
+<div id="naming-conventions">
+  ## 命名规范
+</div>
+
+* 使用美式英语拼写（`favorites` 而不是 `favourites`）
+* 字段名称使用 snake&#95;case（`author_id`、`created_at`）
+* 术语保持一致（在字段中使用 `retweet_count`，而不是 `repost_count`）
+
+***
+
+<div id="empty-values">
+  ## 空值
+</div>
+
+没有值的字段会被省略，而不会以 `null` 返回：
+
+```json
+// User without a bio
+{
+  "id": "1234",
+  "name": "Example User",
+  "username": "example"
+  // "description" 被省略，而非 null
+}
+```
+
+***
+
+<div id="entity-consistency">
+  ## 实体一致性
+</div>
+
+`entities` 对象只包含从文本中解析出的实体：
+
+* `urls`
+* `hashtags`
+* `mentions`
+* `cashtags`
+
+媒体和投票在 `attachments` 中，而不在 `entities` 中。
+
+***
+
+<div id="what-this-means-for-you">
+  ## 这对你意味着什么
+</div>
+
+<CardGroup cols={2}>
+  <Card title="一次学会，到处可用" icon="graduation-cap">
+    你在一个端点学到的模式适用于所有端点。
+  </Card>
+
+  <Card title="可预测的响应" icon="square-check">
+    相同的对象类型在整个 API 中具有相同的结构。
+  </Card>
+
+  <Card title="更简洁的代码" icon="code">
+    为常见模式构建可复用的函数。
+  </Card>
+
+  <Card title="更轻松的调试" icon="bug">
+    一致的错误格式简化故障排查。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="report-inconsistencies">
+  ## 报告不一致问题
+</div>
+
+发现任何不一致之处？请告诉我们：
+
+* [开发者论坛](https://devcommunity.x.com)
+* [开发者反馈](https://t.co/devfeedback)

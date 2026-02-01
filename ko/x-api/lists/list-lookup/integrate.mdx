@@ -1,0 +1,302 @@
+---
+title: 통합 가이드
+sidebarTitle: 통합 가이드
+description: 리스트 조회 통합을 위한 핵심 개념과 모범 사례
+keywords: ["리스트 조회 통합", "리스트 통합 가이드", "리스트 조회 구현"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 애플리케이션에 리스트 조회 엔드포인트를 통합하는 데 알아두어야 할 핵심 개념을 다룹니다.
+
+***
+
+<div id="authentication">
+  ## 인증
+</div>
+
+리스트 조회 엔드포인트는 여러 인증 방식을 지원합니다:
+
+| 방식 | 적합한 용도 | 비공개 리스트 접근 가능 여부 |
+|:-------|:---------|:-------------------------|
+| [OAuth 2.0 App-Only](/ko/resources/fundamentals/authentication#oauth-2-0) | 공개 리스트 데이터 | 아니요 |
+| [OAuth 2.0 Authorization Code with PKCE](/ko/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 사용자 대상 App | 예 (소유/팔로우) |
+| [OAuth 1.0a User Context](/ko/resources/fundamentals/authentication) | 레거시 통합 | 예 (소유/팔로우) |
+
+<div id="example-request">
+  ### 요청 예시
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,private" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # id로 리스트 조회
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "private"]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "private"],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="endpoints-overview">
+  ## 엔드포인트 개요
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| GET | [`/2/lists/:id`](/ko/x-api/lists/get-list) | ID로 리스트 조회 |
+| GET | [`/2/users/:id/owned_lists`](/ko/x-api/users/get-owned-lists) | 사용자가 소유한 리스트 조회 |
+
+***
+
+<div id="fields-and-expansions">
+  ## 필드 및 expansions
+</div>
+
+<div id="default-response">
+  ### 기본 응답
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News"
+  }
+}
+```
+
+<div id="available-fields">
+  ### 사용 가능한 필드
+</div>
+
+<Accordion title="list.fields">
+  | 필드 | 설명 |
+  |:------|:------------|
+  | `created_at` | 리스트가 생성된 타임스탬프 |
+  | `description` | 리스트 설명 |
+  | `follower_count` | 팔로워 수 |
+  | `member_count` | 멤버 수 |
+  | `owner_id` | 소유자의 사용자 id |
+  | `private` | 리스트가 비공개인지 여부 |
+</Accordion>
+
+<Accordion title="user.fields (owner_id 확장 필요)">
+  | 필드 | 설명 |
+  |:------|:------------|
+  | `username` | 소유자의 @핸들 |
+  | `name` | 소유자의 표시 이름 |
+  | `verified` | 소유자의 인증 상태 |
+  | `profile_image_url` | 소유자의 아바타 URL |
+</Accordion>
+
+<div id="example-with-expansions">
+  ### expansions를 사용한 예시
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,owner_id&\
+  expansions=owner_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 소유자에 대한 expansion이 포함된 리스트 가져오기
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "owner_id"],
+      expansions=["owner_id"],
+      user_fields=["username", "verified"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 소유자 User 객체가 포함됩니다
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "owner_id"],
+    expansions: ["owner_id"],
+    userFields: ["username", "verified"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 소유자 User 객체가 포함됩니다
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 확장(expansions)을 포함한 응답
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News",
+    "description": "Top tech journalists",
+    "member_count": 50,
+    "follower_count": 1250,
+    "owner_id": "2244994945"
+  },
+  "includes": {
+    "users": [
+      {
+        "id": "2244994945",
+        "username": "XDevelopers",
+        "verified": true
+      }
+    ]
+  }
+}
+```
+
+<Card title="필드 및 expansions 가이드" icon="sliders" href="/ko/x-api/fundamentals/fields">
+  응답을 커스터마이징하는 방법을 자세히 알아보세요
+</Card>
+
+***
+
+<div id="pagination">
+  ## 페이지네이션
+</div>
+
+소유한 리스트를 조회하면, 결과가 여러 페이지로 나뉘어 반환됩니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 첫 번째 요청
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # 페이지네이션 토큰을 사용한 다음 요청
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK가 페이지네이션을 자동으로 처리합니다
+  all_lists = []
+
+  for page in client.lists.get_user_owned_lists(user_id="123", max_results=100):
+      if page.data:
+          all_lists.extend(page.data)
+
+  print(f"Found {len(all_lists)} lists")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllOwnedLists(userId) {
+    const allLists = [];
+
+    // SDK가 페이지네이션을 자동으로 처리합니다
+    const paginator = client.lists.getUserOwnedLists(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allLists.push(...page.data);
+      }
+    }
+
+    return allLists;
+  }
+
+  // 사용 예시
+  const lists = await getAllOwnedLists("123");
+  console.log(`Found ${lists.length} lists`);
+  ```
+</CodeGroup>
+
+<Card title="페이지네이션 가이드" icon="arrow-right" href="/ko/x-api/fundamentals/pagination">
+  페이지네이션에 대해 자세히 알아보기
+</Card>
+
+***
+
+<div id="private-lists">
+  ## 비공개 리스트
+</div>
+
+* 비공개 리스트는 소유자만 볼 수 있습니다.
+* 비공개 리스트의 상세 정보를 조회하려면 리스트 소유자 계정으로 인증해야 합니다.
+* `private` 필드는 리스트가 비공개인지 여부를 나타냅니다.
+
+***
+
+<div id="error-handling">
+  ## 오류 처리
+</div>
+
+| Status | 오류 | 해결 방법 |
+|:-------|:------|:---------|
+| 400 | 잘못된 요청 | 리스트 ID 형식을 확인하세요 |
+| 401 | 인증 실패 | 인증 정보를 확인하세요 |
+| 403 | 접근이 거부됨 | 리스트가 비공개일 수 있습니다 |
+| 404 | 찾을 수 없음 | 리스트가 존재하지 않습니다 |
+| 429 | 요청이 너무 많음 | 잠시 기다렸다가 다시 시도하세요 |
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="빠른 시작" icon="rocket" href="/ko/x-api/lists/list-lookup/quickstart">
+    첫 번째 리스트 조회 요청을 보내세요
+  </Card>
+
+  <Card title="리스트 포스트" icon="list" href="/ko/x-api/lists/list-tweets/introduction">
+    리스트에서 포스트를 가져오기
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/lists/get-list">
+    엔드포인트 전체 문서
+  </Card>
+
+  <Card title="샘플 코드" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    실행 가능한 코드 예제
+  </Card>
+</CardGroup>

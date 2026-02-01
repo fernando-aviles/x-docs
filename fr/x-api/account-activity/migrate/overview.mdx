@@ -1,0 +1,61 @@
+---
+title: Guide de migration de l’API Account Activity v2
+keywords: ["migration de l’API Account Activity", "migration AAA", "migration v2", "guide de migration d’API", "migrer vers v2", "Account Activity API v2"]
+---
+
+Ce guide vous aide à migrer de l’ancienne Enterprise Account Activity API vers la v2 Account Activity API. La fonctionnalité de base reste la même, mais la structure des endpoints et les méthodes d’authentification ont été mises à jour pour être cohérentes avec X API v2.
+
+<div id="summary-of-changes">
+  ### Récapitulatif des changements
+</div>
+
+* **Format de l'API** : les endpoints utilisent le chemin de base /2/account\_activity/ au lieu de /1.1/account\_activity/.  
+* **Gestion des webhooks** : la création, la consultation, la validation (CRC) et la suppression des webhooks sont gérées par la [V2 Webhooks API](https://github.com/m-rosinsky/XWebhookTest/blob/main/app.py).  
+* **Authentification** : les endpoints V2 nécessitent l'un des modes suivants :  
+  * **OAuthUser** (OAuth à 3 volets) pour les actions spécifiques à un utilisateur (par exemple, abonner un utilisateur).  
+  * **OAuth2 App Only** (Jeton Bearer) pour les actions au niveau de l'App (par exemple, lister/supprimer des abonnements).  
+  * V1.1 utilisait des exigences variables, souvent OAuth 1.0a.  
+* **Correspondance des endpoints** :
+
+| Endpoint V1.1 | Équivalent / action V2 | Notes |
+| ----- | ----- | ----- |
+| POST /1.1/account\_activity/webhooks.json?url=\<URL\> | POST /2/webhooks | [Docs](https://docs.x.com/x-api/webhooks/introduction). Nécessite OAuth2AppOnly. |
+| GET /1.1/account\_activity/webhooks.json | GET /2/webhooks | [Docs](https://docs.x.com/x-api/webhooks/introduction). Nécessite OAuth2AppOnly. |
+| PUT /1.1/account\_activity/webhooks/:webhook\_id.json | PUT /2/webhooks/:webhook\_id | Déclenche le CRC. [Docs](https://docs.x.com/x-api/webhooks/introduction). Nécessite OAuth2AppOnly. |
+| DELETE /1.1/account\_activity/webhooks/:webhook\_id.json | DELETE /2/webhooks/:webhook\_id | [Docs](https://docs.x.com/x-api/webhooks/introduction). Nécessite OAuth2AppOnly. |
+| POST /1.1/account\_activity/webhooks/:webhook\_id/subscriptions/all.json | POST /2/account\_activity/webhooks/:webhook\_id/subscriptions/all | Nécessite OAuthUser. |
+| GET /1.1/account\_activity/subscriptions/count.json | GET /2/account\_activity/subscriptions/count | Nécessite OAuth2AppOnly. |
+| GET /1.1/account\_activity/webhooks/:webhook\_id/subscriptions/all.json | GET /2/account\_activity/webhooks/:webhook\_id/subscriptions/all | Nécessite OAuthUser. |
+| GET /1.1/account\_activity/webhooks/:webhook\_id/subscriptions/all/list.json | GET /2/account\_activity/webhooks/:webhook\_id/subscriptions/all/list | Nécessite OAuth2AppOnly. |
+| DELETE /1.1/account\_activity/webhooks/:webhook\_id/subscriptions/:user\_id/all | DELETE /2/account\_activity/webhooks/:webhook\_id/subscriptions/:user\_id/all | Nécessite OAuth2AppOnly. |
+| DELETE /1.1/account\_activity/webhooks/:webhook\_id/subscriptions/all | Obsolète / aucun équivalent direct | Utilisez des suppressions individuelles ou supprimez le webhook via DELETE /2/webhooks/:webhook\_id. |
+
+* **Formats de réponse** : consultez les structures des réponses en cas de réussite et d'erreur dans la documentation AAAPI.
+
+Lors de la migration, mettez à jour votre code pour utiliser les nouveaux chemins de base, adaptez les flux d'authentification et gérez les webhooks à l'aide de la [V2 Webhooks API](https://docs.x.com/x-api/webhooks/introduction).
+
+<div id="how-to-migrate">
+  ### Comment migrer
+</div>
+
+* **Choisir un forfait** :  
+  * Choisissez le forfait Enterprise ou Self-serve en self-service pour l’accès à l’Account Activity API, en tenant compte des éléments suivants :  
+    * Nombre de webhooks nécessaires.  
+    * Nombre actuel/prévisionnel d’abonnements ou d’utilisateurs autorisés.  
+    * Nombre d’applications X clientes.  
+    * Niveau de support souhaité (forum vs. support Enterprise géré 1:1).  
+    * Détails de tarification (contactez l’équipe commerciale pour Enterprise).  
+* **Mettre à jour votre authentification vers OAuth 2.0** :  
+  * Assurez-vous que votre App X dispose des autorisations « Read, Write, and Access Direct Messages ».  
+  * Mettez à jour vers OAuth 2.0 pour les endpoints V2. Réautorisez les utilisateurs si les scopes ont changé.  
+  * Utilisez la Console de développement pour gérer :  
+    * OAuth 2.0 Access Token.  
+    * Client ID et Client Secret.  
+* **Vérifier ou reconfigurer votre webhook** :  
+  * Utilisez votre URL de webhook existante ou configurez-en une nouvelle (par exemple, https://your_domain.com/webhook/twitter).  
+  * Suivez la [documentation V2 Webhooks API](https://docs.x.com/x-api/webhooks/introduction) pour enregistrer et gérer votre webhook.  
+* **Exemples d’applications :**  
+  * [Serveur de webhook simple](https://github.com/m-rosinsky/XWebhookTest/blob/main/app.py)  
+    * Un seul script Python qui montre comment répondre au contrôle CRC et accepter des événements POST.  
+  * [Tableau de bord d’exemple Account Activity API](https://github.com/xdevplatform/account-activity-dashboard-enterprise/tree/master)  
+    * Une application web écrite avec [bun.sh](http://bun.sh) qui vous permet de gérer les webhooks, les abonnements et de recevoir des événements en temps réel directement dans l’application.

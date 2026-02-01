@@ -1,0 +1,139 @@
+---
+title: Recherche des membres de Liste
+sidebarTitle: Recherche des membres de Liste
+keywords: ["migration de la recherche des membres de Liste", "recherche des membres de Liste de v1.1 à v2", "migration de la recherche des membres de Liste", "standard vers v2 pour les membres de Liste", "migration des membres de Liste"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="list-members-lookup-standard-v11-compared-to-x-api-v2">
+  ### Recherche des membres de liste : Standard v1.1 comparé à X API v2
+</div>
+
+Si vous avez utilisé les points de terminaison standard v1.1 [GET lists/members](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-members) et [GET lists/memberships](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-memberships), l&#39;objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les points de terminaison standard v1.1 et X API v2 pour les membres de Liste.
+
+* **Similitudes**
+  * Méthodes d&#39;authentification
+* **Différences**
+  * URL des points de terminaison
+  * Limites de taux
+  * Exigences pour les Apps et les projets
+  * Nombre maximal d&#39;objets de données par requête
+  * Formats des données de réponse
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Authentification**
+
+Les deux versions de l’endpoint prennent en charge à la fois le [contexte utilisateur OAuth 1.0a](/fr/resources/fundamentals/authentication#oauth-1-0a-2) et l’authentification [App only](/fr/resources/fundamentals/authentication#oauth-2-0). Par conséquent, si vous utilisiez auparavant l’un des endpoints standard v1.1 pour les membres de Liste, vous pouvez continuer à utiliser la même méthode d’authentification lors de votre migration vers la version X API v2.
+
+Selon la bibliothèque ou le package d’authentification que vous utilisez, l’authentification App only est probablement le moyen le plus simple de démarrer et se configure au moyen d’un simple en-tête de requête. Pour savoir comment générer un jeton d’accès App only, consultez [ce guide App only](/fr/resources/fundamentals/authentication#bearer-token-also-known-as-app-only).
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL des endpoints**
+
+* Endpoints standard v1.1 :
+  * GET https://api.x.com/1.1/lists/members.json
+    (Recherche des membres d’une Liste donnée)
+  * GET https://api.x.com/1.1/lists/memberships.json
+    (Recherche des Listes dont un utilisateur est membre)
+* Endpoint X API v2 :
+  * GET https://api.x.com/2/lists/:id/members
+    (Recherche des membres d’une Liste donnée)
+
+  * GET https://api.x.com/2/users/:id/list&#95;memberships
+    (Recherche des Listes dont un utilisateur est membre)
+
+**Limites de taux**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| /1.1/lists/members.json<br /><br />900 requêtes par fenêtre de 15 minutes avec OAuth 1.0a User Context<br /><br />15 requêtes par fenêtre de 15 minutes avec App uniquement | /2/lists/:id/members<br /><br />900 requêtes par fenêtre de 15 minutes avec OAuth 1.0a User Context<br /><br />900 requêtes par fenêtre de 15 minutes avec OAuth 2.0 Authorization Code with PKCE<br /><br />900 requêtes par fenêtre de 15 minutes avec App uniquement |
+| /1.1/lists/memberships.json<br /><br />15 requêtes par fenêtre de 15 minutes avec OAuth 1.0a User Context<br /><br />15 requêtes par fenêtre de 15 minutes avec App uniquement | /2/users/:id/list&#95;memberships<br /><br />15 requêtes par fenêtre de 15 minutes avec OAuth 1.0a User Context<br /><br />15 requêtes par fenêtre de 15 minutes avec OAuth 2.0 Authorization Code with PKCE<br /><br />15 requêtes par fenêtre de 15 minutes avec App uniquement |
+
+**Exigences relatives aux Apps et aux Projets**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants provenant d’une [developer App](/fr/resources/fundamentals/developer-apps) associée à un [Project](/fr/resources/fundamentals/developer-apps) pour authentifier vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un projet.
+
+**Limites d’objets de données par requête**
+
+L’endpoint standard v1.1 /1.1/lists/members vous permet de renvoyer jusqu’à 5000 utilisateurs par requête. Les nouveaux endpoints v2 vous permettent de renvoyer jusqu’à 100 utilisateurs par requête. Par défaut, 100 objets utilisateur sont renvoyés ; pour modifier le nombre de résultats, vous devez passer un paramètre de requête max&#95;results= avec une valeur comprise entre 1 et 100 ; vous pouvez ensuite passer le next&#95;token renvoyé dans le corps de la réponse au paramètre de requête pagination&#95;token dans votre requête suivante.
+
+De plus, l’endpoint /1.1/lists/memberships vous permet de renvoyer jusqu’à 1000 Listes par requête. Avec le remplacement v2, l’endpoint permet jusqu’à 100 Listes par requête. Par défaut, 100 objets Liste sont renvoyés ; utilisez les paramètres de requête max&#95;results= et pagination&#95;token de la même manière que pour /1.1/lists/members pour modifier le nombre de résultats.
+
+**Format des données de réponse**
+
+L’une des plus grandes différences entre les versions d’endpoints standard v1.1 et X API v2 est la façon dont vous sélectionnez les champs renvoyés dans votre corps de réponse.
+
+Pour les endpoints standard, vous recevez de nombreux champs de réponse par défaut, et vous avez ensuite la possibilité d’utiliser des paramètres pour indiquer quels champs supplémentaires ou ensembles de champs doivent être renvoyés dans le corps de la réponse.
+
+La version X API v2 /users/:id/list&#95;memberships renverra par défaut les champs id et name de la Liste. Pour demander des champs ou objets supplémentaires, vous devez utiliser les paramètres [fields](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). Tout champ de Liste que vous demandez à partir de cet endpoint sera renvoyé dans l’objet Liste principal. Tout objet et champ étendu sera renvoyé dans un objet includes au sein de votre réponse. Vous pouvez ensuite faire correspondre tout objet étendu à l’objet Liste principal en faisant correspondre les id présents à la fois dans l’objet principal et dans l’objet étendu.
+
+Voici des exemples de champs de Liste et d’expansions possibles :
+
+* created&#95;at
+
+* follower&#95;count
+
+* member&#95;count
+
+* owner&#95;id
+
+* description
+
+* private
+
+|     |     |
+| :--- | :--- |
+| **Endpoint** | **Expansion** |
+| /2/lists/:id/members | pinned&#95;tweet&#95;id |
+| /2/users/:id/list&#95;memberships | owner&#95;id |
+
+Nous vous encourageons à en savoir plus sur ces nouveaux paramètres dans leurs guides respectifs, ou en lisant notre guide sur [comment utiliser les champs et les expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions). 
+
+Nous avons également élaboré un [guide de migration de format de données](/fr/x-api/migrate/data-format-migration) qui peut vous aider à faire correspondre les champs standard v1.1 aux nouveaux champs v2. Ce guide vous fournira aussi le paramètre d’extension et le paramètre de champ spécifiques que vous devrez transmettre avec votre requête v2 pour obtenir des champs spécifiques. 
+
+En plus des changements concernant la manière de demander certains champs, X API v2 introduit également de nouvelles structures JSON pour les objets renvoyés par les API, notamment les objets [Publication](/fr/x-api/fundamentals/data-dictionary#tweet) et [user](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine JSON, les endpoints standards renvoient des objets Publication dans un tableau statuses, tandis que X API v2 renvoie un tableau data. 
+
+* Au lieu de faire référence à des « statuses » Retweeted et Quoted, le JSON de X API v2 fait référence à des Tweets Retweeted et Quoted. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont supprimés. 
+
+* Au lieu d’utiliser à la fois favorites (dans l’objet Publication) et favourites (dans l’objet user), X API v2 utilise le terme like. 
+
+* X adopte la convention selon laquelle les valeurs JSON vides (par exemple, null) ne sont pas écrites dans la charge utile. Les attributs de Publication et de user ne sont inclus que s’ils ont des valeurs non nulles.
+
+**Paramètres de requête**
+
+Les paramètres de requête standard v1.1 suivants ont des équivalents dans X API v2 :
+
+**Recherche des membres d’une Liste**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| list&#95;id | id  |
+| slug | Aucun équivalent |
+| owner&#95;screen&#95;name | Aucun équivalent |
+| owner&#95;id | Aucun équivalent |
+| count | max&#95;results |
+| cursor | pagination&#95;token |
+| include&#95;entities | Aucun équivalent |
+| skip&#95;status | Aucun équivalent |
+
+**Recherche d’appartenance à une Liste**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| user&#95;id | id  |
+| screen&#95;name | Aucun équivalent |
+| count | max&#95;results |
+| cursor | pagination&#95;token |

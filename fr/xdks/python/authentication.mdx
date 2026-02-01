@@ -1,0 +1,174 @@
+---
+title: Authentification
+sidebarTitle: Authentification
+---
+
+X API requiert une authentification pour tous les endpoints. Le XDK prend en charge trois méthodes d'authentification :
+
+1. Jeton Bearer (app-only)
+2. OAuth 2.0 avec PKCE
+3. OAuth 1.0a (contexte utilisateur)
+
+- **Jeton Bearer** : utilisez cette méthode pour un accès en lecture seule aux endpoints qui prennent en charge l’authentification d’App (par exemple, recherche de Publications, endpoints de streaming).
+- **OAuth 2.0 PKCE** : authentification sécurisée pour un accès fondé sur des scopes, autorisé par l'utilisateur (par exemple, récupérer les métriques non_public des Publications de l'utilisateur authentifié).
+- **OAuth 1.0a** : méthode d'authentification héritée pour les opérations spécifiques à un utilisateur (par exemple, publier au nom d'un utilisateur, gérer des Listes).
+
+Obtenez des identifiants à partir de la [Console de développement X](https://developer.x.com/en/portal/dashboard). Vous aurez besoin d'un compte développeur approuvé et d'une App avec les autorisations appropriées (par exemple, Lecture + Écriture).
+
+<div id="creating-a-client">
+  ## Création d’un Client
+</div>
+
+Tous les flux d’authentification créent une instance de `Client` :
+
+```python
+from xdk import Client
+```
+
+
+<div id="1-bearer-token-app-only">
+  ### 1. Jeton Bearer (App uniquement)
+</div>
+
+Pour les opérations en lecture seule sans contexte utilisateur.
+**Étapes** :
+
+1. Dans la Console de développement, générez un Jeton Bearer pour votre App.
+2. Passez-le au `Client`.
+   **Exemple** :
+
+```python
+client = Client(bearer_token="XXXXX")
+```
+
+**Utilisation **:
+
+```python
+# search_recent renvoie un Iterator, donc itérer dessus
+for page in client.posts.search_recent(query="python", max_results=10):
+    if page.data and len(page.data) > 0:
+        first_post = page.data[0]
+        post_text = first_post.text if hasattr(first_post, 'text') else first_post.get('text', '')
+        print(post_text)  # Access first Post
+        break
+```
+
+
+<div id="2-oauth-20-with-pkce-user-context">
+  ### 2. OAuth 2.0 avec PKCE (contexte utilisateur)
+</div>
+
+Cet exemple montre comment utiliser OAuth 2.0 avec Proof Key for Code Exchange (PKCE). Utilisez ce flux pour un accès spécifique à un utilisateur (par exemple pour publier au nom d’un utilisateur, téléverser des médias pour un utilisateur, etc.).
+**Étapes** :
+
+1. Dans la Console de développement, enregistrez votre App avec un URI de redirection (par exemple : `http://localhost:8080/callback`).
+2. Obtenez l’id de client (aucun secret n’est nécessaire pour PKCE).
+3. Démarrez le flux, redirigez l’utilisateur vers l’URL d’authentification et gérez le callback.
+   **Exemple** (en utilisant un serveur web pour le callback) :
+
+```python
+from xdk.oauth2_auth import OAuth2PKCEAuth
+from urllib.parse import urlparse
+import webbrowser
+# Step 1: Create PKCE instance
+auth = OAuth2PKCEAuth(
+    client_id="YOUR_CLIENT_ID",
+    redirect_uri="YOUR_CALLBACK_URL",
+    scope="tweet.read users.read offline.access"
+)
+# Step 2: Get authorization URL
+auth_url = auth.get_authorization_url()
+print(f"Visit this URL to authorize: {auth_url}")
+webbrowser.open(auth_url)
+# Step 3: Handle callback (in a real app, use a web framework like Flask)
+# Assume callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE"
+callback_url = input("Paste the full callback URL here: ")
+# Step 4: Exchange code for tokens
+tokens = auth.fetch_token(authorization_response=callback_url)
+access_token = tokens["access_token"]
+refresh_token = tokens["refresh_token"]  # Store for renewal
+# Step 5: Create client
+# Option 1 : Utiliser bearer_token (les jetons d'accès OAuth2 fonctionnent comme des jetons Bearer)
+client = Client(bearer_token=access_token)
+# Option 2: Pass the full token dict for automatic refresh support
+# client = Client(token=tokens)
+```
+
+**Rafraîchissement du jeton** (automatique dans le SDK pour les sessions longues) :
+
+```python
+# If access token expires, refresh using stored refresh_token
+# La méthode refresh_token utilise le jeton stocké de l'instance OAuth2PKCEAuth
+tokens = auth.refresh_token()
+# Use the refreshed token
+client = Client(bearer_token=tokens["access_token"])
+# Or pass the full token dict: client = Client(token=tokens)
+```
+
+
+<div id="3-oauth-10a-user-context">
+  ### 3. OAuth 1.0a (contexte utilisateur)
+</div>
+
+Pour les anciennes applications ou certains cas d’utilisation spécifiques qui nécessitent une authentification OAuth 1.0a :
+**Étapes** :
+
+1. Dans la Console de développement, récupérez votre API Key et votre API Secret.
+2. Si vous disposez déjà de jetons d’accès, utilisez-les directement. Sinon, effectuez le flux OAuth 1.0a pour les obtenir.
+3. Créez une instance `OAuth1` et passez-la au `Client`.
+   **Exemple** (avec des jetons d’accès existants) :
+
+```python
+from xdk import Client
+from xdk.oauth1_auth import OAuth1
+# Étape 1 : Créer une instance OAuth1 avec les informations d'identification
+oauth1 = OAuth1(
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+    callback="http://localhost:8080/callback",
+    access_token="YOUR_ACCESS_TOKEN",
+    access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+)
+# Étape 2 : Créer un Client avec OAuth1
+client = Client(auth=oauth1)
+# Étape 3 : Utiliser le Client
+response = client.users.get_me()
+me = response.data
+print(me)
+```
+
+**Exemple** (flux OAuth 1.0a complet) :
+
+```python
+from xdk import Client
+from xdk.oauth1_auth import OAuth1
+import webbrowser
+# Step 1: Create OAuth1 instance
+oauth1 = OAuth1(
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+    callback="http://localhost:8080/callback"
+)
+# Step 2: Get request token
+request_token = oauth1.get_request_token()
+# Step 3: Get authorization URL
+auth_url = oauth1.get_authorization_url(login_with_x=False)
+print(f"Visit this URL to authorize: {auth_url}")
+webbrowser.open(auth_url)
+# Étape 4 : L'utilisateur autorise et vous recevez oauth_verifier
+# Dans une application réelle, gérez cela via l'URL de callback
+oauth_verifier = input("Enter the OAuth verifier from the callback: ")
+# Step 5: Exchange for access token
+access_token = oauth1.get_access_token(oauth_verifier)
+# Step 6: Create client
+client = Client(auth=oauth1)
+# Now you can use the client
+response = client.users.get_me()
+```
+
+**Remarque** :
+
+* Ne codez jamais en dur de secrets en production ; utilisez des variables d&#39;environnement ou des gestionnaires de secrets (par exemple, `os.getenv("X_BEARER_TOKEN")`).
+* Pour PKCE, assurez-vous d&#39;utiliser HTTPS pour les URL de redirection en production.
+* Le SDK vérifie les jetons et lève `xdk.AuthenticationError` en cas d&#39;échec.
+  Pour des exemples de code détaillés utilisant le XDK pour Python, consultez notre [dépôt GitHub d&#39;exemples de code](https://github.com/xdevplatform/samples/tree/main/python).

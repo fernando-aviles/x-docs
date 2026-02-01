@@ -1,0 +1,137 @@
+---
+title: v1에서 v2로 (Enterprise)
+sidebarTitle: v1에서 v2로 (Enterprise)
+keywords: ["enterprise to v2", "enterprise migration", "GNIP to v2", "enterprise search migration", "migrate enterprise", "v1 to v2 enterprise"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise와 X API v2 비교
+</div>
+
+**유사점**
+
+* 페이지네이션
+* 시간대
+* 게시물 편집 이력 및 메타데이터 지원 
+
+**차이점**
+
+* 엔드포인트 URL
+* App 및 Project 요구 사항
+* 제공되는 데이터 기간
+* 응답 데이터 포맷
+* HTTP 메서드
+* 요청 시간 포맷
+* 요청 파라미터
+* 필터링 연산자
+
+<div id="similarities">
+  #### 유사점
+</div>
+
+**페이지네이션**
+
+v2에는 `since_id` 및 `until_id`와 함께 게시물 ID를 사용하여 페이지를 탐색할 수 있게 해 주는 새로운 페이지네이션 매개변수 등 추가 페이지네이션 기능이 있지만, enterprise와 v2 모두 시간(`fromDate` 및 `toDate`는 enterprise에서, `start_time` 및 `end_time`은 v2에서)을 사용하여 페이지네이션할 수 있습니다.
+ 
+
+**시간대**
+
+페이지네이션 섹션에서 언급했듯이, enterprise와 v2 모두에서 시간을 사용해 서로 다른 데이터 페이지를 탐색할 수 있습니다. 두 경우 모두 이러한 매개변수를 사용할 때 시간대는 UTC를 사용합니다.
+
+**게시물 편집 이력 및 메타데이터 지원**
+
+두 버전 모두 편집 이력을 설명하는 메타데이터를 제공합니다. 자세한 내용은 [검색 API 참조 문서](/ko/x-api/posts/recent-search)와 [게시물 편집 기본 개념 페이지](/ko/x-api/fundamentals/edit-posts)를 참고하세요. 
+
+<div id="differences">
+  #### 차이점
+</div>
+
+**엔드포인트 URL**
+
+* Enterprise 엔드포인트:
+  * 30일 - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label.json`
+  * 전체 아카이브 - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label.json`
+* X API v2 엔드포인트
+  * 최근 (7일) - `https://api.x.com/2/tweets/search/recent`
+  * 전체 아카이브 - `https://api.x.com/2/tweets/search/all`
+
+**App 및 Project 요구 사항**
+
+X API v2 엔드포인트를 사용할 때는 요청을 인증할 때 Project의 자격 증명을 사용해야 합니다. 모든 X API v1.1 엔드포인트는 App 또는 App에 연결된 App의 자격 증명을 사용할 수 있습니다.
+ 
+
+**사용 가능한 기간**
+
+Enterprise API와 X API v2 모두 전체 아카이브에 대해 필터링된 게시물 데이터를 가져올 수 있는 엔드포인트를 제공합니다.
+
+그러나 X API v2에는 Enterprise API에서 제공하는 것과 같은 30일 기간 엔드포인트가 없습니다. 대신 앞서 언급한 전체 아카이브 또는 7일 기간 엔드포인트를 제공하며, 이는 Native Enriched to v2 및 [Activity Streams to v2](/ko/x-api/migrate/data-format-migration#migrating-from-activity-streams-data-format-to-v2)와 일치하여 Enterprise 필드를 새로운 v2 필드에 매핑하는 데 도움이 됩니다. 이 가이드는 또한 v2 요청에서 특정 필드를 반환받기 위해 함께 전달해야 하는 구체적인 expansions 및 fields 파라미터도 제공합니다.
+ 
+
+**응답 데이터 형식**
+
+[Enterprise 응답 형식](https://developer.x.com/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary)과 [X API v2 형식](/ko/x-api/fundamentals/data-dictionary)의 가장 큰 차이점 중 하나는 페이로드에서 어떤 필드를 반환할지 선택하는 방식입니다.
+
+Enterprise Search API의 경우, 응답 필드의 상당수를 기본적으로 받게 되며, 그다음 파라미터를 사용해 페이로드에 반환되어야 하는 필드 또는 필드 집합을 지정할 수 있습니다.
+
+X API v2 버전은 기본적으로 게시물 `id` 및 `text` 필드만 제공합니다. 추가 필드나 객체를 요청하려면 [fields](/ko/x-api/fundamentals/fields) 및 [expansions](/ko/x-api/fundamentals/expansions) 파라미터를 사용해야 합니다. 이러한 엔드포인트에서 요청한 게시물 필드는 모두 기본 게시물 객체에 포함됩니다. 확장된 사용자, 미디어, 설문 조사, 장소 객체 및 필드는 응답 내 `includes` 객체에 포함되어 반환됩니다. 그런 다음 게시물과 확장된 객체 모두에 있는 ID를 매칭하여, 확장된 객체를 다시 게시물 객체와 연결할 수 있습니다.
+
+이 새로운 파라미터에 대해서는 각 가이드를 참고하시거나, [fields 및 expansions 사용 방법](/ko/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions)에 관한 가이드를 추가로 읽어보시기를 권장합니다.
+
+특정 필드를 요청하는 방식의 변경 외에도, X API v2는 API가 반환하는 객체(예: [Post](/ko/x-api/fundamentals/data-dictionary#tweet) 및 [user](/ko/x-api/fundamentals/data-dictionary#user) 객체)에 대해 새로운 JSON 설계를 도입하고 있습니다.
+
+* JSON 루트 레벨에서 표준 엔드포인트는 게시물 객체를 `statuses` 배열로 반환하는 반면, X API v2는 `data` 배열로 반환합니다.
+* Retweeted 및 Quoted &quot;statuses&quot;를 참조하는 대신, X API v2 JSON은 Retweeted 및 Quoted Tweets를 참조합니다. `contributors` 및 `user.translator_type`와 같은 많은 레거시 및 사용 중단 예정 필드는 제거되고 있습니다.
+* 게시물 객체의 `favorites`와 사용자 객체의 `favourites`를 모두 사용하는 대신, X API v2는 좋아요를 의미하는 용어인 like을 사용합니다.
+* X는 값이 없는 JSON 값(예: `null`)은 페이로드에 기록하지 않는 관례를 채택하고 있습니다. 게시물 및 사용자 속성은 null이 아닌 값을 가진 경우에만 포함됩니다.
+   
+
+또한 게시물 객체에 다음과 같은 새로운 필드 집합을 도입했습니다.
+
+* [conversation&#95;id](/ko/x-api/fundamentals/conversation-id) 필드
+* context 및 entities를 포함한 두 개의 새로운 [annotations](/ko/x-api/fundamentals/post-annotations) 필드
+* 여러 개의 새로운 [metrics](/ko/x-api/fundamentals/metrics) 필드
+* 특정 게시물에 누가 답글을 달 수 있는지를 보여 주는 새로운 `reply_setting` 필드
+
+마지막으로 한 가지 더. Premium 응답은 루트 레벨에 `requestParameters` 객체를 포함하며, 이 객체에는 요청에 포함한 파라미터가 담겨 있습니다. 반면 v2 버전에는 루트 레벨에 `meta` 객체가 포함되며, 추가 결과 페이지가 있는 경우 `newest_id`, `oldest_id`, `result_count`, `next_token`을 포함합니다.
+
+**HTTP 메서드**
+
+Enterprise 버전 API에서는 요청을 JSON 본문을 포함한 POST HTTP 메서드로 보내거나, 쿼리 문자열을 사용하는 GET HTTP 메서드로 보낼 수 있습니다.
+
+V2에서는 쿼리 문자열을 사용하는 GET HTTP 메서드만 사용할 수 있습니다.
+ 
+
+**요청 시간 형식**
+
+이 엔드포인트의 Enterprise 버전은 페이지네이션 매개변수와 `timePeriod` 응답 필드 모두에서 다음과 같은 날짜/시간 형식을 사용합니다: `YYYYMMDDHHmm`
+
+V2 엔드포인트는 페이지네이션 매개변수와 `start` 및 `end` 응답 필드 모두에서 ISO 8601/RFC 3339 날짜/시간 형식을 사용합니다: `YYYY-MM-DDTHH:mm:ssZ
+ `
+
+**요청 매개변수**
+
+다음은 Enterprise와 X API v2에 대한 요청 매개변수 표입니다:
+
+| Enterprise | Search Posts v2 |
+| :--- | :--- |
+| query | query |
+| maxResults | max&#95;results |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| toDate (YYMMDDHHmm) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+|     | since&#95;id |
+|     | until&#95;id |
+| next | next&#95;token or pagination&#95;token |
+
+**필터링 연산자**
+
+Enterprise와 X API v2 간 연산자는 대부분 동일하지만, 연산자 사용 가능 여부에 몇 가지 차이가 있으며 X API v2에서만 제공되는 새로운 연산자도 일부 있습니다.
+
+X API v2, Enterprise, 그리고 premium 및 standard에서 사용할 수 있는 연산자 전체 표를 보려면 [Search Posts migration landing page](/ko/x-api/posts/search/migrate/overview)를 방문하세요.
+
+**다음 단계**
+
+[X API v2 전체 보관 검색을 위한 빠른 시작 가이드 확인하기](/ko/x-api/posts/search/quickstart/full-archive-search)
+
+[전체 보관 검색용 API 참조 문서 검토하기](/ko/x-api/posts/full-archive-search)
+
+[이 엔드포인트에 대한 샘플 코드 살펴보기](https://github.com/xdevplatform/Twitter-API-v2-sample-code)

@@ -1,0 +1,246 @@
+---
+title: メトリクス
+sidebarTitle: メトリクス
+description: 投稿とメディアのエンゲージメントメトリクスにアクセスする
+keywords: ["metrics", "engagement metrics", "tweet metrics", "impressions", "likes", "retweets", "video views", "analytics"]
+---
+
+X API は、投稿やメディアに対するエンゲージメントメトリクスを提供します。任意の認証方式で公開メトリクスにアクセスでき、自身のコンテンツについてはユーザー認証を用いて非公開メトリクスにアクセスできます。
+
+***
+
+<div id="metric-types">
+  ## 指標の種類
+</div>
+
+| Type | Authentication | Description |
+|:-----|:---------------|:------------|
+| **Public** | ベアラートークン | すべてのユーザーに表示される指標（いいね、リポスト、返信など） |
+| **Non-public** | ユーザーコンテキスト | 非公開指標（インプレッション、クリック） |
+| **Organic** | ユーザーコンテキスト | プロモーションされていない表示から得られる指標 |
+| **Promoted** | ユーザーコンテキスト | 広告の表示から得られる指標 |
+
+<Note>
+  **30日間の制限**：非公開指標、オーガニック指標、およびプロモーション指標は、過去30日以内に作成されたポストに対してのみ取得できます。
+</Note>
+
+***
+
+<div id="available-metrics">
+  ## 利用可能な指標
+</div>
+
+<div id="post-metrics">
+  ### ポストのメトリクス
+</div>
+
+| メトリクス | 種別 | フィールドパス |
+|:-------|:-----|:-----------|
+| Reposts | 公開 | `public_metrics.retweet_count` |
+| Quotes | 公開 | `public_metrics.quote_count` |
+| Likes | 公開 | `public_metrics.like_count` |
+| Replies | 公開 | `public_metrics.reply_count` |
+| Impressions | 非公開 | `non_public_metrics.impression_count` |
+| URL クリック数 | 非公開 | `non_public_metrics.url_link_clicks` |
+| プロフィールクリック数 | 非公開 | `non_public_metrics.user_profile_clicks` |
+
+<div id="media-metrics-videos">
+  ### メディア指標（動画）
+</div>
+
+| 指標 | 種別 | フィールドパス |
+|:-------|:-----|:-----------|
+| 再生回数 | 公開 | `public_metrics.view_count` |
+| 再生進捗 0% | 非公開 | `non_public_metrics.playback_0_count` |
+| 再生進捗 25% | 非公開 | `non_public_metrics.playback_25_count` |
+| 再生進捗 50% | 非公開 | `non_public_metrics.playback_50_count` |
+| 再生進捗 75% | 非公開 | `non_public_metrics.playback_75_count` |
+| 再生進捗 100% | 非公開 | `non_public_metrics.playback_100_count` |
+
+***
+
+<div id="requesting-metrics">
+  ## メトリクスの取得
+</div>
+
+<div id="public-metrics-any-auth">
+  ### 公開メトリクス（認証方法を問わず）
+</div>
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=public_metrics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+レスポンス：
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "public_metrics": {
+      "retweet_count": 50,
+      "reply_count": 12,
+      "like_count": 234,
+      "quote_count": 5
+    }
+  }
+}
+```
+
+<div id="private-metrics-user-context">
+  ### プライベートメトリクス（ユーザーコンテキスト）
+</div>
+
+あなたが所有する投稿には、ユーザーコンテキストの OAuth 1.0a または OAuth 2.0 が必要です。
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=non_public_metrics,organic_metrics" \
+  -H "Authorization: OAuth oauth_consumer_key=...,oauth_token=..."
+```
+
+レスポンス：
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "non_public_metrics": {
+      "impression_count": 5432,
+      "url_link_clicks": 89,
+      "user_profile_clicks": 156
+    },
+    "organic_metrics": {
+      "impression_count": 5432,
+      "like_count": 234,
+      "reply_count": 12,
+      "retweet_count": 50,
+      "url_link_clicks": 89,
+      "user_profile_clicks": 156
+    }
+  }
+}
+```
+
+***
+
+<div id="video-metrics">
+  ## 動画メトリクス
+</div>
+
+動画再生メトリクスには、media エクスパンションを使用します。
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?\
+tweet.fields=attachments&\
+expansions=attachments.media_keys&\
+media.fields=public_metrics,non_public_metrics" \
+  -H "Authorization: OAuth ..."
+```
+
+レスポンス:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Check out this video!",
+    "attachments": {
+      "media_keys": ["13_9876543210"]
+    }
+  },
+  "includes": {
+    "media": [{
+      "media_key": "13_9876543210",
+      "type": "video",
+      "public_metrics": {
+        "view_count": 12543
+      },
+      "non_public_metrics": {
+        "playback_0_count": 12543,
+        "playback_25_count": 9876,
+        "playback_50_count": 7654,
+        "playback_75_count": 5432,
+        "playback_100_count": 3210
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="organic-vs-promoted-metrics">
+  ## オーガニック指標とプロモーション指標
+</div>
+
+ポストが広告としてプロモーションされた場合、指標はオーガニック表示とプロモーション表示に分かれて集計されます。
+
+| コンテキスト       | 説明                    |
+| :----------- | :-------------------- |
+| **Organic**  | 通常のタイムライン表示からの指標      |
+| **Promoted** | 有料広告インプレッションからの指標     |
+| **Public**   | 合算値（オーガニック + プロモーション） |
+
+内訳を確認するには、両方の指標をリクエストしてください。
+
+```bash
+tweet.fields=public_metrics,organic_metrics,promoted_metrics
+```
+
+***
+
+<div id="metric-definitions">
+  ## 指標の定義
+</div>
+
+<Accordion title="Impressions">
+  ポストがユーザーの画面に表示された回数の合計。ユニークユーザー数ではありません。同じユーザーが2回閲覧した場合は、2インプレッションとしてカウントされます。
+</Accordion>
+
+<Accordion title="Repost count">
+  リポスト（リツイート）の数。引用ポストは含まれません。
+</Accordion>
+
+<Accordion title="Quote count">
+  引用ポスト（コメント付きリポスト）の数。これらは常にオーガニック配信です。
+</Accordion>
+
+<Accordion title="Video views">
+  その動画を含むすべての投稿を合計した値。動画が複数のポストでリポストされている場合でも、視聴回数は1つの合算値として扱われます。
+</Accordion>
+
+<Accordion title="Playback quartiles">
+  動画をそれぞれの再生パーセンテージまで視聴したユニークユーザー数。離脱率を把握するのに有用です。
+</Accordion>
+
+***
+
+<div id="requirements-summary">
+  ## 要件の概要
+</div>
+
+| Metric field | 必要な認証 |
+|:-------------|:-----------------------|
+| `public_metrics` | ベアラートークン（いずれか） |
+| `non_public_metrics` | ユーザーコンテキスト（自分の投稿のみ） |
+| `organic_metrics` | ユーザーコンテキスト（自分の投稿のみ） |
+| `promoted_metrics` | ユーザーコンテキスト（自分のプロモーション投稿のみ） |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="データディクショナリ" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
+    フィールドの完全なリファレンスです。
+  </Card>
+
+  <Card title="認証" icon="key" href="/ja/resources/fundamentals/authentication/overview">
+    ユーザーコンテキストでの認証を設定します。
+  </Card>
+</CardGroup>

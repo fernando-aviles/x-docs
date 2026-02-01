@@ -1,0 +1,216 @@
+---
+title: 統合ガイド
+sidebarTitle: 統合ガイド
+description: blocks エンドポイントを統合するための重要な概念とベストプラクティス
+keywords: ["blocks 統合", "ブロックユーザー統合", "blocks ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、blocks エンドポイントをアプリケーションに統合するために必要な主要な概念を解説します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+Blocks のエンドポイントにはユーザー認証が必要です。
+
+| Method | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 新規アプリケーションに推奨されます |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシーサポート |
+
+<Warning>
+  App-Only 認証はサポートされていません。必ずユーザーの権限で認証する必要があります。
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### 必要なスコープ（OAuth 2.0）
+</div>
+
+| スコープ | 必要となる操作 |
+|:------|:-------------|
+| `block.read` | ブロック済みアカウントの取得 |
+| `block.write` | アカウントのブロックおよびブロック解除 |
+| `users.read` | `block` スコープと併用時に必須 |
+
+***
+
+<div id="endpoints-overview">
+  ## エンドポイント概要
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| GET | `/2/users/:id/blocking` | ブロック済みアカウントのリストを取得 |
+| POST | `/2/users/:id/blocking` | アカウントをブロックする |
+| DELETE | `/2/users/:source_user_id/blocking/:target_user_id` | アカウントのブロックを解除する |
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドと expansions
+</div>
+
+<div id="default-response">
+  ### 既定のレスポンス
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Example User",
+      "username": "example"
+    }
+  ]
+}
+```
+
+<div id="available-fields">
+  ### 利用可能なフィールド
+</div>
+
+<Accordion title="user.fields">
+  | フィールド | 説明 |
+  |:------|:------------|
+  | `created_at` | アカウント作成日時 |
+  | `description` | ユーザーの自己紹介 |
+  | `profile_image_url` | アバターのURL |
+  | `public_metrics` | フォロワー数／フォロー数 |
+  | `verified` | 認証ステータス |
+</Accordion>
+
+<Accordion title="expansions">
+  | 拡張 | 説明 |
+  |:----------|:------------|
+  | `pinned_tweet_id` | ユーザーが固定表示しているポスト |
+</Accordion>
+
+***
+
+<div id="what-happens-when-you-block">
+  ## ブロックするとどうなるか
+</div>
+
+<CardGroup cols={2}>
+  <Card title="相手ができなくなること" icon="xmark">
+    * （ログアウトしていない限り）あなたの投稿を見る
+    * あなたをフォローする
+    * あなたにDMを送る
+    * あなたをリストに追加する
+    * 写真にあなたをタグ付けする
+  </Card>
+
+  <Card title="自分ができなくなること" icon="xmark">
+    * 相手の投稿を見る
+    * 相手をフォローする
+    * 相手にDMを送る
+  </Card>
+</CardGroup>
+
+<Note>
+  フォロワーをブロックすると、その相手は自動的にフォロー解除されます。
+</Note>
+
+***
+
+<div id="pagination">
+  ## ページネーション
+</div>
+
+大規模なブロックリストを持つユーザーの場合、結果はページネーション（ページ分割）されます:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 最初のリクエスト
+  curl "https://api.x.com/2/users/123/blocking?max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+
+  # ページネーション用トークンを使った後続リクエスト
+  curl "https://api.x.com/2/users/123/blocking?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  # OAuth 2.0 ユーザーアクセストークンを使用
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # SDK がページネーションを自動的に処理します
+  all_blocked = []
+
+  for page in client.users.get_blocking(user_id="123", max_results=100):
+      if page.data:
+          all_blocked.extend(page.data)
+
+  print(f"Blocked {len(all_blocked)} users")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  async function getAllBlockedUsers(userId) {
+    const allBlocked = [];
+
+    // SDK がページネーションを自動的に処理します
+    const paginator = client.users.getBlocking(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allBlocked.push(...page.data);
+      }
+    }
+
+    return allBlocked;
+  }
+
+  // 使用例
+  const blocked = await getAllBlockedUsers("123");
+  console.log(`Blocked ${blocked.length} users`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+| ステータス | エラー | 対処方法 |
+|:-------|:------|:---------|
+| 400 | 無効なリクエスト | ユーザーIDの形式を確認してください |
+| 401 | 未認証 | アクセストークンを確認してください |
+| 403 | アクセス禁止 | スコープと権限を確認してください |
+| 404 | 見つかりません | ユーザーが存在しません |
+| 429 | リクエストが多すぎます | 時間をおいて再試行してください |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/users/blocks/quickstart">
+    最初のブロックリクエストを送信する
+  </Card>
+
+  <Card title="ミュート" icon="volume-xmark" href="/ja/x-api/users/mutes/introduction">
+    ブロックの代わりにユーザーをミュートする
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-blocking">
+    エンドポイントの完全なドキュメント
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なコード例
+  </Card>
+</CardGroup>

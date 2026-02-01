@@ -1,0 +1,286 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 通过 API 创建和搜索 Community Notes
+keywords: ["Community Notes 快速入门", "Community Notes 教程", "创建 Community Notes 指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将带你逐步了解如何使用 Community Notes API 搜索符合条件的帖子并提交笔记。
+
+<Note>
+  **前提条件**
+
+  在开始之前，你需要：
+
+  * 一个已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 注册成为 [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview)
+  * 用户访问令牌（OAuth 1.0a）
+</Note>
+
+<Warning>
+  当前，所有请求的 `test_mode` 必须设置为 `true`。测试笔记不会公开可见。
+</Warning>
+
+***
+
+
+<div id="find-posts-eligible-for-notes">
+  ## 查找符合添加注释条件的帖子
+</div>
+
+<Steps>
+  <Step title="搜索符合条件的帖子" icon="magnifying-glass">
+    <Tabs>
+      <Tab title="cURL">
+    ```bash
+    curl "https://api.x.com/2/notes/search/posts_eligible_for_notes?\
+    test_mode=true&\
+    max_results=100" \
+      -H "Authorization: OAuth ..."
+    ```
+      </Tab>
+      <Tab title="Python">
+    ```python
+    from requests_oauthlib import OAuth1Session
+    import json
+
+    oauth = OAuth1Session(
+        client_key='YOUR_API_KEY',
+        client_secret='YOUR_API_SECRET',
+        resource_owner_key='YOUR_ACCESS_TOKEN',
+        resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+    )
+
+    url = "https://api.x.com/2/notes/search/posts_eligible_for_notes"
+    params = {"test_mode": True, "max_results": 100}
+
+    response = oauth.get(url, params=params)
+    print(json.dumps(response.json(), indent=2))
+    ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="查看符合条件的帖子" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1933207126262096118",
+          "text": "Join us to learn more about our new analytics endpoints...",
+          "edit_history_tweet_ids": ["1933207126262096118"]
+        },
+        {
+          "id": "1930672414444372186",
+          "text": "Thrilled to announce that X API has won the 2025 award...",
+          "edit_history_tweet_ids": ["1930672414444372186"]
+        }
+      ],
+      "meta": {
+        "newest_id": "1933207126262096118",
+        "oldest_id": "1930672414444372186",
+        "result_count": 2
+      }
+    }
+    ```
+
+    使用响应中的帖子 `id` 来撰写 Community Note（社区注释）。
+  </Step>
+</Steps>
+
+---
+
+<div id="submit-a-community-note">
+  ## 提交一条 Community Note
+</div>
+
+<Steps>
+  <Step title="准备你的注释" icon="pen">
+    一条 Community Note 需包含：
+    - `post_id` — 你要添加背景说明的帖子（Post）的 id
+    - `text` — 你的注释（1–280 个字符，必须包含一个来源 URL）
+    - `classification` — `misinformed_or_potentially_misleading` 或 `not_misleading` 之一
+    - `misleading_tags` — 如果 classification 为具有误导性，则必填
+    - `trustworthy_sources` — 布尔值，指示来源是否值得信任
+  </Step>
+
+  <Step title="提交注释" icon="paper-plane">
+    <Tabs>
+      <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.x.com/2/notes" \
+      -H "Authorization: OAuth ..." \
+      -H "Content-Type: application/json" \
+      -d '{
+        "test_mode": true,
+        "post_id": "1939667242318541239",
+        "info": {
+          "text": "This claim lacks context. See the full report: https://example.com/report",
+          "classification": "misinformed_or_potentially_misleading",
+          "misleading_tags": ["missing_important_context"],
+          "trustworthy_sources": true
+        }
+      }'
+    ```
+      </Tab>
+      <Tab title="Python">
+    ```python
+    from requests_oauthlib import OAuth1Session
+    import json
+
+    oauth = OAuth1Session(
+        client_key='YOUR_API_KEY',
+        client_secret='YOUR_API_SECRET',
+        resource_owner_key='YOUR_ACCESS_TOKEN',
+        resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+    )
+
+    payload = {
+        "test_mode": True,
+        "post_id": "1939667242318541239",
+        "info": {
+            "text": "This claim lacks context. See the full report: https://example.com/report",
+            "classification": "misinformed_or_potentially_misleading",
+            "misleading_tags": ["missing_important_context"],
+            "trustworthy_sources": True,
+        }
+    }
+
+    response = oauth.post("https://api.x.com/2/notes", json=payload)
+    print(json.dumps(response.json(), indent=2))
+    ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="接收确认" icon="check">
+    ```json
+    {
+      "data": {
+        "note_id": "1938678124100886981"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+<div id="get-your-submitted-notes">
+  ## 获取你已提交的注释
+</div>
+
+检索你撰写的注释：
+
+```python
+from requests_oauthlib import OAuth1Session
+import json
+
+oauth = OAuth1Session(
+    client_key='YOUR_API_KEY',
+    client_secret='YOUR_API_SECRET',
+    resource_owner_key='YOUR_ACCESS_TOKEN',
+    resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+)
+
+url = "https://api.x.com/2/notes/search/notes_written"
+params = {"test_mode": True, "max_results": 100}
+
+response = oauth.get(url, params=params)
+print(json.dumps(response.json(), indent=2))
+```
+
+**响应：**
+
+```json
+{
+  "data": [
+    {
+      "id": "1939827717186494817",
+      "info": {
+        "text": "This claim lacks context. https://example.com/report",
+        "classification": "misinformed_or_potentially_misleading",
+        "misleading_tags": ["missing_important_context"],
+        "post_id": "1939719604957577716",
+        "trustworthy_sources": true
+      }
+    }
+  ],
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+
+<div id="classification-options">
+  ## 分类选项
+</div>
+
+<AccordionGroup>
+  <Accordion title="误导性标签">
+    当分类为 `misinformed_or_potentially_misleading` 时，添加一个或多个标签：
+
+    | Tag | Description |
+    |:----|:------------|
+    | `disputed_claim_as_fact` | 将存在争议的说法当作事实呈现 |
+    | `factual_error` | 包含事实错误 |
+    | `manipulated_media` | 媒体内容被篡改 |
+    | `misinterpreted_satire` | 将讽刺内容脱离语境当真理解 |
+    | `missing_important_context` | 缺少关键背景信息 |
+    | `outdated_information` | 信息已过时 |
+    | `other` | 其他原因 |
+  </Accordion>
+
+  <Accordion title="不具误导性">
+    当分类为 `not_misleading` 时，不需要添加任何误导性标签。
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<div id="common-errors">
+  ## 常见错误
+</div>
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    ```json
+    {"title": "Unauthorized", "status": 401, "detail": "Unauthorized"}
+    ```
+    **解决方法：** 请检查您的 OAuth 凭证是否正确。
+  </Accordion>
+
+  <Accordion title="403 Forbidden">
+    ```json
+    {"detail": "User must be an API Note Writer to access this endpoint."}
+    ```
+    **解决方法：** 请注册成为 [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview)。
+  </Accordion>
+
+  <Accordion title="Duplicate note error">
+    ```json
+    {"message": "User already created a note for this post."}
+    ```
+    **解决方法：** 每个帖子最多只能提交一条注释。
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Community Notes 指南" icon="book" href="https://communitynotes.x.com/guide/en/api/overview">
+    Community Notes 官方文档
+  </Card>
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    可用的示例代码
+  </Card>
+</CardGroup>

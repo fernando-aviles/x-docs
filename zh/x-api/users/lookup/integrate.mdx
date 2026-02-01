@@ -1,0 +1,399 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+description: 集成用户查询功能的关键概念和最佳实践
+keywords: ["用户查询集成", "用户集成指南", "用户查询实现"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南介绍了在你的应用中集成 User lookup 端点所需的关键概念。
+
+***
+
+<div id="authentication">
+  ## 身份验证
+</div>
+
+所有 X API v2 端点都需要身份验证。请选择适合你用例的方法：
+
+| 方法 | 最适合的场景 | 是否可以访问私有指标？ |
+|:-------|:---------|:---------------------------|
+| [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 服务器到服务器、公开数据 | 否 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 面向用户的应用程序 | 是（针对已授权用户的数据） |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 遗留集成 | 是（针对已授权用户的数据） |
+
+<div id="app-only-authentication">
+  ### 仅限 App 的身份验证
+</div>
+
+对于公开的用户数据，请使用 Bearer 令牌：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 通过用户名获取用户
+  response = client.users.get_by_username("XDevelopers")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="user-context-authentication">
+  ### 用户上下文身份验证
+</div>
+
+对于已认证用户端点（`/2/users/me`），需要使用用户上下文身份验证：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  # 使用 OAuth 2.0 用户访问令牌
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 获取已认证用户的资料
+  response = client.users.get_me()
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  // 使用 OAuth 2.0 用户访问令牌
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const response = await client.users.getMe();
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Warning>
+  `/2/users/me` 端点仅支持用户上下文身份验证。仅 App 令牌（App-Only token）将返回错误。
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## 字段和 expansions
+</div>
+
+X API v2 默认仅返回最少必要的数据。使用 `fields` 和 `expansions` 精确指定你所需要的数据。
+
+<div id="default-response">
+  ### 默认响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+<div id="available-fields">
+  ### 可用字段
+</div>
+
+<Accordion title="user.fields">
+  | 字段 | 描述 |
+  |:------|:------------|
+  | `created_at` | 账号创建时间戳 |
+  | `description` | 用户简介 |
+  | `entities` | 简介中解析出的 URL |
+  | `location` | 用户自定义位置 |
+  | `pinned_tweet_id` | 置顶帖子 ID |
+  | `profile_image_url` | 头像 URL |
+  | `protected` | 账号是否受保护 |
+  | `public_metrics` | 粉丝数/关注数 |
+  | `url` | 个人网站 URL |
+  | `verified` | 认证状态 |
+  | `withheld` | 限制展示信息 |
+</Accordion>
+
+<Accordion title="tweet.fields（需要展开 pinned_tweet_id）">
+  | 字段 | 描述 |
+  |:------|:------------|
+  | `created_at` | 帖子创建时间戳 |
+  | `text` | 帖子内容 |
+  | `public_metrics` | 互动数 |
+  | `entities` | 话题标签、提及、URL |
+</Accordion>
+
+<div id="example-with-fields">
+  ### 包含字段的示例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers?\
+  user.fields=created_at,description,public_metrics,verified&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 使用额外字段和 expansions 获取用户
+  response = client.users.get_by_username(
+      "XDevelopers",
+      user_fields=["created_at", "description", "public_metrics", "verified"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at", "public_metrics"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 包含扩展后的置顶推文
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers", {
+    userFields: ["created_at", "description", "public_metrics", "verified"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 包含扩展后的置顶推文
+  ```
+</CodeGroup>
+
+<div id="response-with-expansions">
+  ### 带有 expansions 的响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "verified": true,
+    "pinned_tweet_id": "1234567890",
+    "public_metrics": {
+      "followers_count": 583423,
+      "following_count": 2048,
+      "tweet_count": 14052
+    }
+  },
+  "includes": {
+    "tweets": [
+      {
+        "id": "1234567890",
+        "text": "欢迎使用 X 开发者平台!",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+<Card title="字段和 Expansions 指南" icon="sliders" href="/zh/x-api/fundamentals/fields">
+  了解如何自定义响应内容
+</Card>
+
+***
+
+<div id="batch-lookups">
+  ## 批量查询
+</div>
+
+在单个请求中一次性查询多个用户：
+
+<CodeGroup dropdown>
+  ```bash cURL (by IDs)
+  curl "https://api.x.com/2/users?ids=2244994945,783214,6253282&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```bash cURL (by usernames)
+  curl "https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 通过 ID 批量获取多个用户
+  response = client.users.get_users(
+      ids=["2244994945", "783214", "6253282"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+
+  # 通过用户名批量获取多个用户
+  response = client.users.get_users_by_usernames(
+      usernames=["XDevelopers", "X", "XAPI"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 通过 ID 批量获取多个用户
+  const byIds = await client.users.getUsers({
+    ids: ["2244994945", "783214", "6253282"],
+    userFields: ["username", "verified"],
+  });
+  byIds.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+
+  // 通过用户名批量获取多个用户
+  const byUsernames = await client.users.getUsersByUsernames({
+    usernames: ["XDevelopers", "X", "XAPI"],
+    userFields: ["username", "verified"],
+  });
+  byUsernames.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<Tip>
+  批量请求最多支持 100 个用户。对于更大的数据集，请拆分为多个请求。
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## 错误处理
+</div>
+
+<div id="common-errors">
+  ### 常见错误
+</div>
+
+| 状态码 | 错误 | 解决方案 |
+|:-------|:------|:---------|
+| 400 | 无效请求 | 检查参数格式 |
+| 401 | 未授权 | 核实认证凭据 |
+| 403 | 禁止访问 | 检查 App 权限 |
+| 404 | 未找到 | 用户不存在或已被暂停 |
+| 429 | 请求过多 | 等待后重试（参见速率限制） |
+
+<div id="suspended-or-deleted-users">
+  ### 已封禁或已删除的用户
+</div>
+
+如果某个用户已被封禁或删除：
+
+* 单用户查询会返回 `404`
+* 多用户查询的结果中会省略该用户，并在响应中包含 `errors` 数组
+
+```json
+{
+  "data": [
+    { "id": "2244994945", "username": "XDevelopers" }
+  ],
+  "errors": [
+    {
+      "resource_id": "1234567890",
+      "resource_type": "user",
+      "title": "Not Found Error",
+      "detail": "Could not find user with id: [1234567890]."
+    }
+  ]
+}
+```
+
+<div id="protected-users">
+  ### 受保护的用户
+</div>
+
+对于你未关注的受保护账号：
+
+* 基本信息（id、name、username）可见
+* 受保护内容（置顶帖子）可能会受限
+* `protected: true` 表示账号为受保护状态
+
+***
+
+<div id="best-practices">
+  ## 最佳实践
+</div>
+
+<CardGroup cols={2}>
+  <Card title="批量请求" icon="layer-group">
+    使用多用户端点一次获取最多 100 个用户，从而减少 API 调用次数。
+  </Card>
+
+  <Card title="只请求所需字段" icon="filter">
+    仅指定你需要的字段，以尽量减小响应体大小。
+  </Card>
+
+  <Card title="缓存用户数据" icon="database">
+    在本地缓存用户资料，以减少重复请求。
+  </Card>
+
+  <Card title="优雅处理错误" icon="triangle-exclamation">
+    检查批量响应中是否存在部分错误。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="API 参考" icon="code" href="/zh/x-api/users/get-user-by-id">
+    完整的端点文档说明
+  </Card>
+
+  <Card title="数据字典" icon="book" href="/zh/x-api/fundamentals/data-dictionary">
+    所有可用的对象和字段
+  </Card>
+
+  <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    可运行的代码示例
+  </Card>
+
+  <Card title="错误处理" icon="triangle-exclamation" href="/zh/x-api/fundamentals/response-codes-and-errors">
+    优雅地处理错误
+  </Card>
+</CardGroup>

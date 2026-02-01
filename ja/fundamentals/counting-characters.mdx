@@ -1,0 +1,139 @@
+---
+title: 文字数の数え方
+sidebarTitle: 文字数の数え方
+icon: text-size
+description: X で投稿の文字数がどのようにカウントされるか
+keywords: ["文字数カウント", "ツイートの長さ", "280文字", "文字数制限", "Unicode", "絵文字", "URL の長さ", "ツイート作成"]
+---
+
+X の投稿には、最大 **280文字** まで入力できます。ただし、すべての文字が同じように数えられるわけではありません。絵文字、URL、一部の Unicode 文字には、特別なカウントルールが適用されます。
+
+---
+
+<div id="character-weights">
+  ## 文字数の重み付け
+</div>
+
+X では、重み付き文字カウント方式を使用しています。ほとんどの文字は 1 としてカウントされますが、一部の文字は 2 としてカウントされます。
+
+| 文字種別 | 重み | 最大文字数 |
+|:---------------|:-------|:---------------|
+| ラテン文字、句読点、一般的な記号 | 1 | 280 |
+| 絵文字 | 2 | 絵文字 140 個 |
+| CJK（中国語、日本語、韓国語） | 2 | 140 文字 |
+| その他の Unicode 文字 | 2（デフォルト） | 可変 |
+
+<Tip>
+App で文字数を正確にカウントするには、オープンソースの [twitter-text](https://github.com/twitter/twitter-text) ライブラリを使用してください。
+</Tip>
+
+---
+
+<div id="emoji-counting">
+  ## 絵文字のカウント方法
+</div>
+
+すべての絵文字は、複雑さに関係なく **2文字** として数えられます：
+
+| Emoji | 表示 | 文字数 | Unicode |
+|:------|:--------|:----------------|:--------|
+| 👾 | 単一の絵文字 | 2 | U+1F47E |
+| 🙋🏽 | 肌の色付きの絵文字 | 2 | 🙋 + 🏽 修飾子 |
+| 👨‍🎤 | ZWJ で結合された絵文字 | 2 | 👨 + ZWJ + 🎤 |
+| 👨‍👩‍👧‍👦 | 家族のシーケンス | 2 | 絵文字 4個 + ZWJ 3個 |
+
+ゼロ幅ジョインナー (ZWJ) は絵文字を視覚的に結合しますが、文字数には加算されません。
+
+---
+
+<div id="url-handling">
+  ## URL の扱い
+</div>
+
+すべての URL は `t.co` の短縮 URL に変換され、元の長さに関係なく**23文字**としてカウントされます。
+
+```
+https://example.com                    → 23 characters
+https://example.com/very/long/path     → 23 characters
+```
+
+<Note>
+  これは、ポスト本文内で検出された有効なURLすべてに適用されます。
+</Note>
+
+***
+
+
+<div id="special-cases">
+  ## 特殊なケース
+</div>
+
+| コンテンツ | カウントルール |
+|:--------|:--------------|
+| **返信内の @メンション** | 返信の先頭に自動で補完される @メンションはカウントされません |
+| **新しい @メンション** | 手動で追加した @メンションは通常どおりカウントされます |
+| **メディア** | （公式クライアント経由で）添付されたメディアは文字数 0 としてカウントされます |
+| **ハッシュタグ** | `#` とタグのテキストを含めて通常どおりカウントされます |
+
+---
+
+<div id="text-encoding">
+  ## テキストエンコード
+</div>
+
+X API では **UTF-8** エンコードが必須です。文字数は Unicode 正規化形式 C (NFC) を用いて算出されます。
+
+`café` の例:
+
+| 形式 | バイト数 | 文字数 |
+|:-----|:------|:-----------|
+| NFC（合成済み） | `c a f é` | 4 |
+| NFD（分解済み） | `c a f e ́` | 5 |
+
+X は NFC に正規化するため、どちらの場合も 4 文字として扱われます。
+
+---
+
+<div id="implementation">
+  ## 実装
+</div>
+
+正確な文字数カウントのために、公式の [twitter-text](https://github.com/twitter/twitter-text) ライブラリを使用してください。
+
+<Tabs>
+  <Tab title="JavaScript">
+```javascript
+import { parseTweet } from 'twitter-text';
+
+const result = parseTweet('Hello, world! 👋');
+console.log(result.weightedLength); // 16
+console.log(result.valid);          // true
+```
+  </Tab>
+  <Tab title="Python">
+```python
+from twitter_text import parse_tweet
+
+result = parse_tweet('Hello, world! 👋')
+print(result.weightedLength)  # 16
+print(result.valid)           # True
+```
+  </Tab>
+</Tabs>
+
+このライブラリは、絵文字シーケンス、URL 検出、Unicode 正規化など、あらゆるエッジケースを処理します。
+
+---
+
+<div id="resources">
+  ## リソース
+</div>
+
+<CardGroup cols={2}>
+  <Card title="twitter-text ライブラリ" icon="github" href="https://github.com/twitter/twitter-text">
+    テキスト解析用の公式オープンソースライブラリです。
+  </Card>
+  <Card title="設定ファイル" icon="file-code" href="https://github.com/twitter/twitter-text/tree/master/config">
+    文字の重み付け定義と Unicode 範囲です。
+  </Card>
+</CardGroup>

@@ -1,0 +1,94 @@
+---
+title: Gestion des interruptions de connexion
+sidebarTitle: Gestion des interruptions de connexion
+keywords: ["interruptions de connexion Powerstream", "gérer les interruptions de connexion", "reconnecter Powerstream", "interruptions de flux", "erreurs Powerstream"]
+---
+
+<div id="what-is-a-disconnection">
+  ## Qu’est-ce qu’une déconnexion ?
+</div>
+
+Établir une connexion aux API de streaming implique d’effectuer une requête HTTPS de très longue durée et d’analyser la réponse de façon incrémentale. Lors de la connexion au endpoint powerstream, vous devez envoyer une requête HTTPS et consommer le flux résultant aussi longtemps que possible. Nos serveurs maintiendront la connexion ouverte indéfiniment, sauf en cas d’erreur côté serveur, de latence excessive côté client, de problèmes réseau, de maintenance serveur courante ou de connexions en double. Avec les connexions aux endpoints de streaming, il est probable, et il faut s’y attendre, que des déconnexions se produisent et qu’une logique de reconnexion soit mise en place.
+
+<div id="why-a-streaming-connection-might-be-disconnected">
+  ## Pourquoi une connexion de streaming peut être interrompue
+</div>
+
+Votre flux peut être interrompu pour plusieurs raisons. Examinez le message d’erreur renvoyé par le flux pour comprendre la cause de l’échec. Les raisons possibles de déconnexion sont les suivantes :
+
+* Une erreur d’authentification (comme un jeton incorrect ou l’utilisation d’une méthode d’authentification incorrecte).
+* Un serveur de streaming est redémarré côté X. Cela est généralement lié à un déploiement de code et doit en général être anticipé et pris en compte dans votre conception.
+* Votre client ne parvient pas à suivre le volume de Publications que le flux fournit ou lit les données trop lentement. Chaque connexion de streaming est adossée à une file d’attente de messages à envoyer au client. Si cette file d’attente devient trop grande au fil du temps, la connexion sera fermée.
+* Votre compte a dépassé votre quota quotidien/mensuel de Publications.
+* Vous avez trop de connexions redondantes actives.
+* Un client cesse soudainement de lire les données. Si le rythme de lecture des Publications à partir du flux chute soudainement, la connexion sera fermée.
+* D’éventuels problèmes réseau entre le serveur et le client.
+* Un problème temporaire côté serveur, une maintenance planifiée ou des mises à jour (consultez la [page d’état](/fr/status)).
+
+<div id="anticipating-disconnects-and-reconnecting">
+  ## Anticiper les déconnexions et se reconnecter
+</div>
+
+Lors du streaming de Publications, l’objectif est de rester connecté aussi longtemps que possible, en gardant à l’esprit que des déconnexions peuvent se produire. L’endpoint envoie un signal de maintien de connexion (keep-alive) toutes les 20 secondes (il se présente sous la forme d’un caractère de nouvelle ligne). Utilisez ce signal pour détecter si vous êtes déconnecté.
+
+1. Votre code doit détecter lorsque le contenu récent et le signal de maintien de connexion cessent d’arriver.
+2. Si cela se produit, votre code doit déclencher une logique de reconnexion. Certains clients et langages vous permettent de spécifier un délai d’expiration de lecture (read timeout), que vous pouvez définir à 20 secondes.
+3. Votre service doit détecter ces déconnexions et se reconnecter dès que possible.
+
+Une fois qu’une connexion établie est interrompue, tentez de vous reconnecter immédiatement. Si la reconnexion échoue, ralentissez vos tentatives de reconnexion en fonction du type d’erreur rencontré :
+
+* Utilisez un backoff linéaire pour les erreurs réseau au niveau TCP/IP. Ces problèmes sont généralement temporaires et ont tendance à se résoudre rapidement. Augmentez le délai entre les reconnexions de 250 ms à chaque tentative, jusqu’à 16 secondes.
+* Utilisez un backoff exponentiel pour les erreurs HTTP pour lesquelles une reconnexion est appropriée. Commencez par une attente de 5 secondes, en doublant à chaque tentative, jusqu’à 320 secondes.
+* Utilisez un backoff exponentiel pour les erreurs HTTP 429 (Rate limit exceeded). Commencez par une attente de 1 minute et doublez à chaque tentative. Notez que chaque HTTP 429 reçu augmente le temps que vous devez attendre avant que la limitation de débit ne soit plus appliquée à votre compte.
+   
+
+<div id="recovering-lost-data">
+  ## Récupération des données perdues
+</div>
+
+Si vous subissez une déconnexion, plusieurs stratégies vous permettent de vous assurer que vous recevez toutes les données que vous avez pu manquer. Nous avons documenté quelques étapes clés que vous pouvez suivre pour récupérer les données manquées dans notre guide d’intégration consacré à la [récupération des données](/fr/x-api/powerstream/recovery-and-redundancy). 
+ 
+
+<div id="rate-limits-and-usage">
+  ## Limites de taux et utilisation
+</div>
+
+Pour vérifier les limites applicables à la connexion, la réponse inclura trois en-têtes. Cela est utile pour comprendre combien de fois vous pouvez utiliser le endpoint de règle et combien de tentatives de reconnexion sont autorisées pour le endpoint de streaming.
+
+* x-rate-limit-limit indique le nombre de requêtes allouées que votre client est autorisé à effectuer pendant une fenêtre de 15 minutes.
+
+* x-rate-limit-remaining indique le nombre de requêtes effectuées jusqu&#39;à présent dans cette fenêtre de 15 minutes.
+
+* x-rate-limit-reset est un horodatage UNIX indiquant quand la fenêtre de 15 minutes redémarrera, réinitialisant x-rate-limit-remaining à 0.
+
+Le endpoint de flux filtré ne signale pas actuellement les données d&#39;utilisation. Pour vérifier combien de Publications ont été transmises, votre code peut implémenter une logique de mesure, afin que la consommation puisse être mesurée et mise en pause si nécessaire. 
+
+Le code qui héberge la partie cliente du flux insère simplement les Publications entrantes dans une file d&#39;attente premier entré, premier sorti (FIFO), ou une structure de données en mémoire similaire ; un processus/thread séparé doit consommer les Publications depuis cette file d&#39;attente pour analyser et préparer le contenu en vue de son stockage. Avec cette conception, vous pouvez implémenter un service qui peut monter en charge efficacement si les volumes de Publications entrantes changent de manière significative. Conceptuellement, vous pouvez considérer cela comme le téléchargement d&#39;un fichier infiniment long via HTTP.
+
+<div id="reconnection-best-practices">
+  ## Meilleures pratiques de reconnexion
+</div>
+
+<div id="test-backoff-strategies">
+  ### Tester les stratégies de backoff
+</div>
+
+Une bonne manière de tester une implémentation de backoff consiste à utiliser des identifiants d’autorisation invalides et à examiner les tentatives de reconnexion. Une bonne implémentation ne recevra aucune réponse avec le code 429.
+
+<div id="issue-alerts-for-multiple-reconnects">
+  ### Alertes en cas de reconnexions multiples
+</div>
+
+Si un client atteint la limite supérieure de l’intervalle autorisé entre les reconnexions, il doit vous envoyer des notifications afin que vous puissiez trier et diagnostiquer les problèmes affectant votre connexion.
+
+<div id="handle-dns-changes">
+  ### Gérer les changements de DNS
+</div>
+
+Vérifiez que le processus de votre client respecte le Time To Live (TTL) DNS. Certains environnements vont mettre en cache une adresse résolue pendant toute la durée de vie du processus et ne prendront pas en compte les changements de DNS dans le TTL prescrit. Un tel cache agressif entraînera des interruptions de service sur votre client lorsque X répartit la charge entre différentes adresses IP.
+
+<div id="user-agent">
+  ### User Agent
+</div>
+
+Assurez-vous que votre en-tête HTTP `user-agent` inclut la version du client. Cela sera essentiel pour diagnostiquer les problèmes du côté de X. Si votre environnement ne permet pas de renseigner l’en-tête `user-agent`, utilisez alors un en-tête `x-user-agent`.

@@ -1,0 +1,286 @@
+---
+title: クイックスタート
+sidebarTitle: クイックスタート
+description: API を使って Community Notes を作成および検索する
+keywords: ["Community Notes クイックスタート", "Community Notes チュートリアル", "ノート作成ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、Community Notes API を使用してノート対象の投稿を検索し、ノートを投稿する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  始める前に、次のものが必要です。
+
+  * 承認済みの App を含む [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview) への登録
+  * ユーザーアクセストークン（OAuth 1.0a）
+</Note>
+
+<Warning>
+  現在、すべてのリクエストで `test_mode` を `true` に設定しておく必要があります。テストノートは一般公開されません。
+</Warning>
+
+***
+
+
+<div id="find-posts-eligible-for-notes">
+  ## ノート対象のポストを探す
+</div>
+
+<Steps>
+  <Step title="ノート対象のポストを検索する" icon="magnifying-glass">
+    <Tabs>
+      <Tab title="cURL">
+    ```bash
+    curl "https://api.x.com/2/notes/search/posts_eligible_for_notes?\
+    test_mode=true&\
+    max_results=100" \
+      -H "Authorization: OAuth ..."
+    ```
+      </Tab>
+      <Tab title="Python">
+    ```python
+    from requests_oauthlib import OAuth1Session
+    import json
+
+    oauth = OAuth1Session(
+        client_key='YOUR_API_KEY',
+        client_secret='YOUR_API_SECRET',
+        resource_owner_key='YOUR_ACCESS_TOKEN',
+        resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+    )
+
+    url = "https://api.x.com/2/notes/search/posts_eligible_for_notes"
+    params = {"test_mode": True, "max_results": 100}
+
+    response = oauth.get(url, params=params)
+    print(json.dumps(response.json(), indent=2))
+    ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="ノート対象のポストを確認する" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1933207126262096118",
+          "text": "Join us to learn more about our new analytics endpoints...",
+          "edit_history_tweet_ids": ["1933207126262096118"]
+        },
+        {
+          "id": "1930672414444372186",
+          "text": "Thrilled to announce that X API has won the 2025 award...",
+          "edit_history_tweet_ids": ["1930672414444372186"]
+        }
+      ],
+      "meta": {
+        "newest_id": "1933207126262096118",
+        "oldest_id": "1930672414444372186",
+        "result_count": 2
+      }
+    }
+    ```
+
+    Community Note を作成するには、レスポンスに含まれるポストの `id` を使用します。
+  </Step>
+</Steps>
+
+---
+
+<div id="submit-a-community-note">
+  ## Community Note を投稿する
+</div>
+
+<Steps>
+  <Step title="ノートを準備する" icon="pen">
+    Community Note を作成するには、次の項目が必要です:
+    - `post_id` — コンテキストを追加したいポスト
+    - `text` — ノート本文 (1〜280文字、出典 URL を必ず含めてください)
+    - `classification` — `misinformed_or_potentially_misleading` または `not_misleading` のいずれか
+    - `misleading_tags` — classification が `misinformed_or_potentially_misleading` の場合は必須
+    - `trustworthy_sources` — 出典が信頼できるかどうかを示す Boolean 値
+  </Step>
+
+  <Step title="ノートを送信する" icon="paper-plane">
+    <Tabs>
+      <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.x.com/2/notes" \
+      -H "Authorization: OAuth ..." \
+      -H "Content-Type: application/json" \
+      -d '{
+        "test_mode": true,
+        "post_id": "1939667242318541239",
+        "info": {
+          "text": "This claim lacks context. See the full report: https://example.com/report",
+          "classification": "misinformed_or_potentially_misleading",
+          "misleading_tags": ["missing_important_context"],
+          "trustworthy_sources": true
+        }
+      }'
+    ```
+      </Tab>
+      <Tab title="Python">
+    ```python
+    from requests_oauthlib import OAuth1Session
+    import json
+
+    oauth = OAuth1Session(
+        client_key='YOUR_API_KEY',
+        client_secret='YOUR_API_SECRET',
+        resource_owner_key='YOUR_ACCESS_TOKEN',
+        resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+    )
+
+    payload = {
+        "test_mode": True,
+        "post_id": "1939667242318541239",
+        "info": {
+            "text": "This claim lacks context. See the full report: https://example.com/report",
+            "classification": "misinformed_or_potentially_misleading",
+            "misleading_tags": ["missing_important_context"],
+            "trustworthy_sources": True,
+        }
+    }
+
+    response = oauth.post("https://api.x.com/2/notes", json=payload)
+    print(json.dumps(response.json(), indent=2))
+    ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="確認を受け取る" icon="check">
+    ```json
+    {
+      "data": {
+        "note_id": "1938678124100886981"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+<div id="get-your-submitted-notes">
+  ## 送信済みのノートを取得する
+</div>
+
+自分が作成して送信したノートを取得します。
+
+```python
+from requests_oauthlib import OAuth1Session
+import json
+
+oauth = OAuth1Session(
+    client_key='YOUR_API_KEY',
+    client_secret='YOUR_API_SECRET',
+    resource_owner_key='YOUR_ACCESS_TOKEN',
+    resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+)
+
+url = "https://api.x.com/2/notes/search/notes_written"
+params = {"test_mode": True, "max_results": 100}
+
+response = oauth.get(url, params=params)
+print(json.dumps(response.json(), indent=2))
+```
+
+**レスポンス：**
+
+```json
+{
+  "data": [
+    {
+      "id": "1939827717186494817",
+      "info": {
+        "text": "This claim lacks context. https://example.com/report",
+        "classification": "misinformed_or_potentially_misleading",
+        "misleading_tags": ["missing_important_context"],
+        "post_id": "1939719604957577716",
+        "trustworthy_sources": true
+      }
+    }
+  ],
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+
+<div id="classification-options">
+  ## 分類オプション
+</div>
+
+<AccordionGroup>
+  <Accordion title="誤解を招くタグ">
+    分類が `misinformed_or_potentially_misleading` の場合は、1つ以上のタグを付与します。
+
+    | Tag | 説明 |
+    |:----|:------------|
+    | `disputed_claim_as_fact` | 争われている主張を事実として提示している |
+    | `factual_error` | 事実の誤りが含まれている |
+    | `manipulated_media` | メディアが改変されている |
+    | `misinterpreted_satire` | 風刺が文脈を外れて受け取られている |
+    | `missing_important_context` | 重要な文脈が欠けている |
+    | `outdated_information` | 情報がすでに古くなっている |
+    | `other` | その他の理由 |
+  </Accordion>
+
+  <Accordion title="誤解を招かない">
+    分類が `not_misleading` の場合、誤解を招くタグは不要です。
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<div id="common-errors">
+  ## よくあるエラー
+</div>
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    ```json
+    {"title": "Unauthorized", "status": 401, "detail": "Unauthorized"}
+    ```
+    **解決方法:** OAuth の認証情報が正しいか確認してください。
+  </Accordion>
+
+  <Accordion title="403 Forbidden">
+    ```json
+    {"detail": "User must be an API Note Writer to access this endpoint."}
+    ```
+    **解決方法:** [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview) として登録してください。
+  </Accordion>
+
+  <Accordion title="重複ノートエラー">
+    ```json
+    {"message": "User already created a note for this post."}
+    ```
+    **解決方法:** 各ポストにつき送信できるノートは 1 件のみです。
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Community Notes ガイド" icon="book" href="https://communitynotes.x.com/guide/en/api/overview">
+    公式 Community Notes のドキュメント
+  </Card>
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なサンプルコード
+  </Card>
+</CardGroup>

@@ -1,0 +1,84 @@
+---
+title: Guide de migration
+sidebarTitle: Guide de migration
+keywords: ["migration des messages privés", "migration des MP", "recherche de messages privés v1.1 vers v2", "guide de migration des messages privés", "migration de la recherche de messages privés"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="comparing-v11-and-v2-direct-message-event-lookup-endpoints">
+  ## Comparaison des endpoints de recherche d’événements de messages privés v1.1 et v2
+</div>
+
+Les versions v1.1 et v2 des endpoints Direct Messages fournissent toutes deux des méthodes pour rechercher des événements de messages privés. Ce guide a pour but d’expliquer les différences et de fournir des informations pour migrer vers v2. 
+
+Une différence majeure entre les deux versions est que v1.1 ne prend en charge que les conversations en tête‑à‑tête, alors que v2 introduit la prise en charge des conversations de groupe. Il en résulte que v1.1 ne prend en charge que les événements de type « message created », tandis que v2 prend également en charge les événements associés aux participants rejoignant et quittant les conversations. En fait, une mise à jour fondamentale de v2 consiste à établir `dm_conversations` comme objet d’API principal.   
+
+Avec v1.1, il existe deux endpoints pour récupérer des messages privés (encore une fois, les nouveaux messages sont le seul type d’événement pris en charge avec v1.1) :
+
+* GET direct&#95;messages/events/show - Récupère un seul événement par ID. 
+
+* GET direct&#95;messages/events/list - Récupère jusqu’à 30 jours de messages privés en tête‑à‑tête envoyés et reçus par l’utilisateur authentifié. Notez que cette méthode ne permet pas de récupérer les messages des conversations de groupe. 
+
+Avec cette version v2, il existe trois méthodes GET pour récupérer les événements de conversation de messages privés : 
+
+* **GET /2/dm&#95;conversations/with/:participant&#95;id/dm&#95;events** - Récupère les événements de messages privés associés à une conversation en tête‑à‑tête. Le paramètre de chemin `:participant_id` correspond à l’ID utilisateur du compte qui est en conversation avec l’utilisateur authentifié effectuant cette requête. 
+
+* **GET /2/dm&#95;conversations/:dm&#95;conversation&#95;id/dm&#95;events** - Récupère les événements de messages privés associés à un ID de conversation spécifique, tel qu’indiqué par le paramètre de chemin `:dm_conversation_id`. Cette méthode prend en charge les conversations en tête‑à‑tête et les conversations de groupe. 
+
+* **GET /2/dm&#95;events** - Récupère les événements de messages privés associés à un utilisateur, y compris les conversations en tête‑à‑tête et de groupe. Les événements remontant jusqu’à 30 jours sont disponibles.  
+
+Un détail important est que les identifiants de conversation et d’événement sont partagés entre les versions v1.1 et v2 de la plateforme X. Cela signifie que les deux versions peuvent être utilisées ensemble. Par exemple, les endpoints Direct Messages v1.1 fournissent des méthodes pour renvoyer un seul événement et pour supprimer des événements, des méthodes qui ne sont pas encore disponibles avec v2. Étant donné que les identifiants sont communs à v1.1 et v2, vous pouvez effectuer des requêtes v1.1 à partir d’identifiants fournis par v2, ou en vous référant aux identifiants de conversation affichés dans les URL de conversation sur l’application X.
+
+Le tableau suivant compare les aspects fondamentaux des endpoints de recherche d’événements de messages privés v1.1 et v2. Les caractéristiques de X API v2 présentées ici sont communes à tous les endpoints de recherche de messages privés.
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Host domain | https://api.x.com | https://api.x.com |
+| Endpoint root path | [/1.1/direct&#95;messages](https://api.x.com/1.1/direct_messages) | [/2/dm&#95;conversations](https://api.x.com/2/users/:id/dm_conversations)<br /><br />Les conversations de messages privés sont introduites comme un objet d’API fondamental.   <br /><br />Ces endpoints récupèrent les événements `MessageCreate`, `ParticipantsJoin` et `ParticipantLeave`. |
+| HTTP methods supported | GET | GET |
+| Supports Group Direct Messages |     | ✔   |
+| Event types supported | message&#95;create | MessageCreate, ParticipantsJoin, ParticipantsLeave |
+| [Authentication](/fr/resources/fundamentals/authentication) | Contexte utilisateur OAuth 1.0a | Contexte utilisateur OAuth 1.0a<br /><br />Contexte utilisateur OAuth 2 (scopes : dm.read, tweet.read, user.read) |
+| Requires the use of credentials from a [developer App](/fr/resources/fundamentals/authentication) associated with a X API v2 [Project](/fr/resources/fundamentals/developer-apps) |     | ✔   |
+| Default request [rate limits](/fr/x-api/fundamentals/rate-limits)*  <br />*All requests require user tokens |     | Requêtes GET : 300 requêtes par 15 minutes<br /><br />La limite de taux est appliquée à l’ensemble des trois endpoints |
+
+Les tableaux suivants comparent les méthodes GET v2 avec celles de la version v1.1. Notez que ces fonctionnalités v2 étendent les capacités disponibles en prenant en charge les conversations de groupe. 
+
+**Récupérer tous les messages dans une conversation en tête‑à‑tête spécifique **
+
+***
+
+Chemin : GET /2/dm&#95;conversations/with/:participant&#95;id/dm&#95;events
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Chemin d’endpoint | GET <br /><br />/1.1/direct&#95;messages/events/list | GET /2/dm&#95;conversations/with/:participant&#95;id/dm&#95;events |
+| Volume d’historique des événements disponible | 30 jours | Aucune limite |
+| Limites de taux de requêtes par défaut [limites de taux](/fr/x-api/fundamentals/rate-limits) | 15 requêtes par 15 minutes | 300 requêtes par 15 minutes  <br />La limite de taux s’applique aux trois endpoints GET |
+
+**Récupérer tous les messages par ID de conversation **
+
+Chemin : GET /2/dm&#95;conversations/:dm&#95;conversation&#95;id/dm&#95;events
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Chemin d’endpoint | Non pris en charge. v1.1 peut uniquement renvoyer les messages des conversations individuelles, et il n’existe aucune prise en charge de la récupération des événements par identifiants de conversation. | GET /2/dm&#95;conversations/:dm&#95;conversation&#95;id/dm&#95;events |
+| Volume d’historique des événements disponible | 30 jours | Aucune limite |
+| Prise en charge des conversations de groupe |     | ✔   |
+| Limites de taux de requêtes par défaut [limites de taux](/fr/x-api/fundamentals/rate-limits) | 15 requêtes par 15 minutes | 300 requêtes par 15 minutes  <br />La limite de taux s’applique aux trois endpoints GET |
+
+**Récupérer tous les événements pour l’ensemble des conversations d’un utilisateur authentifié, à la fois individuelles et de groupe**
+
+Chemin : GET /2/dm&#95;events
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Chemin d’endpoint | GET /1.1/direct&#95;messages/events/list  <br />  <br />v1.1 peut uniquement renvoyer les messages des conversations individuelles. | GET /2/dm&#95;events |
+| Volume d’historique des événements disponible | 30 jours | 30 jours |
+| Prise en charge des conversations de groupe |     | ✔   |
+| Limites de taux de requêtes par défaut [limites de taux](/fr/x-api/fundamentals/rate-limits) | 15 requêtes par 15 minutes | 300 requêtes par 15 minutes  <br />La limite de taux s’applique aux trois endpoints GET |

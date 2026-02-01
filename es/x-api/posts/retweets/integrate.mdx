@@ -1,0 +1,188 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+keywords: ["retweets integration", "retweets guide", "retweets integration guide", "retweets implementation", "retweets setup"]
+---
+
+Esta página presenta herramientas y conceptos clave para la integración con los endpoints de Retweet.
+
+***
+
+<div id="helpful-tools">
+  ## Herramientas útiles
+</div>
+
+Antes de profundizar en algunos conceptos clave que te ayudarán a integrar este endpoint, te recomendamos familiarizarte con lo siguiente:
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman es una excelente herramienta que puedes usar para probar un endpoint. Cada solicitud de Postman incluye todos los parámetros de ruta y de cuerpo para ayudarte a comprender rápidamente qué está disponible para ti. Para obtener más información sobre nuestras colecciones de Postman, visita nuestra página [&quot;Uso de Postman&quot;](/es/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  #### Ejemplos de código
+</div>
+
+¿Te interesa empezar a usar este endpoint con código en tu lenguaje de programación preferido? Tenemos varios ejemplos de código disponibles que puedes usar como punto de partida en nuestra [página de GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="third-party-libraries">
+  #### Bibliotecas de terceros
+</div>
+
+Aprovecha alguna de las [bibliotecas de terceros](/es/x-api/tools-and-libraries/overview) de nuestra comunidad para ayudarte a empezar. Puedes encontrar una biblioteca compatible con los endpoints de la v2 buscando la etiqueta de versión adecuada.
+
+<div id="key-concepts">
+  ### Conceptos clave
+</div>
+
+<div id="authentication">
+  #### Autenticación
+</div>
+
+Todos los endpoints de X API v2 requieren que autentiques tus solicitudes con un conjunto de credenciales, también conocidas como claves y tokens.
+
+Puedes usar OAuth 1.0a User Context u OAuth 2.0 Bearer Token para autenticar tus solicitudes al endpoint de consulta de Retweets.
+
+Los endpoints para administrar Retweets requieren el uso de OAuth 1.0a User Context, lo que significa que debes usar un conjunto de claves de API y tokens de acceso de usuario para realizar una solicitud exitosa. Los tokens de acceso deben estar asociados con el usuario en cuyo nombre estás realizando la solicitud. Si deseas generar un conjunto de tokens de acceso para otro usuario, este debe autorizar o autenticar tu App mediante el flujo OAuth de 3 pasos (3-legged OAuth flow).
+
+Ten en cuenta que OAuth 1.0a puede ser complicado de usar. Si no estás familiarizado con este método de autenticación, te recomendamos que uses una [biblioteca](/es/x-api/tools-and-libraries/overview) para autenticar correctamente tus solicitudes.
+
+**Ten en cuenta**
+
+Si estás solicitando los siguientes campos, se requiere OAuth 1.0a User Context:
+
+* tweet.fields.non&#95;public&#95;metrics
+* tweet.fields.promoted&#95;metrics
+* tweet.fields.organic&#95;metrics
+* media.fields.non&#95;public&#95;metrics
+* media.fields.promoted&#95;metrics
+* media.fields.orgganic&#95;metrics
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Consola de desarrollador, Proyectos y Apps de desarrollador
+</div>
+
+Para obtener un conjunto de credenciales de autenticación que funcionen con los endpoints de la X API v2, debes [registrarte para obtener una cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info), configurar un [Proyecto](/es/resources/fundamentals/developer-apps) dentro de esa cuenta y crear una [App de desarrollador](/es/resources/fundamentals/developer-apps) dentro de ese Proyecto. Luego podrás encontrar tus claves y tokens en tu App de desarrollador.
+
+<div id="rate-limits">
+  #### Límites de tasa
+</div>
+
+Todos los días, muchos miles de desarrolladores realizan solicitudes a la X API. Para ayudar a gestionar el gran volumen de estas solicitudes, se aplican [límites de tasa](/es/x-api/fundamentals/rate-limits) en cada endpoint, lo que limita la cantidad de solicitudes que puedes realizar en nombre de tu App o en nombre de un usuario autenticado.
+
+Los endpoints de gestión de Retweets están limitados a 50 solicitudes por cada 15 minutos (por usuario). Además, para el endpoint POST, estás limitado a 300 solicitudes por ventana de 3 horas (por usuario y por App).
+
+Con el endpoint de consulta de Retweets, estás limitado a 75 solicitudes por ventana de 15 minutos. Además, este endpoint solo devolverá a los 100 usuarios que hayan hecho Retweet más recientemente.
+
+<div id="fields-and-expansions">
+  #### Campos y expansions
+</div>
+
+La X API v2 permite a los usuarios seleccionar exactamente qué datos quieren que devuelva la API utilizando un conjunto de herramientas llamadas campos (`fields`) y expansiones (`expansions`). El parámetro `expansions` te permite ampliar los objetos referenciados en la carga. Por ejemplo, este endpoint te permite obtener las siguientes [expansions](/es/x-api/fundamentals/expansions):
+
+* attachments.poll&#95;ids
+* attachments.media&#95;keys
+* author&#95;id, entities.mentions.username
+* geo.place&#95;id
+* in&#95;reply&#95;to&#95;user&#95;id,
+* referenced&#95;tweets.id,
+* referenced&#95;tweets.id.author&#95;id
+
+El parámetro `fields` te permite seleccionar exactamente qué [fields](/es/x-api/fundamentals/fields) dentro de los distintos objetos de datos quieres recibir. Estos endpoints devuelven principalmente objetos de Publicación. De forma predeterminada, el objeto de Publicación devuelve los campos `id` y `text`. Para recibir campos adicionales como `tweet.created_at` o `tweet.entities`, tendrás que solicitarlos específicamente utilizando un parámetro `fields`. Algunos campos importantes que quizá quieras considerar en tu integración son nuestros datos de encuestas, métricas, anotaciones de Publicación y campos de ID de conversación.
+
+Hemos añadido a nuestro [diccionario de datos de X API v2](/es/x-api/fundamentals/data-dictionary) una guía sobre cómo [usar fields y expansions](/es/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) conjuntamente.
+
+***
+
+<div id="code-examples">
+  ### Ejemplos de código
+</div>
+
+<div id="get-users-who-retweeted-a-post">
+  #### Obtener los usuarios que hicieron Retweet de una Publicación
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/retweeted_by?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtener los usuarios que hicieron Retweet de una Publicación
+  response = client.posts.get_retweeted_by(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtener los usuarios que hicieron Retweet de una Publicación
+  const response = await client.posts.getRetweetedBy("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<div id="retweet-a-post">
+  #### Retuitear una publicación
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/retweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Retuitear una publicación
+  response = client.posts.retweet(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Retuitear una publicación
+  const response = await client.posts.retweet("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

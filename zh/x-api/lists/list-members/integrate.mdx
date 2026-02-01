@@ -1,0 +1,105 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+keywords: ["列表成员集成", "列表成员指南", "列表成员设置", "列表成员资格集成", "列表成员集成指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本页介绍用于集成列表成员相关端点的工具和核心概念。
+
+***
+
+<div id="helpful-tools">
+  ## 实用工具
+</div>
+
+在介绍一些有助于你集成该端点的关键概念之前，我们建议你先熟悉：
+
+<div id="postman">
+  ### Postman
+</div>
+
+Postman 是一个非常实用的工具，你可以用它来测试端点。每个 Postman 请求都会包含所有路径参数和请求体参数，帮助你快速了解有哪些可用内容。要了解更多关于我们 Postman 集合的信息，请访问我们的[“Using Postman”](/zh/tutorials/postman-getting-started)页面。
+
+<div id="code-samples">
+  ### 代码示例
+</div>
+
+想要使用你偏好的编程语言，通过代码来完成这个 endpoint 的集成和配置吗？我们在 [GitHub 页面](https://github.com/xdevplatform/Twitter-API-v2-sample-code) 上提供了多种代码示例，你可以将它们作为起点使用。
+
+<div id="third-party-libraries">
+  ### 第三方库
+</div>
+
+利用我们社区提供的[第三方库](/zh/x-api/tools-and-libraries/overview)来帮助你快速入门。你可以通过查看相应的版本标签来找到适配 v2 端点的库。
+
+***
+
+<div id="key-concepts">
+  ## 核心概念
+</div>
+
+<div id="authentication">
+  ### 身份验证
+</div>
+
+所有 X API v2 端点都要求你使用一套凭证（也称为密钥和令牌）对请求进行身份验证。对于列表 **查询（lookup）** 端点，你可以使用 OAuth 1.0a 用户上下文、OAuth 2.0 带 PKCE 的授权码模式，或者仅 App 身份验证来对请求进行身份验证。然而，对于 **管理（manage）** 列表端点，你必须使用 OAuth 1.0a 用户上下文或 OAuth 2.0 进行身份验证。
+
+[OAuth 1.0a 用户上下文](/zh/resources/fundamentals/authentication) 意味着你必须使用一套 API Key 和用户访问令牌（Access Token）来发起一次成功的请求。访问令牌必须与代表其发起请求的用户关联。如果你想为其他用户生成一套访问令牌，他们必须使用 [三方（3-legged）OAuth 流程](/zh/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) 授权你的 App。
+
+请注意，OAuth 1.0a 的使用可能比较复杂。如果你不熟悉这种身份验证方法，我们建议你使用一个[库](/zh/x-api/tools-and-libraries/overview)、使用 Postman 之类的工具，或者使用 OAuth 2.0 或仅 App 身份验证来对你的请求进行身份验证。
+
+[OAuth 2.0 带 PKCE 的授权码模式](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) 允许对应用的权限范围（scope）以及跨多设备的授权流程进行更精细的控制。OAuth 2.0 允许你选择特定的细粒度 scope，从而代表用户获取特定权限。
+
+要在你的 App 中启用 OAuth 2.0，你必须在开发者控制台中该 App 的“身份验证设置”中将其启用（位于 App 设置部分）。
+
+[仅 App 身份验证](/zh/resources/fundamentals/authentication#oauth-2-0) 只要求你在请求中携带一个[仅 App 访问令牌](/zh/resources/fundamentals/authentication#bearer-token-also-known-as-app-only)。你可以直接在开发者 App 中生成一个仅 App 访问令牌，或者使用 [POST oauth2/token](/zh/resources/fundamentals/authentication#post-oauth2-token) 端点生成一个。
+
+<div id="developer-console-projects-and-developer-apps">
+  ### 开发者控制台、Project 和开发者 App
+</div>
+
+要获取一组可用于 X API v2 端点的身份验证凭证，你必须先[注册开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)，在该账号下设置一个 [Project](/zh/resources/fundamentals/developer-apps)，并在该 Project 中创建一个 [开发者 App](/zh/resources/fundamentals/developer-apps)。然后你可以在该开发者 App 中找到你的密钥和令牌。
+
+<div id="rate-limits">
+  ### 速率限制
+</div>
+
+每天都有成千上万的开发者向 X API 发起请求。为了帮助管理如此庞大的请求量，我们在每个端点上设置了[速率限制](/zh/x-api/fundamentals/rate-limits)，用来限制你代表你的 App 或代表经过认证的用户所能发起的请求次数。
+
+查询（GET）类端点在 App 级别和用户级别都会受到速率限制；而管理（POST/DELETE）类端点仅在用户级别受限。App 级速率限制意味着你作为开发者，在给定时间段内，从任意给定的 App（通过使用 API Key 和 API Secret Key，或仅使用 App Access Token 来识别）调用该端点时只能发起一定数量的请求。用户级速率限制意味着，你代表其发起请求的经过认证用户，在所有开发者 App 中只能执行一定次数的列表查询操作。
+
+下表展示了每个端点的速率限制。
+
+| 端点 | HTTP 方法 | 速率限制 |
+| :--- | :--- | :--- |
+| /2/lists/:id/members | GET | 每 15 分钟 900 次请求 |
+| /2/users/:id/list&#95;memberships | GET | 每 15 分钟 75 次请求 |
+| /2/lists/:id/members | POST | 每 15 分钟 300 次请求 |
+| /2/lists/:id/members/:user&#95;id | DELETE | 每 15 分钟 300 次请求 |
+
+<div id="fields-and-expansions">
+  ### 字段和 expansions
+</div>
+
+X API v2 的 GET 端点允许用户使用一组称为 `fields` 和 `expansions` 的工具，精确选择希望从 API 返回的数据。`expansions` 参数允许你将载荷中被引用的对象展开为完整对象。例如，在查询列表成员时，可以获取以下 [expansions](/zh/x-api/fundamentals/expansions)：
+
+* `pinned_tweet_id`
+
+`fields` 参数允许你精确选择希望在不同数据对象中接收哪些[字段](/zh/x-api/fundamentals/fields)。列表成员查询主要返回用户对象。默认情况下，用户对象返回 id、name 和 username 字段。若要接收 `user.created_at` 或 `user.description` 等其他字段，你必须通过 user.fields 参数显式请求这些字段。
+
+我们新增了一篇关于如何使用[字段和 expansions](/zh/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions)的指南。
+
+下表展示了每个查询端点可用的字段和 expansions：
+
+| Endpoint | Fields | Expansions |
+| :--- | :--- | :--- |
+| /2/lists/:id/members | `user.fields`, `tweet.fields` | `pinned_tweet_id` |
+| /2/users/:id/list&#95;memberships | `list.fields`, `user.fields` | `owner_id` |
+
+<div id="pagination">
+  ### 分页
+</div>
+
+查询成员关系或成员列表时，可能会返回大量数据。为了确保在任何时刻都能返回一致且高效的结果，我们使用分页。分页是 X API v2 端点的一项功能特性，用于在结果数量超过单个响应可返回的上限时分批返回数据。此时，数据会以一系列“页面”的形式返回。详细了解如何[对结果进行分页。](/zh/x-api/fundamentals/pagination)

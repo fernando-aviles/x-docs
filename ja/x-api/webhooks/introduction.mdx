@@ -1,0 +1,133 @@
+---
+title: Webhooks
+sidebarTitle: 概要
+description: Webhook 配信でリアルタイムなデータを受信する
+keywords: ["webhook", "Webhook API", "リアルタイム Webhook", "Webhook 配信", "イベント Webhook"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+Webhook を使用すると、サーバーにデータをリアルタイムで配信できます。更新をポーリングするのではなく、イベントが発生したタイミングでデータを受信できます。
+
+<div id="overview">
+  ## 概要
+</div>
+
+<CardGroup cols={2}>
+  <Card title="リアルタイム配信" icon="bolt">
+    イベントを即時に受信
+  </Card>
+
+  <Card title="プッシュ型" icon="arrow-right">
+    データをサーバーへ送信
+  </Card>
+
+  <Card title="効率的" icon="gauge">
+    ポーリングは不要
+  </Card>
+
+  <Card title="信頼性" icon="shield">
+    再試行と復旧をサポート
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-types">
+  ## Webhook の種類
+</div>
+
+| 種類 | 説明 |
+|:-----|:------------|
+| [Filtered Stream Webhooks](/ja/x-api/webhooks/stream/introduction) | フィルタ済みストリームの投稿を webhook 経由で受信します |
+| [Account Activity API](/ja/x-api/account-activity/introduction) | アカウントアクティビティのイベントを受信します |
+
+***
+
+<div id="how-webhooks-work">
+  ## Webhook の動作
+</div>
+
+```
+┌──────────┐      ┌──────────┐      ┌──────────┐
+│ X Event  │  →   │ X Server │  →   │ Your     │
+│ Occurs   │      │          │      │ Webhook  │
+└──────────┘      └──────────┘      └──────────┘
+```
+
+1. **イベント発生** — ユーザーがポストする、DM を送信するなど
+2. **X がリクエスト送信** — あなたの webhook URL へ POST リクエストを送信
+3. **あなたが処理** — あなたのサーバーでイベントを処理
+4. **200 で応答** — 受信確認として 200 OK を返す
+
+***
+
+<div id="webhook-requirements">
+  ## Webhook の要件
+</div>
+
+| 要件 | 説明 |
+|:------------|:------------|
+| **HTTPS** | Webhook URL は HTTPS を使用している必要があります |
+| **Public** | URL はインターネットからパブリックにアクセス可能である必要があります |
+| **Fast response** | 10 秒以内にレスポンスを返す必要があります |
+| **200 OK** | 受信確認として 200 ステータスを返す必要があります |
+
+***
+
+<div id="security">
+  ## セキュリティ
+</div>
+
+<div id="challenge-response-check-crc">
+  ### チャレンジレスポンスチェック (CRC)
+</div>
+
+X は CRC リクエストを送信してお使いの webhook を検証します。HMAC-SHA256 ハッシュで応答してください。
+
+```python
+import hmac
+import hashlib
+import base64
+
+def handle_crc(crc_token, consumer_secret):
+    sha256_hash = hmac.new(
+        consumer_secret.encode(),
+        crc_token.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    return {
+        "response_token": "sha256=" + base64.b64encode(sha256_hash).decode()
+    }
+```
+
+<div id="signature-verification">
+  ### シグネチャの検証
+</div>
+
+`x-twitter-webhooks-signature` ヘッダーを使用して、Webhook の真正性を検証します。
+
+***
+
+<div id="getting-started">
+  ## はじめに
+</div>
+
+<Note>
+  **前提条件**
+
+  * 承認済みの[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 開発者コンソール内の[Project と App](/ja/resources/fundamentals/developer-apps)
+  * 公開されていて外部からアクセス可能な HTTPS エンドポイント
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="フィルタ済みストリーム Webhook" icon="filter" href="/ja/x-api/webhooks/stream/introduction">
+    Webhook 経由でフィルタ済みのポストを受信します
+  </Card>
+
+  <Card title="Account Activity API" icon="bell" href="/ja/x-api/account-activity/introduction">
+    Webhook 経由でアカウントイベントを受信します
+  </Card>
+</CardGroup>

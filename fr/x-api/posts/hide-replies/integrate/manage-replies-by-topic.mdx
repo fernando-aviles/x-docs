@@ -1,0 +1,40 @@
+---
+title: Gérer les réponses par sujet
+sidebarTitle: Gérer les réponses par sujet
+keywords: ["gérer les réponses par sujet", "modération par sujet", "modération des réponses par sujet", "masquer les réponses par sujet", "filtrage par sujet"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="manage-replies-by-topic">
+  ### Gérer les réponses par sujet
+</div>
+
+Grâce à l’endpoint hide replies, vous pouvez créer des intégrations pour aider les personnes et les marques à maintenir leurs conversations sur le même sujet. Cette page montre comment gérer une conversation à l’aide des endpoints hide replies et [recent search](/fr/x-api/posts/recent-search).
+
+Recent search offre des fonctionnalités pour récupérer une conversation et ses réponses, et la charge utile de la Publication renvoie des [annotations de Publication](/fr/x-api/fundamentals/post-annotations) pour vous aider à comprendre le contexte et le sujet de chaque Publication, quelle que soit la langue.
+
+Le flux de l’App comportera des contrôles pour afficher et gérer une conversation :
+
+1. Il demande à l’utilisateur l’autorisation de lire ses Publications et de gérer ses réponses.
+
+2. Il récupère une conversation récente à partir d’une URL de Publication et vérifie que la conversation provient de l’utilisateur authentifié.
+
+3. Il appellera l’endpoint recent search pour afficher chaque Publication de la conversation. La requête inclura une requête de recherche sur le `conversation ID` et l’extension d’annotations pour déterminer si la Publication est liée au sport ou non, selon la manière dont X interprète la Publication.
+
+4. Il appelle Hide replies pour masquer une réponse lorsque l’utilisateur choisit de le faire. Il fournira également un moyen d’annuler cette action le cas échéant, afin que l’utilisateur reste toujours maître de ses actions. 
+
+5. Pour les conversations plus longues, il fournira des contrôles pour [paginer les résultats de recherche](/fr/x-api/posts/search/integrate/paginate).
+    
+
+<div id="optimize-for-the-user-and-for-usage">
+  #### Optimiser pour l&#39;utilisateur (et pour l&#39;usage)
+</div>
+
+Vous pouvez concevoir un parcours de manière à laisser l&#39;utilisateur garder la maîtrise de chaque action qu&#39;il souhaite effectuer. Garder ce principe à l&#39;esprit vous aide également à créer une intégration qui optimise la consommation de Publications.
+
+1. Comme l&#39;utilisateur authentifié ne peut gérer que les conversations qu&#39;il a initiées, votre parcours doit se terminer rapidement lorsque ce n&#39;est pas le cas.
+   * Effectuez une requête initiale de recherche de Publication. Mettez fin au parcours de manière anticipée si l&#39;URL de la Publication n&#39;est pas valide ou si la conversation n&#39;a pas été lancée par l&#39;utilisateur authentifié.
+   * De cette façon, votre application n&#39;a pas à effectuer de requête de recherche récente si la conversation ne peut pas être modérée par l&#39;utilisateur authentifié.
+2. Demandez les [champs d&#39;utilisateur et de Publication](/fr/x-api/fundamentals/fields) dans la même requête pour éviter d&#39;effectuer des requêtes séparées. Cette approche peut également améliorer les performances de votre application.
+3. Évitez d&#39;effectuer des requêtes lorsque ce n&#39;est pas nécessaire. Cette application met en cache le statut masqué d&#39;une réponse dans le navigateur de l&#39;utilisateur. Cela est utile pour les conversations avec de nombreux messages, où l&#39;utilisateur peut vouloir reprendre ses efforts de modération ultérieurement, et cela aide votre application à optimiser les requêtes pour masquer ou réafficher des réponses.

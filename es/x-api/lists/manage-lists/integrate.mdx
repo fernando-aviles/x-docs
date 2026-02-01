@@ -1,0 +1,184 @@
+---
+title: Guía de integración
+sidebarTitle: Guía de integración
+keywords: ["integración de gestión de listas", "integración para la gestión de listas", "guía de integración de listas", "configuración de la gestión de listas"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta página presenta herramientas y conceptos clave para integrar los endpoints de las Listas.
+
+***
+
+<div id="helpful-tools">
+  ## Herramientas útiles
+</div>
+
+Antes de profundizar en algunos conceptos clave que le ayudarán a integrar este endpoint, le recomendamos familiarizarse con:
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman es una excelente herramienta que puedes usar para probar un endpoint. Cada solicitud de Postman incluye todos los parámetros de la ruta y del cuerpo para ayudarte a comprender rápidamente qué tienes disponible. Para obtener más información sobre nuestras colecciones de Postman, visita nuestra página [&quot;Cómo usar Postman&quot;](/es/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  #### Ejemplos de código
+</div>
+
+¿Quieres empezar a usar este endpoint con algo de código en tu lenguaje de programación preferido? Tenemos varios ejemplos de código disponibles que puedes usar como punto de partida en nuestra [página de GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="third-party-libraries">
+  #### Bibliotecas de terceros
+</div>
+
+Aprovecha una de las [bibliotecas de terceros](/es/x-api/tools-and-libraries/overview) de nuestras comunidades para ayudarte a empezar. Puedes encontrar una biblioteca que sea compatible con los endpoints v2 buscando la etiqueta de versión adecuada.
+
+<div id="key-concepts">
+  ### Conceptos clave
+</div>
+
+<div id="authentication">
+  #### Autenticación
+</div>
+
+Todos los endpoints de X API v2 requieren que autentiques tus solicitudes con un conjunto de credenciales, también conocidas como claves y tokens.
+
+Estos endpoints específicos requieren el uso de [OAuth 1.0a en contexto de usuario](/es/resources/fundamentals/authentication), lo que significa que debes usar un conjunto de claves de API y tokens de acceso de usuario para realizar correctamente una solicitud. Los tokens de acceso deben estar asociados con el usuario en cuyo nombre estás realizando la solicitud. Si deseas generar un conjunto de tokens de acceso para otro usuario, este debe autorizar o autenticar tu App usando el [flujo OAuth de 3 pasos](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow).
+
+Ten en cuenta que OAuth 1.0a puede ser complicado de usar. Si no estás familiarizado con este método de autenticación, te recomendamos que utilices una [biblioteca](/es/x-api/tools-and-libraries/overview) o una herramienta como Postman para autenticar correctamente tus solicitudes.
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Consola de desarrollador, Projects y Apps de desarrollador
+</div>
+
+Para obtener un conjunto de credenciales de autenticación que funcione con los endpoints de la X API v2, debes [registrarte para obtener una cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info), configurar un [Project](/es/resources/fundamentals/developer-apps) dentro de esa cuenta y crear una [App de desarrollador](/es/resources/fundamentals/developer-apps) dentro de ese Project. Luego podrás encontrar tus claves y tokens dentro de tu App de desarrollador.
+
+<div id="rate-limits">
+  #### Límites de tasa
+</div>
+
+Cada día, muchos miles de desarrolladores realizan solicitudes a la X API. Para ayudar a gestionar el enorme volumen de estas solicitudes, se aplican [límites de tasa](/es/x-api/fundamentals/rate-limits) a cada endpoint, que limitan la cantidad de solicitudes que puedes hacer en nombre de tu app o en nombre de un usuario autenticado.
+
+Estos endpoints tienen límites de tasa a nivel de usuario, lo que significa que el usuario autenticado en cuyo nombre estás realizando la solicitud solo puede llamar al endpoint un número determinado de veces desde cualquier App de desarrollador.
+
+La siguiente tabla muestra los límites de tasa para cada endpoint.
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Endpoint** | **Método HTTP** | **Límite de tasa** |
+| /2/lists | POST | 300 solicitudes cada 15 minutos |
+| /2/lists/:id | DELETE / PUT | 300 solicitudes cada 15 minutos |
+
+***
+
+<div id="code-examples">
+  ### Ejemplos de código
+</div>
+
+<div id="create-a-list">
+  #### Crear una lista
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/lists" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "My List", "description": "A list of interesting accounts"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Crear una nueva lista
+  response = client.lists.create(
+      name="My List",
+      description="A list of interesting accounts"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Crear una nueva lista
+  const response = await client.lists.create({
+    name: "My List",
+    description: "A list of interesting accounts",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="update-a-list">
+  #### Actualizar una lista
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/lists/123456789" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "Nombre de lista actualizado"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Actualizar una lista
+  response = client.lists.update(
+      list_id="123456789",
+      name="Nombre de lista actualizado"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Actualizar una lista
+  const response = await client.lists.update("123456789", {
+    name: "Nombre de lista actualizado",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>

@@ -1,0 +1,249 @@
+---
+title: Guide d’intégration
+sidebarTitle: Guide d’intégration
+description: Concepts clés et bonnes pratiques pour l’intégration des endpoints de mise en sourdine
+keywords: ["intégration des endpoints de mise en sourdine", "intégration de la mise en sourdine des utilisateurs", "guide de la mise en sourdine"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide couvre les concepts clés dont vous avez besoin pour intégrer les endpoints de masquage dans votre application.
+
+***
+
+<div id="authentication">
+  ## Authentification
+</div>
+
+Les endpoints Mutes requièrent une authentification utilisateur pour accéder aux listes de mise en sourdine privées :
+
+| Méthode | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandé pour les nouvelles applications |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Support hérité |
+
+<Warning>
+  L’authentification App-Only n’est pas prise en charge. Vous devez vous authentifier au nom d’un utilisateur.
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### Scopes requis (OAuth 2.0)
+</div>
+
+| Scope | Obligatoire pour |
+|:------|:-----------------|
+| `mute.read` | Récupérer les comptes masqués |
+| `mute.write` | Masquer et ne plus masquer des comptes |
+| `users.read` | Obligatoire avec les scopes de masquage |
+
+***
+
+<div id="endpoints-overview">
+  ## Vue d’ensemble des points de terminaison
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| GET | `/2/users/:id/muting` | Obtenir la liste des comptes masqués |
+| POST | `/2/users/:id/muting` | Masquer un compte |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | Démasquer un compte |
+------------------------------------------------------------------------------------
+
+## Champs et expansions
+
+<div id="available-fields">
+  ### Réponse par défaut
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Example User",
+      "username": "example"
+    }
+  ]
+}
+```
+
+<div id="example-with-fields">
+  ### Champs disponibles
+</div>
+
+<Accordion title="user.fields">
+  | Champ | Description |
+  |:------|:------------|
+  | `created_at` | Date de création du compte |
+  | `description` | Biographie de l’utilisateur |
+  | `profile_image_url` | URL de l’image de profil |
+  | `public_metrics` | Nombre d’abonnés et d’abonnements |
+  | `verified` | Statut de vérification |
+</Accordion>
+
+<Accordion title="expansions">
+  | Expansion | Description |
+  |:----------|:------------|
+  | `pinned_tweet_id` | Publication épinglée de l’utilisateur |
+</Accordion>
+
+### Exemple avec des champs
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=username,verified,created_at&\
+  max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer les utilisateurs mis en sourdine avec des champs supplémentaires
+  for page in client.users.get_muting(
+      user_id="123456789",
+      user_fields=["username", "verified", "created_at"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Vérifié : {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified", "created_at"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Vérifié : ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="behavior-differences">
+  ## Pagination
+</div>
+
+Pour les utilisateurs ayant de grandes listes de comptes masqués, les résultats sont paginés :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # Première requête
+  curl "https://api.x.com/2/users/123/muting?max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+
+  # Requête suivante avec un jeton de pagination
+  curl "https://api.x.com/2/users/123/muting?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Le SDK gère automatiquement la pagination
+  all_muted = []
+
+  for page in client.users.get_muting(user_id="123", max_results=100):
+      if page.data:
+          all_muted.extend(page.data)
+
+  print(f"{len(all_muted)} comptes masqués")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  async function getAllMutedUsers(userId) {
+    const allMuted = [];
+
+    // Le SDK gère automatiquement la pagination
+    const paginator = client.users.getMuting(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allMuted.push(...page.data);
+      }
+    }
+
+    return allMuted;
+  }
+
+  // Utilisation
+  const muted = await getAllMutedUsers("123");
+  console.log(`${muted.length} comptes masqués`);
+  ```
+</CodeGroup>
+
+<Card title="Guide de pagination" icon="arrow-right" href="/fr/x-api/fundamentals/pagination">
+  En savoir plus sur la pagination
+</Card>
+
+***
+
+## Différences de comportement
+
+### Masquer vs Bloquer
+
+| Fonctionnalité | Masquer | Bloquer |
+|:--------|:-----|:------|
+| Voir leurs Publications | Non (masquées) | Non |
+| Ils voient vos Publications | Oui | Non |
+| Ils vous suivent | Oui (peuvent vous suivre) | Non (retiré) |
+| Ils peuvent vous envoyer un DM | Oui | Non |
+| Notification envoyée | Non | Non |
+
+<Tip>
+  Le masquage est privé — l&#39;utilisateur masqué n&#39;est pas notifié et ne peut pas savoir qu&#39;il a été masqué.
+</Tip>
+
+***
+
+<div id="next-steps">
+  ## Gestion des erreurs
+</div>
+
+| Statut | Erreur | Solution |
+|:-------|:------|:---------|
+| 400 | Requête non valide | Vérifiez le format de l’ID utilisateur |
+| 401 | Non autorisé | Vérifiez le jeton d’accès |
+| 403 | Accès interdit | Vérifiez les scopes et les autorisations |
+| 404 | Introuvable | L’utilisateur n’existe pas |
+| 429 | Trop de requêtes | Patientez puis réessayez |
+
+***
+
+## Prochaines étapes
+
+<CardGroup cols={2}>
+  <Card title="Démarrage rapide" icon="rocket" href="/fr/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    Effectuez votre première requête de mise en sourdine
+  </Card>
+
+  <Card title="Blocages" icon="ban" href="/fr/x-api/users/blocks/introduction">
+    Bloquez des utilisateurs plutôt que de les mettre en sourdine
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/users/get-muting">
+    Documentation complète du point de terminaison
+  </Card>
+
+  <Card title="Exemples de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Exemples de code prêts à l’emploi
+  </Card>
+</CardGroup>

@@ -1,0 +1,188 @@
+---
+title: 集成指南
+sidebarTitle: 集成指南
+keywords: ["转推集成", "转推指南", "转推集成指南", "转推实现", "转推设置"]
+---
+
+本页介绍在集成 Retweet 接口时会用到的工具和关键概念。
+
+***
+
+<div id="helpful-tools">
+  ## 实用工具
+</div>
+
+在我们开始讲解一些有助于你集成该端点的关键概念之前，建议你先熟悉以下工具：
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman 是一款非常适合用于测试端点的工具。每个 Postman 请求都包含所有路径参数和请求体参数，帮助你快速了解可用的内容。想要进一步了解我们的 Postman 集合，请访问我们的「[使用 Postman](/zh/tutorials/postman-getting-started)」页面。
+
+<div id="code-samples">
+  #### 代码示例
+</div>
+
+想要使用你首选的编程语言，通过代码来集成这个 endpoint 吗？我们在 [GitHub 页面](https://github.com/xdevplatform/Twitter-API-v2-sample-code)上提供了多种代码示例，你可以将其作为起点来使用。
+
+<div id="third-party-libraries">
+  #### 第三方库
+</div>
+
+利用我们社区提供的[第三方库](/zh/x-api/tools-and-libraries/overview)来帮助你入门。你可以通过查找对应的版本标签，找到适用于 v2 端点的库。
+
+<div id="key-concepts">
+  ### 核心概念
+</div>
+
+<div id="authentication">
+  #### 身份验证
+</div>
+
+所有 X API v2 端点都要求你使用一组凭证（也称为密钥和令牌）对请求进行身份验证。
+
+你可以使用 OAuth 1.0a 用户上下文或 OAuth 2.0 Bearer Token 来对发送到 Retweets 查询端点的请求进行身份验证。
+
+管理 Retweets 的端点需要使用 OAuth 1.0a 用户上下文，这意味着你必须使用一组 API 密钥和用户访问令牌才能成功发出请求。访问令牌必须与你代表其发出请求的用户关联。如果你想为其他用户生成一组访问令牌，他们必须通过三方（3-legged）OAuth 流程来授权或认证你的 App。
+
+请注意，OAuth 1.0a 在使用上可能比较棘手。如果你不熟悉这种身份验证方式，我们建议你使用一个[库](/zh/x-api/tools-and-libraries/overview)来正确地对你的请求进行身份验证。
+
+**请注意**
+
+如果你请求以下字段，则需要 OAuth 1.0a 用户上下文：
+
+* tweet.fields.non&#95;public&#95;metrics
+* tweet.fields.promoted&#95;metrics
+* tweet.fields.organic&#95;metrics
+* media.fields.non&#95;public&#95;metrics
+* media.fields.promoted&#95;metrics
+* media.fields.organic&#95;metrics
+
+<div id="developer-console-projects-and-developer-apps">
+  #### 开发者控制台、Project 和开发者 App
+</div>
+
+要获取一组可用于 X API v2 端点的身份验证凭证，你必须先[注册开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)，在该账号下创建一个 [Project](/zh/resources/fundamentals/developer-apps)，并在该 Project 中创建一个[开发者 App](/zh/resources/fundamentals/developer-apps)。然后，你可以在该开发者 App 中找到密钥和令牌。
+
+<div id="rate-limits">
+  #### 速率限制
+</div>
+
+每天都有成千上万的开发者向 X API 发起请求。为管理如此庞大的请求量，我们在每个端点上都设置了[速率限制](/zh/x-api/fundamentals/rate-limits)，以限制你代表你的 App 或代表经身份验证的用户所能发起的请求次数。
+
+用于管理转推的端点每位用户每 15 分钟限制 50 个请求。此外，对于 POST 端点，每位用户、每个 App 在 3 小时的时间窗口内限制 300 个请求。
+
+对于用于查询转推的端点，你每 15 分钟的请求上限为 75 个。此外，该端点最多只会返回最近的 100 位进行转推的用户。
+
+<div id="fields-and-expansions">
+  #### 字段和 expansions
+</div>
+
+X API v2 允许用户使用一组称为 fields 和 expansions 的工具，精确选择希望从 API 返回哪些数据。`expansions` 参数允许你展开响应负载中被引用的对象。例如，此端点允许你获取以下 [expansions](/zh/x-api/fundamentals/expansions)：
+
+* attachments.poll&#95;ids
+* attachments.media&#95;keys
+* author&#95;id, entities.mentions.username
+* geo.place&#95;id
+* in&#95;reply&#95;to&#95;user&#95;id,
+* referenced&#95;tweets.id,
+* referenced&#95;tweets.id.author&#95;id
+
+`fields` 参数允许你精确选择在不同数据对象中希望接收哪些 [fields](/zh/x-api/fundamentals/fields)。这些端点主要返回 Post 对象。默认情况下，Post 对象只返回 id 和 text 字段。要接收诸如 `tweet.created_at` 或 `tweet.entities` 之类的其他字段，你必须通过 `fields` 参数显式请求它们。在集成中你可能会考虑使用的一些重要字段包括投票数据、度量指标、帖子标注以及会话 ID 字段。
+
+我们在 [X API v2 数据字典](/zh/x-api/fundamentals/data-dictionary)中新增了一篇关于如何[组合使用 fields 和 expansions](/zh/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions)的指南。
+
+***
+
+<div id="code-examples">
+  ### 代码示例
+</div>
+
+<div id="get-users-who-retweeted-a-post">
+  #### 获取转发该帖子的用户
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/retweeted_by?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取转发该帖子的用户
+  response = client.posts.get_retweeted_by(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 获取转发该帖子的用户
+  const response = await client.posts.getRetweetedBy("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<div id="retweet-a-post">
+  #### 转发帖子
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/retweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 转发帖子
+  response = client.posts.retweet(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 转发帖子
+  const response = await client.posts.retweet("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

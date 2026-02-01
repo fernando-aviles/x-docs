@@ -1,0 +1,610 @@
+---
+title: Límites de tasa de X API
+sidebarTitle: Límites de tasa
+description: Límites de tasa por endpoint para X API v2
+keywords: ["límites de tasa", "límites de tasa de la API", "límites de solicitudes", "limitación de tasa", "restricción", "ventana de 15 minutos"]
+---
+
+Los límites de tasa controlan la cantidad de solicitudes que puedes hacer a cada endpoint. Si excedes los límites, recibirás un error 429 hasta que la ventana se reinicie.
+
+***
+
+<div id="how-rate-limits-work">
+  ## Cómo funcionan los límites de tasa
+</div>
+
+| Concepto | Descripción |
+|:--------|:------------|
+| **Ventana de tiempo** | Normalmente 15 minutos o 24 horas |
+| **Límites por usuario** | Se aplican con OAuth 1.0a o tokens de usuario de OAuth 2.0 |
+| **Límites por App** | Se aplican con Bearer Token (solo App) |
+| **Límites por endpoint** | Cada endpoint tiene sus propios límites |
+
+***
+
+<div id="checking-your-limits">
+  ## Comprobar tus límites
+</div>
+
+Los encabezados de la respuesta muestran el estado actual de tus límites de frecuencia:
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Encabezado               | Descripción                                          |
+| :----------------------- | :--------------------------------------------------- |
+| `x-rate-limit-limit`     | Límite máximo de solicitudes permitidas              |
+| `x-rate-limit-remaining` | Solicitudes restantes en la ventana                  |
+| `x-rate-limit-reset`     | Marca de tiempo Unix cuando la ventana se restablece |
+
+***
+
+<div id="rate-limit-tables">
+  ## Tablas de límites de uso
+</div>
+
+Consulta el límite de uso para cada endpoint a continuación. También puedes ver estos límites en la [Consola de desarrollador](https://console.x.com).
+
+<Note>
+  Los límites se muestran en intervalos de 15 minutos, a menos que se indique lo contrario (por ejemplo, &quot;/24hrs&quot; o &quot;/sec&quot;).
+</Note>
+
+<div id="posts-25-endpoints">
+  ### Publicaciones (25 endpoints)
+</div>
+
+<div id="tweets-lookup">
+  #### Consulta de Tweets
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets` | 3,500/15min | 5,000/15min |
+| GET | `/2/tweets/:id` | 450/15min | 900/15min |
+
+<div id="recent-search">
+  #### Búsqueda reciente
+</div>
+
+| Método | Endpoint | Por App | Por usuario | Notas |
+|:-------|:---------|:--------|:-----------|:------|
+| GET | `/2/tweets/search/recent` | 450/15min | 300/15min | 10 por defecto, 100 resultados como máximo; longitud de la consulta de 512 caracteres |
+
+<div id="full-archive-search">
+  #### Búsqueda en el archivo completo
+</div>
+
+| Method | Endpoint | Per App | Per User | Notas |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/all` | 1/seg, 300/15 min | 1/seg | 10 por defecto, máximo 500 resultados; longitud máxima de la consulta: 1024 caracteres |
+
+<div id="post-counts">
+  #### Recuento de publicaciones
+</div>
+
+| Método | Endpoint | Por App | Por usuario | Notas |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/counts/recent` | 300/15min | — | longitud de la consulta: 512 |
+| GET | `/2/tweets/counts/all` | 300/15min | — | longitud de la consulta: 1024 |
+
+<div id="filtered-stream">
+  #### Flujo filtrado
+</div>
+
+| Método | Endpoint | Por App | Por usuario | Notas |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/stream` | 50/15min | — | 1 conexión; 1000 reglas; longitud de regla: 1024; 250 publicaciones/seg |
+| GET | `/2/tweets/search/stream/rules` | 450/15min | — | 1 conexión; 1000 reglas; longitud de regla: 1024 |
+| POST | `/2/tweets/search/stream/rules` | 100/15min | — | 1 conexión; 1000 reglas; longitud de regla: 1024 |
+
+<div id="manage-posts">
+  #### Administrar publicaciones
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/tweets` | 10,000/24 h | 100/15 min |
+| DELETE | `/2/tweets/:id` | — | 50/15 min |
+
+<div id="timelines">
+  #### Cronologías
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/tweets` | 10,000/15min | 900/15min |
+| GET | `/2/users/:id/mentions` | 450/15min | 300/15min |
+| GET | `/2/users/:id/timelines/reverse_chronological` | — | 180/15min |
+
+<div id="likes-lookup">
+  #### Búsqueda de Me gusta
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/:id/liking_users` | 75/15min | 75/15min |
+| GET | `/2/users/:id/liked_tweets` | 75/15min | 75/15min |
+
+<div id="manage-likes">
+  #### Administrar Me gusta
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/likes` | — | 50/15 min, 1.000/24 h |
+| DELETE | `/2/users/:id/likes/:tweet_id` | — | 50/15 min, 1.000/24 h |
+
+<div id="retweets-lookup">
+  #### Consulta de retweets
+</div>
+
+| Método | Endpoint | Por App | Por usuario | Notas |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/:id/retweeted_by` | 75/15min | 75/15min | — |
+| GET | `/2/tweets/:id/quote_tweets` | 75/15min | 75/15min | — |
+| GET | `/2/users/reposts_of_me` | — | 75/15min | Hasta 100 resultados |
+
+<div id="manage-retweets">
+  #### Administrar retweets
+</div>
+
+| Método | Endpoint | Por aplicación | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/retweets` | — | 50/15min |
+| DELETE | `/2/users/:id/retweets/:tweet_id` | — | 50/15min |
+
+<div id="hide-replies">
+  #### Ocultar respuestas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| PUT | `/2/tweets/:tweet_id/hidden` | — | 50/15min |
+
+***
+
+<div id="users-14-endpoints">
+  ### Usuarios (14 endpoints)
+</div>
+
+<div id="users-lookup">
+  #### Consulta de usuarios
+</div>
+
+| Method | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users` | 300/15min | 900/15min |
+| GET | `/2/users/:id` | 300/15min | 900/15min |
+| GET | `/2/users/by` | 300/15min | 900/15min |
+| GET | `/2/users/by/username/:username` | 300/15min | 900/15min |
+| GET | `/2/users/me` | — | 75/15min |
+
+<div id="search-users">
+  #### Buscar usuarios
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/search` | 300/15min | 900/15min |
+
+<div id="follows-lookup">
+  #### Consulta de follows
+</div>
+
+| Method | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/following` | 300/15min | 300/15min |
+| GET | `/2/users/:id/followers` | 300/15min | 300/15min |
+
+<div id="manage-follows">
+  #### Administrar seguimientos
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/following` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/following/:target_user_id` | — | 50/15min |
+
+<div id="blocks-lookup">
+  #### Consulta de bloqueos
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/blocking` | — | 15/15min |
+
+<div id="mutes-lookup">
+  #### Consulta de cuentas silenciadas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:-----------|
+| GET | `/2/users/:id/muting` | — | 15/15min |
+
+<div id="manage-mutes">
+  #### Gestionar silencios
+</div>
+
+| Método | Endpoint | Por aplicación | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/muting` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | — | 50/15min |
+
+***
+
+<div id="spaces-6-endpoints">
+  ### Spaces (6 endpoints)
+</div>
+
+<div id="spaces-lookup">
+  #### Consulta de Spaces
+</div>
+
+| Method | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/:id` | 300/15min | 300/15min |
+| GET | `/2/spaces` | 300/15min | 300/15min |
+| GET | `/2/spaces/:id/tweets` | 300/15min | 300/15min |
+| GET | `/2/spaces/by/creator_ids` | 300/15min, 1/sec | 300/15min, 1/sec |
+| GET | `/2/spaces/:id/buyers` | 300/15min | 300/15min |
+
+<div id="search-spaces">
+  #### Buscar Spaces
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/search` | 300/15min | 300/15min |
+
+***
+
+<div id="direct-messages-8-endpoints">
+  ### Mensajes Directos (8 endpoints)
+</div>
+
+<div id="direct-messages-lookup">
+  #### Consulta de Mensajes Directos
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/dm_events` | — | 15/15min |
+| GET | `/2/dm_events/:id` | — | 15/15min |
+| GET | `/2/dm_conversations/:dm_conversation_id/dm_events` | — | 15/15min |
+| GET | `/2/dm_conversations/with/:participant_id/dm_events` | — | 15/15min |
+
+<div id="manage-direct-messages">
+  #### Administrar Mensajes Directos
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/dm_conversations` | 1,440/24 h | 15/15 min, 1,440/24 h |
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 1,440/24 h | 15/15 min, 1,440/24 h |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 1,440/24 h | 15/15 min, 1,440/24 h |
+| DELETE | `/2/dm_events/:id` | 4,000/24 h | 300/15 min, 1,500/24 h |
+
+***
+
+<div id="lists-14-endpoints">
+  ### Listas (14 endpoints)
+</div>
+
+<div id="lists-lookup">
+  #### Consulta de Listas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id` | 75/15min | 75/15min |
+| GET | `/2/users/:id/owned_lists` | 15/15min | 15/15min |
+
+<div id="list-tweets-lookup">
+  #### Búsqueda de Tweets de listas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/tweets` | 900/15min | 900/15min |
+
+<div id="list-member-lookup">
+  #### Búsqueda de miembros de la lista
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/members` | 900/15min | 900/15min |
+| GET | `/2/users/:id/list_memberships` | 75/15min | 75/15min |
+
+<div id="manage-lists">
+  #### Administrar listas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists` | — | 300/15min |
+| DELETE | `/2/lists/:id` | — | 300/15min |
+| PUT | `/2/lists/:id` | — | 300/15min |
+
+<div id="manage-list-members">
+  #### Gestionar miembros de Listas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists/:id/members` | — | 300/15min |
+| DELETE | `/2/lists/:id/members/:user_id` | — | 300/15min |
+
+<div id="manage-list-follows">
+  #### Administrar seguimientos de Listas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/followed_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/followed_lists/:list_id` | — | 50/15min |
+
+<div id="pinned-lists">
+  #### Listas fijadas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/pinned_lists` | 15/15min | 15/15min |
+| POST | `/2/users/:id/pinned_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/pinned_lists/:list_id` | — | 50/15min |
+
+***
+
+<div id="bookmarks-5-endpoints">
+  ### Marcadores (5 endpoints)
+</div>
+
+<div id="bookmarks-lookup">
+  #### Consulta de marcadores
+</div>
+
+| Method | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/bookmarks` | — | 180/15 min |
+| GET | `/2/users/:id/bookmarks/folders` | 50/15 min | 50/15 min |
+| GET | `/2/users/:id/bookmarks/folders/:folder_id` | 50/15 min | 50/15 min |
+
+<div id="manage-bookmarks">
+  #### Administrar marcadores
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/bookmarks` | — | 50/15min |
+| DELETE | `/2/users/:id/bookmarks/:tweet_id` | — | 50/15min |
+
+***
+
+<div id="compliance-3-endpoints">
+  ### Cumplimiento (3 endpoints)
+</div>
+
+<div id="batch-compliance">
+  #### Cumplimiento por lotes
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/compliance/jobs` | 150/15min | — |
+| GET | `/2/compliance/jobs/:job_id` | 150/15min | — |
+| GET | `/2/compliance/jobs` | 150/15min | — |
+
+***
+
+<div id="usage-1-endpoint">
+  ### Uso (1 endpoint)
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/usage/tweets` | 50/15min | — |
+
+***
+
+<div id="trends-2-endpoints">
+  ### Tendencias (2 endpoints)
+</div>
+
+<div id="personalized-trends">
+  #### Tendencias personalizadas
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/personalized_trends` | 200/24hrs, 200/15min | 100/24hrs, 10/15min |
+
+<div id="trends-by-woeid">
+  #### Tendencias por WOEID
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/trends/by/woeid/:id` | 75/15min | — |
+
+***
+
+<div id="communities-2-endpoints">
+  ### Comunidades (2 endpoints)
+</div>
+
+| Método | Endpoint | Por App | Por usuario | Notas |
+|:-------|:---------|:--------|:-----------|:------|
+| GET | `/2/communities/:id` | 300/15min | 300/15min | — |
+| GET | `/2/communities/search` | 300/15min | 300/15min | 100 resultados máx. |
+
+***
+
+<div id="analytics-1-endpoint">
+  ### Analíticas (1 endpoint)
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:------------|
+| GET | `/2/tweets/analytics` | 300/15min | 300/15min |
+
+***
+
+<div id="media-8-endpoints">
+  ### Contenido multimedia (8 endpoints)
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/media/upload` | 50,000/24hrs | 500/15min |
+| GET | `/2/media/upload` | 100,000/24hrs | 1,000/15min |
+| POST | `/2/media/upload/initialize` | 180,000/24hrs | 1,875/15min |
+| POST | `/2/media/upload/:id/append` | 180,000/24hrs | 1,875/15min |
+| POST | `/2/media/upload/:id/finalize` | 180,000/24hrs | 1,875/15min |
+| POST | `/2/media/metadata` | 50,000/24hrs | 500/15min |
+| POST | `/2/media/subtitles` | 10,000/24hrs | 100/15min |
+| DELETE | `/2/media/subtitles` | 10,000/24hrs | 100/15min |
+
+***
+
+<div id="activity-webhooks">
+  ### Actividad y webhooks
+</div>
+
+| Método | Endpoint | Por App | Por usuario | Notas |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/activity/stream` | 450/15min | — | 2 conexiones; 250 publicaciones/s |
+| POST | `/2/activity/subscriptions` | 500/15min | — | — |
+| GET | `/2/activity/subscriptions` | 500/15min | — | — |
+| PUT | `/2/activity/subscriptions/:subscription_id` | 500/15min | — | — |
+| DELETE | `/2/activity/subscriptions/:subscription_id` | 500/15min | — | — |
+| POST | `/2/webhooks` | 450/15min | — | — |
+| GET | `/2/webhooks` | 450/15min | — | — |
+| PUT | `/2/webhooks/:webhook_id` | 450/15min | — | — |
+| DELETE | `/2/webhooks/:webhook_id` | 450/15min | — | — |
+| POST | `/2/webhooks/replay` | 100/15min | — | — |
+
+***
+
+<div id="other-endpoints">
+  ### Otros endpoints
+</div>
+
+| Método | Endpoint | Por App | Por usuario |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/sample10/stream` | 100/15 min | — |
+| GET | `/2/news/:id` | 200/15 min | — |
+| GET | `/2/news/search` | 200/15 min | 200/15 min |
+| POST | `/2/users/:id/dm/block` | 25/15 min, 1,000/24 h | 10/15 min, 400/24 h |
+| POST | `/2/users/:id/dm/unblock` | 25/15 min, 1,000/24 h | 10/15 min, 400/24 h |
+| GET | `/2/users/by/username/:username/tweets` | 1,500/15 min | 900/15 min |
+| GET | `/2/users/by/username/:username/mentions` | 450/15 min | 180/15 min |
+| GET | `/2/users/:id/following/spaces` | 300/15 min | 300/15 min |
+| GET | `/2/tweets/:id/retweets` | 75/15 min | 75/15 min |
+| DELETE | `/2/connections/all` | 25/15 min | 25/15 min |
+
+***
+
+<div id="handling-rate-limits">
+  ## Gestión de los límites de tasa
+</div>
+
+Cuando superes un límite de tasa, recibirás una respuesta 429:
+
+```json
+{
+  "errors": [{
+    "code": 88,
+    "message": "Rate limit exceeded"
+  }]
+}
+```
+
+<div id="recovery-strategy">
+  ### Estrategia de recuperación
+</div>
+
+1. Comprueba `x-rate-limit-reset` para saber cuándo se reinicia la ventana
+2. Espera hasta ese momento antes de volver a intentarlo
+3. Utiliza una estrategia de backoff exponencial si es necesario
+
+```python
+import time
+
+def make_request_with_backoff(url, headers):
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 429:
+        reset_time = int(response.headers.get('x-rate-limit-reset', 0))
+        wait_time = max(reset_time - time.time(), 60)
+        time.sleep(wait_time)
+        return make_request_with_backoff(url, headers)
+    
+    return response
+```
+
+***
+
+<div id="best-practices">
+  ## Mejores prácticas
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Almacenar en caché las respuestas" icon="database">
+    Almacena los resultados localmente para reducir solicitudes repetidas.
+  </Card>
+
+  <Card title="Usar streaming" icon="signal-stream">
+    Para datos en tiempo real, usa un stream filtrado en lugar de hacer polling.
+  </Card>
+
+  <Card title="Supervisar encabezados" icon="gauge-high">
+    Realiza un seguimiento de las solicitudes restantes para evitar alcanzar los límites.
+  </Card>
+
+  <Card title="Distribuir solicitudes" icon="clock">
+    Distribuye las solicitudes a lo largo del intervalo de tiempo.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="rate-limits-vs-billing">
+  ## Límites de tasa vs. facturación
+</div>
+
+Los límites de tasa y la facturación son conceptos separados:
+
+| Concepto | Propósito |
+|:--------|:--------|
+| **Límites de tasa** | Controlan la frecuencia de las solicitudes para mantener la estabilidad del sistema |
+| **Facturación por uso** | Cobra por los datos obtenidos (pago por uso) |
+
+Puedes estar dentro de los límites de tasa y aun así generar costos de uso, o alcanzar los límites de tasa sin que ello implique un costo adicional.
+
+***
+
+<div id="enterprise-rate-limits">
+  ## Límites de tasa de Enterprise
+</div>
+
+Los clientes de Enterprise tienen límites de tasa personalizados. Póngase en contacto con su representante de cuenta o [solicite acceso a Enterprise](/es/enterprise/forms/enterprise-api-interest).
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Manejo de errores" icon="triangle-exclamation" href="/es/x-api/fundamentals/response-codes-and-errors">
+    Gestiona el 429 y otros errores.
+  </Card>
+
+  <Card title="Primeros pasos" icon="rocket" href="/es/x-api/getting-started/about-x-api">
+    Conoce los niveles de acceso y las funcionalidades.
+  </Card>
+</CardGroup>

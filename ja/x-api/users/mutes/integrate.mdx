@@ -1,0 +1,260 @@
+---
+title: Integration Guide
+sidebarTitle: 連携ガイド
+description: mutes エンドポイントを統合するための主要な概念とベストプラクティス
+keywords: ["mutes 連携", "ユーザーのミュート連携", "mutes ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+本ガイドでは、mutes エンドポイントをアプリケーションに統合するために必要となる主要な概念について説明します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+ミュートのエンドポイントで非公開のミュートリストにアクセスするには、ユーザー認証が必要です。
+
+| Method | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 新しいアプリケーションに推奨 |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー向けサポート |
+
+<Warning>
+  App-only 認証はサポートされていません。ユーザーを代表して認証する必要があります。
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### 必要なスコープ（OAuth 2.0）
+</div>
+
+| Scope | 必要な操作 |
+|:------|:-------------|
+| `mute.read` | ミュート済みアカウントの取得 |
+| `mute.write` | アカウントのミュートおよびミュート解除 |
+| `users.read` | ミュート関連スコープを使用する場合に必須 |
+
+***
+
+<div id="endpoints-overview">
+  ## エンドポイント概要
+</div>
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| GET | `/2/users/:id/muting` | ミュート中のアカウント一覧を取得 |
+| POST | `/2/users/:id/muting` | アカウントをミュートする |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | アカウントのミュートを解除する |
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドとexpansions
+</div>
+
+<div id="default-response">
+  ### 既定のレスポンス
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Example User",
+      "username": "example"
+    }
+  ]
+}
+```
+
+<div id="available-fields">
+  ### 利用可能なフィールド
+</div>
+
+<Accordion title="user.fields">
+  | フィールド | 説明 |
+  |:------|:------------|
+  | `created_at` | アカウント作成日 |
+  | `description` | ユーザーの自己紹介 |
+  | `profile_image_url` | アバターのURL |
+  | `public_metrics` | フォロワー数/フォロー数 |
+  | `verified` | 認証状況 |
+</Accordion>
+
+<Accordion title="expansions">
+  | 拡張 | 説明 |
+  |:----------|:------------|
+  | `pinned_tweet_id` | ユーザーがピン留めしているポスト |
+</Accordion>
+
+<div id="example-with-fields">
+  ### フィールド指定の例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=username,verified,created_at&\
+  max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 追加のフィールドも含めてミュート中のユーザーを取得
+  for page in client.users.get_muting(
+      user_id="123456789",
+      user_fields=["username", "verified", "created_at"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified", "created_at"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="pagination">
+  ## ページネーション
+</div>
+
+ミュートしているアカウントが多いユーザーの場合、結果は複数ページに分割されます:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 最初のリクエスト
+  curl "https://api.x.com/2/users/123/muting?max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+
+  # ページネーショントークンを使った後続リクエスト
+  curl "https://api.x.com/2/users/123/muting?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # SDK が自動的にページネーションを処理します
+  all_muted = []
+
+  for page in client.users.get_muting(user_id="123", max_results=100):
+      if page.data:
+          all_muted.extend(page.data)
+
+  print(f"Muted {len(all_muted)} users")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  async function getAllMutedUsers(userId) {
+    const allMuted = [];
+
+    // SDK が自動的にページネーションを処理します
+    const paginator = client.users.getMuting(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allMuted.push(...page.data);
+      }
+    }
+
+    return allMuted;
+  }
+
+  // 使い方
+  const muted = await getAllMutedUsers("123");
+  console.log(`Muted ${muted.length} users`);
+  ```
+</CodeGroup>
+
+<Card title="ページネーションガイド" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
+  ページネーションの詳細についてはガイドを参照してください
+</Card>
+
+***
+
+<div id="behavior-differences">
+  ## 挙動の違い
+</div>
+
+<div id="muting-vs-blocking">
+  ### ミュートとブロックの違い
+</div>
+
+| 機能 | ミュート | ブロック |
+|:--------|:-----|:------|
+| 相手の投稿を見られるか | いいえ（非表示） | いいえ |
+| 相手があなたの投稿を見られるか | はい | いいえ |
+| 相手があなたをフォローできるか | はい（フォロー可能） | いいえ（フォロー解除される） |
+| 相手があなたにDMを送れるか | はい | いいえ |
+| 通知が送信されるか | いいえ | いいえ |
+
+<Tip>
+  ミュートは非公開の操作であり、ミュートされたユーザーには通知が行かず、自分がミュートされたことを知ることもできません。
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+| ステータス | エラー | 解決方法 |
+|:-------|:------|:---------|
+| 400 | 無効なリクエスト | ユーザーIDの形式を確認してください |
+| 401 | 認証されていません | アクセストークンを確認してください |
+| 403 | アクセスが禁止されています | スコープと権限を確認してください |
+| 404 | 見つかりません | 指定されたユーザーは存在しません |
+| 429 | リクエストが多すぎます | 一定時間待ってから再試行してください |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    初めてのミュートリクエストを実行する
+  </Card>
+
+  <Card title="ブロック" icon="ban" href="/ja/x-api/users/blocks/introduction">
+    ミュートの代わりにユーザーをブロックする
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-muting">
+    エンドポイントの詳細ドキュメント
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なコード例
+  </Card>
+</CardGroup>

@@ -1,0 +1,125 @@
+---
+title: Identifiants X
+sidebarTitle: Identifiants X
+icon: fingerprint
+description: Comprendre les identifiants uniques dans l'API X
+keywords: ["ID X", "ID Twitter", "ID utilisateur", "ID de Tweet", "ID snowflake", "entiers 64 bits", "format d'ID", "identifiants uniques"]
+---
+
+Chaque objet de l&#39;API X — publications, utilisateurs, listes, DM, Spaces — possède un identifiant unique. Comprendre le fonctionnement de ces identifiants vous aide à créer des intégrations fiables.
+
+***
+
+<div id="id-format">
+  ## Format d’ID
+</div>
+
+Les IDs X sont des **entiers non signés de 64 bits** générés à l’aide d’un système appelé « Snowflake ». Chaque ID contient les informations suivantes :
+
+* **Horodatage** — Moment où l’objet a été créé
+* **Numéro de worker** — Serveur qui a généré l’ID
+* **Numéro de séquence** — Ordre au cours de cette milliseconde
+
+Cela signifie que les IDs sont approximativement ordonnés dans le temps : les IDs plus élevés représentent généralement des objets plus récents.
+
+<Tip>
+  Les IDs sont uniques à l’échelle de l’ensemble de X, et non pas seulement au sein d’un seul type d’objet.
+</Tip>
+
+***
+
+<div id="string-vs-integer-representation">
+  ## Représentation en chaîne de caractères vs en entier
+</div>
+
+<Warning>
+  **Utilisez toujours des identifiants sous forme de chaînes de caractères dans votre code.** Certains langages de programmation (comme JavaScript) ne peuvent pas représenter avec précision les entiers sur 64 bits.
+</Warning>
+
+En JavaScript, les entiers sont limités à 53 bits. Cela entraîne une perte de précision avec de grands identifiants :
+
+```javascript
+// This loses precision!
+const id = 10765432100123456789;
+console.log(id.toString()); // "10765432100123458000" — incorrect !
+
+// Use strings instead
+const id = "10765432100123456789";
+console.log(id); // "10765432100123456789" — correct!
+```
+
+<div id="api-versions">
+  ### Versions de l’API
+</div>
+
+| Version | Format d’identifiant |
+|:--------|:---------------------|
+| **X API v2** | Les identifiants sont renvoyés sous forme de chaînes de caractères par défaut |
+| **X API v1.1** | Renvoie à la fois `id` (entier) et `id_str` (chaîne de caractères) — utilisez toujours `id_str` |
+
+***
+
+<div id="working-with-ids">
+  ## Utilisation des id
+</div>
+
+<div id="storing-ids">
+  ### Stockage des ID
+</div>
+
+Stockez les ID sous forme de chaînes de caractères ou d’entiers 64 bits dans votre base de données :
+
+| Base de données | Type recommandé |
+|:----------------|:----------------|
+| PostgreSQL | `BIGINT` ou `TEXT` |
+| MySQL | `BIGINT UNSIGNED` ou `VARCHAR(20)` |
+| MongoDB | Chaîne de caractères |
+| SQLite | `TEXT` (les entiers SQLite sont limités à 63 bits) |
+
+<div id="comparing-ids">
+  ### Comparaison des ID
+</div>
+
+Lors de la comparaison des ID pour établir un ordre chronologique :
+
+```python
+# Python - safe for 64-bit integers
+if int(id1) > int(id2):
+    print("id1 is newer")
+
+# JavaScript - comparer en tant que chaînes (fonctionne lexicographiquement pour les ID de même longueur)
+# Ou utiliser BigInt
+if (BigInt(id1) > BigInt(id2)) {
+    console.log("id1 is newer");
+}
+```
+
+***
+
+<div id="common-id-types">
+  ## Types d&#39;identifiants courants
+</div>
+
+| Objet | Exemple d&#39;ID | Remarques |
+|:-------|:-----------|:------|
+| Publication (Tweet) | `1234567890123456789` | Également appelé ID de Tweet |
+| Utilisateur | `2244994945` | Les comptes plus anciens ont des ID plus courts |
+| Liste | `1234567890` | |
+| Space | `1YqGodQbNXDxv` | Alphanumérique, pas au format Snowflake |
+| Événement de DM | `1234567890123456789` | |
+
+***
+
+<div id="related-resources">
+  ## Ressources connexes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Dictionnaire de données" icon="book" href="/fr/x-api/fundamentals/data-dictionary">
+    Consultez les champs id pour chaque type d&#39;objet.
+  </Card>
+
+  <Card title="Recherche de publications" icon="magnifying-glass" href="/fr/x-api/posts/lookup/introduction">
+    Récupérez les publications par id.
+  </Card>
+</CardGroup>

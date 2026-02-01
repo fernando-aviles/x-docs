@@ -1,0 +1,201 @@
+---
+title: ミュート管理
+sidebarTitle: ミュート管理
+keywords: ["ミュート管理の移行", "v1.1 から v2 へのミュート管理", "ミュート管理を移行する", "Standard v1.1 から v2 へのミュート管理", "ミュートの移行"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="manage-mutes-standard-v11-compared-to-x-api-v2">
+  ### ミュートの管理：Standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の [POST mutes/users/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/post-mutes-users-create) と [POST mutes/users/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/post-mutes-users-destroy) エンドポイントを利用している場合、このガイドは、standard v1.1 と X API v2 におけるミュート管理エンドポイントの共通点と相違点を理解するための手助けとなることを目的としています。
+
+* **共通点**
+  * OAuth 1.0a ユーザーコンテキスト
+* **相違点**
+  * エンドポイント URL
+  * App および Project の要件
+  * HTTP メソッド
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 共通点
+</div>
+
+**OAuth 1.0a User Context 認証方法**
+
+両方のエンドポイントバージョンは [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) をサポートします。したがって、以前に Standard v1.1 の manage mutes エンドポイントのいずれかを使用していた場合、X API v2 バージョンへ移行しても、同じ認証方法をそのまま利用できます。
+
+<div id="differences">
+  #### 相違点
+</div>
+
+**エンドポイント URL**
+
+* Standard v1.1 エンドポイント:
+  * POST https://api.x.com/1.1/mutes/users/create.json
+    (ユーザーをミュート)
+  * POST https://api.x.com/1.1/mutes/users/destroy.json
+    (ユーザーのミュート解除)
+* X API v2 エンドポイント:
+  * POST https://api.x.com/2/users/:id/muting
+    (ユーザーをミュート)
+  * DELETE https://api.x.com/2/users/:source&#95;user&#95;id/muting/:target&#95;user&#95;id
+    (ユーザーのミュート解除)
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストを認証する際に、[Project](/ja/resources/fundamentals/developer-apps) に関連付けられている [developer App](/ja/resources/fundamentals/developer-apps) の認証情報を使用する必要があります。すべての X API v1.1 エンドポイントでは、Project に関連付けられていない App、または Project に関連付けられている App のいずれかの認証情報を使用できます。
+
+**リクエストパラメータ**
+
+次の Standard v1.1 リクエストパラメータには、X API v2 における対応するパラメータがあります:
+
+| Standard v1.1 | X API v2 |
+| :--- | :--- |
+| user&#95;id | target&#95;user&#95;id |
+| screen&#95;name | 対応なし |
+
+Standard v1.1 のパラメータはクエリパラメータとして渡される一方で、X API v2 のパラメータはボディパラメータ（POST エンドポイントの場合）またはパスパラメータ（DELETE エンドポイントの場合）として渡される点に注意してください。
+
+また、Standard v1.1 エンドポイントを使用する場合、対象ユーザーをミュートするユーザーの id を指定する必要はありません。これは、[OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) で渡されるアクセス トークンによって、どのユーザーがミュート／ミュート解除を実行しているかが判断されるためです。
+
+***
+
+<div id="code-examples">
+  ## コード例
+</div>
+
+<div id="mute-a-user-v2">
+  ### ユーザーをミュートする (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/muting" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ユーザーをミュートする
+  response = client.users.mute(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ユーザーをミュートする
+  const response = await client.users.mute("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>
+
+<div id="unmute-a-user-v2">
+  ### ユーザーのミュート解除 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/muting/2244994945" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting/2244994945"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ユーザーのミュートを解除する
+  response = client.users.unmute(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ユーザーのミュートを解除する
+  const response = await client.users.unmute("123456789", "2244994945");
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>

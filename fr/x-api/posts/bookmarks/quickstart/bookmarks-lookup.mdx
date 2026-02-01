@@ -1,0 +1,197 @@
+---
+title: Consultation des signets
+sidebarTitle: Consultation des signets
+description: Récupérer vos Publications mises en signet
+keywords: ["Démarrage rapide consultation des signets", "Démarrage rapide consultation des signets", "Tutoriel consultation des signets", "Guide consultation des signets"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer vos Publications que vous avez ajoutées aux signets à l&#39;aide de la X API.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin de :
+
+  * D&#39;un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * D&#39;un jeton d&#39;accès utilisateur avec la portée `bookmark.read` (OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-bookmarks">
+  ## Récupérez vos signets
+</div>
+
+<Steps>
+  <Step title="Récupérez votre ID utilisateur">
+    Vous avez besoin de l’ID de votre utilisateur authentifié. Vous pouvez le récupérer à l’aide de l’endpoint `/2/users/me` ou à partir de l’[endpoint de recherche d’utilisateurs](/fr/x-api/users/lookup/introduction).
+  </Step>
+
+  <Step title="Récupérez vos signets">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/bookmarks?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      max_results=10" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # Récupérer les Publications ajoutées aux signets avec pagination
+      for page in client.bookmarks.get(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // Récupérer les Publications ajoutées aux signets avec pagination
+      const paginator = client.bookmarks.get("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Analyser la réponse">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1501258597237342208",
+          "text": "Have you built a project using the X API you'd like to share with the community? We'd love to hear from you!",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 15,
+            "reply_count": 8,
+            "like_count": 89,
+            "quote_count": 3
+          }
+        },
+        {
+          "id": "1501258542258348032",
+          "text": "This is just one way developer innovation helps make X a better place...",
+          "created_at": "2024-01-15T09:15:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 22,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 7
+          }
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw4539n0vybdnx19ylpayqf16fjt4l"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-author-information">
+  ## Inclure les informations sur l’auteur
+</div>
+
+Utilisez le paramètre `expansions` pour obtenir des données sur les auteurs de Publications :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/bookmarks?\
+  tweet.fields=created_at,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérez les signets avec les informations sur l’auteur
+  for page in client.bookmarks.get(
+      "2244994945",
+      tweet_fields=["created_at", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"]
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}...")
+      # Les informations sur l’auteur se trouvent dans page.includes.users
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérez les signets avec les informations sur l’auteur
+  const paginator = client.bookmarks.get("2244994945", {
+    tweetFields: ["created_at", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}...`);
+    });
+    // Les informations sur l’auteur se trouvent dans page.includes?.users
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="required-scopes">
+  ## Scopes requis
+</div>
+
+Lorsque vous utilisez OAuth 2.0 PKCE, votre jeton d’accès doit inclure les scopes suivants :
+
+| Scope | Description |
+|:------|:------------|
+| `bookmark.read` | Lire les signets |
+| `tweet.read` | Lire les données de Publication |
+| `users.read` | Lire les données utilisateur (pour les expansions) |
+
+***
+
+<div id="next-steps">
+  ## Étapes suivantes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gérer les signets" icon="bookmark" href="/fr/x-api/posts/bookmarks/quickstart/manage-bookmarks">
+    Ajouter et supprimer des signets
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/posts/get-users-bookmarks">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

@@ -1,0 +1,241 @@
+---
+title: 移行ガイド
+sidebarTitle: 移行ガイド
+keywords: ["ブロック移行", "ブロックの移行", "v1.1 から v2 へのブロック", "ブロック移行ガイド", "ブロック移行"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="blocks-lookup-standard-v11-compared-to-x-api-v2">
+  ### ブロックのルックアップ: standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の [GET blocks/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-blocks-ids) と [GET blocks/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-blocks-list) エンドポイントを利用してきた場合、このガイドの目的は、standard v1.1 と X API v2 のブロックルックアップ用エンドポイント間の類似点と相違点を理解するのに役立ててもらうことです。
+
+* **類似点**
+  * 認証
+* **相違点**
+  * エンドポイント URL
+
+  * リクエストごとのユーザー数上限
+
+  * App と Project の要件
+
+  * レスポンスデータの形式
+
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+standard v1.1 と X API v2 の両方の blocks lookup エンドポイントでは、[OAuth 1.0a User Context](/ja/resources/fundamentals/authentication#oauth-1-0a-2) が使用されます。そのため、以前に standard v1.1 の blocks lookup エンドポイントのいずれかを使用していた場合は、X API v2 版へ移行しても同じ認証方法を引き続き利用できます。 
+
+<div id="differences">
+  #### Differences
+</div>
+
+**エンドポイント URL**
+
+* 標準 v1.1 エンドポイント:
+  * GET https://api.x.com/1.1/blocks/ids.json
+    (指定したユーザーによってブロックされているユーザー ID のリスト)
+  * GET https://api.x.com/1.1/blocks/lists.json
+    (指定したユーザーによってブロックされているユーザーのリスト)
+* X API v2 エンドポイント:
+  * GET https://api.x.com/2/users/:id/blocking
+    (指定したユーザー ID によってブロックされているユーザーのリスト)
+     
+
+**1 リクエストあたりのユーザー数の上限**
+
+標準 v1.1 エンドポイントでは、1 リクエストあたり最大 5,000 人のユーザーを返すことができます。新しい v2 エンドポイントでは、1 リクエストあたり最大 1,000 人のユーザーを返すことができます。1,000 ユーザーをすべて取得するには、クエリパラメータとして max&#95;results=1000 を指定する必要があります。その後、レスポンスペイロードで返される next&#95;token を、次のリクエストの pagination&#95;token クエリパラメータに渡します。
+ 
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストの認証時に、[developer App](/ja/resources/fundamentals/developer-apps) のうち [Project](/ja/resources/fundamentals/developer-apps) に関連付けられているものの資格情報を使用する必要があります。すべての X API v1.1 エンドポイントでは、Project に関連付けられていない App、または Project に関連付けられた App の資格情報を使用できます。
+
+**レスポンスデータ形式**
+
+標準 v1.1 と X API v2 のエンドポイントバージョン間の最大の違いの 1 つは、ペイロードで返すフィールドをどのように選択するかです。
+
+標準エンドポイントでは、多くのレスポンスフィールドがデフォルトで返され、さらにパラメータを使用して、どのフィールドまたはフィールドセットをペイロードに含めるかを指定することができます。
+
+X API v2 バージョンでは、デフォルトで返されるのは user id、name、username フィールドのみです。追加のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。このエンドポイントからリクエストしたユーザーフィールドはすべて、プライマリの user オブジェクト内で返されます。展開された Post オブジェクトとそのフィールドは、レスポンス内の includes オブジェクト内で返されます。その後、user と展開された Post オブジェクトの両方にある ID を照合することで、展開された任意のオブジェクトを user オブジェクトに対応付けることができます。 
+
+これらの新しいパラメータについては、それぞれのガイド、または [fields と expansions の使用方法](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドを参照して、さらに詳しく知ることをお勧めします。 
+
+また、標準 v1.1 のフィールドを新しい v2 のフィールドにマッピングするのに役立つ [データ形式の移行ガイド](/ja/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) も用意しています。このガイドでは、特定のフィールドを返すために v2 リクエストで指定する必要がある、具体的な expansion と field パラメータも提供しています。 
+ 
+
+特定のフィールドのリクエスト方法が変わることに加えて、X API v2 では、API によって返されるオブジェクトに対して新しい JSON 構造も導入しています。これには、[P](/ja/x-api/fundamentals/data-dictionary#tweet)ost および [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトが含まれます。
+
+* JSON のルートレベルでは、標準エンドポイントは Post オブジェクトを `statuses` 配列で返しますが、X API v2 は `data` 配列で返します。 
+* Retweeted および Quoted の「statuses」を参照する代わりに、X API v2 の JSON では Retweeted および Quoted ツイートを参照します。`contributors` や `user.translator_type` など、多くのレガシーおよび非推奨フィールドは削除されます。 
+* Post オブジェクトでの `favorites` と user オブジェクトでの `favourites` を両方使用する代わりに、X API v2 では `like` という用語を使用します。 
+* X では、値を持たない JSON 値 (たとえば `null`) はペイロードに書き出さないという規約を採用しています。Post および user の属性は、null 以外の値を持つ場合にのみ含まれます。 
+   
+
+また、[Post object](/ja/x-api/fundamentals/data-dictionary#tweet) に、次のような新しいフィールドも導入しました。
+
+* [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) フィールド
+* `context` と `entities` を含む、2 つの新しい [annotations](/ja/x-api/fundamentals/post-annotations) フィールド
+* 複数の新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド 
+* 特定のポストに誰が返信できるかを示す、新しい `reply_setting` フィールド
+
+**リクエストパラメータ**
+
+以下の標準的な v1.1 のリクエストでは、クエリパラメータとして 2 つのパラメータ（user&#95;id または screen&#95;name）を指定できました。X API v2 では数値のユーザー ID のみが受け付けられ、エンドポイントパスの一部として渡す必要があります。
+
+***
+
+<div id="code-examples">
+  ## コードサンプル
+</div>
+
+<div id="get-blocked-users-v2">
+  ### ブロック中のユーザーを取得する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/blocking?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/blocking"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ページネーションを使ってブロック中のユーザーを取得する
+  for page in client.users.get_blocking(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ページネーションを使ってブロック中のユーザーを取得する
+  const paginator = client.users.getBlocking("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="block-a-user-v2">
+  ### ユーザーをブロックする (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/blocking" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/blocking"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ユーザーをブロックする
+  response = client.users.block(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Blocking: {response.data.blocking}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ユーザーをブロックする
+  const response = await client.users.block("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Blocking: ${response.data?.blocking}`);
+  ```
+</CodeGroup>

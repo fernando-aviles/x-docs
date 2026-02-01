@@ -1,0 +1,185 @@
+---
+title: Recherche des comptes mis en sourdine
+sidebarTitle: Recherche des comptes mis en sourdine
+keywords: ["migration de la recherche des comptes mis en sourdine", "recherche des comptes mis en sourdine v1.1 vers v2", "migration de la recherche des comptes mis en sourdine", "passage de la version Standard à v2 pour les comptes mis en sourdine", "migration des comptes mis en sourdine"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="mutes-lookup-standard-v11-compared-to-x-api-v2">
+  ### Recherche de comptes en sourdine : Standard v1.1 par rapport à X API v2
+</div>
+
+Si vous avez utilisé les endpoints standard v1.1 [GET mutes/users/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-ids) et [GET mutes/users/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-list), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints de recherche de comptes en sourdine du standard v1.1 et de X API v2.
+
+* **Similitudes**
+  * Authentification
+* **Différences**
+  * URL des endpoints
+
+  * Limites du nombre d’utilisateurs par requête
+
+  * Exigences relatives aux App et aux Projets
+
+  * Formats des données de réponse
+
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Points communs
+</div>
+
+**Authentification**
+
+Les endpoints de recherche des comptes mis en sourdine, tant en standard v1.1 que dans X API v2, utilisent [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication#oauth-1-0a-2). Par conséquent, si vous utilisiez auparavant l’un des endpoints standard v1.1 de recherche des comptes mis en sourdine, vous pouvez continuer à utiliser la même méthode d’authentification si vous migrez vers la version X API v2. 
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL des endpoints**
+
+* Endpoints standard v1.1 :
+  * GET https://api.x.com/1.1/mutes/users/ids.json
+    (liste des id d’utilisateurs que l’utilisateur spécifié a mis en sourdine)
+  * GET https://api.x.com/1.1/mutes/users/lists.json
+    (liste des utilisateurs mis en sourdine par l’utilisateur spécifié)
+* Endpoint X API v2 :
+  * GET https://api.x.com/2/users/:id/muting
+    (liste des utilisateurs mis en sourdine par l’id d’utilisateur spécifié)
+     
+
+**Limites d’utilisateurs par requête**
+
+Les endpoints standard v1.1 vous permettent de renvoyer jusqu’à 5000 utilisateurs par requête. Les nouveaux endpoints v2 vous permettent de renvoyer jusqu’à 1000 utilisateurs par requête. Pour renvoyer un total de 1000 utilisateurs, vous devez transmettre max&#95;results=1000 comme paramètre de requête ; vous pouvez ensuite transmettre le next&#95;token renvoyé dans le corps de la réponse au paramètre de requête pagination&#95;token dans votre requête suivante.
+ 
+
+**Exigences pour les App et les Projets**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [Projet](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un projet.
+
+**Format des données de réponse**
+
+L’une des plus grandes différences entre les versions de endpoints standard v1.1 et X API v2 concerne la façon dont vous sélectionnez les champs renvoyés dans votre charge utile.
+
+Pour les endpoints standard, vous recevez un grand nombre de champs de réponse par défaut, puis vous avez la possibilité d’utiliser des paramètres pour identifier quels champs ou ensembles de champs doivent être renvoyés dans la charge utile.
+
+La version X API v2 ne fournit par défaut que les champs user id, name et username. Pour demander des champs ou objets supplémentaires, vous devez utiliser les paramètres [champs](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). Tous les champs utilisateur que vous demandez à partir de ce endpoint seront renvoyés dans l’objet utilisateur principal. Tout objet Publication étendu et ses champs seront renvoyés dans un objet includes au sein de votre réponse. Vous pouvez ensuite faire correspondre tout objet étendu à l’objet utilisateur en faisant correspondre les id présents dans l’utilisateur et dans l’objet Publication étendu. 
+
+Nous vous encourageons à en savoir plus sur ces nouveaux paramètres dans leurs guides respectifs, ou en lisant notre guide sur [comment utiliser les champs et les expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions). 
+
+Nous avons également préparé un [guide de migration de format de données](/fr/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) qui peut vous aider à faire correspondre les champs standard v1.1 aux nouveaux champs v2. Ce guide vous fournit également le paramètre d’expansion et de champ spécifique que vous devrez transmettre avec votre requête v2 pour renvoyer des champs spécifiques. 
+ 
+
+En plus des changements concernant la façon dont vous demandez certains champs, X API v2 introduit également de nouvelles conceptions JSON pour les objets renvoyés par les API, y compris les objets [Publication](/fr/x-api/fundamentals/data-dictionary#tweet) et [utilisateur](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine du JSON, les endpoints standard renvoient des objets Publication dans un tableau statuses, tandis que X API v2 renvoie un tableau data. 
+* Au lieu de faire référence aux « statuses » Retweeted et Quoted, le JSON X API v2 fait référence aux Tweets Retweeted et Quoted. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont supprimés. 
+* Au lieu d’utiliser à la fois favorites (dans l’objet Publication) et favourites (dans l’objet utilisateur), X API v2 utilise le terme like. 
+* X adopte la convention selon laquelle les champs JSON sans valeur (par exemple null) ne sont pas écrits dans la charge utile. Les attributs de Publication et d’utilisateur ne sont inclus que s’ils ont une valeur non nulle. 
+   
+
+Nous avons également introduit un nouvel ensemble de champs dans l’[objet Publication](/fr/x-api/fundamentals/data-dictionary#tweet), notamment les éléments suivants :
+
+* Un champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id)
+* Deux nouveaux champs [annotations](/fr/x-api/fundamentals/post-annotations), notamment context et entities
+* Plusieurs nouveaux champs [métriques](/fr/x-api/fundamentals/metrics) 
+* Un nouveau champ reply&#95;setting, qui vous indique qui peut répondre à une Publication donnée
+
+**Paramètres de requête**
+
+Les paramètres de requête standard v1.1 suivants ont des équivalents dans X API v2 :
+
+| **Standard** | **X API v2** |
+| :--- | :--- |
+| stringify&#95;ids | Aucun équivalent |
+| cursor | pagination&#95;token |
+| skip&#95;status | Aucun équivalent |
+
+Il existe également un ensemble de paramètres standard de requête de recherche de Mutes v1.1 **non** pris en charge dans X API v2 :
+
+| Standard | Commentaire |
+| :--- | :--- |
+| include&#95;entities | Ce paramètre est utilisé pour supprimer le nœud entities de la charge utile de la Publication. Il a été remplacé par des champs additifs et la fonctionnalité d&#39;expansions. |
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="get-muted-users-v2">
+  ### Récupérer les comptes masqués (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a avec un contexte utilisateur
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Récupérer les comptes masqués avec pagination
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Récupérer les comptes masqués avec pagination
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>

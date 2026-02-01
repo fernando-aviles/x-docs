@@ -1,0 +1,199 @@
+---
+title: 빠른 시작
+sidebarTitle: 빠른 시작
+description: 배치 컴플라이언스 작업 생성 및 실행
+keywords: ["컴플라이언스 빠른 시작", "배치 컴플라이언스 튜토리얼", "컴플라이언스 작업 가이드"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+This guide walks you through creating a batch compliance job to check the compliance status of Posts or users.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다:
+
+  * 승인이 완료된 App이 연결된 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App의 Bearer 토큰
+</Note>
+
+***
+
+<Steps>
+  <Step title="작업 생성" icon="plus">
+    포스트 또는 사용자 기준인지에 따라 `type` 값(tweets 또는 users)을 지정해 새 규정 준수 작업을 생성합니다:
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/compliance/jobs" \
+          -H "Authorization: Bearer $BEARER_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "type": "tweets",
+            "name": "my-compliance-job"
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/compliance/jobs"
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "type": "tweets",
+            "name": "my-compliance-job"
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        print(response.json())
+        ```
+      </Tab>
+    </Tabs>
+
+    **응답:**
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "type": "tweets",
+        "name": "my-compliance-job",
+        "status": "created",
+        "upload_url": "https://storage.googleapis.com/...",
+        "download_url": "https://storage.googleapis.com/...",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    }
+    ```
+
+    다음 단계를 위해 `upload_url` 및 `download_url`을 저장해 두십시오.
+  </Step>
+
+  <Step title="데이터 파일 준비" icon="file">
+    한 줄에 하나의 ID만 있도록 텍스트 파일을 만듭니다:
+
+    ```
+    1234567890
+    1234567891
+    1234567892
+    1234567893
+    ```
+
+    `ids.txt`로 저장합니다.
+  </Step>
+
+  <Step title="데이터 업로드" icon="upload">
+    제공된 `upload_url`로 파일을 업로드합니다:
+
+    ```bash
+    curl -X PUT "UPLOAD_URL_FROM_RESPONSE" \
+      -H "Content-Type: text/plain" \
+      --data-binary @ids.txt
+    ```
+  </Step>
+
+  <Step title="작업 상태 확인" icon="clock">
+    작업이 완료될 때까지 상태를 주기적으로 확인합니다:
+
+    ```bash
+    curl "https://api.x.com/2/compliance/jobs/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+
+    **작업 상태:**
+
+    | Status        | Description            |
+    | :------------ | :--------------------- |
+    | `created`     | 작업이 생성되었으며 업로드 대기 중입니다 |
+    | `in_progress` | 데이터를 처리 중입니다           |
+    | `complete`    | 결과를 다운로드할 준비가 완료되었습니다  |
+    | `failed`      | 작업이 실패했습니다             |
+    | `expired`     | 작업이 완료되기 전에 만료되었습니다    |
+  </Step>
+
+  <Step title="결과 다운로드" icon="download">
+    상태가 `complete`가 되면 `download_url`에서 결과를 다운로드합니다:
+
+    ```bash
+    curl "DOWNLOAD_URL_FROM_RESPONSE" -o results.json
+    ```
+
+    **결과 형식** (한 줄에 하나의 JSON 객체):
+
+    ```json
+    {"id": "1234567890", "action": "delete", "created_at": "2024-01-10T12:00:00.000Z", "redacted_at": "2024-01-12T08:30:00.000Z", "reason": "deleted"}
+    {"id": "1234567891", "action": "delete", "created_at": "2024-01-10T12:00:00.000Z", "redacted_at": "2024-01-13T14:20:00.000Z", "reason": "suspended"}
+    ```
+
+    결과에는 규정 준수 이벤트가 발생한 ID만 포함됩니다. 결과에 없는 ID는 여전히 유효한 ID입니다.
+  </Step>
+</Steps>
+
+***
+
+<div id="compliance-actions">
+  ## 컴플라이언스 조치
+</div>
+
+<AccordionGroup>
+  <Accordion title="게시물 컴플라이언스 이벤트">
+    | Action | Reason | Description |
+    |:-------|:-------|:------------|
+    | `delete` | `deleted` | 게시물 삭제됨 |
+    | `delete` | `bounced` | 게시물이 컴플라이언스 검사에 실패함 |
+    | `delete` | `protected` | 계정이 보호 상태로 전환됨 |
+    | `delete` | `suspended` | 계정이 정지됨 |
+    | `delete` | `scrub_geo` | 위치 정보가 제거됨 |
+  </Accordion>
+
+  <Accordion title="사용자 컴플라이언스 이벤트">
+    | Action | Reason | Description |
+    |:-------|:-------|:------------|
+    | `delete` | `deleted` | 계정 삭제됨 |
+    | `delete` | `suspended` | 계정이 정지됨 |
+    | `delete` | `protected` | 계정이 보호 상태로 전환됨 |
+    | `delete` | `deactivated` | 계정이 비활성화됨 |
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="list-all-jobs">
+  ## 모든 작업 나열하기
+</div>
+
+App에 대한 모든 컴플라이언스 작업을 가져오려면:
+
+```bash
+curl "https://api.x.com/2/compliance/jobs?type=tweets" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="통합 가이드" icon="book" href="/ko/x-api/compliance/batch-compliance/integrate">
+    핵심 개념과 모범 사례
+  </Card>
+
+  <Card title="컴플라이언스 스트림" icon="stream" href="/ko/x-api/compliance/streams/introduction">
+    실시간 컴플라이언스 이벤트
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/compliance/create-job">
+    모든 엔드포인트에 대한 문서
+  </Card>
+</CardGroup>

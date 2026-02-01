@@ -1,0 +1,136 @@
+---
+title: v1 到 v2（Enterprise）
+sidebarTitle: v1 到 v2（Enterprise）
+keywords: ["enterprise 到 v2", "enterprise 迁移", "GNIP 到 v2", "enterprise 搜索迁移", "enterprise 迁移到 v2", "enterprise v1 到 v2"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise 与 X API v2 的比较
+</div>
+
+**相似之处**
+
+* 分页
+* 时区
+* 支持帖子编辑历史和元数据
+
+**不同之处**
+
+* 端点 URL
+* App 和 Project 要求
+* 可用时间范围
+* 响应数据格式
+* HTTP 方法
+* 请求中的时间格式
+* 请求参数
+* 过滤运算符
+
+<div id="similarities">
+  #### 相似之处
+</div>
+
+**分页**
+
+虽然 v2 提供了额外的分页功能（新的分页参数允许你使用帖子 ID 结合 `since_id` 和 `until_id` 进行翻页），但 enterprise 和 v2 都允许你按时间进行分页（enterprise 使用 `fromDate` 和 `toDate`，v2 使用 `start_time` 和 `end_time`）。
+
+**时区**
+
+如分页部分所述，你在 enterprise 和 v2 中都可以通过时间来翻页。在这两种情况下，使用这些参数时，你都将使用 UTC 作为时区。
+
+**对帖子编辑历史和元数据的支持**
+
+这两个版本都会提供描述任何编辑历史的元数据。请参阅 [搜索 API 参考](/zh/x-api/posts/recent-search) 和 [帖子编辑基础页面](/zh/x-api/fundamentals/edit-posts) 以获取更多详情。 
+
+<div id="differences">
+  #### 差异
+</div>
+
+**Endpoint URL**
+
+* Enterprise endpoint：
+  * 30 天 - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label.json`
+  * 全量归档（full-archive）- `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label.json`
+* X API v2 endpoint
+  * 最近（7 天）- `https://api.x.com/2/tweets/search/recent`
+  * 全量归档（full-archive）- `https://api.x.com/2/tweets/search/all`
+
+**App 和 Project 要求**
+
+X API v2 的 endpoint 要求你在请求认证时使用来自某个 Project 的凭证。所有 X API v1.1 的 endpoint 都可以使用来自 App 的凭证，或与某个 App 相关联的凭证。
+ 
+
+**可用时间范围**
+
+Enterprise API 和 X API v2 都提供 endpoint，允许你针对完整帖子归档检索经过过滤的帖子数据。
+
+不过，X API v2 并不提供类似 enterprise API 那样的 30 天时间范围的 endpoint。它提供的是前文提到的全量归档，或者 7 天时间范围，这与从 Native Enriched 迁移到 v2 以及 [从 Activity Streams 迁移到 v2](/zh/x-api/migrate/data-format-migration#migrating-from-activity-streams-data-format-to-v2) 的方案保持一致，这些内容可以帮助你将 enterprise 字段映射到较新的 v2 字段。本指南还会为你提供在 v2 请求中需要传入的具体 expansions 和 fields 参数，以返回特定字段。
+ 
+
+**响应数据格式**
+
+[enterprise 响应格式](https://developer.x.com/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) 与 [X API v2 的格式](/zh/x-api/fundamentals/data-dictionary) 之间最大的差异之一，是你如何选择要在负载中返回哪些字段。
+
+对于 enterprise Search API，你在默认情况下会收到很多响应字段，然后可以选择使用参数来指定应该在负载中返回哪些字段或字段集。
+
+在 X API v2 中，默认只返回帖子 `id` 和 `text` 字段。要请求任何额外的字段或对象，你需要使用 [fields](/zh/x-api/fundamentals/fields) 和 [expansions](/zh/x-api/fundamentals/expansions) 参数。从这些 endpoint 请求的任何帖子字段都会返回在主 Post 对象中。任何扩展的用户、媒体、投票或地点对象及其字段，都会返回在响应中的 `includes` 对象内。然后你可以通过匹配 Post 对象和扩展对象中出现的 ID，将任意扩展对象重新匹配回 Post 对象。
+
+我们建议你在各自的指南中进一步了解这些新参数，或者阅读我们的[如何使用 fields 和 expansions](/zh/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) 指南。
+
+除了你请求特定字段方式的变化之外，X API v2 还为 API 返回的对象引入了新的 JSON 设计，包括 [Post](/zh/x-api/fundamentals/data-dictionary#tweet) 和 [user](/zh/x-api/fundamentals/data-dictionary#user) 对象。
+
+* 在 JSON 根级别，标准 endpoint 会在 `statuses` 数组中返回 Post 对象，而 X API v2 会返回一个 `data` 数组。
+* X API v2 的 JSON 不再引用转发（Retweeted）和引用（Quoted）的 “statuses”，而是引用转发和引用的 Tweet。许多旧版和已弃用的字段（如 `contributors` 和 `user.translator_type`）会被移除。
+* X API v2 不再同时使用 `favorites`（Post 对象中的字段）和 `favourites`（user 对象中的字段），而统一使用 like 一词。
+* X 采用了这样一种约定：值为空（例如值为 `null`）的 JSON 字段不会写入负载。Post 和 user 属性只有在具有非 null 值时才会被包含。
+   
+
+我们还为 Post 对象引入了一组新字段，包括：
+
+* 一个 [conversation&#95;id](/zh/x-api/fundamentals/conversation-id) 字段
+* 两个新的 [annotations](/zh/x-api/fundamentals/post-annotations) 字段，分别为 context 和 entities
+* 若干新的 [metrics](/zh/x-api/fundamentals/metrics) 字段
+* 一个新的 `reply_setting` 字段，用于指示谁可以回复某条帖子
+
+最后还有一点说明。Premium 响应在根级别包含一个 `requestParameters` 对象，其中包含你在请求中传入的参数。v2 版本则在根级别包含一个 `meta` 对象，其中包括 `newest_id`、`oldest_id`、`result_count`，以及在存在额外结果页时返回的 `next_token`。
+
+**HTTP 方法**
+
+企业版 API 允许你通过两种方式发送请求：使用带有 JSON 请求体的 POST HTTP 方法，或使用带有查询字符串的 GET HTTP 方法。
+
+V2 只允许你使用带有查询字符串的 GET HTTP 方法。
+ 
+
+**请求时间格式**
+
+该端点的企业版在分页参数以及 `timePeriod` 响应字段中均使用以下日期/时间格式：`YYYYMMDDHHmm`
+
+v2 端点在分页参数以及 `start` 和 `end` 响应字段中使用 ISO 8601/RFC 3339 日期/时间格式：`YYYY-MM-DDTHH:mm:ssZ`
+ 
+
+**请求参数**
+
+下表是企业版和 X API v2 的请求参数对应关系：
+
+| Enterprise | Search Posts v2 |
+| :--- | :--- |
+| query | query |
+| maxResults | max&#95;results |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| toDate (YYMMDDHHmm) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+|     | since&#95;id |
+|     | until&#95;id |
+| next | next&#95;token or pagination&#95;token |
+
+**过滤运算符**
+
+虽然企业版和 X API v2 之间的大多数运算符是相同的，但在运算符可用性方面存在一些差异，并且有一些新运算符仅在 X API v2 中提供。
+
+要查看适用于 X API v2、企业版、高级版和标准版的全部运算符的完整对照表，请访问[搜索帖子迁移概览页面](/zh/x-api/posts/search/migrate/overview)。
+
+**后续步骤**
+
+[查看 X API v2 全量存档搜索的快速入门指南](/zh/x-api/posts/search/quickstart/full-archive-search)
+
+[查看全量存档搜索的 API 参考](/zh/x-api/posts/full-archive-search)
+
+[查看这些端点的一些示例代码](https://github.com/xdevplatform/Twitter-API-v2-sample-code)

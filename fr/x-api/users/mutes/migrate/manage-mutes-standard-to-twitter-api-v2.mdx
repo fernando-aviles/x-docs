@@ -1,0 +1,201 @@
+---
+title: Gérer les mises en sourdine
+sidebarTitle: Gérer les mises en sourdine
+keywords: ["migration de la gestion des mises en sourdine", "gestion des mises en sourdine de v1.1 vers v2", "migration de la gestion des mises en sourdine", "mises en sourdine de standard vers v2", "migration des mises en sourdine"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="manage-mutes-standard-v11-compared-to-x-api-v2">
+  ### Gérer les mises en sourdine : standard v1.1 comparé à X API v2
+</div>
+
+Si vous avez utilisé les endpoints standard v1.1 [POST mutes/users/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/post-mutes-users-create) et [POST mutes/users/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/post-mutes-users-destroy), l’objectif de ce guide est de vous aider à comprendre les similarités et les différences entre les endpoints de gestion des mises en sourdine du standard v1.1 et ceux de X API v2.
+
+* **Similarités**
+  * Contexte utilisateur OAuth 1.0a
+* **Différences**
+  * URL des endpoints
+  * Exigences relatives aux App et aux Projets
+  * Méthodes HTTP
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Méthode d’authentification OAuth 1.0a User Context**
+
+Les deux versions de l’endpoint prennent en charge [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication). Par conséquent, si vous utilisiez auparavant l’un des endpoints standard v1.1 dédiés à la gestion des masquages, vous pouvez continuer à utiliser la même méthode d’authentification si vous migrez vers la version X API v2.
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL d’endpoint**
+
+* Endpoints standard v1.1 :
+  * POST https://api.x.com/1.1/mutes/users/create.json
+    (mettre un utilisateur en sourdine)
+  * POST https://api.x.com/1.1/mutes/users/destroy.json
+    (annuler la mise en sourdine d’un utilisateur)
+* Endpoint X API v2 :
+  * POST https://api.x.com/2/users/:id/muting
+    (mettre un utilisateur en sourdine)
+  * DELETE https://api.x.com/2/users/:source&#95;user&#95;id/muting/:target&#95;user&#95;id
+    (annuler la mise en sourdine d’un utilisateur)
+
+**Exigences pour les Apps et les Projets**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants issus d’une [App développeur](/fr/resources/fundamentals/developer-apps) qui est associée à un [Project](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 standard peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un Project.
+
+**Paramètres de requête**
+
+Les paramètres de requête standard v1.1 suivants ont des équivalents dans X API v2 :
+
+| Standard v1.1 | X API v2 |
+| :--- | :--- |
+| user&#95;id | target&#95;user&#95;id |
+| screen&#95;name | Aucun équivalent |
+
+Veuillez noter que les paramètres standard v1.1 sont transmis en tant que paramètres de requête, tandis que les paramètres X API v2 sont transmis en tant que paramètres dans le corps de la requête (pour l’endpoint POST) ou en tant que paramètres de chemin (pour l’endpoint DELETE).
+
+De plus, l’id de l’utilisateur qui met en sourdine un utilisateur cible n’est pas nécessaire lors de l’utilisation des endpoints standard v1.1, car les jetons d’accès transmis avec le [contexte utilisateur OAuth 1.0a](/fr/resources/fundamentals/authentication) permettaient de déterminer quel utilisateur initiait l’action de mise en sourdine ou d’annulation de la mise en sourdine.
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="mute-a-user-v2">
+  ### Mettre un utilisateur en sourdine (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/muting" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # Nécessite une authentification de type Contexte utilisateur OAuth 1.0a
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Mettre un utilisateur en sourdine
+  response = client.users.mute(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Utilisateur mis en sourdine : {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Mettre un utilisateur en sourdine
+  const response = await client.users.mute("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Utilisateur mis en sourdine : ${response.data?.muting}`);
+  ```
+</CodeGroup>
+
+<div id="unmute-a-user-v2">
+  ### Ne plus masquer un utilisateur (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/muting/2244994945" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a en contexte utilisateur
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting/2244994945"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Ne plus masquer un utilisateur
+  response = client.users.unmute(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Ne plus masquer un utilisateur
+  const response = await client.users.unmute("123456789", "2244994945");
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>

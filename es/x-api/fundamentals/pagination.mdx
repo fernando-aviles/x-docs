@@ -1,0 +1,220 @@
+---
+title: Paginación
+sidebarTitle: Paginación
+description: Recorre conjuntos de resultados grandes
+keywords: ["pagination", "pagination tokens", "next token", "page through results", "cursor pagination"]
+---
+
+Cuando una respuesta de la API contiene más resultados de los que se pueden devolver en una sola respuesta, usa la paginación para recuperar todas las páginas de datos.
+
+***
+
+<div id="how-pagination-works">
+  ## Cómo funciona la paginación
+</div>
+
+1. Realiza tu solicitud inicial con `max_results`
+2. Comprueba si la respuesta incluye un `next_token` dentro del objeto `meta`
+3. Si está presente, realiza otra solicitud usando ese token como `pagination_token`
+4. Repite hasta que no se devuelva ningún `next_token`
+
+```bash
+# Solicitud inicial
+curl "https://api.x.com/2/users/12345/tweets?max_results=100" \
+  -H "Authorization: Bearer $TOKEN"
+
+# La respuesta incluye next_token
+# {"data": [...], "meta": {"next_token": "abc123", ...}}
+
+# Siguiente página
+curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=abc123" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="pagination-tokens">
+  ## Tokens de paginación
+</div>
+
+| Token | Descripción |
+|:------|:------------|
+| `next_token` | En `meta` de la respuesta. Úsalo para obtener la siguiente página. |
+| `previous_token` | En `meta` de la respuesta. Úsalo para volver a la página anterior. |
+| `pagination_token` | Parámetro de la solicitud. Configúralo con el valor de `next_token` o `previous_token`. |
+
+***
+
+<div id="response-structure">
+  ## Estructura de la respuesta
+</div>
+
+```json
+{
+  "data": [
+    {"id": "1234", "text": "..."},
+    {"id": "1235", "text": "..."}
+  ],
+  "meta": {
+    "result_count": 100,
+    "next_token": "7140w9gefhslx3",
+    "previous_token": "77qp89slxjd"
+  }
+}
+```
+
+Cuando ya no hay más resultados, se omite `next_token`:
+
+```json
+{
+  "data": [...],
+  "meta": {
+    "result_count": 42,
+    "previous_token": "77qp89abc"
+  }
+}
+```
+
+***
+
+<div id="pagination-parameters">
+  ## Parámetros de paginación
+</div>
+
+| Parámetro | Descripción | Valor predeterminado |
+|:----------|:------------|:---------------------|
+| `max_results` | Resultados por página | Específico del endpoint |
+| `pagination_token` | Token de la respuesta anterior | Ninguno |
+
+Consulta la Referencia de la API de cada endpoint para conocer los límites específicos de `max_results`.
+
+***
+
+<div id="example-paginating-through-all-results">
+  ## Ejemplo: paginación de todos los resultados
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    def get_all_tweets(user_id, bearer_token):
+        url = f"https://api.x.com/2/users/{user_id}/tweets"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        params = {"max_results": 100}
+        
+        all_tweets = []
+        
+        while True:
+            response = requests.get(url, headers=headers, params=params)
+            data = response.json()
+            
+            if "data" in data:
+                all_tweets.extend(data["data"])
+            
+            # Comprobar si hay una página siguiente
+            next_token = data.get("meta", {}).get("next_token")
+            if not next_token:
+                break
+                
+            params["pagination_token"] = next_token
+        
+        return all_tweets
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllTweets(userId, bearerToken) {
+      const url = `https://api.x.com/2/users/${userId}/tweets`;
+      const headers = { Authorization: `Bearer ${bearerToken}` };
+      
+      let allTweets = [];
+      let paginationToken = null;
+      
+      do {
+        const params = new URLSearchParams({ max_results: 100 });
+        if (paginationToken) {
+          params.set("pagination_token", paginationToken);
+        }
+        
+        const response = await fetch(`${url}?${params}`, { headers });
+        const data = await response.json();
+        
+        if (data.data) {
+          allTweets.push(...data.data);
+        }
+        
+        paginationToken = data.meta?.next_token;
+      } while (paginationToken);
+      
+      return allTweets;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="best-practices">
+  ## Mejores prácticas
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Usa el máximo de resultados" icon="arrow-up-1-9">
+    Solicita el valor máximo permitido de `max_results` para minimizar las llamadas a la API.
+  </Card>
+
+  <Card title="Gestiona páginas incompletas" icon="square-check">
+    La última página puede tener menos resultados que `max_results`.
+  </Card>
+
+  <Card title="Almacena tokens" icon="database">
+    Guarda `next_token` si necesitas reanudar la paginación más tarde.
+  </Card>
+
+  <Card title="No hagas sondeos con paginación" icon="clock">
+    Para datos nuevos, usa `since_id` en lugar de paginar repetidamente.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="result-ordering">
+  ## Orden de resultados
+</div>
+
+Los resultados se devuelven en **orden cronológico inverso**:
+
+* Primer resultado en la primera página = más reciente
+* Último resultado en la última página = más antiguo
+
+Esto se aplica tanto dentro de cada página como entre páginas.
+
+***
+
+<div id="notes">
+  ## Notas
+</div>
+
+* Los tokens de paginación son cadenas opacas: no los analices ni los modifiques
+* Los tokens pueden expirar después de cierto tiempo
+* Si obtienes menos resultados que `max_results`, es posible que aún existan más (continúa hasta que ya no haya `next_token`)
+* Usa los [SDKs](/es/x-api/tools-and-libraries/sdks) para la gestión automática de la paginación
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Límites de tasa" icon="gauge-high" href="/es/x-api/fundamentals/rate-limits">
+    Conoce los límites de solicitudes al paginar.
+  </Card>
+
+  <Card title="SDKs" icon="cube" href="/es/x-api/tools-and-libraries/sdks">
+    Bibliotecas con paginación integrada.
+  </Card>
+</CardGroup>

@@ -1,0 +1,225 @@
+---
+title: v1 a v2
+sidebarTitle: v1 a v2
+keywords: ["migración de v1.1 a v2", "migración de Listas", "migrar Listas", "Listas estándar a v2", "Listas de v1 a v2", "guía de migración"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+<div id="manage-lists-standard-v11-compared-to-x-api-v2">
+  ### Administrar Listas: Standard v1.1 en comparación con X API v2
+</div>
+
+Si has estado trabajando con los endpoints standard v1.1 [POST lists/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/post-lists-create), [POST lists/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/post-lists-destroy) y [POST lists/update](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/post-lists-update), el objetivo de esta guía es ayudarte a comprender las similitudes y diferencias entre los endpoints para administrar Listas en standard v1.1 y en X API v2.
+
+* **Similitudes**
+  * Autenticación
+* **Diferencias**
+  * URLs de los endpoints
+  * Requisitos de App y de Proyecto
+  * Métodos HTTP
+  * Límites de tasa
+  * Parámetros de la solicitud
+
+<div id="similarities">
+  #### Similitudes
+</div>
+
+**Autenticación**
+
+Ambas versiones del endpoint admiten [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication). Por lo tanto, si anteriormente utilizabas uno de los endpoints estándar de v1.1 para administrar Listas, puedes seguir usando el mismo método de autenticación si migras a la versión de X API v2.
+
+<div id="differences">
+  #### Diferencias
+</div>
+
+**URLs de endpoints**
+
+* Endpoints estándar v1.1:
+  * POST https://api.x.com/1.1/lists/create.json
+    (Crea una Lista)
+  * POST https://api.x.com/1.1/lists/destroy.json
+    (Elimina una Lista)
+  * POST https://api.x.com/1.1/lists/update.json
+    (Actualiza una Lista)
+* Endpoint de X API v2:
+  * POST https://api.x.com/2/lists
+    (Crea una Lista)
+
+  * DELETE https://api.x.com/2/lists/:id
+    (Elimina una Lista)
+
+  * PUT https://api.x.com/2/lists/:id
+    (Actualiza una Lista)
+
+**Límites de tasa**
+
+| **Estándar v1.1** | **X API v2** |
+| :--- | :--- |
+| /1.1/lists/create.json<br /><br />ninguno | /2/lists<br /><br />300 solicitudes por ventana de 15 minutos con contexto de usuario OAuth 1.0a |
+| /1.1/lists/destroy.json<br /><br />ninguno | /2/lists/:id<br /><br />300 solicitudes por ventana de 15 minutos con contexto de usuario OAuth 1.0a |
+| /1.1/lists/update.json<br /><br />ninguno | /2/lists/:id<br /><br />300 solicitudes por ventana de 15 minutos con contexto de usuario OAuth 1.0a |
+
+**Requisitos de App y Proyecto**
+
+Los endpoints de X API v2 requieren que utilices credenciales de una [App de desarrollador](/es/resources/fundamentals/developer-apps) asociada a un [Proyecto](/es/resources/fundamentals/developer-apps) al autenticar tus solicitudes. Todos los endpoints de X API v1.1 pueden usar credenciales de Apps independientes o de Apps relacionadas con un proyecto.
+
+**Parámetros de la solicitud**
+
+Los siguientes parámetros de solicitud estándar v1.1 tienen equivalentes en X API v2:
+
+**Crear una Lista**
+
+| **Estándar** | **X API v2** |
+| :--- | :--- |
+| name | name |
+| mode | private |
+| description | description |
+
+**Eliminar/Actualizar una Lista**
+
+| **Estándar** | **X API v2** |
+| :--- | :--- |
+| owner&#95;screen&#95;name | Sin equivalente |
+| owner&#95;id | Sin equivalente |
+| list&#95;id | id  |
+| slug | Sin equivalente |
+
+<Note>
+  **Ten en cuenta:** Los parámetros estándar v1.1 se pasan como parámetros de consulta, mientras que los parámetros de X API v2 se pasan como parámetros en el cuerpo (para el endpoint POST) o parámetros de ruta (para los endpoints DELETE y PUT).
+</Note>
+
+***
+
+<div id="code-examples">
+  ## Ejemplos de código
+</div>
+
+<div id="create-a-list-v2">
+  ### Crear una Lista (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/lists" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "My List", "description": "A great list"}'
+  ```
+
+  ```python Python
+  # Requiere autenticación de contexto de usuario OAuth 1.0a
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/lists"
+  data = {"name": "My List", "description": "A great list"}
+
+  response = requests.post(url, auth=auth, json=data)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Crear una Lista
+  response = client.lists.create(name="My List", description="A great list")
+  print(f"Lista creada: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Crear una Lista
+  const response = await client.lists.create({
+    name: "My List",
+    description: "A great list",
+  });
+  console.log(`Lista creada: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+<div id="delete-a-list-v2">
+  ### Eliminar una Lista (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/lists/123456789" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Requiere autenticación de contexto de usuario con OAuth 1.0a
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/lists/123456789"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Eliminar una Lista
+  response = client.lists.delete("123456789")
+  print(f"Deleted: {response.data.deleted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Eliminar una Lista
+  const response = await client.lists.delete("123456789");
+  console.log(`Deleted: ${response.data?.deleted}`);
+  ```
+</CodeGroup>

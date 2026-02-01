@@ -1,0 +1,37 @@
+---
+title: 基于 PIN 的授权
+sidebarTitle: 基于 PIN 的 OAuth
+keywords: ["基于 PIN 的 OAuth", "PIN OAuth", "OAuth PIN", "PIN 授权", "OAuth 1.0a PIN", "桌面端 OAuth"]
+---
+
+import { Button } from "/snippets/zh/button.mdx";
+
+<div id="pin-based-authorization">
+  ### 基于 PIN 的授权
+</div>
+
+基于 PIN 的 OAuth 流程是 [三方（3-legged）OAuth](/zh/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) 过程的一种变体，适用于在授权后无法访问或嵌入浏览器以重定向用户的应用。此类应用的示例包括命令行应用、嵌入式系统、游戏主机以及某些类型的移动 App。
+
+基于 PIN 的 OAuth 流程由应用在 `request_token` 请求中发起，并将 `oauth_callback` 设置为 `oob`。术语 `oob` 表示带外（out-of-band）OAuth。用户仍然会访问 X 来登录或授权该应用，但在批准访问后不会被自动重定向回应用。相反，他们会看到一个数字 PIN 码，并收到返回应用并输入该数值的提示。
+
+<Note>
+  **Note:** 即使在使用基于 PIN 的认证时，X App 设置中的 `callback_url` 仍然是必需的。
+</Note>
+
+ 
+
+<div id="implementing-the-pin-based-oauth-flow">
+  #### 实现基于 PIN 的 OAuth 流程
+</div>
+
+基于 PIN 的流程与[三方授权](/zh/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens)（以及 [使用 X 登录](/zh/resources/fundamentals/authentication#log-in-with-x)）的实现方式相同，但有以下差异：
+
+1. 在调用 [POST oauth/request&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-request-token) 时，`oauth_callback` 的值必须设置为 `oob`。
+
+2. 在使用 [GET oauth/authenticate](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) 或 [GET oauth/authorize URL](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authorize) 将用户发送到 X 授权你的 App 之后，用户不会被重定向到你的 `callback_url`，而是会看到一个界面，其中包含由 X 生成的大约 7 位数字的 PIN 码，并附有指示用户在你的应用中输入该 PIN 的说明。
+
+3. 用户在你的应用中输入此 PIN，你的应用在调用 [POST oauth/access&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-access-token) 时将此 PIN 作为 `oauth_verifier` 使用，以获取 `access_token`。
+
+<Note>
+  **Note：** PIN 码不可重复使用，并且获得的 `access_token` 应用于应用代表用户发起的请求。
+</Note>

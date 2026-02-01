@@ -1,0 +1,130 @@
+---
+title: Pagination
+sidebarTitle: Pagination
+keywords: ["pagination de recherche", "guide de pagination", "parcourir les résultats page par page", "jetons de pagination", "pagination de recherche", "jeton suivant"]
+---
+
+<div id="recent-search-pagination">
+  ### Pagination de la recherche récente
+</div>
+
+<div id="introduction">
+  #### Introduction
+</div>
+
+Les requêtes de recherche correspondent généralement à plus de Publications qu&#39;il n&#39;est possible d&#39;en renvoyer dans une seule réponse d&#39;API. Dans ce cas, les données sont renvoyées sous la forme d&#39;une série de « pages ». La pagination désigne les méthodes permettant de demander l&#39;ensemble des pages afin de récupérer l&#39;intégralité du jeu de données.
+
+Voici les éléments de base de la pagination pour la recherche récente :
+
+* Les points de terminaison de recherche récente répondent à une requête avec au moins une page et fournissent un next&#95;token dans leur réponse JSON si des pages supplémentaires sont disponibles. Pour recevoir des Publications correspondantes, ce processus peut être répété jusqu&#39;à ce qu&#39;aucun token ne soit inclus dans la réponse.
+
+* Le next&#95;token n&#39;expire pas. Plusieurs requêtes utilisant la même valeur de next&#95;token recevront les mêmes résultats, quel que soit le moment où la requête est effectuée.
+
+* Les Publications sont renvoyées dans l&#39;ordre chronologique inverse, dans le fuseau horaire UTC. Cela est valable au sein de chaque page, ainsi qu&#39;entre plusieurs pages :
+  * La première Publication de la première réponse sera la plus récente correspondant à votre requête.
+  * La dernière Publication de la dernière réponse sera la plus ancienne correspondant à votre requête.
+
+* Le paramètre de requête max&#95;results vous permet de configurer le nombre de Publications renvoyées par réponse. La valeur par défaut est de 10 Publications, avec un maximum de 100. 
+
+* Toute implémentation de pagination impliquera d&#39;analyser les next&#95;tokens dans la charge utile de la réponse, puis de les inclure dans la requête de recherche de « page suivante ». Voir ci‑dessous pour plus de détails sur la façon de construire ces requêtes de « page suivante ».
+   
+
+Le point de terminaison de recherche récente a été conçu pour prendre en charge deux modèles d&#39;utilisation fondamentaux :
+
+* **Get historical** - Demander les Publications correspondant à une période donnée. Il s&#39;agit généralement de requêtes ponctuelles utilisées pour la recherche historique. Les requêtes de recherche peuvent être basées sur les paramètres de requête start&#95;time et end&#95;time. Le point de terminaison de recherche récente répond avec des Publications renvoyées dans l&#39;ordre chronologique inverse, en commençant par la Publication correspondante la plus récente. 
+
+* **Polling** - Demander les Publications correspondantes qui ont été publiées depuis la dernière Publication reçue. Ces cas d&#39;usage ont souvent un objectif quasi temps réel et se caractérisent par des requêtes fréquentes, afin de « surveiller » l&#39;apparition de nouvelles Publications d&#39;intérêt. Le point de terminaison de recherche récente fournit le paramètre de requête since&#95;id pour prendre en charge le modèle d&#39;« interrogation régulière ». Pour faciliter la navigation à l&#39;aide des id de Publication, le paramètre de requête until&#95;id est également disponible.
+   
+
+Nous allons maintenant aborder le mode historique. Il s&#39;agit du mode par défaut du point de terminaison de recherche récente et il illustre les principes fondamentaux de la pagination. Nous verrons ensuite des exemples de cas d&#39;usage d&#39;interrogation régulière. Lorsque l&#39;interrogation régulière déclenche la pagination, une étape supplémentaire est nécessaire pour gérer les requêtes de recherche.
+ 
+
+<div id="retrieving-historical-data">
+  #### Récupération de données historiques
+</div>
+
+Cette section décrit comment vous pouvez récupérer des Publications sur une période d’intérêt (actuellement limitée aux sept derniers jours) à l’aide des paramètres de requête start&#95;time et end&#95;time. Les requêtes historiques sont généralement des requêtes ponctuelles utilisées pour la recherche et d’analyse. 
+
+Effectuer des requêtes sur un intervalle de temps donné correspond au mode par défaut de l’endpoint recent search. Si une requête de recherche ne spécifie pas de paramètre de requête start&#95;time, end&#95;time ou since&#95;id, end&#95;time sera défini par défaut sur « now » (en réalité 30 secondes avant l’heure de la requête) et start&#95;time sera défini par défaut sur sept jours auparavant.
+
+L’endpoint répondra avec la première « page » de Publications en ordre antichronologique, en commençant par la Publication la plus récente. Le corps JSON de la réponse inclura également un next&#95;token s’il existe des pages de données supplémentaires. Pour collecter l’ensemble des Publications correspondantes, quel que soit le nombre de pages, vous devez effectuer des requêtes jusqu’à ce qu’aucun next&#95;token ne soit fourni. 
+
+Par exemple, voici une requête initiale pour des Publications contenant le mot-clé snow au cours de la dernière semaine :
+
+https://api.x.com/2/tweets/search/recent?query=snow
+
+La réponse inclut les 10 Publications les plus récentes, ainsi que ces attributs « meta » dans la réponse JSON :
+
+```
+"meta": {
+        "newest_id": "1204860593741553664",
+        "oldest_id": "1204860580630278147",
+        "next_token": "b26v89c19zqg8o3fobd8v73egzbdt3qao235oql",
+        "result_count": 10
+    }
+```
+
+Pour récupérer les 10 Publications suivantes, ce next&#95;token est ajouté à la requête d&#39;origine. La requête serait :
+
+https://api.x.com/2/tweets/search/recent?query=snow&amp;next&#95;token=b26v89c19zqg8o3fobd8v73egzbdt3qao235oql
+
+Le processus qui consiste à rechercher un next&#95;token et à l&#39;inclure dans une requête ultérieure peut être répété jusqu&#39;à ce que toutes les Publications (ou un certain nombre de Publications) aient été collectées, ou jusqu&#39;à ce qu&#39;un nombre spécifié de requêtes ait été effectué. Si la fidélité des données (collecter toutes les correspondances de votre requête) est essentielle pour votre cas d&#39;utilisation, un simple schéma « répéter jusqu&#39;à ce que request.next&#95;token soit nul » suffira.
+
+<div id="polling-and-listening-use-cases">
+  #### Cas d’usage de scrutation et d’écoute
+</div>
+
+Cette section décrit comment vous pouvez récupérer des Publications récentes en interrogeant de manière répétée l’endpoint de recherche récente avec le paramètre de requête since&#95;id. 
+
+Dans les cas d’usage de scrutation, des requêtes du type « de nouvelles Publications intéressantes ? » sont effectuées de manière continue et fréquente. Contrairement aux cas d’usage historiques, qui basent les requêtes sur le temps, les cas d’usage de scrutation reposent généralement sur les ID de Publication.
+
+L’élément central du schéma de scrutation est que chaque nouvelle Publication possède un [ID unique](/fr/resources/fundamentals/x-ids) qui est « émis » par la plateforme X généralement dans l’ordre croissant. Si une Publication a un ID inférieur à une autre, cela signifie qu’elle a été publiée plus tôt.
+
+L’endpoint de recherche récente prend en charge la navigation dans l’archive des Publications par ID de Publication. Les réponses de l’endpoint incluent les ID de Publication oldest&#95;id et newest&#95;id. En mode scrutation, les requêtes sont effectuées avec since&#95;id défini sur l’ID le plus grand/le plus récent reçu jusqu’à présent. 
+
+Par exemple, supposons qu’une requête pour de nouvelles Publications à propos de la neige soit effectuée toutes les cinq minutes, et que la dernière Publication reçue ait un ID de Publication de 10000. Au moment de scruter, la requête ressemble à :
+
+https://api.x.com/2/tweets/search/recent?query=snow&amp;since&#95;id=10000
+
+Ensuite, disons que sept Publications ont été publiées depuis notre dernière requête. Comme elles tiennent toutes sur une seule « page » de données, il n’y a pas de next&#95;token. La réponse fournit l’ID de Publication de la Publication la plus récente :
+
+```
+"meta": {
+        "newest_id": "12000",
+        "oldest_id": "10005",
+        "result_count": 7
+    }
+```
+
+Pour effectuer la prochaine requête de polling, cette valeur newest&#95;id est utilisée pour définir le prochain paramètre since&#95;id :
+
+`https://api.x.com/2/tweets/search/recent?query=snow&since_id=12000`
+
+Lorsqu&#39;il y a davantage de données disponibles et que des next tokens sont fournis, seule la valeur newest&#95;id de la première page de résultats est nécessaire. Chaque page de données inclura les valeurs newest&#95;id et oldest&#95;id, mais la valeur fournie dans la première page est la seule nécessaire pour la prochaine requête de polling planifiée régulièrement. Ainsi, si vous implémentez un modèle de polling ou si vous recherchez des Publications par plage d’ID, la logique de pagination est légèrement plus compliquée. 
+
+Supposons maintenant qu’il y ait 18 Publications supplémentaires correspondantes. L’endpoint renverrait cette réponse initiale avec une page de données complète et un next&#95;token pour demander la page suivante de données pour cette période de cinq minutes. Elle inclurait également l’ID de Publication le plus récent nécessaire pour le prochain intervalle de polling dans cinq minutes.
+
+```
+"meta": {
+        "newest_id": "13800",
+        "oldest_id": "12500",
+        "next_token": "fnsih9chihsnkjbvkjbsc",
+        "result_count": 10
+    }
+```
+
+Pour collecter toutes les données correspondant à cette période de cinq minutes, incluez le next&#95;token dans votre prochaine requête, avec la même valeur de since&#95;id que pour la requête précédente.
+
+https://api.x.com/2/tweets/search/recent?query=snow&amp;since&#95;id=12000&amp;next&#95;token=fnsih9chihsnkjbvkjbsc
+
+```
+"meta": {
+        "newest_id": "12300",
+        "oldest_id": "12010",
+        "result_count": 8
+    }
+```
+
+Cette deuxième réponse renvoie les huit Publications restantes, sans `next_token`. Notez que nous ne mettons pas à jour la valeur de `newest&#95;id` (12300) et que nous basons plutôt notre prochaine requête `since&#95;id` sur la valeur de `newest&#95;id` de la première réponse :
+
+https://api.x.com/2/tweets/search/recent?query=snow&amp;since&#95;id=13800

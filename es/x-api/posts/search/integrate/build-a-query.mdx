@@ -1,0 +1,327 @@
+---
+title: Crear una consulta
+sidebarTitle: Crear una consulta
+description: Aprende a crear consultas de búsqueda usando operadores
+keywords: ["crear consulta", "consulta de búsqueda", "constructor de consultas", "operadores de búsqueda", "sintaxis de consulta", "crear consulta de búsqueda", "guía de consultas"]
+---
+
+Los endpoints de búsqueda aceptan una única consulta en una solicitud GET y devuelven un conjunto de Publicaciones históricas que coinciden con la consulta. Las consultas están formadas por operadores que se aplican a una variedad de atributos de las Publicaciones.
+
+***
+
+<div id="query-limitations">
+  ## Limitaciones de las consultas
+</div>
+
+Tus consultas estarán limitadas en función del [nivel de acceso](/es/x-api/getting-started/about-x-api) que estés utilizando:
+
+| Nivel de acceso | Búsqueda reciente | Búsqueda en archivo completo |
+| :--- | :--- | :--- |
+| Self-serve | 512 caracteres | 1,024 caracteres |
+| Enterprise | 4,096 caracteres | 4,096 caracteres |
+
+***
+
+<div id="operator-availability">
+  ## Disponibilidad de operadores
+</div>
+
+Si bien la mayoría de los operadores están disponibles para cualquier desarrollador, algunos están reservados para ciertos niveles de acceso:
+
+* **Operadores básicos:** Disponibles al utilizar cualquier [Project](/es/resources/fundamentals/developer-apps)
+* **Operadores avanzados:** Disponibles al utilizar un Project con ciertos niveles de acceso
+
+Consulta la [lista completa de operadores](/es/x-api/posts/search/integrate/operators) para obtener más información sobre su disponibilidad.
+
+***
+
+<div id="operator-types-standalone-and-conjunction-required">
+  ## Tipos de operadores: independientes y que requieren conjunción
+</div>
+
+Los **operadores independientes** se pueden usar solos o junto con cualquier otro operador (incluidos aquellos que requieren conjunción).
+
+Por ejemplo, esta consulta funciona porque `#hashtag` es un operador independiente:
+
+```
+#xapiv2
+```
+
+Los **operadores que requieren conjunción** no pueden usarse por sí solos en una consulta; solo pueden utilizarse cuando se incluye al menos un operador independiente. Esto se debe a que usar estos operadores por sí solos generaría un volumen extremadamente alto de Publicaciones.
+
+Por ejemplo, las siguientes consultas **no se admiten** ya que contienen únicamente operadores que requieren conjunción:
+
+```
+has:media
+```
+
+```
+has:links OR is:retweet
+```
+
+Si agregamos un operador independiente, como la expresión `"X data"`, la consulta funciona correctamente:
+
+```
+"X data" has:mentions (has:media OR has:links)
+```
+
+***
+
+<div id="boolean-operators-and-grouping">
+  ## Operadores booleanos y agrupación
+</div>
+
+Encadena múltiples operadores usando estas herramientas:
+
+| Operador | Descripción | Ejemplo |
+| :--- | :--- | :--- |
+| **AND** (space) | Las Publicaciones deben coincidir con ambas condiciones | `snow day #NoSchool` coincide con Publicaciones que contienen &quot;snow&quot;, &quot;day&quot; y #NoSchool |
+| **OR** | Las Publicaciones deben coincidir con al menos una de las condiciones | `grumpy OR cat OR #meme` coincide con Publicaciones que contienen &quot;grumpy&quot;, &quot;cat&quot; o #meme |
+| **NOT** (dash) | Excluye las Publicaciones que coinciden con esta condición | `cat #meme -grumpy` coincide con Publicaciones que contienen &quot;cat&quot; y #meme pero NO &quot;grumpy&quot; |
+| **Grouping** (parentheses) | Agrupa operadores | `(grumpy cat) OR (#meme has:images)` coincide con cualquiera de los grupos |
+
+<Note>
+  **Una nota sobre negaciones**
+
+  * El operador `-is:nullcast` siempre debe usarse negado
+  * No se pueden usar operadores negados de forma aislada
+  * No niegues operadores agrupados. En lugar de `skiing -(snow OR day OR noschool)`, usa `skiing -snow -day -noschool`
+</Note>
+
+***
+
+<div id="order-of-operations">
+  ## Orden de operaciones
+</div>
+
+Al combinar AND y OR:
+
+1. Primero se combinan los operadores conectados mediante la lógica AND
+2. Luego se aplican los operadores conectados mediante la lógica OR
+
+**Ejemplos:**
+
+| Query                    | Evaluated as               |
+| :----------------------- | :------------------------- |
+| `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
+| `ipad iphone OR android` | `(iphone ipad) OR android` |
+
+Para eliminar la incertidumbre, usa paréntesis:
+
+```
+(apple OR iphone) ipad
+```
+
+```
+iphone (ipad OR android)
+```
+
+***
+
+<div id="punctuation-diacritics-and-case-sensitivity">
+  ## Puntuación, signos diacríticos y distinción entre mayúsculas y minúsculas
+</div>
+
+**Signos diacríticos:** Las consultas de búsqueda con acentos o signos diacríticos encuentran Publicaciones tanto con como sin acentos. Por ejemplo, `Diacrítica` coincide con *Diacrítica* y *Diacritica*.
+
+**Distinción entre mayúsculas y minúsculas:** Todos los operadores son insensibles a mayúsculas y minúsculas. La consulta `cat` coincide con *cat*, *CAT* y *Cat*.
+
+<Note>
+  **El stream filtrado se comporta de manera diferente**
+
+  Al [crear reglas de stream filtrado](/es/x-api/posts/filtered-stream/integrate/build-a-rule), las palabras clave con acentos solo coinciden con Publicaciones que también incluyan el acento. Por ejemplo, `Diacrítica` solo coincide con *Diacrítica*, no con *Diacritica*.
+</Note>
+
+***
+
+<div id="quote-tweet-matching">
+  ## Coincidencia de Quote Tweet
+</div>
+
+Al usar Search Posts, los operadores se aplican al contenido del Quote Tweet, pero **no** al contenido de la Publicación original citada.
+
+<Note>
+  [Filtered stream](/es/x-api/posts/filtered-stream/introduction) se comporta de forma diferente: realiza coincidencias tanto en el Quote Tweet como en el contenido de la Publicación original.
+</Note>
+
+***
+
+<div id="specificity-and-efficiency">
+  ## Especificidad y eficiencia
+</div>
+
+<Warning>
+  No se recomienda usar operadores amplios como una sola palabra clave o hashtag, ya que harán coincidir un volumen masivo de Publicaciones y consumirán rápidamente tus límites de uso.
+</Warning>
+
+**Consejos para crear consultas eficaces:**
+
+1. **Empieza con algo específico y luego amplía** — Crea consultas dirigidas que devuelvan resultados relevantes
+2. **Usa múltiples operadores** — Combina operadores para acotar los resultados
+3. **Controla el número de caracteres** — Toda la cadena de consulta cuenta para el límite
+
+**Ejemplo de progresión:**
+
+```
+# Too broad - 200,000+ Posts per day
+happy
+
+# Mejor: agrega filtro de idioma y exclusiones
+(happy OR happiness) lang:en -birthday -is:retweet
+
+# Even better - 59 characters, more specific
+(happy OR happiness) place_country:GB -birthday -is:retweet
+```
+
+***
+
+<div id="iteratively-building-a-query">
+  ## Crear una consulta paso a paso
+</div>
+
+<div id="step-1-start-with-a-basic-query">
+  ### Paso 1: Empieza con una consulta básica
+</div>
+
+```
+happy OR happiness
+```
+
+<div id="step-2-test-and-narrow-based-on-results">
+  ### Paso 2: Haz pruebas y acota según los resultados
+</div>
+
+Detectamos Publicaciones en muchos idiomas. Añade un filtro de idioma:
+
+```
+(happy OR happiness) lang:en
+```
+
+Estamos recibiendo mensajes de felicitación de cumpleaños. Exclúyelos y los Retweets:
+
+```
+(happy OR happiness) lang:en -birthday -is:retweet
+```
+
+<div id="step-3-broaden-for-better-coverage">
+  ### Paso 3: Ampliar para mejorar la cobertura
+</div>
+
+Queremos capturar más matices de sentimiento. Añade palabras clave relacionadas:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
+```
+
+<div id="step-4-adjust-for-trends">
+  ### Paso 4: Ajustar según las tendencias
+</div>
+
+Empiezan a aparecer Publicaciones sobre festividades. Exclúyelas:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
+```
+
+***
+
+<div id="adding-a-query-to-your-request">
+  ## Agregar una consulta a tu solicitud
+</div>
+
+Utiliza el parámetro `query` y codifica la consulta para HTTP:
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=cat%20has%3Amedia%20-grumpy&\
+tweet.fields=created_at&\
+max_results=100" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+***
+
+<div id="query-examples">
+  ## Ejemplos de consultas
+</div>
+
+<div id="tracking-a-natural-disaster">
+  ### Seguimiento de un desastre natural
+</div>
+
+Que coincida con Publicaciones de agencias meteorológicas sobre el huracán Harvey:
+
+**Consulta:**
+
+```
+has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1) -is:retweet
+```
+
+**URL completa de la solicitud:**
+
+```
+https://api.x.com/2/tweets/search/recent?query=has%3Ageo%20(from%3ANWSNHC%20OR%20from%3ANHC_Atlantic%20OR%20from%3ANWSHouston%20OR%20from%3ANWSSanAntonio%20OR%20from%3AUSGS_TexasRain%20OR%20from%3AUSGS_TexasFlood%20OR%20from%3AJeffLindner1)%20-is%3Aretweet
+```
+
+<div id="sentiment-analysis-for-nowplaying">
+  ### Análisis de sentimiento para #nowplaying
+</div>
+
+**Sentimiento positivo:**
+
+```
+#nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing
+```
+
+**Sentimiento negativo:**
+
+```
+#nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible
+```
+
+<div id="using-post-annotations">
+  ### Uso de anotaciones de Publicaciones
+</div>
+
+Encuentra Publicaciones en japonés sobre mascotas (que no sean gatos) con imágenes usando el operador `context:`:
+
+Primero, usa [Post lookup](/es/x-api/posts/lookup/introduction) con `tweet.fields=context_annotations` para identificar los id de domain.entity:
+
+* Cats: `domain` 66, `entity` 852262932607926273
+* Pets: `domain` 65, `entity` 852262932607926273
+
+**Consulta:**
+
+```
+context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:images lang:ja
+```
+
+***
+
+<div id="tools">
+  ## Herramientas
+</div>
+
+<Card title="Herramienta para generar consultas" icon="wrench" href="https://developer.x.com/apitools/query?query=">
+  Crea y prueba tus consultas de forma interactiva
+</Card>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Referencia de operadores" icon="list" href="/es/x-api/posts/search/integrate/operators">
+    Lista completa de operadores disponibles
+  </Card>
+
+  <Card title="Inicio rápido de búsqueda" icon="rocket" href="/es/x-api/posts/search/quickstart/recent-search">
+    Realiza tu primera solicitud de búsqueda
+  </Card>
+
+  <Card title="Guía de integración" icon="book" href="/es/x-api/posts/search/integrate/overview">
+    Documentación completa sobre la integración
+  </Card>
+</CardGroup>

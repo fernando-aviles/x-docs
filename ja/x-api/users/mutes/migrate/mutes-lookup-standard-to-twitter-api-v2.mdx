@@ -1,0 +1,185 @@
+---
+title: ミュートの取得
+sidebarTitle: ミュートの取得
+keywords: ["ミュート取得の移行", "v1.1 から v2 へのミュート取得", "ミュート取得の移行手順", "Standard v1.1 から v2 のミュートへ移行", "ミュート機能の移行"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="mutes-lookup-standard-v11-compared-to-x-api-v2">
+  ### ミュートの取得: Standard v1.1 と X API v2 の比較
+</div>
+
+Standard v1.1 の [GET mutes/users/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-ids) と [GET mutes/users/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-list) エンドポイントを使用していた場合、本ガイドは Standard v1.1 と X API v2 のミュート取得エンドポイントの共通点と相違点を理解するための手助けとなることを目的としています。
+
+* **共通点**
+  * 認証
+* **相違点**
+  * エンドポイント URL
+
+  * リクエストごとのユーザー数の上限
+
+  * App と Project の要件
+
+  * レスポンスデータの形式
+
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+Standard v1.1 と X API v2 の両方の mutes lookup エンドポイントは、[OAuth 1.0a User Context](/ja/resources/fundamentals/authentication#oauth-1-0a-2) を使用します。そのため、以前に Standard v1.1 の mutes lookup エンドポイントのいずれかを利用していた場合は、X API v2 の対応するエンドポイントへ移行しても、同じ認証方法を引き続き利用できます。 
+
+<div id="differences">
+  #### 違い
+</div>
+
+**エンドポイント URL**
+
+* 標準 v1.1 エンドポイント:
+  * GET https://api.x.com/1.1/mutes/users/ids.json
+    (指定したユーザーがミュートしているユーザー ID のリスト)
+  * GET https://api.x.com/1.1/mutes/users/lists.json
+    (指定したユーザーによってミュートされているユーザーのリスト)
+* X API v2 エンドポイント:
+  * GET https://api.x.com/2/users/:id/muting
+    (指定したユーザー ID によってミュートされているユーザーのリスト)
+     
+
+**1 回のリクエストあたりのユーザー数の上限**
+
+標準 v1.1 エンドポイントでは、1 回のリクエストで最大 5,000 人のユーザーを返すことができます。新しい v2 エンドポイントでは、1 回のリクエストで最大 1,000 人のユーザーを返すことができます。1,000 人分をすべて取得するには、クエリパラメータとして max&#95;results=1000 を指定する必要があります。その後、レスポンスペイロードに含まれる next&#95;token を、次のリクエストの pagination&#95;token クエリパラメータに指定して送信できます。
+ 
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストの認証時に、[developer App](/ja/resources/fundamentals/developer-apps) と、それに関連付けられた [Project](/ja/resources/fundamentals/developer-apps) の資格情報を使用する必要があります。すべての X API v1.1 エンドポイントは、Project に関連付けられていない App、または Project に関連付けられた App のどちらの資格情報も使用できます。
+
+**レスポンスデータ形式**
+
+標準 v1.1 と X API v2 のエンドポイントバージョンの最大の違いの 1 つは、ペイロード内でどのフィールドを返すかの選択方法です。
+
+標準エンドポイントでは、多くのレスポンスフィールドがデフォルトで返され、そのうえで、どのフィールドやフィールドセットをペイロード内で返すかを特定するためのパラメータを使用できます。
+
+X API v2 では、デフォルトで返されるのは user の id、name、username フィールドのみです。追加のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。このエンドポイントからリクエストした任意の user フィールドは、メインの user オブジェクトで返されます。展開された Post オブジェクトとそのフィールドは、レスポンス内の includes オブジェクトで返されます。その後、user と展開された Post オブジェクトの両方に含まれる ID を照合することで、任意の展開オブジェクトを user オブジェクトに対応付けることができます。 
+
+これらの新しいパラメータについてさらに理解するために、それぞれのガイドや、[fields と expansions の使い方](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドをお読みいただくことをおすすめします。 
+
+また、標準 v1.1 のフィールドを新しい v2 のフィールドにマッピングする際に役立つ [データ形式の移行ガイド](/ja/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) も用意しています。このガイドでは、特定のフィールドを返すために v2 リクエストで指定する必要がある、具体的な expansion と field パラメータについても説明しています。 
+ 
+
+特定のフィールドのリクエスト方法の変更に加えて、X API v2 では、[Post](/ja/x-api/fundamentals/data-dictionary#tweet) や [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトを含む、API によって返されるオブジェクト向けの新しい JSON 設計も導入しています。
+
+* JSON のルートレベルでは、標準エンドポイントは Post オブジェクトを statuses 配列で返しますが、X API v2 は data 配列で返します。 
+* リツイートおよび引用「statuses」を参照する代わりに、X API v2 の JSON ではリツイートおよび引用ツイートを参照します。contributors や user.translator&#95;type など、多くのレガシーかつ非推奨のフィールドは削除されます。 
+* Post オブジェクト内の favorites と user オブジェクト内の favourites の両方を使用する代わりに、X API v2 では like という用語を使用します。 
+* X では、値を持たない JSON 値（たとえば null）はペイロードに書き込まない、という規則を採用しています。Post と user の属性は、非 null の値を持つ場合にのみ含まれます。 
+   
+
+また、[Post オブジェクト](/ja/x-api/fundamentals/data-dictionary#tweet) に、次のような新しいフィールドセットを導入しました。
+
+* [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) フィールド
+* context と entities を含む、2 つの新しい [annotations](/ja/x-api/fundamentals/post-annotations) フィールド
+* 複数の新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド 
+* 指定されたポストに返信できるユーザーを示す、新しい reply&#95;setting フィールド
+
+**リクエストパラメータ**
+
+次の標準 v1.1 リクエストパラメータには、X API v2 における同等のパラメータがあります。
+
+| **標準** | **X API v2** |
+| :--- | :--- |
+| stringify&#95;ids | 対応なし |
+| cursor | pagination&#95;token |
+| skip&#95;status | 対応なし |
+
+また、X API v2 ではサポート**されていない**、v1.1 の標準的な Mutes ルックアップ用リクエストパラメータもあります。
+
+| 標準 | コメント |
+| :--- | :--- |
+| include&#95;entities | このパラメータは、ポストのペイロードから entities ノードを削除するために使用します。これは、追加指定型のフィールドおよび expansions 機能に置き換えられました。 |
+
+***
+
+<div id="code-examples">
+  ## コード例
+</div>
+
+<div id="get-muted-users-v2">
+  ### ミュートしているユーザーを取得 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ページネーションを使ってミュートしているユーザーを取得
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ページネーションを使ってミュートしているユーザーを取得
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>

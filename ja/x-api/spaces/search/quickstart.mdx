@@ -1,0 +1,271 @@
+---
+title: クイックスタート
+sidebarTitle: クイックスタート
+description: キーワードで Spaces を検索する
+keywords: ["Spaces 検索のクイックスタート", "Spaces 検索チュートリアル", "Spaces 検索ガイド"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、キーワードで Spaces を検索する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  開始する前に、次のものが必要です。
+
+  * 承認済みの App がある[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App のベアラートークン
+</Note>
+
+***
+
+<div id="search-for-spaces">
+  ## スペースを検索する
+</div>
+
+キーワードに一致するスペースを検索します：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/spaces/search?\
+  query=AI&\
+  space.fields=title,host_ids,participant_count,state&\
+  state=live" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # スペースを検索する
+  response = client.spaces.search(
+      query="AI",
+      space_fields=["title", "host_ids", "participant_count", "state"],
+      state="live"
+  )
+
+  for space in response.data:
+      print(f"{space.title} - {space.participant_count} participants")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // スペースを検索する
+  const response = await client.spaces.search({
+    query: "AI",
+    spaceFields: ["title", "host_ids", "participant_count", "state"],
+    state: "live",
+  });
+
+  response.data?.forEach((space) => {
+    console.log(`${space.title} - ${space.participant_count} participants`);
+  });
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### レスポンス
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1DXxyRYNejbKM",
+      "state": "live",
+      "title": "Discussing AI and the Future",
+      "host_ids": ["2244994945"],
+      "participant_count": 245
+    },
+    {
+      "id": "1YqJDqWYNQDGW",
+      "state": "live",
+      "title": "AI in Healthcare",
+      "host_ids": ["783214"],
+      "participant_count": 89
+    }
+  ],
+  "meta": {
+    "result_count": 2
+  }
+}
+```
+
+***
+
+<div id="filter-by-state">
+  ## 状態で絞り込む
+</div>
+
+ライブ中またはスケジュール済みのスペースのみを検索します：
+
+<div id="live-spaces-only">
+  ### ライブ中のSpacesのみ
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/spaces/search?query=tech&state=live" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ライブ中のSpacesのみを検索
+  response = client.spaces.search(query="tech", state="live")
+
+  for space in response.data:
+      print(f"LIVE: {space.title}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ライブ中のSpacesのみを検索
+  const response = await client.spaces.search({
+    query: "tech",
+    state: "live",
+  });
+
+  response.data?.forEach((space) => {
+    console.log(`LIVE: ${space.title}`);
+  });
+  ```
+</CodeGroup>
+
+<div id="scheduled-spaces-only">
+  ### 予約済みの Spaces のみ
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/spaces/search?query=tech&state=scheduled" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 予約済みの Spaces のみを検索
+  response = client.spaces.search(query="tech", state="scheduled")
+
+  for space in response.data:
+      print(f"SCHEDULED: {space.title}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 予約済みの Spaces のみを検索
+  const response = await client.spaces.search({
+    query: "tech",
+    state: "scheduled",
+  });
+
+  response.data?.forEach((space) => {
+    console.log(`SCHEDULED: ${space.title}`);
+  });
+  ```
+</CodeGroup>
+
+***
+
+<div id="include-host-information">
+  ## ホスト情報を含める
+</div>
+
+ホストユーザーのデータを展開します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/spaces/search?\
+  query=AI&\
+  space.fields=title,host_ids,state&\
+  expansions=host_ids&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ホスト情報を含めて検索
+  response = client.spaces.search(
+      query="AI",
+      space_fields=["title", "host_ids", "state"],
+      expansions=["host_ids"],
+      user_fields=["username", "verified"]
+  )
+
+  for space in response.data:
+      print(f"{space.title}")
+  # ホスト情報は response.includes.users に含まれます
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ホスト情報を含めて検索
+  const response = await client.spaces.search({
+    query: "AI",
+    spaceFields: ["title", "host_ids", "state"],
+    expansions: ["host_ids"],
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((space) => {
+    console.log(space.title);
+  });
+  // ホスト情報は response.includes?.users に含まれます
+  ```
+</CodeGroup>
+
+***
+
+<div id="common-parameters">
+  ## 共通パラメーター
+</div>
+
+| パラメーター | 説明 |
+|:----------|:------------|
+| `query` | 検索クエリ（必須） |
+| `state` | フィルター：`live`、`scheduled`、または `all` |
+| `max_results` | 返す結果数（1〜100） |
+| `space.fields` | レスポンスに含める Space のフィールド |
+| `expansions` | レスポンスに含める関連オブジェクト |
+| `user.fields` | レスポンスに含める User のフィールド |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Space ルックアップ" icon="microphone" href="/ja/x-api/spaces/lookup/quickstart">
+    id で Space を取得する
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/spaces/search-spaces">
+    エンドポイントの詳細ドキュメント
+  </Card>
+</CardGroup>

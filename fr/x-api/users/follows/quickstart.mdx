@@ -1,0 +1,322 @@
+---
+title: Démarrage rapide
+sidebarTitle: Démarrage rapide
+description: Récupérez les listes d’abonnés et d’abonnements et gérez les abonnements
+keywords: ["démarrage rapide abonnements", "démarrage rapide abonnés", "tutoriel abonnements", "guide abonnements"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer les listes d’abonnés et d’abonnements, et gérer les abonnements.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D’un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * Du jeton Bearer de votre App (pour les consultations)
+  * D’un jeton d’accès utilisateur (User Access Token) pour gérer les abonnements
+</Note>
+
+***
+
+<div id="get-a-users-followers">
+  ## Obtenir les abonnés d’un utilisateur
+</div>
+
+Récupérez la liste des utilisateurs qui suivent un utilisateur donné :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/followers?\
+  user.fields=username,verified,public_metrics&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Obtenir les abonnés d’un utilisateur avec pagination
+  for page in client.users.get_followers(
+      "2244994945",
+      user_fields=["username", "verified", "public_metrics"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Followers: {user.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Obtenir les abonnés d’un utilisateur avec pagination
+  const paginator = client.users.getFollowers("2244994945", {
+    userFields: ["username", "verified", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Followers: ${user.public_metrics?.followers_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### Réponse
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Developer",
+      "username": "dev_user",
+      "verified": false,
+      "public_metrics": {
+        "followers_count": 500,
+        "following_count": 200,
+        "tweet_count": 1500
+      }
+    }
+  ],
+  "meta": {
+    "result_count": 1,
+    "next_token": "abc123"
+  }
+}
+```
+
+***
+
+<div id="get-who-a-user-follows">
+  ## Obtenir la liste des comptes suivis par un utilisateur
+</div>
+
+Récupérez la liste des comptes suivis par un utilisateur donné :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/following?\
+  user.fields=username,verified&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer les comptes suivis par un utilisateur
+  for page in client.users.get_following(
+      "2244994945",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Récupérer les comptes suivis par un utilisateur
+  const paginator = client.users.getFollowing("2244994945", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="follow-a-user">
+  ## Suivre un utilisateur
+</div>
+
+Suivez un utilisateur pour le compte de l’utilisateur authentifié :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/following" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Suivre un utilisateur
+  response = client.users.follow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Abonnement : {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Suivre un utilisateur
+  const response = await client.users.follow("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Abonnement : ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### Réponse
+</div>
+
+```json
+{
+  "data": {
+    "following": true,
+    "pending_follow": false
+  }
+}
+```
+
+<Note>
+  Si le compte cible est protégé, `pending_follow` aura la valeur `true` tant que la demande d&#39;abonnement n&#39;aura pas été approuvée.
+</Note>
+
+***
+
+<div id="unfollow-a-user">
+  ## Ne plus suivre un utilisateur
+</div>
+
+Ne plus suivre un utilisateur pour le compte de l’utilisateur authentifié :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/following/2244994945" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Ne plus suivre un utilisateur
+  response = client.users.unfollow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Ne plus suivre un utilisateur
+  const response = await client.users.unfollow("123456789", "2244994945");
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### Réponse
+</div>
+
+```json
+{
+  "data": {
+    "following": false
+  }
+}
+```
+
+***
+
+<div id="common-parameters">
+  ## Paramètres courants
+</div>
+
+| Paramètre | Description |
+|:----------|:------------|
+| `max_results` | Nombre de résultats par page (1-1000, valeur par défaut : 100) |
+| `pagination_token` | Jeton de pagination pour la page suivante |
+| `user.fields` | Champs utilisateur supplémentaires |
+| `expansions` | Objets connexes à inclure |
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Recherche d’utilisateurs" icon="user" href="/fr/x-api/users/lookup/introduction">
+    Rechercher des profils d’utilisateurs
+  </Card>
+
+  <Card title="Blocages" icon="ban" href="/fr/x-api/users/blocks/introduction">
+    Bloquer et débloquer des utilisateurs
+  </Card>
+
+  <Card title="Mises en sourdine" icon="volume-xmark" href="/fr/x-api/users/mutes/introduction">
+    Mettre des utilisateurs en sourdine et réactiver le son
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/users/followers-lookup">
+    Documentation complète du point de terminaison
+  </Card>
+</CardGroup>

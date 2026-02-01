@@ -1,0 +1,190 @@
+---
+title: いいねの管理
+sidebarTitle: いいねの管理
+keywords: ["「いいね」管理の移行", "v1.1 から v2 への「いいね」管理", "「いいね」管理を移行", "Standard から v2 への「いいね」", "「いいね」の移行"]
+---
+
+<div id="manage-likes-standard-v11-compared-to-x-api-v2">
+  ### いいねの管理: Standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の [POST favorites/create](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-favorites-create) と [POST favorites/destroy](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-favorites-destroy) エンドポイントを利用している場合、このガイドの目的は、standard v1.1 と X API v2 におけるいいね管理エンドポイントの共通点と相違点を理解するうえで役立つ情報を提供することです。
+
+* **共通点**
+  * OAuth 1.0a ユーザーコンテキスト
+* **相違点**
+  * エンドポイント URL と HTTP メソッド
+  * App と Project の要件
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**OAuth 1.0a User Context 認証方法**
+
+どちらのバージョンのエンドポイントも [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication#oauth-1-0a-2) をサポートしています。したがって、以前に standard v1.1 の manage favorites エンドポイントのいずれかを使用していた場合は、X API v2 のエンドポイントに移行しても、同じ認証方法をそのまま利用できます。
+
+<div id="differences">
+  #### 相違点
+</div>
+
+**エンドポイント URL と HTTP メソッド**
+
+* Standard v1.1 エンドポイント:
+  * POST https://api.x.com/1.1/favorites/create.json
+    (ポストに「いいね」)
+  * POST https://api.x.com/1.1/favorites/destroy.json
+    (ポストの「いいね」を取り消し)
+* X API v2 エンドポイント:
+  * POST https://api.x.com/2/tweets/:id/likes
+    (ポストに「いいね」)
+  * DELETE https://api.x.com/2/tweets/:id/likes/:tweet&#95;id
+    (ポストの「いいね」を取り消し) 
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストの認証時に、[developer App](/ja/resources/fundamentals/developer-apps) のうち [Project](/ja/resources/fundamentals/developer-apps) に関連付けられているものから取得した認証情報を使用する必要があります。すべての X API v1.1 エンドポイントは、単独の App からの認証情報でも、Project に関連付けられた App からの認証情報でも使用できます。
+
+**リクエストパラメータ**
+
+次の Standard v1.1 リクエストパラメータには、X API v2 での対応があります。
+
+| Standard v1.1 | X API v2 |
+| :--- | :--- |
+| id  | id  |
+| includes&#95;entities | 対応するパラメータはありません |
+
+Standard v1.1 のパラメータはクエリパラメータとして渡される一方、X API v2 のパラメータは POST エンドポイントではボディパラメータとして、DELETE エンドポイントではパスパラメータとして渡される点に注意してください。
+
+また、Standard v1.1 エンドポイントを使用する場合、ポストに「いいね」するユーザーの id を指定する必要はありません。これは、[OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) とともに渡される [Access Tokens](/ja/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) によって、どのユーザーが「いいね」や「いいね」の取り消しを実行しているかが推論されるためです。
+
+***
+
+<div id="code-examples">
+  ## コードサンプル
+</div>
+
+<div id="like-a-post-v2">
+  ### ポストに「いいね」を付ける (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/likes" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python
+  # ユーザーコンテキストでの OAuth 1.0a 認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/likes"
+  response = requests.post(url, auth=auth, json={"tweet_id": "1234567890"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ポストに「いいね」を付ける
+  response = client.posts.like(user_id="123456789", tweet_id="1234567890")
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ポストに「いいね」を付ける
+  const response = await client.posts.like("123456789", { tweetId: "1234567890" });
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>
+
+<div id="unlike-a-post-v2">
+  ### ポストのいいねを解除する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/likes/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a のユーザーコンテキスト認証が必要です
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/likes/1234567890"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ポストのいいねを解除する
+  response = client.posts.unlike(user_id="123456789", tweet_id="1234567890")
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ポストのいいねを解除する
+  const response = await client.posts.unlike("123456789", "1234567890");
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>

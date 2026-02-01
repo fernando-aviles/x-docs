@@ -1,0 +1,213 @@
+---
+title: いいねの取得
+sidebarTitle: いいねの取得
+keywords: ["いいね取得の移行", "v1.1 から v2 へのいいね取得", "いいね取得を移行する", "Standard から v2 へのいいね取得", "いいねの移行"]
+---
+
+<div id="likes-lookup-standard-v11-compared-to-x-api-v2">
+  ### いいねのルックアップ: Standard v1.1 と X API v2 の比較
+</div>
+
+Standard v1.1 の [GET favorites/list](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/api-reference/get-favorites-list) エンドポイントを利用してきた場合、このガイドでは、Standard v1.1 と X API v2 の Likes ルックアップエンドポイントの共通点と相違点を理解できるように説明します。
+
+v2 では、新たに liked users エンドポイントも導入されており、ポストに「いいね」したユーザーに関する情報を取得できるようになりました。
+
+* **類似点**
+  * 認証
+  * レート制限
+* **相違点**
+  * エンドポイント URL
+
+  * リクエストの制約
+
+  * App と Project の要件
+
+  * リクエストパラメータ
+
+  * 新しい JSON 形式
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+standard v1.1 と X API v2 の Likes lookup エンドポイントは、どちらも [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication#oauth-1-0a-2) か [OAuth 2.0 Bearer Token](/ja/resources/fundamentals/authentication#bearer-token-also-known-as-app-only) を使用します。したがって、以前に standard v1.1 の [GET favorites/list エンドポイント](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/api-reference/get-favorites-list) を使用していた場合、X API v2 版へ移行しても、引き続き同じ認証方法を使用できます。 
+
+利用している認証ライブラリやパッケージにもよりますが、Bearer Token 認証はおそらく最も簡単に始められる方法であり、シンプルなリクエストヘッダーで設定できます。Bearer Token の生成方法については、[この OAuth 2.0 Bearer Token ガイド](/ja/resources/fundamentals/authentication#bearer-token-also-known-as-app-only) を参照してください。 
+ 
+
+**レート制限**
+
+standard v1.1 の GET favorites/list エンドポイントには、ユーザーごとに 15 分あたり 75 リクエストのレート制限があります。v2 の対応する、いいねした投稿のエンドポイントにも同じレート制限があります。ただし、この v2 エンドポイントには、さらに App ごとに 15 分あたり 75 リクエストという追加のレート制限もあります。
+
+<div id="differences">
+  #### 相違点
+</div>
+
+**エンドポイント URL**
+
+* 標準 v1.1 エンドポイント:
+  * GET https://api.x.com/1.1/favorites/list.json
+    (指定したユーザーによるポストのリスト)
+  * v2 の liking users エンドポイントに相当する v1.1 エンドポイントはありません
+* X API v2 エンドポイント:
+  * GET https://api.x.com/2/users/:id/liked&#95;tweets
+    (指定したユーザー ID が「いいね」したポストのリスト)
+  * GET https://api.x.com/2/tweets/:id/liking&#95;users
+    (指定したポスト ID に「いいね」したユーザーのリスト)
+
+**リクエストの制限事項**
+
+v2 の liked Posts エンドポイントでは、1 回のリクエストで 5 ～ 100 件のポストをリクエストできますが、ページネーショントークンを使うことで、特定のポストへのすべての「いいね」を取得できます。v1.1 の GET favorites/list エンドポイントでもポストへのすべての「いいね」を取得できますが、1 回のリクエストで 20 ～ 200 件のポストを取得できます。
+
+v2 の liking users エンドポイントでは、1 件のポストにつき取得できる liking users は最大 100 人までに制限されています。 
+ 
+
+**App と Project の要件**
+
+X API v2 の各エンドポイントでは、リクエストの認証時に [developer App](/ja/resources/fundamentals/developer-apps) の認証情報を使用する必要があります。この App は [Project](/ja/resources/fundamentals/developer-apps) に関連付けられている必要があります。X API v1.1 のすべてのエンドポイントは、Project に関連付けられていない App か、Project に関連付けられた App のいずれかの認証情報を使用できます。
+
+**リクエストパラメータ**
+
+以下の標準 v1.1 リクエストパラメータは、`user_id` と `screen_name` の 2 つのクエリパラメータを受け付けていました。X API v2 では数値のユーザー ID のみを受け付け、エンドポイントパスの一部として渡す必要があります。
+
+標準 v1.1 と X API v2 のエンドポイントバージョンの最大の違いの 1 つは、ペイロードにどのフィールドを含めるかの指定方法です。標準エンドポイントでは、ペイロードにどのフィールドまたはフィールドのセットを含めるかを指定するために、複数のパラメータを使用できましたが、X API v2 ではこれらさまざまなパラメータを [fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) に統一して簡素化しています。 
+ 
+
+**新しい JSON 形式**
+
+X API v2 は、[Post](/ja/x-api/fundamentals/data-dictionary#tweet) や [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトを含む、API が返すオブジェクトに対して新しい JSON デザインを導入しています。
+
+* JSON のルートレベルでは、標準エンドポイントは `statuses` 配列内に user オブジェクトを返しますが、X API v2 は `data` 配列内に返します。 
+* Retweeted および Quoted の「statuses」を参照する代わりに、X API v2 の JSON では Retweeted および Quoted Tweets を参照します。`contributors` や `user.translator_type` など、多くのレガシーおよび非推奨フィールドは削除されます。 
+* Post オブジェクト内の `favorites` と user オブジェクト内の `favourites` の両方を使用する代わりに、X API v2 では `like` という用語を使用します。 
+* X では、値を持たない JSON 値 (たとえば `null`) はペイロードに出力しないという規約を採用しています。Post と user の属性は、null 以外の値を持つ場合にのみ含まれます。
+   
+
+新しい JSON 形式への変更に加えて、Post オブジェクトに次のような新しいフィールド群も導入しました。
+
+* [conversation&#95;id](/ja/x-api/fundamentals/conversation-id)
+* `context` と `entities` を含む 2 つの新しい [Post annotations](/ja/x-api/fundamentals/post-annotations) フィールド
+* 複数の新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド
+
+***
+
+<div id="code-examples">
+  ## コードサンプル
+</div>
+
+<div id="get-liked-posts-v2">
+  ### いいねした投稿を取得 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/liked_tweets?tweet.fields=created_at,public_metrics&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/2244994945/liked_tweets"
+
+  params = {
+      "tweet.fields": "created_at,public_metrics",
+      "max_results": 100
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ユーザーが「いいね」した投稿を取得
+  for page in client.posts.get_liked_posts(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ユーザーが「いいね」した投稿を取得
+  const paginator = client.posts.getLikedPosts("2244994945", {
+    tweetFields: ["created_at", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="get-liking-users-v2">
+  ### いいねしたユーザーを取得する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1234567890/liking_users?user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/1234567890/liking_users"
+
+  params = {"user.fields": "username,verified"}
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ポストにいいねしたユーザーを取得
+  response = client.posts.get_liking_users(
+      "1234567890",
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ポストにいいねしたユーザーを取得
+  const response = await client.posts.getLikingUsers("1234567890", {
+    userFields: ["username", "verified"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username} - Verified: ${user.verified}`);
+  });
+  ```
+</CodeGroup>

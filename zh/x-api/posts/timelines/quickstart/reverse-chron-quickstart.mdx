@@ -1,0 +1,244 @@
+---
+title: 主页时间线快速入门
+sidebarTitle: 主页时间线
+description: 按时间逆序获取某个用户的主页时间线
+keywords: ["主页时间线", "时间逆序", "主页时间线快速入门", "时间线快速入门", "主页时间线教程"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你向按时间倒序排列的首页时间线（home timeline）端点发出你的第一个请求。
+
+<Note>
+  **先决条件**
+
+  在开始之前，你需要：
+
+  * 一个拥有已通过审核 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 用户访问令牌（此端点需要用户身份验证）
+</Note>
+
+***
+
+<div id="step-1-get-the-user-id">
+  ## 步骤 1：获取用户 ID
+</div>
+
+要获取某个账号的主页时间线，你需要先知道该账号的用户 ID。可以使用按用户名查询的端点来获取：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  response = client.users.get_by_username("XDevelopers")
+  print(f"User ID: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(`User ID: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+响应中会返回该用户 ID：
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+***
+
+<div id="step-2-request-the-home-timeline">
+  ## 步骤 2：请求主页时间线
+</div>
+
+使用用户 ID 和 User Access Token 发送一个 GET 请求：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 使用分页获取主页时间线
+  for page in client.posts.get_home_timeline("2244994945"):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 使用分页获取主页时间线
+  const paginator = client.posts.getHomeTimeline("2244994945");
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-3-review-the-response">
+  ## 步骤 3：检查响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1524796546306478083",
+      "text": "Today marks the launch of Devs in the Details...",
+      "edit_history_tweet_ids": ["1524796546306478083"]
+    },
+    {
+      "id": "1524468552404668416",
+      "text": "Join us tomorrow for a discussion about bots...",
+      "edit_history_tweet_ids": ["1524468552404668416"]
+    }
+  ],
+  "meta": {
+    "result_count": 2,
+    "newest_id": "1524796546306478083",
+    "oldest_id": "1524468552404668416",
+    "next_token": "7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4"
+  }
+}
+```
+
+***
+
+<div id="step-4-add-fields-and-expansions">
+  ## 步骤 4：添加字段和 Expansions
+</div>
+
+使用查询参数请求更多数据：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified&\
+  max_results=10" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 使用字段和 Expansions 获取主页时间线
+  for page in client.posts.get_home_timeline(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 使用字段和 Expansions 获取主页时间线
+  const paginator = client.posts.getHomeTimeline("2244994945", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-5-paginate-through-results">
+  ## 步骤 5：对结果进行分页
+</div>
+
+SDK 会自动处理分页。对于 cURL，请使用响应中的 `next_token` 来获取更多结果：
+
+```bash
+curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+max_results=10&\
+pagination_token=7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="common-parameters">
+  ## 通用参数
+</div>
+
+| 参数 | 描述 | 默认值 |
+|:----------|:------------|:--------|
+| `max_results` | 每页返回的结果数量（1-100） | 10 |
+| `start_time` | 最早帖子的时间戳（ISO 8601） | — |
+| `end_time` | 最新帖子的时间戳（ISO 8601） | — |
+| `since_id` | 返回此 id 之后的帖子 | — |
+| `until_id` | 返回此 id 之前的帖子 | — |
+| `exclude` | 排除 `retweets`、`replies`，或两者同时排除 | — |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="用户提及" icon="at" href="/zh/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    获取提及某个用户的帖子
+  </Card>
+
+  <Card title="集成指南" icon="book" href="/zh/x-api/posts/timelines/integrate">
+    关键概念和最佳实践
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/reverse-chronological-timeline-by-user-id">
+    完整接口文档
+  </Card>
+
+  <Card title="分页指南" icon="arrow-right" href="/zh/x-api/fundamentals/pagination">
+    浏览大型结果集
+  </Card>
+</CardGroup>

@@ -1,0 +1,145 @@
+---
+title: 統合ガイド
+sidebarTitle: 統合ガイド
+keywords: ["ブックマーク統合", "ブックマークガイド", "ブックマーク統合ガイド", "ブックマーク実装", "ブックマークのセットアップ"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このページでは、manage Bookmarks エンドポイントをシステムに統合するにあたって理解しておくべき、いくつかのツールと重要な概念について説明します。内容は次のセクションで構成されています。
+
+* [便利なツール](/ja/x-api/users/blocks/integrate#helpful-tools)
+* 重要な概念
+  * [認証](/ja/x-api/users/blocks/integrate#authentication)
+  * [開発者コンソール、プロジェクト、App](/x-api/users/blocks/integrate#Developer Console-projects-and-developer-apps)
+  * [レート制限](/ja/x-api/users/blocks/integrate#rate-limits)
+
+<div id="helpful-tools">
+  ### 便利なツール
+</div>
+
+このエンドポイントを統合するための重要な概念を説明する前に、まず次のツールに慣れておくことをおすすめします。
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman は、エンドポイントをテストするために使用できる非常に便利なツールです。各 Postman リクエストには、利用可能な項目をすばやく把握できるよう、すべてのパスおよびボディパラメータが含まれています。Postman コレクションの詳細については、「[Using Postman](/ja/tutorials/postman-getting-started)」ページをご覧ください。
+
+<div id="code-samples">
+  #### コードサンプル
+</div>
+
+お好みのプログラミング言語でこのエンドポイントを使い始めるためのコードをお探しですか？[GitHub ページ](https://github.com/xdevplatform/Twitter-API-v2-sample-code)には、出発点として利用できるさまざまなコードサンプルを用意しています。
+
+<div id="third-party-libraries">
+  #### サードパーティライブラリ
+</div>
+
+コミュニティの[サードパーティライブラリ](/ja/x-api/tools-and-libraries/overview)を活用して、開発の開始に役立ててください。v2 エンドポイントに対応したライブラリは、適切なバージョンタグを目印に探すことができます。
+
+<div id="key-concepts">
+  ### 主要な概念
+</div>
+
+<div id="authentication">
+  #### 認証
+</div>
+
+すべての X API v2 エンドポイントでは、キーやトークンとも呼ばれる一連の認証情報を使用してリクエストを認証する必要があります。
+
+これらのエンドポイントでは、[OAuth 2.0 Authorization Code Flow with PKCE](/ja/resources/fundamentals/authentication/oauth-2-0/authorization-code) を使用する必要があります。これは、リクエストを正常に行うために、一連のキーとユーザーの Access Token を使用しなければならないことを意味します。Access Token は、あなたが代理でリクエストを行う対象のユーザーに紐づいている必要があります。別のユーザーの Access Token を生成したい場合、そのユーザーは [Authorize URL](/ja/resources/fundamentals/authentication#authorize-url) を使用してあなたの App を承認または認証しなければなりません。
+
+OAuth 2.0 の利用は難しい場合があることに注意してください。この認証方式に慣れていない場合は、[ライブラリ](/ja/x-api/tools-and-libraries/overview) や Postman のようなツールを使用して、リクエストを正しく認証することをお勧めします。
+
+<div id="developer-console-projects-and-developer-apps">
+  #### 開発者コンソール、Project、開発者 App
+</div>
+
+X API v2 エンドポイントで利用できる一連の認証情報を取得するには、[開発者アカウント](/ja/resources/fundamentals/developer-portal)を所有し、そのアカウント内に[Project](/ja/resources/fundamentals/developer-apps)を作成し、その Project 内に[開発者 App](/ja/resources/fundamentals/developer-apps)を作成している必要があります。そのうえで、開発者 App 内でキーとトークンを確認できます。
+
+<div id="rate-limits">
+  #### レート制限
+</div>
+
+毎日、何千人もの開発者が X API へリクエストを送信しています。こうした大量のリクエストを管理するために、各エンドポイントには [レート制限](/ja/resources/fundamentals/rate-limits) が設定されており、あなたの App または認証済みユーザーに代わって送信できるリクエスト数が制限されています。
+
+これらのエンドポイントはユーザーレベルでレート制限されており、あなたがリクエストを送信している認証済みユーザーは、どの開発者向け App であっても、そのエンドポイントを呼び出せる回数に上限があります。GET メソッドには、15 分ごとに 180 リクエストというユーザー単位のレート制限があります。Bookmarks lookup エンドポイントの GET メソッドでは、直近のブックマーク済みの投稿を最大 800 件まで取得できます。さらに、POST および DELETE メソッドには、15 分あたり 50 リクエストというユーザー単位のレート制限があります。
+
+***
+
+<div id="code-examples">
+  ### コード例
+</div>
+
+<div id="get-bookmarks">
+  #### ブックマークを取得
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/bookmarks?tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # ユーザーのブックマークを取得
+  for page in client.bookmarks.get(user_id="123", tweet_fields=["created_at", "public_metrics"]):
+      for post in page.data:
+          print(f"{post.text} - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // ユーザーのブックマークを取得
+  const paginator = client.bookmarks.get("123", {
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="create-a-bookmark">
+  #### ブックマークを作成する
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/bookmarks" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # ポストをブックマークに追加する
+  response = client.bookmarks.create(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // ポストをブックマークに追加する
+  const response = await client.bookmarks.create("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

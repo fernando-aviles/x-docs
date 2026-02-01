@@ -1,0 +1,303 @@
+---
+title: "Enrichissements de données : Enterprise"
+keywords: ["enrichissements de données", "enrichissements Enterprise", "enrichissements GNIP", "enrichissement de données", "données enrichies", "enrichissement de données Enterprise"]
+---
+
+## Introduction
+
+`Enterprise`
+
+Les enrichissements Enterprise sont des métadonnées supplémentaires incluses dans le corps de la réponse de certaines API de données. Ils sont disponibles uniquement avec des formules d&#39;abonnement payantes.
+
+Le tableau ci-dessous propose une brève description de chaque enrichissement :
+
+| Enrichment: | Description: |
+| :--- | :--- |
+| Expanded and Enhanced URLs | Développe automatiquement les URL raccourcies (par exemple bitly) présentes dans le corps d&#39;une Publication et fournit les métadonnées HTML Title et Description de la page de destination. |
+| Matching rules object | Indique quelle règle ou quelles règles ont été appliquées aux Publications reçues. L&#39;objet renvoie le tag de règle et l&#39;id de la règle dans l&#39;objet de réponse. |
+| Poll metadata | Indique la présence d&#39;un sondage dans une Publication, inclut la liste des choix du sondage et précise à la fois la durée du sondage et l&#39;heure d&#39;expiration. |
+| Profile geo | Données de localisation dérivées du profil utilisateur, y compris les coordonnées [longitude, latitude] (lorsque cela est possible) et les métadonnées de lieu associées. |
+
+<div id="expanded-and-enhanced-urls">
+  ### URLs développées et enrichies
+</div>
+
+L’enrichissement Expanded and Enhanced URL développe automatiquement les URL raccourcies incluses dans le corps d’une Publication et inclut l’URL obtenue comme métadonnée dans le payload. De plus, cet enrichissement fournit également les métadonnées de la page HTML à partir du `title` et de la `description` de la page de destination.
+
+**Détails importants :**
+
+* Pour résoudre un lien raccourci, notre système envoie des requêtes HTTP HEAD vers l’URL fournie et suit toutes les redirections jusqu’à atteindre l’URL finale. Cette URL finale (ET NON le contenu de la page elle‑même) est ensuite incluse dans le payload de la réponse.
+
+* L’enrichissement d’URL ajoute une latence de 5 à 10 secondes aux flux en temps réel.
+
+* Pour les requêtes adressées à la Full Archive Search API, les données d’enrichissement Expanded and Enhanced URL ne sont disponibles que pour les Publications âgées de 13 mois ou moins.
+
+* L’enrichissement d’URL n’est pas disponible pour les liens de Publication (y compris les Tweets cités), les liens Moments et les liens de profil qui sont inclus dans une Publication. 
+   
+
+<div id="post-payload">
+  #### Charge utile de la Publication
+</div>
+
+L’enrichissement Expanded and Enhanced URL se trouve dans l’objet `entities` de la charge utile de la Publication – plus précisément dans l’objet `entitites.urls.unwound`. Il fournit les champs de métadonnées suivants :
+
+* URL développée - `unwound.url`
+* Statut HTTP développé - `unwound.status`
+* Titre HTML de l’URL développée - limite de 300 caractères - `unwound.title`
+* Description HTML de l’URL développée - limite de 1000 caractères - `unwound.description`
+
+**Voici un exemple d’[objet entities](/fr/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#x-entities) avec l’enrichissement d’URL :**
+
+```
+"entities": {
+    "hashtags": [
+
+    ],
+    "urls": [
+      {
+        "url": "https:\/\/t.co\/HkTkwFq8UT",
+        "expanded_url": "http:\/\/bit.ly\/2wYTb9y",
+        "display_url": "bit.ly\/2wYTb9y",
+        "unwound": {
+          "url": "https:\/\/www.forbes.com\/sites\/laurencebradford\/2016\/12\/08\/11-websites-to-learn-to-code-for-free-in-2017\/",
+          "status": 200,
+          "title": "11 Websites To Learn To Code For Free In 2017",
+          "description": "It\u2019s totally possible to learn to code for free...but what are the best resources to achieve that? Here are 11 websites where you can get started."
+        },
+        "indices": [
+          10,
+          33
+        ]
+      }
+    ],
+    "user_mentions": [
+
+    ],
+    "symbols": [
+
+    ]
+  },
+```
+
+**Voici un exemple d’objet `entities` contenant un lien vers une Publication qui n’est pas enrichi :
+**
+
+```
+"entities": {
+  "urls": [{
+    "url": "https://t.co/SywNbZdDmb",
+    "expanded_url": "https://x.com/XDevelopers/status/1050118621198921728",
+    "display_url": "x.com/XDevelopers/s…",
+     "indices": [
+        142,
+        165
+     ]
+   }
+  ]
+}
+```
+
+<div id="filtering-operators">
+  #### Opérateurs de filtrage
+</div>
+
+Les opérateurs suivants permettent de filtrer et de fournir une correspondance tokenisée sur les champs associés aux métadonnées d’URL :
+
+**url :**
+
+* Exemple : “url:tennis”
+* Correspondance tokenisée sur toute URL étendue qui contient le mot tennis
+* Peut aussi être utilisé comme filtre pour inclure ou exclure des liens provenant d’un site web spécifique, en utilisant par exemple “url:npr.org”
+
+**url&#95;title :**
+
+* Exemple : “url&#95;title:tennis”
+* Correspondance tokenisée sur toute balise de titre HTML d’une URL étendue qui contient le mot tennis
+* Correspond aux données de titre HTML incluses dans la charge utile, qui est limitée à 300 caractères.
+
+**url&#95;description :**
+
+* Exemple : “url&#95;description:tennis”
+* Correspondance tokenisée sur toute balise de description HTML d’une URL étendue qui contient le mot tennis
+* Correspond à la description HTML incluse dans la charge utile, qui est limitée à 1000 caractères.
+   
+
+<div id="http-status-codes">
+  #### Codes de statut HTTP
+</div>
+
+L’enrichissement des URL développées fournit également le code de statut HTTP pour l’URL finale que nous essayons de développer. Dans la plupart des cas, ce sera une valeur 200. D’autres valeurs de la série 400 indiquent des problèmes de résolution de l’URL.
+
+Divers codes de statut peuvent être renvoyés lors de la tentative de développement d’une URL. Pendant le processus de développement d’une URL, si nous obtenons une redirection, nous les suivrons indéfiniment jusqu’à ce que nous :
+
+* Atteignions un code de la série 200 (succès)
+* Atteignions un code d’une série qui ne correspond pas à une redirection (échec)
+* Arrivions à un dépassement de délai parce que l’URL finale n’a pas pu être résolue dans un délai raisonnable (renvoie un 408 - délai dépassé)
+* Rencontrions une exception quelconque
+   
+
+Si une exception est rencontrée, nous utilisons la correspondance suivante entre les raisons et les codes de statut renvoyés :
+
+| Raison | Code de statut renvoyé |
+| :--- | :--- |
+| Exceptions SSL | 403 (Forbidden) |
+| Développement non autorisé par l’URL | 405 |
+| Socket Timeout | 408 (Timeout) |
+| Unknown Host Exception | 404 (Not Found) |
+| Unsupported Operation | 404 (Not Found) |
+| Connect Exception | 404 (Not Found) |
+| Illegal Argument | 400 (Bad Request) |
+| Tout le reste | 400 (Bad Request) |
+
+<div id="matching-rules">
+  ### Règles de correspondance
+</div>
+
+L’enrichissement des règles de correspondance est un objet de métadonnées qui indique quelle ou quelles règles se sont appliquées aux Publications reçues. Il est le plus souvent utilisé avec le flux PowerTrack.
+
+La correspondance est effectuée via une recherche de correspondance exacte des termes contenus dans une règle, en analysant le contenu de l’activité avec et sans ponctuation. La correspondance n’est pas sensible à la casse. Lorsque le contenu est reconnu comme contenant tous les termes définis dans la règle, un objet matching&#95;rules au niveau racine indique la ou les règles qui ont abouti à cette correspondance.
+
+**PowerTrack**
+
+Les Publications livrées via PowerTrack (en temps réel, Replay et Historique) contiendront un objet matching&#95;rules structuré comme suit :
+
+```
+"matching_rules": [{
+        "tag": null,
+        "id": 907728589029646336,
+        "id_str": "907728589029646336"
+    }]
+```
+
+Dans PowerTrack, l&#39;objet `matching_rules` reflète *toutes* les règles qui se sont appliquées au résultat donné. En d&#39;autres termes, si plusieurs règles correspondent à une même Publication, celle-ci ne sera renvoyée qu&#39;une seule fois, mais l&#39;élément `matching_rules` contiendra l&#39;ensemble des règles correspondantes.
+
+<div id="poll-metadata">
+  ### Métadonnées de sondage
+</div>
+
+Les métadonnées de sondage sont un enrichissement gratuit disponible dans tous les produits (Realtime &amp; Historical APIs) dans les charges utiles au format natif enrichi. Les métadonnées indiquent la présence d’un sondage dans une Publication, incluent la liste des choix du sondage, ainsi que la durée du sondage et son heure d’expiration. Cet enrichissement facilite la détection de la présence d’un sondage et permet un rendu correct, à l’affichage, d’une Publication contenant un sondage.
+
+<div id="important-details">
+  ##### Détails importants :
+</div>
+
+* Disponible dans toutes les API Enterprise (PowerTrack, Replay, Search, Historical PowerTrack)
+  * *Remarque :* pour Replay et Historical PowerTrack, ces métadonnées ont été rendues disponibles pour la première fois le 22/02/17.
+* N’inclut pas d’informations de vote ni de résultats de sondage
+* Ne prend actuellement pas en charge les filtres/opérateurs
+* Disponible uniquement en **format natif enrichi**
+  * Le format natif enrichi est un paramètre contrôlé par l’utilisateur qui peut être modifié à tout moment via la console : *Select a Product (PowerTrack, Replay, Search) &gt; Settings tab &gt; Output Format (Leave data in its original format)*
+
+<div id="post-payload">
+  #### Charge utile de la Publication
+</div>
+
+Une Publication avec sondage contiendra les métadonnées suivantes dans l’objet “entities.polls” de la charge utile :
+
+* Un tableau “options” avec jusqu’à quatre options comprenant la position (1-4) et le texte de l’option
+* Date d’expiration du sondage
+* Durée du sondage
+
+Voir l’exemple de charge utile ci-dessous pour référence.
+
+<div id="sample-payload">
+  #### Exemple de charge utile
+</div>
+
+Ci-dessous se trouve un extrait de la charge utile au format natif enrichi qui met en évidence les métadonnées de sondage ajoutées :
+
+```json
+"entities":{
+          "hashtags":[],
+          "urls":[],
+          "user_mentions":[],
+          "symbols":[],
+          "polls":[
+             {
+                "options":[
+                   {
+                      "position":1,
+                      "text":"The better answer"
+                   },
+                   {
+                      "position":2,
+                      "text":"The best answer"
+                   }
+                ],
+                "end_datetime":"Sat Feb 04 15:33:11 +0000 2017",
+                "duration_minutes":1440
+             }
+          ]
+       },
+```
+
+<div id="profile-geo">
+  ### Localisation du profil
+</div>
+
+<div id="introduction">
+  #### Introduction
+</div>
+
+De nombreux profils d’utilisateurs X incluent des informations de localisation publiques fournies par l’utilisateur. Ces données sont renvoyées sous forme de chaîne de caractères dans user.location (voir [User object data dictionary](/fr/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#native-enriched-user-object)). L’enrichissement Profile Geo ajoute des géodonnées structurées pertinentes pour la valeur de user.location, en géocodant et en normalisant les chaînes de localisation lorsque c’est possible. Les coordonnées de latitude/longitude ainsi que les métadonnées de lieu associées sont ajoutées à user.derived.locations *uniquement* lorsqu’elles sont incluses dans la charge utile de la Publication dans les produits d’API Entreprise. Ces données sont disponibles lorsque vous utilisez [le format natif enrichi](/fr/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) et peuvent être filtrées à l’aide d’une combinaison de [règles PowerTrack](/fr/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#enterprise-operators).
+
+<Note>
+  **Remarque :** Une partie des géodonnées utilisées pour créer l’enrichissement Profile Geo provient de GeoNames.org et est utilisée par X en vertu de la [licence Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/us/legalcode).
+</Note>
+
+Les données Profile Geo seront incluses dans les API PowerTrack, Replay, Volume Stream, Search et Historical PowerTrack de X.
+
+<div id="profile-geo-data">
+  #### Données Profile Geo
+</div>
+
+| Nom du champ natif enrichi | Valeur d’exemple | Description |
+| :--- | :--- | :--- |
+| user.derived.locations.country | United States | Le pays d’origine de l’utilisateur qui a créé la Publication. |
+| user.derived.locations.country&#95;code | US  | Un code de pays ISO-3166 à deux lettres correspondant au pays d’origine de l’utilisateur qui a créé la Publication. |
+| user.derived.locations.locality | Birmingham | La localité (généralement la ville) d’origine de l’utilisateur qui a créé la Publication. |
+| user.derived.locations.region | Alabama | La région (généralement l’État ou la province) d’origine de l’utilisateur qui a créé la Publication. |
+| user.derived.locations.sub&#95;region | Jefferson County | La sous-région (généralement le comté) d’origine de l’utilisateur qui a créé la Publication. |
+| user.derived.locations.full&#95;name | Birmingham, Alabama, United States | Le nom complet (hors sous-région) du lieu d’origine de l’utilisateur qui a créé la Publication. |
+| User.derived.locations.geo | See Below | Un tableau qui inclut une valeur de latitude/longitude pour une coordonnée correspondant au lieu au plus faible niveau de granularité d’où est originaire l’utilisateur qui a créé la Publication. |
+
+Les API Historical PowerTrack, Search et PowerTrack prennent en charge le filtrage à partir des données Profile Geo. Consultez la documentation du produit concerné pour plus de détails sur les opérateurs disponibles pour filtrer sur les données Profile Geo.
+
+#### Exemple de payload
+
+```
+{
+    "user": {
+        "derived": {
+            "locations": \[
+                {
+                    "country": "United States",
+                    "country_code": "US",
+                    "locality": "Birmingham",
+                    "region": "Alabama",
+                    "sub_region": "Jefferson County",
+                    "full_name": "Birmingham, Alabama, United States",
+                    "geo": {
+                        "coordinates": \[
+                            -86.80249,
+                            33.52066
+                        \],
+                        "type": "point"
+                    }
+                }
+            \]
+        }
+    }
+}
+```
+
+<div id="limitations">
+  #### Limitations
+</div>
+
+* L’enrichissement Profile Geo tente de déterminer le meilleur choix pour le lieu géographique décrit dans la chaîne de localisation du profil. Le résultat peut ne pas être exact dans tous les cas, en raison de facteurs tels que l’existence de plusieurs lieux aux noms similaires ou de noms ambigus.
+* Si aucune valeur n’est fournie dans le champ de localisation du profil d’un utilisateur (actor.location), nous ne tenterons pas d’effectuer de classification.
+* Niveau de précision : si un enrichissement Profile Geo ne peut être déterminé avec un niveau de confiance suffisant qu’au niveau du pays ou de la région, les géographies de niveau inférieur, comme subRegion et locality, seront omises de la charge utile.
+* L’enrichissement Profile Geo fournit des coordonnées lat/long (un point unique) qui correspondent au niveau de précision des résultats de l’enrichissement. Ces coordonnées représentent le centre géographique des résultats de localisation de l’enrichissement. Par exemple, si le niveau de précision est au niveau du pays, ces coordonnées sont alors définies sur le centre géographique de ce pays.
+* Les opérateurs PowerTrack fournis pour les propriétés d’adresse (locality/region/country/country code) sont volontairement granulaires afin de permettre de nombreuses combinaisons de règles. Lorsque vous tentez de cibler un lieu spécifique qui partage son nom avec un autre lieu, envisagez de combiner des règles d’adresse. Par exemple, l’exemple suivant évitera les correspondances pour « San Francisco, Philippines » : profile&#95;locality:&quot;San Francisco&quot; profile&#95;region:California. Lorsque vous créez des règles qui ciblent des champs Profile Geo individuels, gardez à l’esprit que chaque niveau de granularité supplémentaire limitera les résultats que vous voyez. Dans certains cas, lorsque vous tentez d’examiner des données provenant d’une ville, vous pouvez choisir de ne vous appuyer que sur une règle de région lorsque cette région recoupe largement la ville ; par exemple, la ville de Zurich, en Suisse, peut être efficacement ciblée, ainsi que les zones environnantes, avec profile&#95;region:&quot;Zurich&quot;.
+* Utilisation avec les Publications à géolocalisation native : l’enrichissement Profile Geo fournit un type de géographie alternatif pour une Publication, différent de la valeur geo native dans la charge utile. Ces deux types de géographie peuvent être combinés pour capturer l’ensemble des Publications possibles liées à une zone donnée (sur la base des géodonnées disponibles), même s’ils ne sont pas conceptuellement équivalents.

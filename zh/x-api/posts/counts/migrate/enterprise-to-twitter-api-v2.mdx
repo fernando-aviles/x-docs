@@ -1,0 +1,142 @@
+---
+title: v1 到 v2（Enterprise）
+sidebarTitle: v1 到 v2（Enterprise）
+keywords: ["enterprise to v2 counts", "enterprise counts migration", "GNIP to v2 counts", "enterprise counts migration", "migrate enterprise counts"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise 与 X API v2 的比较
+</div>
+
+**相似之处**
+
+* 粒度
+* 分页
+* 时区
+
+**不同之处**
+
+* Endpoint URL
+* 对 App 和 Project 的要求
+* 可用时间范围
+* 响应数据格式
+* HTTP 方法
+* 请求中的时间格式
+* 请求参数
+* 过滤运算符
+
+<div id="similarities">
+  #### 相似之处
+</div>
+
+**粒度**
+
+虽然用于选择返回数据粒度的参数不同（企业版使用 `bucket`，v2 版本使用 `granularity`），但通过该参数可传入的值相同，默认行为也相同：
+
+* `day`
+* `hour`（默认）
+* `minute`
+
+**分页**
+
+虽然 v2 具有额外的分页功能（新增的分页参数允许你使用帖子 ID（Post IDs）配合 `since_id` 和 `until_id` 进行跳转），但企业版和 v2 都允许你使用时间进行分页（企业版使用 `fromDate` 和 `toDate`，v2 使用 `start_time` 和 `end_time`）。
+
+如果你使用的是企业版，你将使用 `next` 参数进行分页，下一个 token 字段名为 `next`，并且位于响应体的根级。
+
+如果你使用的是 v2，你可以使用 `next_token` 或 `pagination_token` 参数进行分页，你的下一个 token 将位于响应中的 `meta.next_token`。
+ 
+
+**时区**
+
+如在分页部分所述，你在企业版和 v2 中都可以通过时间在不同数据页之间跳转。在这两种情况下，使用这些参数时，你都将使用 UTC 作为时区。
+
+<div id="differences">
+  #### 差异
+</div>
+
+**Endpoint URL**
+
+* 企业版端点：
+  * 30 天 - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label/counts.json`
+  * 全量存档 - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label/counts.json`
+* X API v2 端点：
+  * 最近（7 天）- `https://api.x.com/2/tweets/counts/recent`
+  * 全量存档 - `https://api.x.com/2/tweets/counts/all`
+
+**App 和 Project 要求**
+
+在对请求进行认证时，X API v2 端点要求你使用与某个 [Project](/zh/resources/fundamentals/developer-apps) 关联的 [developer App](/zh/resources/fundamentals/developer-apps) 的凭证。所有 X API v1.1 端点都可以使用来自独立 App 或与 Project 关联的 App 的凭证。
+ 
+
+**可用时间范围**
+
+企业版 API 和 X API v2 都提供了可以检索整个平台全量帖子存档的帖子量数据的端点。
+
+然而，X API v2 并不像企业版 API 那样提供 30 天时间范围的端点。相反，它提供了上文提到的全量存档端点，或一个与 [v2 Search Posts 端点](/zh/x-api/posts/search/introduction) 对齐的 7 天时间范围端点。
+ 
+
+**响应数据格式**
+
+通过企业版和 X API v2 所接收的数据格式存在一些细微差异：
+
+* 企业版的计数数据位于 `results` 对象中，而 v2 的计数数据位于 `data` 对象中。
+* 企业版的计数字段叫做 `timePeriod`（开始时间）和 `count`，而 v2 将时间范围拆分为 `start` 和 `end` 字段（它们使用与企业版不同的日期/时间格式，详见请求时间格式部分），并将 `count` 字段重命名为 `tweet_count`。
+* 企业版的元数据在根级别包含 `totalCount`、`next`，以及 `requestParameters` 对象。而在 v2 中不再包含 `requestParameters` 对象，并将以下字段移动/重命名到位于根级别的 `meta` 对象中：`total_tweet_count` 和 `next_token`。
+   
+
+**HTTP 方法**
+
+该 API 的企业版允许你使用带 JSON body 的 POST HTTP 方法，或带查询字符串的 GET HTTP 方法来发起请求。
+
+v2 仅允许你使用带查询字符串的 GET HTTP 方法。
+ 
+
+**请求时间格式**
+
+此端点的企业版在分页参数和 `timePeriod` 响应字段中使用以下日期/时间格式：`YYYYMMDDHHmm`
+
+v2 端点在分页参数以及 `start` 和 `end` 响应字段中使用 ISO 8601/RFC 3339 日期/时间格式：`YYYY-MM-DDTHH:mm:ssZ`
+
+**请求参数**
+
+下表是企业版和 X API v2 的请求参数对照：
+
+| 企业版 | Search Posts v2 |
+| :--- | :--- |
+| query | query |
+| bucket | granularity |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| toDate (YYMMDDHHmm) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+|     | since&#95;id |
+|     | until&#95;id |
+| next | next&#95;token and pagination&#95;token |
+
+**过滤运算符**
+
+虽然企业版和 X API v2 之间的大多数运算符是相同的，但在运算符可用性方面存在一些差异，并且在 X API v2 版本中引入了一些新的运算符。
+
+要查看适用于 X API v2、企业版以及高级版的完整运算符对照表，请访问 [Post counts 迁移概览页面](/zh/x-api/posts/counts/migrate/overview)。
+
+<div id="api-reference-index">
+  ## API 参考索引
+</div>
+
+如需完整的 API 参考，请从下方选择一个端点。
+
+<div id="recent-post-counts">
+  ### 近期帖子数量
+</div>
+
+|     |     |
+| :--- | :--- |
+| **获取过去 7 天内与查询匹配的帖子数量** | `[GET /2/tweets/counts/recent](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-recent)` |
+
+<div id="full-archive-post-counts">
+  ### 全量历史帖子计数
+</div>
+
+仅向具备[自助式和企业级访问权限](/zh/x-api/getting-started/about-x-api)的用户开放
+
+|     |     |
+| :--- | :--- |
+| **获取与查询匹配的帖子数量** | `[GET /2/tweets/counts/all](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-all)` |

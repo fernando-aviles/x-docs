@@ -1,0 +1,57 @@
+---
+title: 时区
+keywords: ["时区", "时区", "时区处理", "时区格式", "时区转换", "时区设置"]
+---
+
+<div id="timezones-accounts-and-billing">
+  ## 时区、账户和计费
+</div>
+
+日期时间值始终以 UTC 时间返回（由日期时间值末尾的 Z 表示）。在使用 POST 或 PUT 命令时，可以使用任意时区来指定日期时间值，格式必须符合 ISO 8601 标准的时区格式。时间使用 [ISO-8601](http://en.wikipedia.org/wiki/ISO_8601) 的一个子集表示。更具体地说，我们的日期格式对应的 strptime 字符串是 `%Y-%m-%dT%l:%M:%S%z`。广告主账户的时区决定了官方计费数据被冻结的实际时间点。
+
+在账户级别查询 API（[GET accounts](/zh/x-ads-api/campaign-management#accounts)）时，你会得到类似如下的时区信息：
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data": {
+        "name": "API McTestface",
+        "business_name": null,
+        "timezone": "America/Los_Angeles",
+        "timezone_switch_at": "2016-07-21T07:00:00Z",
+        "id": "18ce54d4x5t",
+        "created_at": "2016-07-21T22:42:09Z",
+        "salt": "54cb7b5a34183f77d82dd6d0f4329691",
+        "updated_at": "2017-09-09T06:42:14Z",
+        "business_id": null,
+        "approval_status": "ACCEPTED",
+        "deleted": false
+      }
+    }
+```
+
+其中包括两个时区值：`timezone`（概览可参见 [维基百科上的时区说明](https://en.wikipedia.org/wiki/Tz_database#Names_of_time_zones)）和 `timezone_switch_at`。请注意，`timezone_switch_at` 使用的是 UTC 时区（+00:00），但它始终表示所给定时区的午夜时间。
+
+广告主的时区无法通过 API 修改。该属性由 X 的广告主客户经理在合同/计费层面进行设置。
+
+在创建报表并调用我们的分析类端点时，请注意 `timezone_switch_at` 的值，因为在账户从 America/Los&#95;Angeles 时区切换到新的本地时区的那一天，数据中会出现一个间隔。
+
+<div id="specifying-datetime-values-with-timezone">
+  ### 使用时区指定日期时间值
+</div>
+
+日期时间值始终以 UTC 时间返回（由日期时间值末尾的 `Z` 表示）。在 POST 或 PUT 命令中，可以使用任意时区来指定日期时间值，只要使用符合 [ISO 8601 标准](http://en.wikipedia.org/wiki/ISO_8601) 的时区格式即可。例如，`2017-07-10T08:00:00-0800` 是一个可接受的输入值，并将被自动转换为 UTC 时间 `2017-07-10T16:00:00Z`。
+
+在使用 `granularity` 为 `DAY` 或 `TOTAL` 的 Analytics 端点时，必须将 `start_time` 值指定为账户持有人本地时区中目标日期的午夜时间。要使用的时区偏移量应为当前日期的偏移量，而不是所选日期当天的偏移量。例如，对于一个位于 America/Los&#95;Angeles 的广告账户，在太平洋夏令时期间，其 UTC 偏移为 -0700。因此，在 Analytics 请求中，应将时间指定为：`start_time=2017-05-21T07:00:00Z` 或 `start_time=2017-05-21T00:00:00-0700`。如果广告账户位于 Asia/Tokyo（其偏移始终为 +09:00），则这些值应指定为：`start_time=2017-05-20T15:00:00Z` 或 `start_time=2017-05-21T00:00:00+0900`。
+
+<div id="accepted-utc-offset-formats">
+  ### 可接受的 UTC 偏移量格式
+</div>
+
+请参阅 [ISO 8601 时区标识](http://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators)。
+
+支持：`Z`、`-HHMM`、`+HHMM`、`-HH:MM`、`+HH:MM`、`-HH`、`+HH`

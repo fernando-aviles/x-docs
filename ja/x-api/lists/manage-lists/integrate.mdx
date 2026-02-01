@@ -1,0 +1,184 @@
+---
+title: 連携ガイド
+sidebarTitle: 連携ガイド
+keywords: ["リスト管理の連携", "リスト管理連携", "リスト連携ガイド", "リスト管理の設定"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このページでは、Lists エンドポイントと統合するためのツールと重要な概念について説明します。
+
+***
+
+<div id="helpful-tools">
+  ## 便利なツール
+</div>
+
+このエンドポイントを統合するうえで役立つ重要な概念に入る前に、あらかじめ次のツールに慣れておくことをおすすめします。
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman は、エンドポイントのテストに利用できる便利なツールです。各 Postman リクエストには、利用可能な項目をすばやく把握できるように、すべてのパスパラメータおよびボディパラメータが含まれています。Postman コレクションの詳細については、[&quot;Using Postman&quot;](/ja/tutorials/postman-getting-started) ページをご覧ください。
+
+<div id="code-samples">
+  #### コードサンプル
+</div>
+
+お好みのプログラミング言語でこのエンドポイントを使い始めたい場合は、[GitHub ページ](https://github.com/xdevplatform/Twitter-API-v2-sample-code)に、ベースとして利用できるコードサンプルをいくつか用意しています。
+
+<div id="third-party-libraries">
+  #### サードパーティライブラリ
+</div>
+
+コミュニティが提供している [サードパーティライブラリ](/ja/x-api/tools-and-libraries/overview) を活用して、導入を始めましょう。v2 エンドポイントに対応したライブラリは、対応するバージョンタグが付いたものを探すことで見つけられます。
+
+<div id="key-concepts">
+  ### 主要な概念
+</div>
+
+<div id="authentication">
+  #### 認証
+</div>
+
+すべての X API v2 エンドポイントでは、キーやトークンとも呼ばれる一連の認証情報を使ってリクエストを認証する必要があります。
+
+これらのエンドポイントでは [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) の利用が必要です。つまり、リクエストを正常に行うためには、一連の API キーとユーザーアクセストークンを使用しなければなりません。アクセストークンは、あなたが代理でリクエストを行う対象のユーザーに紐づいている必要があります。別のユーザー向けのアクセストークン一式を生成したい場合は、そのユーザーに [3-legged OAuth フロー](/ja/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) を使ってあなたの App を認可または認証してもらう必要があります。
+
+OAuth 1.0a の利用は難しい場合がある点に注意してください。この認証方式に慣れていない場合は、[ライブラリ](/ja/x-api/tools-and-libraries/overview) や Postman のようなツールを使用して、リクエストを適切に認証することを推奨します。
+
+<div id="developer-console-projects-and-developer-apps">
+  #### 開発者コンソール、プロジェクト、開発者 App
+</div>
+
+X API v2 のエンドポイントで利用できる認証情報一式を取得するには、まず[開発者アカウントに登録](https://developer.x.com/en/portal/petition/essential/basic-info)し、そのアカウント内で[プロジェクト](/ja/resources/fundamentals/developer-apps)を作成し、そのプロジェクト内に[開発者 App](/ja/resources/fundamentals/developer-apps)を作成する必要があります。これらの手順を完了すると、開発者 App 内でキーとトークンを確認できます。
+
+<div id="rate-limits">
+  #### レート制限
+</div>
+
+毎日、何千人もの開発者が X API にリクエストを送信しています。この膨大な数のリクエストを管理するために、各エンドポイントには[レート制限](/ja/x-api/fundamentals/rate-limits)が設定されており、あなたの App または認証済みユーザーに代わって行えるリクエストの数が制限されています。
+
+これらのエンドポイントはユーザーレベルでレート制限されており、あなたがリクエストを実行する対象の認証済みユーザーは、どの開発者向け App からのリクエストであっても、そのエンドポイントを呼び出せる回数が一定数に制限されます。
+
+以下の表は、各エンドポイントのレート制限を示しています。
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **エンドポイント** | **HTTP メソッド** | **レート制限** |
+| /2/lists | POST | 15 分あたり 300 リクエスト |
+| /2/lists/:id | DELETE / PUT | 15 分あたり 300 リクエスト |
+
+***
+
+<div id="code-examples">
+  ### コードサンプル
+</div>
+
+<div id="create-a-list">
+  #### リストを作成する
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/lists" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "My List", "description": "A list of interesting accounts"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 新しいリストを作成します
+  response = client.lists.create(
+      name="My List",
+      description="A list of interesting accounts"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 新しいリストを作成します
+  const response = await client.lists.create({
+    name: "My List",
+    description: "A list of interesting accounts",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="update-a-list">
+  #### リストを更新する
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/lists/123456789" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "Updated List Name"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # リストを更新する
+  response = client.lists.update(
+      list_id="123456789",
+      name="Updated List Name"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // リストを更新する
+  const response = await client.lists.update("123456789", {
+    name: "Updated List Name",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>

@@ -1,0 +1,262 @@
+---
+title: Anotaciones de Publicaciones
+sidebarTitle: Anotaciones
+description: Anotaciones de entidades y de contexto para el análisis semántico
+keywords: ["anotaciones", "anotaciones de publicaciones", "anotaciones de entidad", "anotaciones de contexto", "NER", "reconocimiento de entidades nombradas", "temas"]
+---
+
+Las anotaciones proporcionan metadatos semánticos sobre el contenido de las publicaciones. X analiza las publicaciones para identificar entidades (personas, lugares, productos) y contexto (temas, dominios) para ayudarte a comprender mejor y filtrar el contenido.
+
+---
+
+<div id="annotation-types">
+  ## Tipos de anotación
+</div>
+
+<div id="entity-annotations">
+  ### Anotaciones de entidades
+</div>
+
+El reconocimiento de entidades con nombre (NER) identifica menciones específicas en el texto de la publicación:
+
+| Tipo | Ejemplos |
+|:-----|:---------|
+| **Person** | Barack Obama, Elon Musk |
+| **Place** | San Francisco, Japón |
+| **Product** | iPhone, ChatGPT |
+| **Organization** | NASA, Google |
+| **Other** | Super Bowl, Diabetes |
+
+Las anotaciones de entidades incluyen un puntaje de confianza y su posición en el texto.
+
+<div id="context-annotations">
+  ### Anotaciones de contexto
+</div>
+
+Análisis semántico que clasifica las publicaciones por temas y dominios:
+
+- **Domain**: Categoría amplia (Deportes, Entretenimiento, Tecnología)
+- **Entity**: Tema específico dentro del dominio (NBA, Películas de Marvel, IA)
+
+Las anotaciones de contexto ayudan a filtrar y categorizar las publicaciones sin depender del uso de palabras clave.
+
+---
+
+<div id="requesting-annotations">
+  ## Cómo solicitar anotaciones
+</div>
+
+Añade `context_annotations` y `entities` a tus `tweet.fields`:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=context_annotations,entities" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+
+<div id="response-structure">
+  ## Estructura de la respuesta
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Just saw the new Marvel movie - it was amazing!",
+    "entities": {
+      "annotations": [
+        {
+          "start": 17,
+          "end": 22,
+          "probability": 0.9234,
+          "type": "Organization",
+          "normalized_text": "Marvel"
+        }
+      ]
+    },
+    "context_annotations": [
+      {
+        "domain": {
+          "id": "86",
+          "name": "Movie",
+          "description": "A film"
+        },
+        "entity": {
+          "id": "1234567890",
+          "name": "Marvel Cinematic Universe"
+        }
+      },
+      {
+        "domain": {
+          "id": "65",
+          "name": "Interests and Hobbies Vertical"
+        },
+        "entity": {
+          "id": "781974596752842752",
+          "name": "Entertainment"
+        }
+      }
+    ]
+  }
+}
+```
+
+***
+
+
+<div id="entity-annotation-fields">
+  ## Campos de anotación de entidades
+</div>
+
+| Campo | Descripción |
+|:------|:------------|
+| `start` | Posición inicial en el texto |
+| `end` | Posición final en el texto |
+| `probability` | Nivel de confianza (0-1) |
+| `type` | Tipo de entidad (Person, Place, etc.) |
+| `normalized_text` | Nombre normalizado de la entidad |
+
+---
+
+<div id="context-domains">
+  ## Dominios de contexto
+</div>
+
+X utiliza más de 80 dominios para clasificar Publicaciones. Algunos dominios comunes son:
+
+<Tabs>
+  <Tab title="Entretenimiento">
+| ID | Dominio |
+|:---|:--------|
+| 3 | Programas de TV |
+| 4 | Episodios de TV |
+| 54 | Músico |
+| 56 | Actor |
+| 86 | Película |
+| 91 | Podcast |
+  </Tab>
+  <Tab title="Deportes">
+| ID | Dominio |
+|:---|:--------|
+| 6 | Eventos deportivos |
+| 11 | Deporte |
+| 12 | Equipo deportivo |
+| 26 | Liga deportiva |
+| 60 | Atleta |
+| 93 | Entrenador |
+  </Tab>
+  <Tab title="Negocios y tecnología">
+| ID | Dominio |
+|:---|:--------|
+| 45 | Vertical de marca |
+| 46 | Categoría de marca |
+| 47 | Marca |
+| 48 | Producto |
+| 165 | Tecnología |
+| 166 | Acciones |
+  </Tab>
+  <Tab title="Otros">
+| ID | Dominio |
+|:---|:--------|
+| 10 | Persona |
+| 13 | Lugar |
+| 29 | Eventos |
+| 35 | Políticos |
+| 119 | Festividad |
+| 131 | Unified Twitter Taxonomy |
+  </Tab>
+</Tabs>
+
+<Note>
+El dominio 131 (Unified Twitter Taxonomy) da soporte a la función Temas de X, visible para los usuarios en la plataforma.
+</Note>
+
+---
+
+<div id="using-annotations-in-filters">
+  ## Uso de anotaciones en los filtros
+</div>
+
+<div id="search-and-filtered-stream">
+  ### Búsqueda y stream filtrado
+</div>
+
+Filtra Publicaciones por el id de la entidad de anotación de contexto:
+
+```bash
+# Publicaciones sobre una entidad específica
+context:86.1234567890
+
+# Publicaciones en un dominio específico
+context:86.*
+```
+
+
+<div id="practical-examples">
+  ### Ejemplos prácticos
+</div>
+
+```bash
+# Posts about the NBA
+query=context:26.852137520
+
+# Publicaciones sobre productos Apple
+query=context:47.10026792024
+
+# Posts about movies
+query=context:86.*
+```
+
+***
+
+
+<div id="language-support">
+  ## Compatibilidad con idiomas
+</div>
+
+Las anotaciones están disponibles para varios idiomas:
+
+| Idioma | Cobertura |
+|:---------|:---------|
+| Inglés | Máxima |
+| Japonés | Alta |
+| Español | Alta |
+| Portugués | Media |
+| Francés | Media |
+| Hindi | Media |
+
+La cobertura varía según el dominio y el mercado.
+
+---
+
+<div id="important-notes">
+  ## Notas importantes
+</div>
+
+<Warning>
+**No todas las publicaciones están anotadas.** La cobertura de anotaciones depende de:
+- Idiomas admitidos
+- Cobertura de temas en la taxonomía de X
+- Riqueza semántica del texto de la publicación
+</Warning>
+
+- Las anotaciones no son retroactivas: solo se aplican cuando las entidades se rastrean
+- La misma entidad puede aparecer en varios dominios (por ejemplo, una celebridad es tanto Person como Actor)
+- Los id de entidad son estables en todos los dominios
+
+---
+
+<div id="resources">
+  ## Recursos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Explorador de entidades" icon="flask" href="https://tweet-entity-extractor.glitch.me/">
+    Herramienta interactiva para explorar anotaciones.
+  </Card>
+  <Card title="Lista de entidades de contexto" icon="github" href="https://github.com/xdevplatform/twitter-context-annotations">
+    CSV con las entidades de anotaciones de contexto disponibles.
+  </Card>
+</CardGroup>

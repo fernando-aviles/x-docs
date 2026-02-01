@@ -1,0 +1,145 @@
+---
+title: Guide d’intégration
+sidebarTitle: Guide d’intégration
+keywords: ["intégration des signets", "guide des signets", "guide d’intégration des signets", "implémentation des signets", "configuration des signets"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Cette page contient des informations sur plusieurs outils et concepts essentiels que vous devez connaître lorsque vous intégrez les endpoints de gestion des signets à votre système. Nous avons divisé cette page en plusieurs sections :
+
+* [Outils utiles](/fr/x-api/users/blocks/integrate#helpful-tools)
+* Concepts clés
+  * [Authentification](/fr/x-api/users/blocks/integrate#authentication)
+  * [Console de développement, projets et Apps](/x-api/users/blocks/integrate#Developer Console-projects-and-developer-apps)
+  * [Limites de taux](/fr/x-api/users/blocks/integrate#rate-limits)
+
+<div id="helpful-tools">
+  ### Outils pratiques
+</div>
+
+Avant d’aborder certains concepts clés qui vous aideront à intégrer ce point de terminaison, nous vous recommandons de vous familiariser avec les outils suivants :
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman est un excellent outil que vous pouvez utiliser pour tester un endpoint. Chaque requête Postman inclut tous les paramètres d’URL et de corps de requête afin de vous aider à comprendre rapidement ce qui est à votre disposition. Pour en savoir plus sur nos collections Postman, consultez notre page [&quot;Utiliser Postman&quot;](/fr/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  #### Exemples de code
+</div>
+
+Vous souhaitez commencer à utiliser ce endpoint avec du code dans votre langage préféré ? Nous mettons à votre disposition plusieurs exemples de code sur notre [page GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code), que vous pouvez utiliser comme point de départ.
+
+<div id="third-party-libraries">
+  #### Bibliothèques tierces
+</div>
+
+Profitez de l&#39;une des [bibliothèques tierces](/fr/x-api/tools-and-libraries/overview) de notre communauté pour vous aider à démarrer. Vous pouvez trouver une bibliothèque compatible avec les endpoints v2 en cherchant le tag de version approprié.
+
+<div id="key-concepts">
+  ### Concepts clés
+</div>
+
+<div id="authentication">
+  #### Authentification
+</div>
+
+Tous les endpoints de X API v2 exigent que vous authentifiiez vos requêtes avec un ensemble d’identifiants, également appelés clés et jetons.
+
+Ces endpoints en particulier nécessitent l’utilisation du [flux de code d’autorisation OAuth 2.0 avec PKCE](/fr/resources/fundamentals/authentication/oauth-2-0/authorization-code), ce qui signifie que vous devez utiliser un ensemble de clés et de jetons d’accès utilisateur pour effectuer une requête valide. Les jetons d’accès doivent être associés à l’utilisateur pour le compte duquel vous effectuez la requête. Si vous souhaitez générer un ensemble de jetons d’accès pour un autre utilisateur, celui-ci doit autoriser ou authentifier votre App à l’aide d’une [URL d’autorisation](/fr/resources/fundamentals/authentication#authorize-url).
+
+Veuillez noter qu’OAuth 2.0 peut être complexe à utiliser. Si vous n’êtes pas familiarisé avec cette méthode d’authentification, nous vous recommandons d’utiliser une [bibliothèque](/fr/x-api/tools-and-libraries/overview) ou un outil comme Postman pour authentifier correctement vos requêtes.
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Console de développement, Projets et Apps développeur
+</div>
+
+Pour obtenir un ensemble d’identifiants d’authentification compatibles avec les endpoints de X API v2, vous devez disposer d’un [compte développeur](/fr/resources/fundamentals/developer-portal), configurer un [Projet](/fr/resources/fundamentals/developer-apps) dans ce compte, puis créer une [App développeur](/fr/resources/fundamentals/developer-apps) dans ce Projet. Vous pourrez ensuite retrouver vos clés et vos jetons dans votre App développeur.
+
+<div id="rate-limits">
+  #### Limites de taux
+</div>
+
+Chaque jour, plusieurs milliers de développeurs envoient des requêtes vers la X API. Afin de gérer le volume important de ces requêtes, des [limites de taux](/fr/resources/fundamentals/rate-limits) sont appliquées à chaque endpoint, ce qui limite le nombre de requêtes que vous pouvez effectuer pour le compte de votre App ou pour le compte d’un utilisateur authentifié.
+
+Ces endpoints sont limités au niveau de l’utilisateur, ce qui signifie que l’utilisateur authentifié pour lequel vous effectuez la requête ne peut appeler l’endpoint qu’un certain nombre de fois, quelle que soit l’App de développement utilisée. Il existe une limite de taux par utilisateur de 180 requêtes par fenêtre de 15 minutes pour la méthode GET. Avec la méthode GET de l’endpoint Bookmarks lookup, vous récupérerez 800 de vos Publications mises en signet les plus récentes. De plus, il existe une limite de taux par utilisateur de 50 requêtes par fenêtre de 15 minutes pour les méthodes POST et DELETE.
+
+***
+
+<div id="code-examples">
+  ### Exemples de code
+</div>
+
+<div id="get-bookmarks">
+  #### Obtenir les signets
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/bookmarks?tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Obtenir les signets de l'utilisateur
+  for page in client.bookmarks.get(user_id="123", tweet_fields=["created_at", "public_metrics"]):
+      for post in page.data:
+          print(f"{post.text} - J'aime : {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Obtenir les signets de l'utilisateur
+  const paginator = client.bookmarks.get("123", {
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - J'aime : ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="create-a-bookmark">
+  #### Créer un signet
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123/bookmarks" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Ajouter une Publication aux signets
+  response = client.bookmarks.create(user_id="123", tweet_id="1234567890")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Ajouter une Publication aux signets
+  const response = await client.bookmarks.create("123", { tweetId: "1234567890" });
+  console.log(response.data);
+  ```
+</CodeGroup>

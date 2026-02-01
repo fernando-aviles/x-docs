@@ -1,0 +1,142 @@
+---
+title: v1에서 v2로 (Enterprise)
+sidebarTitle: v1에서 v2로 (Enterprise)
+keywords: ["enterprise에서 v2 카운트로", "enterprise 카운트 마이그레이션", "GNIP에서 v2 카운트로", "enterprise 카운트 이전", "enterprise 카운트를 v2로 이전"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise와 X API v2 비교
+</div>
+
+**공통점**
+
+* 세분화 수준
+* 페이지네이션
+* 시간대
+
+**차이점**
+
+* 엔드포인트 URL
+* App 및 Project 요구 사항
+* 사용 가능한 기간
+* 응답 데이터 형식
+* HTTP 메서드
+* 요청 시간 형식
+* 요청 매개변수
+* 필터링 연산자
+
+<div id="similarities">
+  #### 유사점
+</div>
+
+**세분성(Granularity)**
+
+반환되는 데이터의 세분성을 선택하는 파라미터 이름은 서로 다르지만(enterprise 버전은 `bucket`, v2 버전은 `granularity`), 해당 파라미터에 전달할 수 있는 값과 기본 동작은 동일합니다.
+
+* `day`
+* `hour` (기본값)
+* `minute`
+
+**페이지네이션(Pagination)**
+
+v2에는 추가적인 페이지네이션 기능이 있습니다(`since_id` 및 `until_id`를 사용해 게시물 ID 기준으로 탐색할 수 있는 새로운 페이지네이션 파라미터). 하지만 enterprise와 v2 모두 시간 기준으로 페이지네이션을 지원합니다(enterprise는 `fromDate` 및 `toDate`, v2는 `start_time` 및 `end_time`).
+
+enterprise 버전을 사용하는 경우, 페이지네이션을 위해 `next` 파라미터를 사용하며, 다음 토큰 필드는 `next`라는 이름을 가지며 응답의 루트에 위치합니다.
+
+v2를 사용하는 경우, 페이지네이션을 위해 `next_token` 또는 `pagination_token` 파라미터를 사용할 수 있으며, 다음 토큰은 응답의 `meta.next_token` 위치에 있습니다.
+ 
+
+**시간대(Timezone)**
+
+페이지네이션 섹션에서 언급했듯이, enterprise와 v2 모두 시간 기준으로 서로 다른 페이지의 데이터를 탐색할 수 있습니다. 두 경우 모두 이러한 파라미터를 사용할 때 시간대는 UTC를 사용합니다.
+
+<div id="differences">
+  #### 차이점
+</div>
+
+**엔드포인트 URL**
+
+* Enterprise 엔드포인트:
+  * 30일 - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label/counts.json`
+  * 전체 아카이브 - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label/counts.json`
+* X API v2 엔드포인트
+  * 최근 (7일) - `https://api.x.com/2/tweets/counts/recent`
+  * 전체 아카이브 - `https://api.x.com/2/tweets/counts/all`
+
+**App 및 Project 요구 사항**
+
+X API v2 엔드포인트를 사용하려면, 요청을 인증할 때 [developer App](/ko/resources/fundamentals/developer-apps)과 연계된 [Project](/ko/resources/fundamentals/developer-apps)의 자격 증명을 사용해야 합니다. 모든 X API v1.1 엔드포인트는 App 또는 Project와 연계된 App의 자격 증명을 사용할 수 있습니다.
+ 
+
+**사용 가능한 기간**
+
+Enterprise API와 X API v2 모두 포스트 전체 아카이브에 대한 포스트 볼륨 데이터를 검색할 수 있는 엔드포인트를 제공합니다.
+
+그러나 X API v2는 enterprise API와 달리 30일 기간 엔드포인트를 제공하지 않습니다. 대신 앞서 언급한 전체 아카이브 엔드포인트 또는 [v2 Search Posts 엔드포인트](/ko/x-api/posts/search/introduction)와 일치하는 7일 기간 엔드포인트를 제공합니다.
+ 
+
+**응답 데이터 형식**
+
+Enterprise와 X API v2를 통해 수신하는 데이터 형식에는 약간의 차이가 있습니다:
+
+* Enterprise의 카운트 데이터는 `results` 객체 내에 위치하는 반면, v2 카운트 데이터는 `data` 객체 내에 위치합니다.
+* Enterprise의 카운트 필드 이름은 `timePeriod`(시작 시간)와 `count`인 반면, v2는 기간을 `start` 및 `end` 필드로 분리합니다(요청 시간 형식에서 설명한 것처럼 enterprise와는 다른 날짜/시간 형식을 사용하며), `count` 필드 이름은 `tweet_count`로 변경합니다.
+* Enterprise 메타데이터에는 루트 레벨에 `totalCount`, `next`, `requestParameters` 객체가 포함됩니다. 반면 v2는 `requestParameters` 객체를 포함하지 않고, 다음 필드를 루트 레벨에 있는 `meta` 객체로 이동 및 이름 변경합니다: `total_tweet_count` 및 `next_token`.
+   
+
+**HTTP 메서드**
+
+Enterprise 버전 API는 JSON 본문을 가진 POST HTTP 메서드 또는 쿼리 문자열을 가진 GET HTTP 메서드로 요청을 전달할 수 있도록 허용합니다.
+
+v2는 쿼리 문자열을 가진 GET HTTP 메서드만 사용할 수 있습니다.
+ 
+
+**요청 시간 형식**
+
+이 엔드포인트의 enterprise 버전은 페이지네이션 파라미터와 `timePeriod` 응답 필드 모두에 다음 날짜/시간 형식을 사용합니다: `YYYYMMDDHHmm`
+
+v2 엔드포인트는 페이지네이션 파라미터와 `start`, `end` 응답 필드 모두에 ISO 8601/RFC 3339 날짜/시간 형식을 사용합니다: `YYYY-MM-DDTHH:mm:ssZ`
+
+**요청 파라미터**
+
+다음은 enterprise와 X API v2의 요청 파라미터를 비교한 표입니다:
+
+| Enterprise | Search Posts v2 |
+| :--- | :--- |
+| query | query |
+| bucket | granularity |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| toDate (YYMMDDHHmm) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+|     | since&#95;id |
+|     | until&#95;id |
+| next | next&#95;token and pagination&#95;token |
+
+**필터링 연산자**
+
+Enterprise와 X API v2 간의 연산자는 대부분 동일하지만, 연산자 지원 여부 측면에서 일부 차이가 있고 X API v2 버전에만 도입된 새로운 연산자들도 있습니다.
+
+X API v2, enterprise, 그리고 premium에서 사용 가능한 연산자의 전체 표를 보려면 [Post counts migration 랜딩 페이지](/ko/x-api/posts/counts/migrate/overview)를 방문하세요.
+
+<div id="api-reference-index">
+  ## API 참조 문서 색인
+</div>
+
+전체 API 참조 문서를 보려면 아래에서 엔드포인트를 선택하세요.
+
+<div id="recent-post-counts">
+  ### 최근 포스트 개수
+</div>
+
+|     |     |
+| :--- | :--- |
+| **지난 7일 동안 쿼리와 일치하는 포스트 개수를 조회합니다** | `[GET /2/tweets/counts/recent](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-recent)` |
+
+<div id="full-archive-post-counts">
+  ### 전체 아카이브 게시물 수
+</div>
+
+[셀프 서비스 및 엔터프라이즈 액세스](/ko/x-api/getting-started/about-x-api) 권한이 있는 사용자만 이용할 수 있습니다
+
+|     |     |
+| :--- | :--- |
+| **쿼리와 일치하는 게시물 수 조회** | `[GET /2/tweets/counts/all](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-all)` |

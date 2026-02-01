@@ -1,0 +1,211 @@
+---
+title: Recherche de comptes masqués
+sidebarTitle: Recherche de comptes masqués
+description: Obtenez la liste des comptes que vous avez masqués
+keywords: ["Démarrage rapide recherche de comptes masqués", "Démarrage rapide recherche de compte masqué", "Tutoriel recherche de comptes masqués", "Guide recherche de compte masqué", "Démarrage rapide masquage"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer la liste de vos utilisateurs masqués à l’aide de l’X API.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin de :
+
+  * d’un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * d’un jeton d’accès utilisateur (OAuth 1.0a ou OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-muted-users">
+  ## Récupérer vos comptes masqués
+</div>
+
+<Steps>
+  <Step title="Obtenir votre ID d’utilisateur">
+    Vous avez besoin de l’ID de l’utilisateur authentifié. Vous pouvez le trouver en utilisant l’[endpoint de recherche d’utilisateurs](/fr/x-api/users/lookup/introduction) ou dans votre jeton d’accès (la partie numérique correspond à votre ID d’utilisateur).
+  </Step>
+
+  <Step title="Récupérer vos comptes masqués">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/muting?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # Récupérer les comptes masqués avec pagination
+      for page in client.users.get_muting(
+          "123456789",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Masqué")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // Récupérer les comptes masqués avec pagination
+      const paginator = client.users.getMuting("123456789", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Masqué`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse">
+    ```json
+    {
+      "data": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers",
+          "created_at": "2013-12-14T04:35:55.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "1710819323648428707"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## Inclure des données supplémentaires
+</div>
+
+Utilisez le paramètre expansions pour obtenir des données associées, comme les Publications épinglées :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # Récupérer les utilisateurs mis en sourdine avec le paramètre expansions
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # Les Publications épinglées se trouvent dans page.includes.tweets
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // Récupérer les utilisateurs mis en sourdine avec le paramètre expansions
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    # Les Publications épinglées se trouvent dans page.includes?.tweets
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### Réponse avec expansion
+</div>
+
+```json
+{
+  "data": [
+    {
+      "username": "XDevelopers",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "id": "2244994945",
+      "name": "X Developers",
+      "pinned_tweet_id": "1430984356139470849"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-08-26T20:03:51.000Z",
+        "id": "1430984356139470849",
+        "text": "Help us build a better X Developer Platform!..."
+      }
+    ]
+  },
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+<div id="paginate-through-results">
+  ## Paginer les résultats
+</div>
+
+Les SDK gèrent automatiquement la pagination. Pour cURL, utilisez le `next_token` de la réponse :
+
+```bash
+curl "https://api.x.com/2/users/123456789/muting?\
+max_results=100&\
+pagination_token=1710819323648428707" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gérer les mises en sourdine" icon="volume-xmark" href="/fr/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    Mettre des utilisateurs en sourdine et les rétablir
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/users/get-muted-users">
+    Documentation complète du point de terminaison
+  </Card>
+</CardGroup>

@@ -1,0 +1,137 @@
+---
+title: 概览
+sidebarTitle: 概览
+keywords: ["计数数据迁移", "推文计数迁移", "v1.1 到 v2 计数", "计数迁移指南", "迁移计数数据"]
+---
+
+<div id="comparing-x-apis-post-counts-endpoints">
+  ## 比较 X API 的帖子计数端点
+</div>
+
+v2 帖子计数端点最终会取代[企业版 Search API 的计数端点](/zh/x-api/enterprise-gnip-2.0/fundamentals/search-api#counts-requests-post-count)。如果您有使用旧版帖子计数端点的代码、App 或工具，并且正在考虑迁移到较新的 X API v2 端点，那么本指南适合您。
+
+***
+
+<div id="recent-post-counts-comparison">
+  ## 最近帖子计数比较
+</div>
+
+企业版的帖子计数端点允许你获取最近 30 天或全量存档的计数。因此，v2 的最近帖子计数端点（查看 7 天时间范围）不能直接替代上述任一端点。
+
+为便于比较，我们将看看 v2 最近帖子计数端点与企业版 30 天端点的对比情况。
+
+下表对不同类型的最近帖子计数端点进行了比较：
+
+| **说明** | **Enterprise** | **X API v2** |
+| :--- | :--- | :--- |
+| 主机域名 | https://gnip-api.x.com | https://api.x.com |
+| 端点路径 | /search/30day/accounts/:account&#95;name/:label/counts.json | /2/tweets/counts/recent |
+| [Authentication](/zh/resources/fundamentals/authentication) | 基本身份验证 | OAuth 2.0 Bearer Token |
+| 时间戳格式 | YYYYMMDDhhmm | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 返回的帖子最久可追溯至 | 31 天 | 7 天 |
+| 支持的 HTTP 方法 | GET | GET |
+| 默认请求速率限制 | 每 1 秒 20 个请求，在搜索数据和计数请求之间合并计算  <br />具体每分钟速率限制将根据与你签订合同中约定的合作方配置而有所不同。 | 每位用户每 15 分钟 180 个请求  <br />每个 App 每 15 分钟 450 个请求 |
+| 支持使用 [annotations](/zh/x-api/fundamentals/post-annotations) 进行过滤 |     | ✔   |
+| 支持使用 [conversation&#95;id](/zh/x-api/fundamentals/conversation-id) 进行过滤 |     | ✔   |
+| 帖子数据数组的 JSON 键名 | results | data |
+| 时间粒度 | 天、小时或分钟 | 天、小时或分钟 |
+| 时区 | UTC | UTC |
+| 用于选择时间范围的请求参数 | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| 用于按帖子 ID 导航的请求参数 |     | since&#95;id  <br />until&#95;id |
+| 是否需要使用与某个 [project](/zh/resources/fundamentals/developer-apps) 关联的 [developer App](/zh/resources/fundamentals/developer-apps) 的凭证 |     | ✔   |
+
+<div id="full-archive-post-counts-comparison">
+  ### 全量存档帖子数量对比
+</div>
+
+下表比较了各种类型的全量存档搜索端点：
+
+| 描述 | 企业版 | X API v2 |
+| :--- | :--- | :--- |
+| 主机域名 | https://gnip-api.x.com | https://api.x.com |
+| 端点路径 | /search/fullarchive/accounts/:account&#95;name/:label/counts | /2/tweets/counts/all |
+| [身份验证](/zh/resources/fundamentals/authentication) | Basic 身份验证（Basic auth） | OAuth 2.0 Bearer 令牌 |
+| 时间戳格式 | YYYYMMDDHHMM | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 返回的帖子数量最早可追溯至 | 自 2006 年 3 月以来的完整存档 | 自 2006 年 3 月以来的完整存档 |
+| 支持的 HTTP 方法 | GET  <br />POST | GET |
+| 默认请求速率限制 | 每分钟的速率限制会根据合作伙伴而不同，以您的合同约定为准。  <br />每秒 20 个请求 | 每个 App 每 15 分钟 300 个请求  <br />每个 App 每 1 秒 1 个请求 |
+| 粒度 | 天、小时、分钟 | 天、小时、分钟 |
+| 支持使用 [annotations（注释）](/zh/x-api/fundamentals/post-annotations) 进行过滤 |     | ✔   |
+| 支持使用 [conversation&#95;id](/zh/x-api/fundamentals/conversation-id) 进行过滤 |     | ✔   |
+| 帖子数据数组的 JSON 键名 | results | data |
+| 用于选择时间范围的请求参数 | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| 用于按帖子 ID 导航的请求参数 |     | since&#95;id  <br />until&#95;id |
+| 用于分页的 JSON 键名 | next | meta.next&#95;token |
+| 用于分页的请求参数 | next&#95;token | next&#95;token 或 pagination&#95;token |
+| 时区 | UTC | UTC |
+| 需要使用与具有[学术研究权限](/zh/x-api/getting-started/about-x-api)的 [Project](/zh/resources/fundamentals/developer-apps) 关联的[开发者 App](/zh/resources/fundamentals/developer-apps)的凭据 |     | ✔   |
+
+<div id="filtering-operator-comparison">
+  ### 过滤运算符对比
+</div>
+
+Enterprise 和 v2 这两个不同版本的帖子计数在可用运算符上存在差异，并且在每个版本内部，运算符的可用范围也不同，下面将对其进行说明。
+
+Enterprise
+
+* Enterprise 运算符没有子层级。所有 Enterprise 运算符对所有 Enterprise 用户均可用。
+
+X API v2
+
+* **Core：** 这些运算符对任何 v2 用户都可用。
+* **Advanced：** 这些运算符仅对已获准 Academic Research 访问权限的用户可用。
+
+你可以在各自的指南中进一步了解每一组运算符：
+
+* [Enterprise 运算符](/zh/x-api/enterprise-gnip-2.0/fundamentals/search-api#building-search-queries)
+* [X API v2 运算符](/zh/x-api/posts/search/integrate/build-a-query)
+
+既然我们已经了解了 X API v2 中这些不同的运算符级别，下面的表格列出了帖子计数中各运算符的可用性（注意：如果单元格为空，则表示该运算符不可用）：
+
+|     | Enterprise | v2  |
+| :--- | :--- | :--- |
+| keyword | 可用 | Core |
+| emoji | 可用 | Core |
+| “exact phrase” | 可用 | Core |
+| #   | 可用 | Core |
+| $   | 可用 | Advanced |
+| @   | 可用 | Core |
+| from: | 可用 | Core |
+| to: | 可用 | Core |
+| url: | 可用 | Core |
+| retweets&#95;of: | 可用 | Core |
+| context: |     | Core |
+| entity: |     | Core - 仅在最近搜索中可用 |
+| conversation&#95;id: |     | Core |
+| place: | 可用 | Advanced |
+| place&#95;country: | 可用 | Advanced |
+| point&#95;radius: | 可用 | Advanced |
+| bounding&#95;box: | 可用 | Advanced |
+| is:retweet | 可用 | Core |
+| is:reply | 可用 | Core |
+| is:quote | 可用 | Core |
+| is:verified | 可用 | Core |
+| -is:nullcast | 可用 | Advanced |
+| has:hashtags | 可用 | Core |
+| has:cashtags | 可用 | Advanced |
+| has:links | 可用 | Core |
+| has:mentions | 可用 | Core |
+| has:media | 可用 | Core |
+| has:images | 可用 | Core |
+| has:videos | 可用 | Core |
+| has:geo | 可用 | Advanced |
+| lang: | 可用 | Core |
+| list: |     | Advanced |
+| has:profile&#95;geo | 可用 |     |
+| profile&#95;country | 可用 |     |
+| profile&#95;locality | 可用 |     |
+| profile&#95;region | 可用 |     |
+| proximity | 可用 |     |
+
+**其他迁移资源**
+
+[X API 迁移中心](/zh/x-api/migrate/overview)
+
+[查看这些端点的一些示例代码](https://github.com/xdevplatform/Twitter-API-v2-sample-code "查看这些端点的一些示例代码")
+
+[帖子计数：从 Enterprise 迁移到 X API v2](/zh/x-api/posts/counts/migrate/overview)

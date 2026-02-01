@@ -1,0 +1,251 @@
+---
+title: Expansions
+sidebarTitle: Expansions
+description: 관련 객체를 API 응답에 포함합니다
+keywords: ["expansions", "객체 확장", "객체 확장(object expansion)", "중첩 객체", "관련 객체"]
+---
+
+Expansions 기능을 사용하면 하나의 API 응답에 관련 객체를 함께 포함할 수 있습니다. 여러 요청을 보내는 대신, 한 번의 호출로 포스트와 그 작성자, 미디어, 또는 참조된 포스트를 함께 가져올 수 있습니다.
+
+***
+
+<div id="how-expansions-work">
+  ## expansions 작동 방식
+</div>
+
+expansions를 요청하면, API는 응답의 `includes` 섹션에 전체 객체를 포함합니다.
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+응답:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "author_id": "2244994945"
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers"
+    }]
+  }
+}
+```
+
+`data`의 `author_id`는 `includes`에 있는 사용자 객체에 연결됩니다.
+
+***
+
+<div id="post-expansions">
+  ## 게시물 Expansions
+</div>
+
+| Expansion | 반환값 | 사용 사례 |
+|:----------|:--------|:---------|
+| `author_id` | User 객체 | 게시물 작성자 상세 정보 조회 |
+| `referenced_tweets.id` | 게시물 객체 | 인용하거나 답글을 단 대상 게시물 조회 |
+| `referenced_tweets.id.author_id` | User 객체 | 참조된 게시물 작성자 조회 |
+| `in_reply_to_user_id` | User 객체 | 답글 대상 사용자 조회 |
+| `attachments.media_keys` | Media 객체 | 이미지, 동영상, GIF 조회 |
+| `attachments.poll_ids` | Poll 객체 | 설문조사 선택지 및 투표 수 조회 |
+| `geo.place_id` | Place 객체 | 위치 상세 정보 조회 |
+| `entities.mentions.username` | User 객체 | 멘션된 사용자 조회 |
+| `edit_history_tweet_ids` | 게시물 객체 | 수정된 게시물의 이전 버전 조회 |
+
+***
+
+<div id="user-expansions">
+  ## 사용자 Expansions
+</div>
+
+| Expansion | 반환 | 사용 사례 |
+|:----------|:--------|:---------|
+| `pinned_tweet_id` | 게시물 객체 | 사용자의 고정된 게시물을 조회합니다 |
+
+***
+
+<div id="space-expansions">
+  ## Space expansions
+</div>
+
+| Expansion | Returns | Use case |
+|:----------|:--------|:---------|
+| `creator_id` | User 객체 | Space 생성자 조회 |
+| `host_ids` | 여러 User 객체 | Space 호스트 조회 |
+| `speaker_ids` | 여러 User 객체 | Space 스피커 조회 |
+| `invited_user_ids` | 여러 User 객체 | 초대된 사용자 조회 |
+
+***
+
+<div id="dm-expansions">
+  ## DM expansions
+</div>
+
+| Expansion | Returns | Use case |
+|:----------|:--------|:---------|
+| `sender_id` | User object | 메시지 발신자 가져오기 |
+| `participant_ids` | User object(s) | 대화 참여자 가져오기 |
+| `attachments.media_keys` | Media object | 첨부된 미디어 가져오기 |
+| `referenced_tweets.id` | Post object | 참조된 게시물 가져오기 |
+
+***
+
+<div id="list-expansions">
+  ## 리스트 Expansions
+</div>
+
+| Expansion | 반환 값 | 사용 사례 |
+|:----------|:--------|:---------|
+| `owner_id` | User 객체 | 리스트 소유자 조회 |
+
+***
+
+<div id="combining-with-fields">
+  ## 필드와 결합하기
+</div>
+
+Expansions는 각 객체에 대해 기본 필드를 반환합니다. 추가 필드를 요청하려면 Expansions를 필드 매개변수와 함께 사용하세요.
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?\
+expansions=author_id,attachments.media_keys&\
+user.fields=description,public_metrics&\
+media.fields=url,alt_text" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+응답:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Check out this image!",
+    "author_id": "2244994945",
+    "attachments": {
+      "media_keys": ["3_1234567890"]
+    }
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers",
+      "description": "The voice of the X Developer Platform",
+      "public_metrics": {
+        "followers_count": 570842
+      }
+    }],
+    "media": [{
+      "media_key": "3_1234567890",
+      "type": "photo",
+      "url": "https://pbs.twimg.com/media/example.jpg",
+      "alt_text": "Example image"
+    }]
+  }
+}
+```
+
+***
+
+<div id="multiple-expansions">
+  ## 여러 expansions
+</div>
+
+여러 expansions를 쉼표로 구분된 목록으로 요청하세요:
+
+```bash
+expansions=author_id,referenced_tweets.id,attachments.media_keys
+```
+
+***
+
+<div id="common-patterns">
+  ## 공통 패턴
+</div>
+
+<Tabs>
+  <Tab title="전체 게시물 컨텍스트">
+    작성자, 미디어, 참조된 게시물이 포함된 게시물을 조회합니다:
+
+    ```bash
+    expansions=author_id,attachments.media_keys,referenced_tweets.id
+    tweet.fields=created_at,public_metrics,conversation_id
+    user.fields=username,name,profile_image_url
+    media.fields=url,preview_image_url,type
+    ```
+  </Tab>
+
+  <Tab title="대화 스레드">
+    답글과 각 답글 작성자를 조회합니다:
+
+    ```bash
+    expansions=author_id,in_reply_to_user_id,referenced_tweets.id
+    tweet.fields=conversation_id,in_reply_to_user_id,created_at
+    user.fields=username,name
+    ```
+  </Tab>
+
+  <Tab title="고정된 게시물이 있는 사용자">
+    사용자 프로필과 해당 사용자의 고정된 게시물을 조회합니다:
+
+    ```bash
+    expansions=pinned_tweet_id
+    user.fields=description,public_metrics,verified
+    tweet.fields=created_at,public_metrics
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="linking-data-and-includes">
+  ## 데이터와 includes 연결하기
+</div>
+
+`includes` 내 객체에는 위치 정보가 없습니다. ID를 사용해 연결하세요:
+
+```python
+# Python 예제
+response = api_call()
+post = response["data"]
+users = {u["id"]: u for u in response["includes"]["users"]}
+
+# Get the author
+author = users.get(post["author_id"])
+print(f"{author['name']} said: {post['text']}")
+```
+
+```javascript
+// JavaScript 예제
+const { data: post, includes } = response;
+const users = Object.fromEntries(
+  includes.users.map(u => [u.id, u])
+);
+
+const author = users[post.author_id];
+console.log(`${author.name} said: ${post.text}`);
+```
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="필드" icon="list" href="/ko/x-api/fundamentals/fields">
+    각 객체에 대해 반환할 특정 필드를 지정하세요.
+  </Card>
+
+  <Card title="데이터 사전" icon="book" href="/ko/x-api/fundamentals/data-dictionary">
+    전체 객체 스키마를 확인하세요.
+  </Card>
+</CardGroup>

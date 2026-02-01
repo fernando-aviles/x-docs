@@ -1,0 +1,215 @@
+---
+title: API 일관성
+sidebarTitle: 일관성
+description: X API v2 전체 엔드포인트에 걸친 일관된 패턴
+keywords: ["일관성", "API 일관성", "균일한 API", "일관된 엔드포인트", "API 설계"]
+---
+
+X API v2는 모든 엔드포인트에서 일관된 패턴을 유지하도록 설계되었습니다. 하나의 엔드포인트 동작 방식을 이해하면 동일한 패턴을 다른 모든 곳에도 적용할 수 있습니다.
+
+***
+
+<div id="consistent-patterns">
+  ## 일관된 패턴
+</div>
+
+<div id="url-structure">
+  ### URL 구조
+</div>
+
+모든 v2 엔드포인트는 일관된 패턴을 따릅니다.
+
+```
+/version/resource/{id}?parameters
+/version/resource/verb?parameters
+```
+
+예시:
+
+```
+/2/tweets/1234567890                    # Get a specific post
+/2/tweets/search/recent                 # Search recent posts
+/2/users/by/username/xdevelopers        # 사용자 이름으로 사용자 가져오기
+/2/users/1234/followers                 # Get user's followers
+```
+
+<div id="response-structure">
+  ### 응답 구조
+</div>
+
+모든 응답에는 동일한 최상위 레벨 구조가 사용됩니다:
+
+```json
+{
+  "data": { ... },       // 기본 객체
+  "includes": { ... },   // 확장된 객체
+  "meta": { ... },       // 페이지네이션, 개수
+  "errors": [ ... ]      // 부분 오류(있는 경우)
+}
+```
+
+<div id="id-format">
+  ### ID 형식
+</div>
+
+모든 id는 언어 호환성을 보장하기 위해 문자열로 반환됩니다.
+
+```json
+{
+  "id": "1234567890123456789",
+  "author_id": "2244994945"
+}
+```
+
+***
+
+<div id="fields-and-expansions">
+  ## 필드와 expansions
+</div>
+
+동일한 [fields](/ko/x-api/fundamentals/fields) 및 [expansions](/ko/x-api/fundamentals/expansions) 매개변수를 일관되게 사용할 수 있습니다:
+
+| Object | Fields parameter | Works across |
+|:-------|:-----------------|:-------------|
+| Post | `tweet.fields` | 게시물을 반환하는 모든 엔드포인트 |
+| User | `user.fields` | 사용자를 반환하는 모든 엔드포인트 |
+| Media | `media.fields` | media expansions를 사용하는 모든 엔드포인트 |
+| Poll | `poll.fields` | poll expansions를 사용하는 모든 엔드포인트 |
+| Place | `place.fields` | place expansions를 사용하는 모든 엔드포인트 |
+
+***
+
+<div id="object-schemas">
+  ## 객체 스키마
+</div>
+
+동일한 객체 type은 어떤 endpoint에서 반환되더라도 동일한 필드를 가집니다.
+
+* search에서 가져온 게시물은 lookup에서 가져온 게시물과 동일한 필드를 가집니다.
+* followers에서 가져온 User는 search에서 가져온 User와 동일한 필드를 가집니다.
+* 확장된 객체는 해당 객체를 단독으로 조회했을 때와 동일한 형태입니다.
+
+***
+
+<div id="authentication">
+  ## 인증
+</div>
+
+모든 엔드포인트에서 다음과 같은 인증 방식을 사용합니다:
+
+| 방식 | 헤더 형식 |
+|:-------|:--------------|
+| Bearer 토큰 | `Authorization: Bearer {token}` |
+| OAuth 1.0a | `Authorization: OAuth {parameters}` |
+| OAuth 2.0 | `Authorization: Bearer {user_token}` |
+
+***
+
+<div id="error-handling">
+  ## 오류 처리
+</div>
+
+errors 필드는 일관된 형식을 따릅니다:
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The query parameter is missing",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+[모든 오류 유형 보기 →](/ko/x-api/fundamentals/response-codes-and-errors)
+
+***
+
+<div id="pagination">
+  ## 페이지네이션
+</div>
+
+모든 페이지네이션 지원 엔드포인트는 동일한 토큰 시스템을 사용합니다:
+
+| Parameter | Description |
+|:----------|:------------|
+| `max_results` | 페이지당 결과 수 |
+| `pagination_token` | `next_token` 또는 `previous_token`에서 받은 토큰 |
+
+[페이지네이션에 대해 더 알아보기 →](/ko/x-api/fundamentals/pagination)
+
+***
+
+<div id="naming-conventions">
+  ## 명명 규칙
+</div>
+
+* 미국식 영어 철자 사용 (`favorites`, not `favourites`)
+* 필드 이름에는 snake&#95;case 사용 (`author_id`, `created_at`)
+* 용어 일관성 유지 (필드에서는 `repost_count`가 아니라 `retweet_count` 사용)
+
+***
+
+<div id="empty-values">
+  ## 빈 값
+</div>
+
+값이 없는 필드는 `null`로 반환되지 않고 생략됩니다:
+
+```json
+// User without a bio
+{
+  "id": "1234",
+  "name": "Example User",
+  "username": "example"
+  // "description"은 null이 아니라 생략됨
+}
+```
+
+***
+
+<div id="entity-consistency">
+  ## 엔티티 일관성
+</div>
+
+`entities` 객체에는 텍스트를 파싱해 추출한 엔티티만 포함합니다:
+
+* `urls`
+* `hashtags`
+* `mentions`
+* `cashtags`
+
+미디어와 투표는 `entities`가 아니라 `attachments`에 있습니다.
+
+***
+
+<div id="what-this-means-for-you">
+  ## 이것이 여러분께 의미하는 것
+</div>
+
+<CardGroup cols={2}>
+  <Card title="한 번 배우면 어디서나 활용" icon="graduation-cap">
+    한 엔드포인트에서 익힌 패턴을 모든 엔드포인트에 적용할 수 있습니다.
+  </Card>
+
+  <Card title="예측 가능한 응답" icon="square-check">
+    동일한 객체 type은 API 전체에서 동일한 구조를 가집니다.
+  </Card>
+
+  <Card title="더 단순한 코드" icon="code">
+    공통 패턴을 위한 재사용 가능한 함수를 작성할 수 있습니다.
+  </Card>
+
+  <Card title="더 쉬운 디버깅" icon="bug">
+    일관된 오류 형식으로 문제 해결이 더 쉬워집니다.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="report-inconsistencies">
+  ## 불일치 사항 보고
+</div>
+
+불일치 사항을 발견하셨나요? 아래 채널을 통해 알려 주세요:
+
+* [Developer Forum](https://devcommunity.x.com)
+* [Developer Feedback](https://t.co/devfeedback)

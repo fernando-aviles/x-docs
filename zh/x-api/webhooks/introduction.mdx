@@ -1,0 +1,133 @@
+---
+title: Webhooks
+sidebarTitle: 简介
+description: 通过 webhook 投递方式接收实时数据
+keywords: ["webhook", "webhook API", "实时 webhook", "webhook 投递", "事件 webhook"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+Webhook 可以将实时数据传递到你的服务器。无需轮询获取更新，而是在事件发生时立即接收数据。
+
+<div id="overview">
+  ## 概览
+</div>
+
+<CardGroup cols={2}>
+  <Card title="实时投递" icon="bolt">
+    即时接收事件
+  </Card>
+
+  <Card title="基于推送" icon="arrow-right">
+    数据推送到您的服务器
+  </Card>
+
+  <Card title="高效" icon="gauge">
+    无需轮询
+  </Card>
+
+  <Card title="可靠" icon="shield">
+    支持重试和恢复机制
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-types">
+  ## Webhook 类型
+</div>
+
+| 类型 | 描述 |
+|:-----|:------------|
+| [Filtered Stream Webhooks](/zh/x-api/webhooks/stream/introduction) | 通过 webhook 接收筛选流中的帖子 |
+| [Account Activity API](/zh/x-api/account-activity/introduction) | 接收账户活动事件 |
+
+***
+
+<div id="how-webhooks-work">
+  ## Webhook 的工作原理
+</div>
+
+```
+┌──────────┐      ┌──────────┐      ┌──────────┐
+│ X Event  │  →   │ X Server │  →   │ Your     │
+│ Occurs   │      │          │      │ Webhook  │
+└──────────┘      └──────────┘      └──────────┘
+```
+
+1. **事件发生** — 用户发布帖子、发送私信等
+2. **X 发送请求** — 向你的 webhook URL 发起 POST 请求
+3. **处理事件** — 你的服务器处理该事件
+4. **响应 200** — 返回 200 OK 以确认已接收
+
+***
+
+<div id="webhook-requirements">
+  ## Webhook 要求
+</div>
+
+| 要求 | 说明 |
+|:------------|:------------|
+| **HTTPS** | Webhook URL 必须使用 HTTPS 协议 |
+| **Public** | URL 必须对外公开可访问 |
+| **Fast response** | 必须在 10 秒内返回响应 |
+| **200 OK** | 返回 200 OK 状态码以确认接收 |
+
+***
+
+<div id="security">
+  ## 安全
+</div>
+
+<div id="challenge-response-check-crc">
+  ### 质询-响应校验（CRC）
+</div>
+
+X 会通过发送 CRC 请求来验证你的 webhook。请返回一个 HMAC-SHA256 哈希值：
+
+```python
+import hmac
+import hashlib
+import base64
+
+def handle_crc(crc_token, consumer_secret):
+    sha256_hash = hmac.new(
+        consumer_secret.encode(),
+        crc_token.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    return {
+        "response_token": "sha256=" + base64.b64encode(sha256_hash).decode()
+    }
+```
+
+<div id="signature-verification">
+  ### 签名验证
+</div>
+
+使用 `x-twitter-webhooks-signature` 请求头验证 webhook 的真实性。
+
+***
+
+<div id="getting-started">
+  ## 入门
+</div>
+
+<Note>
+  **先决条件**
+
+  * 已获批准的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 在开发者控制台中创建的 [Project 和 App](/zh/resources/fundamentals/developer-apps)
+  * 一个可公开访问的 HTTPS 端点
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="过滤流 Webhooks" icon="filter" href="/zh/x-api/webhooks/stream/introduction">
+    通过 webhook 接收筛选后的帖子
+  </Card>
+
+  <Card title="Account Activity API" icon="bell" href="/zh/x-api/account-activity/introduction">
+    通过 webhook 接收账号事件
+  </Card>
+</CardGroup>

@@ -1,0 +1,139 @@
+---
+title: 字符计数
+sidebarTitle: 字符计数
+icon: text-size
+description: X 如何计算帖子中的字符数
+keywords: ["字符计数", "帖子长度", "280 个字符", "字符限制", "Unicode", "emoji 字符", "URL 长度", "帖子撰写"]
+---
+
+X 上的帖子最多可以包含 **280 个字符**。但是，并非所有字符的计算方式都相同——emoji、URL 和某些 Unicode 范围有特殊的计数规则。
+
+---
+
+<div id="character-weights">
+  ## 字符权重
+</div>
+
+X 使用加权字符计数系统。大多数字符计为 1，但有些计为 2：
+
+| 字符类型 | 权重 | 最大字符数 |
+|:---------------|:-------|:---------------|
+| 拉丁字母、标点符号、常用符号 | 1 | 280 |
+| Emoji | 2 | 最多 140 个 emoji |
+| CJK（中文、日文、韩文） | 2 | 最多 140 个字符 |
+| 其他 Unicode | 2（默认） | 视情况而定 |
+
+<Tip>
+在你的 App 中使用开源的 [twitter-text](https://github.com/twitter/twitter-text) 库来精确统计字符数量。
+</Tip>
+
+---
+
+<div id="emoji-counting">
+  ## 表情符号计数
+</div>
+
+所有表情符号一律计为 **2 个字符**，与其复杂度无关：
+
+| Emoji | 显示效果 | 字符数 | Unicode |
+|:------|:--------|:----------------|:--------|
+| 👾 | 单个表情符号 | 2 | U+1F47E |
+| 🙋🏽 | 带肤色变体 | 2 | 🙋 + 🏽 修饰符 |
+| 👨‍🎤 | 通过 ZWJ 组合 | 2 | 👨 + ZWJ + 🎤 |
+| 👨‍👩‍👧‍👦 | 家庭序列 | 2 | 4 个表情符号 + 3 个 ZWJ |
+
+零宽连接符（ZWJ）会在视觉上将表情符号连接显示，但不会额外增加字符数。
+
+---
+
+<div id="url-handling">
+  ## URL 处理
+</div>
+
+所有 URL 都会通过 `t.co` 短链接进行缩短，并且无论原始长度是多少，都统一按 **23 个字符** 计算：
+
+```
+https://example.com                    → 23 characters
+https://example.com/very/long/path     → 23 characters
+```
+
+<Note>
+  这适用于在帖子内容中检测到的任何有效 URL。
+</Note>
+
+***
+
+
+<div id="special-cases">
+  ## 特殊情况
+</div>
+
+| 内容 | 计数规则 |
+|:--------|:--------------|
+| **回复中的 @提及** | 回复开头自动填充的 @提及不计入字符数 |
+| **新的 @提及** | 你手动添加的 @提及按正常规则计数 |
+| **媒体** | 通过官方客户端附加的媒体计为 0 个字符 |
+| **Hashtag** | 按正常规则计数（# + 标签文本） |
+
+---
+
+<div id="text-encoding">
+  ## 文本编码
+</div>
+
+X API 要求使用 **UTF-8** 编码。字符长度按照 Unicode 规范化形式 C（NFC）进行计算。
+
+以 `café` 为例：
+
+| 形式 | 字节数 | 字符数 |
+|:-----|:------|:-----------|
+| NFC（组合形式） | `c a f é` | 4 |
+| NFD（分解形式） | `c a f e ́` | 5 |
+
+X 会将文本规范化为 NFC，因此这两种形式都会被视为 4 个字符。
+
+---
+
+<div id="implementation">
+  ## 实现
+</div>
+
+使用官方的 [twitter-text](https://github.com/twitter/twitter-text) 库来精确计算字符长度：
+
+<Tabs>
+  <Tab title="JavaScript">
+```javascript
+import { parseTweet } from 'twitter-text';
+
+const result = parseTweet('Hello, world! 👋');
+console.log(result.weightedLength); // 16
+console.log(result.valid);          // true
+```
+  </Tab>
+  <Tab title="Python">
+```python
+from twitter_text import parse_tweet
+
+result = parse_tweet('Hello, world! 👋')
+print(result.weightedLength)  # 16
+print(result.valid)           # True
+```
+  </Tab>
+</Tabs>
+
+该库会处理所有边界情况，包括表情符号序列、URL 检测以及 Unicode 规范化。
+
+---
+
+<div id="resources">
+  ## 资源
+</div>
+
+<CardGroup cols={2}>
+  <Card title="twitter-text 库" icon="github" href="https://github.com/twitter/twitter-text">
+    官方的开源文本解析库。
+  </Card>
+  <Card title="配置文件" icon="file-code" href="https://github.com/twitter/twitter-text/tree/master/config">
+    字符权重定义与 Unicode 范围。
+  </Card>
+</CardGroup>

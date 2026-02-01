@@ -1,0 +1,257 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 屏蔽和取消屏蔽用户，并获取你的被屏蔽用户列表
+keywords: ["屏蔽快速入门", "屏蔽用户快速入门", "屏蔽用户教程", "屏蔽用户指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将指导你如何屏蔽和取消屏蔽用户，并获取你的屏蔽列表。
+
+<Note>
+  **先决条件**
+
+  在开始之前，你需要：
+
+  * 一个带有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 用户访问令牌（OAuth 1.0a 或 OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-blocked-users">
+  ## 获取已屏蔽的用户
+</div>
+
+<Steps>
+  <Step title="获取你的用户 ID">
+    要检索你的屏蔽列表，需要经过身份验证的用户 ID。你可以通过 `/2/users/me` 端点获取该 ID，或者使用令牌中包含的 ID。
+  </Step>
+
+  <Step title="请求你的屏蔽列表">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/blocking?\
+      user.fields=username,verified,created_at&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # 使用分页获取已屏蔽的用户
+      for page in client.users.get_blocking(
+          "123456789",
+          user_fields=["username", "verified", "created_at"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Created: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // 使用分页获取已屏蔽的用户
+      const paginator = client.users.getBlocking("123456789", {
+        userFields: ["username", "verified", "created_at"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Created: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应">
+    ```json
+    {
+      "data": [
+        {
+          "id": "17874544",
+          "name": "Example User",
+          "username": "example_user",
+          "verified": false,
+          "created_at": "2008-12-04T18:51:57.000Z"
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "abc123"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="block-a-user">
+  ## 屏蔽用户
+</div>
+
+<Steps>
+  <Step title="确定目标用户">
+    获取你要屏蔽的账号的用户 ID。
+  </Step>
+
+  <Step title="发送屏蔽请求">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/blocking" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"target_user_id": "9876543210"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # 屏蔽用户
+      response = client.users.block(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+      print(f"Blocking: {response.data.blocking}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // 屏蔽用户
+      const response = await client.users.block("123456789", {
+        targetUserId: "9876543210",
+      });
+      console.log(`Blocking: ${response.data?.blocking}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="确认已成功屏蔽">
+    ```json
+    {
+      "data": {
+        "blocking": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unblock-a-user">
+  ## 取消屏蔽用户
+</div>
+
+<Steps>
+  <Step title="发送取消屏蔽请求">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X DELETE "https://api.x.com/2/users/123456789/blocking/9876543210" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # 取消屏蔽用户
+      response = client.users.unblock(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+      print(f"Blocking: {response.data.blocking}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // 取消屏蔽用户
+      const response = await client.users.unblock("123456789", "9876543210");
+      console.log(`Blocking: ${response.data?.blocking}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="确认已取消屏蔽">
+    ```json
+    {
+      "data": {
+        "blocking": false
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="静音" icon="volume-xmark" href="/zh/x-api/users/mutes/introduction">
+    将用户静音，而不是拉黑
+  </Card>
+
+  <Card title="关注" icon="user-plus" href="/zh/x-api/users/follows/introduction">
+    管理关注关系
+  </Card>
+
+  <Card title="集成指南" icon="book" href="/zh/x-api/users/blocks/integrate">
+    关键概念和最佳实践
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/users/get-blocking">
+    完整的端点说明文档
+  </Card>
+</CardGroup>

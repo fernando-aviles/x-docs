@@ -1,0 +1,220 @@
+---
+title: "分页"
+sidebarTitle: "分页"
+description: "浏览大型结果集"
+keywords: ["分页", "分页令牌", "下一页令牌", "按页遍历结果", "游标分页"]
+---
+
+当 API 响应中的结果数量超过单次可返回的上限时，请使用分页来检索所有结果页。
+
+***
+
+<div id="how-pagination-works">
+  ## 分页的工作原理
+</div>
+
+1. 使用 `max_results` 发起初始请求
+2. 在响应的 `meta` 对象中检查是否包含 `next_token`
+3. 如果存在，使用该令牌作为 `pagination_token` 发起下一次请求
+4. 重复此过程，直到不再返回 `next_token`
+
+```bash
+# 初始请求
+curl "https://api.x.com/2/users/12345/tweets?max_results=100" \
+  -H "Authorization: Bearer $TOKEN"
+
+# 响应包含 next_token
+# {"data": [...], "meta": {"next_token": "abc123", ...}}
+
+# 下一页
+curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=abc123" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="pagination-tokens">
+  ## 分页令牌
+</div>
+
+| 令牌 | 描述 |
+|:------|:------------|
+| `next_token` | 位于响应的 `meta` 中。用于获取下一页。 |
+| `previous_token` | 位于响应的 `meta` 中。用于返回上一页。 |
+| `pagination_token` | 请求参数。设为 `next_token` 或 `previous_token` 的值。 |
+
+***
+
+<div id="response-structure">
+  ## 响应结构
+</div>
+
+```json
+{
+  "data": [
+    {"id": "1234", "text": "..."},
+    {"id": "1235", "text": "..."}
+  ],
+  "meta": {
+    "result_count": 100,
+    "next_token": "7140w9gefhslx3",
+    "previous_token": "77qp89slxjd"
+  }
+}
+```
+
+当没有更多结果时，响应中将不再包含 `next_token`：
+
+```json
+{
+  "data": [...],
+  "meta": {
+    "result_count": 42,
+    "previous_token": "77qp89abc"
+  }
+}
+```
+
+***
+
+<div id="pagination-parameters">
+  ## 分页参数
+</div>
+
+| 参数 | 说明 | 默认值 |
+|:----------|:------------|:--------|
+| `max_results` | 每页返回的结果数 | 依端点而定 |
+| `pagination_token` | 上一个响应返回的令牌 | 无 |
+
+查看各端点的 API 参考文档，了解该端点支持的 `max_results` 上限。
+
+***
+
+<div id="example-paginating-through-all-results">
+  ## 示例：分页遍历所有结果
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    def get_all_tweets(user_id, bearer_token):
+        url = f"https://api.x.com/2/users/{user_id}/tweets"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        params = {"max_results": 100}
+        
+        all_tweets = []
+        
+        while True:
+            response = requests.get(url, headers=headers, params=params)
+            data = response.json()
+            
+            if "data" in data:
+                all_tweets.extend(data["data"])
+            
+            # 检查下一页
+            next_token = data.get("meta", {}).get("next_token")
+            if not next_token:
+                break
+                
+            params["pagination_token"] = next_token
+        
+        return all_tweets
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllTweets(userId, bearerToken) {
+      const url = `https://api.x.com/2/users/${userId}/tweets`;
+      const headers = { Authorization: `Bearer ${bearerToken}` };
+      
+      let allTweets = [];
+      let paginationToken = null;
+      
+      do {
+        const params = new URLSearchParams({ max_results: 100 });
+        if (paginationToken) {
+          params.set("pagination_token", paginationToken);
+        }
+        
+        const response = await fetch(`${url}?${params}`, { headers });
+        const data = await response.json();
+        
+        if (data.data) {
+          allTweets.push(...data.data);
+        }
+        
+        paginationToken = data.meta?.next_token;
+      } while (paginationToken);
+      
+      return allTweets;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="best-practices">
+  ## 最佳实践
+</div>
+
+<CardGroup cols={2}>
+  <Card title="使用最大结果数" icon="arrow-up-1-9">
+    将 `max_results` 设置为允许的最大值，以减少 API 调用次数。
+  </Card>
+
+  <Card title="处理不完整页面" icon="square-check">
+    最后一页的结果数量可能少于 `max_results`。
+  </Card>
+
+  <Card title="保存令牌" icon="database">
+    如果你需要稍后恢复分页，请保存 `next_token`。
+  </Card>
+
+  <Card title="不要用分页轮询" icon="clock">
+    若要获取新数据，请使用 `since_id`，而不是反复进行分页。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="result-ordering">
+  ## 结果排序
+</div>
+
+结果将以**时间倒序**返回：
+
+* 第一页的第一个结果 = 最新
+* 最后一页的最后一个结果 = 最早
+
+这一规则适用于单页内以及跨页的结果。
+
+***
+
+<div id="notes">
+  ## 注意事项
+</div>
+
+* 分页 token 是不透明字符串——请勿解析或修改它们
+* token 可能会在一段时间后失效
+* 如果你获得的结果少于 `max_results`，仍可能存在更多结果（继续请求，直到没有 `next_token` 为止）
+* 使用 [SDKs](/zh/x-api/tools-and-libraries/sdks) 自动处理分页
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="速率限制" icon="gauge-high" href="/zh/x-api/fundamentals/rate-limits">
+    了解分页时的请求速率限制。
+  </Card>
+
+  <Card title="SDK" icon="cube" href="/zh/x-api/tools-and-libraries/sdks">
+    提供内置分页功能的库。
+  </Card>
+</CardGroup>

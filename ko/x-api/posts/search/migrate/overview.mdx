@@ -1,0 +1,169 @@
+---
+title: 개요
+sidebarTitle: 개요
+keywords: ["search migration", "search migrate", "v1.1 to v2 search", "search migration guide", "migrate search", "enterprise to v2"]
+---
+
+<div id="comparing-x-apis-search-posts-endpoints">
+  ## X API Search 포스트 엔드포인트 비교
+</div>
+
+v2 Search Tweets 엔드포인트는 궁극적으로 [standard v1.1 search/posts](/ko/x-api/posts/search/introduction) 엔드포인트와 [enterprise Search API](/ko/x-api/enterprise-gnip-2.0/fundamentals/search-api)를 대체하게 됩니다. 코드나 App, 도구에서 이전 버전의 X 검색 엔드포인트를 사용하고 있고 새로운 X API v2 엔드포인트로의 마이그레이션을 검토 중이라면, 이 가이드는 여러분을 위한 것입니다.
+
+***
+
+<div id="recent-search-comparison">
+  ## 최근 검색 비교
+</div>
+
+다음 표는 다양한 종류의 최근 검색 endpoint를 비교합니다:
+
+| **Description** | **Standard v1.1** | **X API v2** |
+| :--- | :--- | :--- |
+| Host domain | https://api.x.com | https://api.x.com |
+| Endpoint path | /1.1/search/tweets.json | /2/tweets/search/recent |
+| [Authentication](/ko/resources/fundamentals/authentication) | OAuth 1.0a User Context  <br />OAuth 2.0 App-Only | OAuth 1.0a User Context<br /><br />OAuth 2.0 Authorization Code with PKCE<br /><br />OAuth 2.0 App-Only |
+| Timestamp format | YYYYMMDD | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 반환되는 게시물이 이보다 과거가 아닌 최대 기간 | 7일 | 7일 |
+| 지원되는 HTTP 메서드 | GET | GET |
+| 기본 요청 요청 한도 | OAuth 1.0a User Context 사용 시 15분당 180회 요청<br /><br />OAuth 2.0 App-Only 사용 시 15분당 450회 요청 | **셀프 서비스(Self-serve):**<br /><br />OAuth 2.0 App-Only 사용 시 15분당 60회 요청<br /><br />OAuth 1.0a User Context 사용 시 15분당 60회 요청<br /><br />OAuth 2.0 Authorization Code with PKCE 사용 시 15분당 60회 요청 |
+| 완전히 풀린 URL 제공 |     | ✔   |
+| 응답당 최대 게시물 수(기본값) | 100 (15) | 100 (10) |
+| Post JSON format | Standard v1.1 format | [X API v2 format](/ko/x-api/fundamentals/data-dictionary) (요청 매개변수인 fields 및 expansions에 의해 결정되며, v1.1 형식과는 하위 호환되지 않음)<br /><br />Standard v1.1 형식에서 X API v2 형식으로 마이그레이션하는 방법을 자세히 알아보려면 [데이터 형식 마이그레이션 가이드](/ko/x-api/migrate/data-format-migration)를 방문하세요. |
+| payload에서 반환할 [fields](/ko/x-api/fundamentals/fields)를 선택하는 기능 지원 |     | ✔   |
+| [annotations](/ko/x-api/fundamentals/post-annotations)를 요청 및 수신하는 기능 지원 |     | ✔   |
+| Post 객체 내에서 특정 [metrics](/ko/x-api/fundamentals/metrics)를 요청하는 기능 지원 |     | ✔   |
+| [conversation&#95;id](/ko/x-api/fundamentals/conversation-id) 연산자 및 필드 지원 |     | ✔   |
+| 게시물 수정 이력 제공 | ✔   | ✔   |
+| Post 데이터 배열에 대한 JSON key 이름 | statuses | data |
+| 페이지네이션에 대한 JSON key 이름 | search&#95;metadata.next&#95;results | meta.next&#95;token |
+| 시간 범위로 아카이브 탐색 지원 | ✔   | ✔   |
+| 시간 기반 요청의 시간 해상도 | 일(day) | 초(second) |
+| Timezone | UTC | UTC |
+| 시간 기반 탐색을 위한 요청 매개변수 | until | start&#95;time  <br />end&#95;time |
+| Post ID 기반 탐색을 위한 요청 매개변수 | since&#95;id   <br />max&#95;id | since&#95;id   <br />until&#95;id |
+| 페이지네이션을 위한 요청 매개변수 | URL 인코딩된 쿼리 제공 | next&#95;token |
+| [Project](/ko/resources/fundamentals/developer-apps)와 연결된 [developer App](/ko/resources/fundamentals/developer-apps)의 credentials 사용 필요 |     | ✔   |
+
+<div id="full-archive-search-comparison">
+  ### 전체 아카이브 검색 비교
+</div>
+
+다음 표는 다양한 전체 아카이브 검색 엔드포인트 유형을 비교합니다:
+
+| **설명** | **Enterprise** | **X API v2** |
+| :--- | :--- | :--- |
+| 호스트 도메인 | https://gnip-api.x.com | https://api.x.com |
+| 엔드포인트 경로 | /search/fullarchive/accounts/:account&#95;name/:label | /2/tweets/search/all |
+| [인증](/ko/resources/fundamentals/authentication) | Basic auth | OAuth 2.0 App-Only |
+| 타임스탬프 형식 | YYYYMMDDHHMM | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 반환되는 게시물의 최대 과거 시점 | 2006년 3월 이후 전체 아카이브 | 2006년 3월 이후 전체 아카이브 |
+| 지원되는 HTTP 메서드 | GET  <br />POST | GET |
+| 기본 요청 한도 | 분당 요청 한도는 계약서에 명시된 대로 파트너별로 달라집니다. <br /><br />Basic auth 사용 시 초당 20건의 요청 | OAuth 2.0 App-Only 사용 시 15분당 300건의 요청<br /><br />OAuth 2.0 App-Only 사용 시 초당 1건의 요청 |
+| 완전히 언와인드된 URL 제공 | ✔   | ✔   |
+| 응답당 포스트 수 | 최대: 500  <br />기본값: 100 | 최대: 500  <br />기본값: 10 |
+| 게시물 JSON 형식 | [Native Enriched 또는 Activity Streams](/ko/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) 형식 | [X API v2](/ko/x-api/fundamentals/data-dictionary) 형식 (fields 및 expansions 요청 매개변수에 의해 결정) |
+| 페이로드에 어떤 [fields](/ko/x-api/fundamentals/fields)가 반환될지 선택 지원 |     | ✔   |
+| [annotations](/ko/x-api/fundamentals/post-annotations) 요청 및 수신 지원 |     | ✔   |
+| 게시물 객체 내 특정 [metrics](/ko/x-api/fundamentals/metrics) 요청 지원 |     | ✔   |
+| [conversation&#95;id](/ko/x-api/fundamentals/conversation-id) 연산자 및 필드 지원 |     | ✔   |
+| 게시물 편집 이력 제공 | ✔   | ✔   |
+| 게시물 데이터 배열의 JSON 키 이름 | results | data |
+| 페이지네이션의 JSON 키 이름 | **next** | meta.next&#95;token |
+| 시간 기반 요청의 시간 해상도 | 초 | 초 |
+| 타임존 | UTC | UTC |
+| 게시물 ID를 통한 아카이브 탐색 지원 |     | ✔   |
+| 시간 기반 탐색용 요청 매개변수 | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| 게시물 ID 기반 탐색용 요청 매개변수 |     | since&#95;id   <br />until&#95;id |
+| 페이지네이션용 요청 매개변수 | next&#95;token | next&#95;token |
+| Academic Research 액세스 권한이 있는 [Project](/ko/resources/fundamentals/developer-apps)에 연결된 [developer App](/ko/resources/fundamentals/developer-apps)의 자격 증명 사용 필요 |     | ✔   |
+
+**필터링 연산자 비교**
+
+검색 게시물 기능의 네 가지 버전(standard, enterprise, v2)은 사용 가능한 연산자가 서로 다르며, 각 버전 내에서도 연산자 가용성 수준이 서로 다릅니다. 이에 대해서는 아래에서 설명합니다.
+
+Enterprise
+
+* enterprise 연산자에는 하위 등급이 없습니다.
+
+X API v2
+
+* **Self-serve:** 모든 Project에서 사용 가능
+* **Enterprise:** Enterprise용 Project에서 사용 가능
+
+각 연산자 집합에 대해서는 다음 가이드를 통해 더 자세히 알아볼 수 있습니다:
+
+* [Enterprise operators](/ko/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators)
+* [X API v2 operators](/ko/x-api/posts/search/integrate/build-a-query#operators)
+
+이제 X API v2 내의 다양한 연산자 수준을 이해했으므로, 다음은 검색 포스트에 대한 연산자 가용성을 매핑한 표입니다(셀을 비워 둔 경우 해당 연산자는 사용할 수 없음에 유의하십시오):
+
+| 검색 연산자 | Standard | Enterprise | v2  |
+| :--- | :--- | :--- | :--- |
+| keyword | 지원됨  <br />q:keyword | 지원됨 | 지원됨 |
+| emoji | 지원됨  <br />q:😄 | 지원됨 | 지원됨 |
+| &quot;exact phrase&quot; | 지원됨 | 지원됨 | 지원됨 |
+| #   | 지원됨 | 지원됨 | 지원됨 |
+| $   | 지원됨 | 지원됨 | 지원됨 |
+| @   | 지원됨 | 지원됨 | 지원됨 |
+| from: | 지원됨 | 지원됨 | 지원됨 |
+| to: | 지원됨 | 지원됨 | 지원됨 |
+| url: | 지원됨 | 지원됨 | 지원됨 |
+| retweets&#95;of: |     | 지원됨 | 지원됨 |
+| context: |     |     | 지원됨 |
+| entity: |     |     | 셀프 서비스 - 최근 검색에서만 사용 가능 |
+| conversation&#95;id: |     |     | 지원됨 |
+| place: |     | 지원됨 | 지원됨 |
+| place&#95;country: |     | 지원됨 | 지원됨 |
+| point&#95;radius: | geocode 매개변수 | 지원됨 | 지원됨 |
+| bounding&#95;box: |     | 지원됨 | 지원됨 |
+| is:retweet | filter:retweets | 지원됨 | 지원됨 |
+| is:reply |     | 지원됨 | 지원됨 |
+| is:quote |     | 지원됨 | 지원됨 |
+| is:verified |     | 지원됨 | 지원됨 |
+| -is:nullcast |     | 지원됨 | 지원됨 |
+| has:hashtags |     | 지원됨 | 지원됨 |
+| has:cashtags |     | 지원됨 | 지원됨 |
+| has:links | filter:links | 지원됨 | 지원됨 |
+| has:mentions |     | 지원됨 | 지원됨 |
+| has:media | filter:media | 지원됨 | 지원됨 |
+| has:images | filter:images, filter:twimg | 지원됨 | 지원됨 |
+| has:videos | filter:videos  <br />filter:native&#95;video | 지원됨 | 지원됨 |
+| has:geo |     | 지원됨 | 지원됨 |
+| lang: | lang - 연산자 또는 매개변수로 사용할 수 있음 | 지원됨 | 지원됨 |
+| has:profile&#95;geo |     | 지원됨 |     |
+| profile&#95;country |     | 지원됨 |     |
+| profile&#95;locality |     | 지원됨 |     |
+| profile&#95;region |     | 지원됨 |     |
+| proximity |     | 지원됨 |     |
+| :(  | 지원됨 |     |     |
+| :)  | 지원됨 |     |     |
+| ?   | 지원됨 |     |     |
+| filter:periscope | 지원됨 |     |     |
+| list: | 지원됨 |     | 지원됨 |
+| filter:replies | 지원됨 |     |     |
+| filter:pro&#95;video | 지원됨 |     |     |
+| filter:social | 지원됨 |     |     |
+| filter:trusted | 지원됨 |     |     |
+| filter:follows | 지원됨 |     |     |
+| filter:has&#95;engagement | 지원됨 |     |     |
+| include:antisocial | 지원됨 |     |     |
+| include:offensive&#95;user | 지원됨 |     |     |
+| include:antisocial&#95;offensive&#95;user | 지원됨 |     |     |
+| include:sensitive&#95;content | 지원됨 |     |     |
+| source: | 지원됨 |     |     |
+| min&#95;replies: | 지원됨 |     |     |
+| min&#95;retweets: | 지원됨 |     |     |
+| min&#95;faves: | 지원됨 |     |     |
+| card&#95;name: | 지원됨 |     |     |
+| card&#95;domain: | 지원됨 |     |     |
+
+**기타 마이그레이션 자료**
+
+[X API 마이그레이션 허브](/ko/x-api/migrate/overview)
+
+[이 엔드포인트용 샘플 코드를 확인하세요](https://github.com/xdevplatform/Twitter-API-v2-sample-code "이 엔드포인트용 샘플 코드를 확인하세요")
+
+[포스트 검색: Standard v1.1에서 X API v2로](/ko/x-api/posts/search/migrate/standard-to-twitter-api-v2)
+
+[포스트 검색: Enterprise에서 X API v2로](/ko/x-api/posts/search/migrate/enterprise-to-twitter-api-v2)

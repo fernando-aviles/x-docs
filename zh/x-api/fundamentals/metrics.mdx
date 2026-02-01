@@ -1,0 +1,246 @@
+---
+title: 指标
+sidebarTitle: 指标
+description: 访问帖子和媒体的参与度指标
+keywords: ["指标", "参与度指标", "推文指标", "展示次数", "点赞", "转发", "视频观看次数", "分析"]
+---
+
+X API 为帖子和媒体提供参与度指标。通过任何身份验证方式都可以访问公开指标，使用用户身份验证则可以访问你自己内容的非公开指标。
+
+***
+
+<div id="metric-types">
+  ## 指标类型
+</div>
+
+| 类型 | 身份验证方式 | 描述 |
+|:-----|:---------------|:------------|
+| **公开** | Bearer Token | 任何人可见（点赞、转发、回复） |
+| **非公开** | 用户上下文 | 私有指标（展示、点击） |
+| **自然** | 用户上下文 | 来源于非推广曝光的指标 |
+| **推广** | 用户上下文 | 来源于广告曝光的指标 |
+
+<Note>
+  **30 天限制**：非公开、自然和推广指标仅适用于过去 30 天内创建的帖子。
+</Note>
+
+***
+
+<div id="available-metrics">
+  ## 可用指标
+</div>
+
+<div id="post-metrics">
+  ### 帖子指标
+</div>
+
+| 指标 | 类型 | 字段路径 |
+|:-------|:-----|:-----------|
+| 转发 | 公开 | `public_metrics.retweet_count` |
+| 引用 | 公开 | `public_metrics.quote_count` |
+| 点赞 | 公开 | `public_metrics.like_count` |
+| 回复 | 公开 | `public_metrics.reply_count` |
+| 展示次数 | 非公开 | `non_public_metrics.impression_count` |
+| URL 点击次数 | 非公开 | `non_public_metrics.url_link_clicks` |
+| 个人资料点击次数 | 非公开 | `non_public_metrics.user_profile_clicks` |
+
+<div id="media-metrics-videos">
+  ### 媒体指标（视频）
+</div>
+
+| 指标 | 类型 | 字段路径 |
+|:-------|:-----|:-----------|
+| 观看次数 | 公开 | `public_metrics.view_count` |
+| 播放至 0% | 非公开 | `non_public_metrics.playback_0_count` |
+| 播放至 25% | 非公开 | `non_public_metrics.playback_25_count` |
+| 播放至 50% | 非公开 | `non_public_metrics.playback_50_count` |
+| 播放至 75% | 非公开 | `non_public_metrics.playback_75_count` |
+| 播放至 100% | 非公开 | `non_public_metrics.playback_100_count` |
+
+***
+
+<div id="requesting-metrics">
+  ## 获取指标
+</div>
+
+<div id="public-metrics-any-auth">
+  ### 公开指标（适用于任何身份验证）
+</div>
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=public_metrics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+响应：
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "public_metrics": {
+      "retweet_count": 50,
+      "reply_count": 12,
+      "like_count": 234,
+      "quote_count": 5
+    }
+  }
+}
+```
+
+<div id="private-metrics-user-context">
+  ### 私有指标（用户上下文）
+</div>
+
+针对你拥有的帖子，需要使用具有用户上下文的 OAuth 1.0a 或 OAuth 2.0：
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=non_public_metrics,organic_metrics" \
+  -H "Authorization: OAuth oauth_consumer_key=...,oauth_token=..."
+```
+
+响应：
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "non_public_metrics": {
+      "impression_count": 5432,
+      "url_link_clicks": 89,
+      "user_profile_clicks": 156
+    },
+    "organic_metrics": {
+      "impression_count": 5432,
+      "like_count": 234,
+      "reply_count": 12,
+      "retweet_count": 50,
+      "url_link_clicks": 89,
+      "user_profile_clicks": 156
+    }
+  }
+}
+```
+
+***
+
+<div id="video-metrics">
+  ## 视频指标
+</div>
+
+对于视频播放相关指标，请使用 media 扩展：
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?\
+tweet.fields=attachments&\
+expansions=attachments.media_keys&\
+media.fields=public_metrics,non_public_metrics" \
+  -H "Authorization: OAuth ..."
+```
+
+响应：
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Check out this video!",
+    "attachments": {
+      "media_keys": ["13_9876543210"]
+    }
+  },
+  "includes": {
+    "media": [{
+      "media_key": "13_9876543210",
+      "type": "video",
+      "public_metrics": {
+        "view_count": 12543
+      },
+      "non_public_metrics": {
+        "playback_0_count": 12543,
+        "playback_25_count": 9876,
+        "playback_50_count": 7654,
+        "playback_75_count": 5432,
+        "playback_100_count": 3210
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="organic-vs-promoted-metrics">
+  ## 自然指标与推广指标
+</div>
+
+如果某条帖子被作为广告投放，则相关指标会拆分为自然流量和推广流量两个部分：
+
+| 上下文          | 说明            |
+| :----------- | :------------ |
+| **Organic**  | 来自普通时间线浏览的指标  |
+| **Promoted** | 来自付费广告展示的指标   |
+| **Public**   | 合计总数（自然 + 推广） |
+
+请同时请求这两类指标以查看明细拆分：
+
+```bash
+tweet.fields=public_metrics,organic_metrics,promoted_metrics
+```
+
+***
+
+<div id="metric-definitions">
+  ## 指标定义
+</div>
+
+<Accordion title="Impressions">
+  帖子在用户屏幕上展示的总次数。为非去重计数——同一用户观看两次计为两次展示。
+</Accordion>
+
+<Accordion title="Repost count">
+  Repost（转发）的数量。不包括引用帖子。
+</Accordion>
+
+<Accordion title="Quote count">
+  引用帖子（带评论的 Repost）的数量。这些始终为自然流量。
+</Accordion>
+
+<Accordion title="Video views">
+  汇总了所有包含该视频的帖子中的播放次数。同一个视频即使在多个帖子中被转发，也只计算一个总观看次数。
+</Accordion>
+
+<Accordion title="Playback quartiles">
+  在视频各个播放进度百分比处播放到该位置的唯一用户数。可用于衡量用户流失率。
+</Accordion>
+
+***
+
+<div id="requirements-summary">
+  ## 要求摘要
+</div>
+
+| 指标字段 | 身份验证要求 |
+|:-------------|:-----------------------|
+| `public_metrics` | Bearer 令牌（任意） |
+| `non_public_metrics` | 用户上下文（仅限所拥有的帖子） |
+| `organic_metrics` | 用户上下文（仅限所拥有的帖子） |
+| `promoted_metrics` | 用户上下文（仅限推广帖子） |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="数据字典" icon="book" href="/zh/x-api/fundamentals/data-dictionary">
+    完整的字段参考。
+  </Card>
+
+  <Card title="身份验证" icon="key" href="/zh/resources/fundamentals/authentication/overview">
+    配置用户上下文身份验证。
+  </Card>
+</CardGroup>

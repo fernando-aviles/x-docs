@@ -1,0 +1,359 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 获取私信事件和会话
+keywords: ["私信查询快速入门", "私信快速入门", "获取私信教程", "私信查询指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将带你逐步完成为已认证用户获取私信事件的操作。
+
+<Note>
+  **前置条件**
+
+  在开始之前，你需要：
+
+  * 一个拥有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 用户访问令牌（OAuth 1.0a 或 OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-all-dm-events">
+  ## 获取所有私信事件
+</div>
+
+检索已认证用户的所有私信事件：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,text&\
+  max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 使用分页获取所有私信事件
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "text"],
+      max_results=100
+  ):
+      for event in page.data:
+          print(f"{event.event_type}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 使用分页获取所有私信事件
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "text"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.event_type}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### 响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "event_type": "MessageCreate",
+      "text": "你好!最近怎么样?",
+      "sender_id": "9876543210",
+      "created_at": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "meta": {
+    "result_count": 1,
+    "next_token": "abc123"
+  }
+}
+```
+
+***
+
+<div id="get-one-to-one-conversation">
+  ## 获取一对一会话
+</div>
+
+从特定的一对一会话中检索 DM 事件：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_conversations/with/9876543210/dm_events?\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 从一对一会话中获取 DM 事件
+  for page in client.dm_events.get_by_participant(
+      participant_id="9876543210",
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.created_at}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 从一对一会话中获取 DM 事件
+  const paginator = client.dmEvents.getByParticipant("9876543210", {
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.created_at}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+将 `9876543210` 替换为对方用户的 ID。
+
+***
+
+<div id="get-conversation-by-id">
+  ## 通过 ID 获取会话
+</div>
+
+检索指定会话 ID 下的 DM 事件：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_conversations/1234567890-9876543210/dm_events?\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 根据会话 ID 获取该会话中的 DM 事件
+  for page in client.dm_events.get_by_conversation(
+      dm_conversation_id="1234567890-9876543210",
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.created_at}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 根据会话 ID 获取该会话中的 DM 事件
+  const paginator = client.dmEvents.getByConversation("1234567890-9876543210", {
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.created_at}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="filter-by-event-type">
+  ## 按事件类型过滤
+</div>
+
+仅获取特定类型的事件：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  event_types=MessageCreate&\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 仅获取 MessageCreate 事件
+  for page in client.dm_events.list(
+      event_types=["MessageCreate"],
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 仅获取 MessageCreate 事件
+  const paginator = client.dmEvents.list({
+    eventTypes: ["MessageCreate"],
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(event.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="event-types">
+  ### 事件类型
+</div>
+
+| Type | 描述 |
+|:-----|:------------|
+| `MessageCreate` | 发送了一条消息 |
+| `ParticipantsJoin` | 用户加入会话 |
+| `ParticipantsLeave` | 用户离开会话 |
+
+***
+
+<div id="include-user-data">
+  ## 包含用户数据
+</div>
+
+展开发送方信息：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,text&\
+  expansions=sender_id&\
+  user.fields=username,profile_image_url" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 获取包含发送方信息的 DM 事件
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "text"],
+      expansions=["sender_id"],
+      user_fields=["username", "profile_image_url"]
+  ):
+      for event in page.data:
+          # 从 includes 中匹配发送方
+          print(f"{event.sender_id}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 获取包含发送方信息的 DM 事件
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "text"],
+    expansions: ["sender_id"],
+    userFields: ["username", "profile_image_url"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.sender_id}: ${event.text}`);
+    });
+    // 发送方的用户对象位于 page.includes.users 中
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 带扩展的响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "event_type": "MessageCreate",
+      "text": "Hello!",
+      "sender_id": "9876543210"
+    }
+  ],
+  "includes": {
+    "users": [
+      {
+        "id": "9876543210",
+        "username": "example_user",
+        "profile_image_url": "https://..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="common-parameters">
+  ## 常用参数
+</div>
+
+| Parameter | Description |
+|:----------|:------------|
+| `max_results` | 每页的事件数量（1-100，默认 100） |
+| `pagination_token` | 下一页的分页令牌 |
+| `dm_event.fields` | 要返回的事件字段 |
+| `event_types` | 按事件类型进行过滤 |
+| `expansions` | 要包含的相关对象 |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="发送私信" icon="paper-plane" href="/zh/x-api/direct-messages/manage/quickstart">
+    发送私信
+  </Card>
+
+  <Card title="集成指南" icon="book" href="/zh/x-api/direct-messages/lookup/integrate">
+    关键概念和最佳实践
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/direct-messages/returns-dm-events">
+    完整端点说明文档
+  </Card>
+</CardGroup>

@@ -1,0 +1,80 @@
+---
+title: 移行ガイド
+sidebarTitle: 移行ガイド
+keywords: ["manage direct messages migration", "DM management migration", "v1.1 to v2 manage DMs", "DM migration guide", "migrate DM management"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="comparing-v11-and-v2-manage-direct-message-endpoints">
+  ## v1.1 と v2 の Direct Message 管理エンドポイントの比較
+</div>
+
+Direct Messages エンドポイントの v1.1 と v2 の両方で、Direct Message を作成するメソッドが提供されています。本ガイドは、両者の違いを理解し、v2 への移行に関する情報を提供することを目的としています。 
+
+2 つのバージョンの大きな違いは、v1.1 は 1 対 1 の会話のみをサポートする一方、v2 ではグループ会話もサポートするという点です。その結果として、v1.1 では「message created」イベントのみがサポートされていますが、v2 では参加者が会話に参加・離脱することに関連するイベントもサポートされています。実際、v2 の根本的な更新点の 1 つは、`dm_conversations` をコア API オブジェクトとして確立したことです。   
+
+v1.1 では、Direct Messages を管理するためのエンドポイントが 2 つあります:
+
+* POST direct&#95;messages/events/new - 1 対 1 の Direct Message を作成します。この v1.1 エンドポイントでは 1 対 1 のメッセージのみを作成でき、グループメッセージはサポートされません。  
+
+* DELETE direct&#95;messages/events/destroy - 認証ユーザーのビューから 1 対 1 のメッセージを削除します。 
+
+この v2 リリースでは、Direct Messages を作成するための POST メソッドが 3 つあります: 
+
+* **POST /2/dm&#95;conversations/with/:participant&#95;id/messages** - 1 対 1 の Direct Message を作成します。このメソッドは、既存の 1 対 1 会話にメッセージを追加するか、新しい会話を作成します。`:participant_id` パスパラメータは、メッセージを受信するアカウントの User ID です。 
+
+* **POST /2/dm&#95;conversations** - 新しいグループ会話を作成し、その会話に Direct Message を 1 件追加します。これらのリクエストには、会話参加者のリストが必要です。同じ参加者リストで複数の会話を作成できることに注意してください。これらのリクエストは常に新しい会話 ID を返します。 
+
+* **POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages** - Direct Message を作成し、既存の会話に追加します。`:dm_conversation_id` パスパラメータは、メッセージを追加する会話の ID です。 
+
+重要な点として、会話 ID とイベント ID は、X プラットフォームの v1.1 と v2 の両バージョン間で共有されています。これは、両バージョンを併用できることを意味します。たとえば、Direct Messages v1.1 エンドポイントには、単一イベントを返すメソッドやイベントを削除するメソッドがあり、これらはまだ v2 では利用できません。ID は v1.1 と v2 の間で共通なので、v2 で提供された ID に基づいて v1.1 リクエストを行ったり、X アプリケーション上の会話 URL に表示される会話 ID を参照したりできます。
+
+次の表では、v1.1 と v2 の Direct Messages 管理エンドポイントの基本的な側面を比較しています。ここで示す X API v2 の特性は、すべての Direct Message ルックアップエンドポイントに共通です。
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Host domain | https://api.x.com | https://api.x.com |
+| Endpoint root path | [/1.1/direct&#95;messages](https://api.x.com/1.1/direct_messages) | [/2/dm&#95;conversations](https://api.x.com/2/users/:id/dm_conversations)<br /><br />Direct Messages の会話は、基本的な API オブジェクトとして導入されています。   <br /><br />これらのエンドポイントは、MessageCreate、ParticipantsJoin、ParticipantLeave イベントを取得します。 |
+| HTTP methods supported | POST | POST |
+| Supports Group Direct Messages |     | ✔   |
+| Event types supported | message&#95;create | MessageCreate, ParticipantsJoin, ParticipantsLeave |
+| [Authentication](/ja/resources/fundamentals/authentication) | OAuth 1.0a User Context | OAuth 1.0a User Context<br /><br />OAuth 2 User Context (scopes: dm.read, dm.write) |
+| Requires the use of credentials from a [developer App](/ja/resources/fundamentals/authentication) associated with a X API v2 [Project](/ja/resources/fundamentals/developer-apps) |     | ✔   |
+| Default request [rate limits](/ja/x-api/fundamentals/rate-limits)*  <br />*All requests require user tokens | ユーザー 1 人あたり 24 時間で 1000 リクエスト  <br />App 1 つあたり 24 時間で 15000 リクエスト | ユーザー 1 人あたり 15 分で 200 リクエスト<br /><br />ユーザー 1 人あたり 24 時間で 1000 リクエスト<br /><br />App 1 つあたり 24 時間で 15000 リクエスト<br /><br />これらのレート制限は、すべての `dm_conversations` POST エンドポイント間で共有されます。 |
+
+次の表では、v2 の POST メソッドを v1.1 と比較します。これらの v2 の提供内容は、グループ会話をサポートすることで利用可能な機能を拡張している点に注意してください。 
+
+**新しい 1 対 1 の Direct Message を作成する**
+
+Path: POST /2/dm&#95;conversations/with/:participant&#95;id/messages
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **説明** | **Standard v1.1** | **X API v2** |
+| エンドポイントパス | POST direct&#95;messages/events/new (message&#95;create) | POST /2/dm&#95;conversations/with/:participant&#95;id/messages |
+| 既定のリクエスト [レート制限](/ja/x-api/fundamentals/rate-limits) | 1ユーザーあたり24時間につき1000リクエスト  <br />1 Appあたり24時間につき15000リクエスト | 1ユーザーあたり15分につき200リクエスト<br /><br />1ユーザーあたり24時間につき1000リクエスト<br /><br />1 Appあたり24時間につき15000リクエスト<br /><br />これらのレート制限は、すべての dm&#95;conversations POST エンドポイントで共有されます。 |
+| グループダイレクトメッセージのサポート |     | ✔   |
+
+**新しいダイレクトメッセージのグループ会話を作成し、メッセージを追加する**
+
+パス: POST /2/dm&#95;conversations
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **説明** | **Standard v1.1** | **X API v2** |
+| エンドポイントパス | サポートされていません | POST /2/dm&#95;conversations |
+| 既定のリクエスト [レート制限](/ja/x-api/fundamentals/rate-limits) |     | 1ユーザーあたり15分につき200リクエスト<br /><br />1ユーザーあたり24時間につき1000リクエスト<br /><br />1 Appあたり24時間につき15000リクエスト<br /><br />これらのレート制限は、すべての dm&#95;conversations POST エンドポイントで共有されます。 |
+| グループダイレクトメッセージのサポート |     | ✔   |
+
+**既存の会話に ID を指定してダイレクトメッセージを追加する**
+
+パス: POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **説明** | **Standard v1.1** | **X API v2** |
+| エンドポイントパス | サポートされていません | POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages |
+| 既定のリクエスト [レート制限](/ja/x-api/fundamentals/rate-limits) |     | 1ユーザーあたり15分につき200リクエスト<br /><br />1ユーザーあたり24時間につき1000リクエスト<br /><br />1 Appあたり24時間につき15000リクエスト<br /><br />これらのレート制限は、すべての dm&#95;conversations POST エンドポイントで共有されます。 |
+| グループダイレクトメッセージのサポート |     | ✔   |

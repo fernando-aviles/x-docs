@@ -1,0 +1,211 @@
+---
+title: 뮤트 사용자 조회
+sidebarTitle: 뮤트 사용자 조회
+description: 뮤트한 사용자 목록 가져오기
+keywords: ["뮤트 조회 빠른 시작", "뮤트 조회 빠른 시작", "뮤트 조회 튜토리얼", "뮤트 조회 가이드", "뮤트 빠른 시작"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 X API를 사용해 뮤트한 사용자 목록을 조회하는 방법을 설명합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다:
+
+  * 승인된 App이 있는 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * User Access Token (OAuth 1.0a 또는 OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-muted-users">
+  ## 내가 뮤트한 사용자 가져오기
+</div>
+
+<Steps>
+  <Step title="내 사용자 ID 가져오기">
+    인증된 사용자 ID가 필요합니다. [user lookup endpoint](/ko/x-api/users/lookup/introduction)를 사용하거나 Access Token에서 확인할 수 있습니다(숫자 부분이 사용자 ID입니다).
+  </Step>
+
+  <Step title="내가 뮤트한 사용자 조회하기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/muting?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # 페이지네이션을 사용해 뮤트한 사용자 가져오기
+      for page in client.users.get_muting(
+          "123456789",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Muted")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // 페이지네이션을 사용해 뮤트한 사용자 가져오기
+      const paginator = client.users.getMuting("123456789", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Muted`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답 검토하기">
+    ```json
+    {
+      "data": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers",
+          "created_at": "2013-12-14T04:35:55.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "1710819323648428707"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 추가 데이터 포함
+</div>
+
+expansions를 사용하면 고정된 포스트와 같은 관련 데이터를 함께 가져올 수 있습니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # expansions를 사용해 음소거된 사용자 가져오기
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # 고정된 포스트는 page.includes.tweets에 있습니다
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // expansions를 사용해 음소거된 사용자 가져오기
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // 고정된 포스트는 page.includes?.tweets에 있습니다
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 확장된 응답
+</div>
+
+```json
+{
+  "data": [
+    {
+      "username": "XDevelopers",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "id": "2244994945",
+      "name": "X Developers",
+      "pinned_tweet_id": "1430984356139470849"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-08-26T20:03:51.000Z",
+        "id": "1430984356139470849",
+        "text": "Help us build a better X Developer Platform!..."
+      }
+    ]
+  },
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+<div id="paginate-through-results">
+  ## 결과 페이지네이션
+</div>
+
+SDK에서는 페이지네이션을 자동으로 처리합니다. cURL을 사용할 때는 응답에 포함된 `next_token` 값을 사용하세요:
+
+```bash
+curl "https://api.x.com/2/users/123456789/muting?\
+max_results=100&\
+pagination_token=1710819323648428707" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="뮤트 관리" icon="volume-xmark" href="/ko/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    사용자 뮤트 및 해제
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/users/get-muted-users">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

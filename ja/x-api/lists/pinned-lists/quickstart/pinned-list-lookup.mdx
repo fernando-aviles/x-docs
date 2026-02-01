@@ -1,0 +1,141 @@
+---
+title: ピン留めされたリスト検索
+sidebarTitle: ピン留めされたリスト検索
+description: ユーザーのピン留めされたリストを取得する
+keywords: ["ピン留めされたリスト検索 クイックスタート", "ピン留めされたリスト検索", "ピン留めされたリスト クイックスタート", "リスト検索 クイックスタート"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、ユーザーのピン留めされたリストを取得する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  作業を始める前に、以下が必要です：
+
+  * 承認済みの App を持つ[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * ユーザーアクセストークン（OAuth 1.0a または OAuth 2.0 PKCE）
+</Note>
+
+***
+
+<div id="get-pinned-lists">
+  ## ピン留めされたリストを取得する
+</div>
+
+<Steps>
+  <Step title="自分のユーザーIDを取得する">
+    認証済みユーザーの ID が必要です。[ユーザールックアップエンドポイント](/ja/x-api/users/lookup/introduction)を使うか、アクセストークンから確認できます（数値の部分がユーザーIDです）。
+  </Step>
+
+  <Step title="ピン留めされたリストをリクエストする">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/pinned_lists?\
+      list.fields=follower_count,member_count,owner_id&\
+      expansions=owner_id&\
+      user.fields=created_at,username" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # ピン留めされたリストを取得
+      response = client.lists.get_pinned(
+          "2244994945",
+          list_fields=["follower_count", "member_count", "owner_id"],
+          expansions=["owner_id"],
+          user_fields=["created_at", "username"]
+      )
+
+      for lst in response.data:
+          print(f"{lst.name} - {lst.follower_count} followers")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // ピン留めされたリストを取得
+      const response = await client.lists.getPinned("2244994945", {
+        listFields: ["follower_count", "member_count", "owner_id"],
+        expansions: ["owner_id"],
+        userFields: ["created_at", "username"],
+      });
+
+      response.data?.forEach((lst) => {
+        console.log(`${lst.name} - ${lst.follower_count} followers`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1454155907651158017",
+          "name": "Tech News",
+          "follower_count": 150,
+          "member_count": 25,
+          "owner_id": "2244994945"
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "name": "X Developers",
+            "created_at": "2013-12-14T04:35:55.000Z"
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="available-list-fields">
+  ## 利用可能なリストフィールド
+</div>
+
+| Field | Description |
+|:------|:------------|
+| `description` | リストの説明 |
+| `owner_id` | 所有者のユーザーID |
+| `private` | リストが非公開かどうか |
+| `member_count` | メンバー数 |
+| `follower_count` | フォロワー数 |
+| `created_at` | リストの作成日時 |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ピン留め済みリストを管理" icon="thumbtack" href="/ja/x-api/lists/pinned-lists/quickstart/manage-pinned-lists">
+    リストをピン留め・ピン留め解除する
+  </Card>
+
+  <Card title="リストのルックアップ" icon="list" href="/ja/x-api/lists/list-lookup/quickstart">
+    リストの詳細を取得
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/lists/get-users-pinned-lists">
+    エンドポイントの詳細なドキュメント
+  </Card>
+</CardGroup>

@@ -1,0 +1,978 @@
+---
+title: Tests A/B
+keywords: ["test A/B", "tests A/B", "tests fractionnés", "tests de publicités", "tests de campagnes", "campagnes de test"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="overview">
+  ## Vue d’ensemble
+</div>
+
+<div id="introduction">
+  ### Introduction
+</div>
+
+Les tests A/B permettent aux annonceurs de segmenter les utilisateurs qu’ils atteignent sur X afin de comprendre comment optimiser au mieux les performances de leurs campagnes et d’en tirer des enseignements pour orienter leurs stratégies marketing.
+
+Ces segments — appelés répartitions de groupes d’utilisateurs — sont aléatoires et mutuellement exclusifs. Grâce à cette randomisation, les facteurs qui influencent les résultats sont répartis de manière équitable. En d’autres termes, il n’existe aucune différence intrinsèque entre les groupes ni entre leurs comportements attendus. Pour cette raison, lorsqu’une seule variation est appliquée à un groupe d’utilisateurs et pas aux autres, l’écart de performance de la campagne peut être attribué à cette variation.
+
+Bien qu’il soit possible de tester de nombreuses variations en même temps, nous recommandons fortement de tester une seule variation à la fois. Cela permet d’isoler le facteur causal à l’origine de la différence observée de performance de campagne.
+
+Les variations sont définies au niveau de la campagne. Par exemple, si l’annonceur souhaite mesurer l’efficacité d’un nouveau créatif, il doit créer deux campagnes identiques dont la seule différence est le créatif. À l’avenir, nous prévoyons de prendre en charge les variations au niveau du line item.
+
+### Cas d’usage
+
+Les tests A/B sont le plus souvent utilisés pour (1) des cas d’usage d’optimisation pour les clients orientés performance qui souhaitent comprendre ce qui fonctionne le mieux sur X afin d’optimiser leur investissement, et (2) des cas d’usage d’apprentissage pour les annonceurs de marque qui souhaitent utiliser les enseignements tirés de ces tests pour orienter leur stratégie marketing. 
+
+L’API prend en charge les tests A/B pour n’importe quelle variable de campagne, notamment :
+
+* Création publicitaire 
+* Ciblage 
+* Type d’enchère
+* Unité d’enchère
+
+<div id="ab-testing">
+  ## Tests A/B
+</div>
+
+Les tests A/B permettent aux annonceurs de segmenter les utilisateurs qu’ils atteignent sur X afin de comprendre comment optimiser au mieux les performances de leurs campagnes et d’obtenir des enseignements pour orienter leurs stratégies marketing.
+
+Ces segments — appelés fractionnements de groupes d’utilisateurs — sont aléatoires et mutuellement exclusifs. Grâce à la randomisation, les facteurs qui influencent les résultats sont répartis de manière égale. En d’autres termes, il n’existe aucune différence intrinsèque entre les groupes ni entre leurs comportements attendus. De ce fait, lorsqu’une seule variation est appliquée à un groupe d’utilisateurs et pas aux autres, l’écart de performance de la campagne peut être attribué à cette variation.
+
+Bien qu’il soit possible de tester de nombreuses variations simultanément, nous recommandons vivement de tester une seule variation à la fois. Cela permet d’isoler le facteur causal de la différence de performance de campagne observée.
+
+Les variations sont définies au niveau de la campagne ou au niveau du groupe de publicités. Le groupe de publicités est défini via le [line item](https://developer.x.com/en/docs/twitter-ads-api/campaign-management/api-reference/line-items) dans l’Ads API. À titre d’exemple de variation au niveau du groupe de publicités, si l’annonceur souhaite tester l’efficacité d’un nouveau visuel, il doit créer une campagne avec deux groupes de publicités identiques où la seule différence est le visuel.
+
+<div id="use-cases">
+  ### Cas d’utilisation
+</div>
+
+Les tests A/B sont le plus souvent utilisés pour répondre (1) à des cas d’utilisation d’optimisation pour les clients axés sur la performance qui souhaitent comprendre ce qui fonctionne le mieux sur X afin d’optimiser leur investissement et (2) à des cas d’utilisation liés à l’apprentissage pour les annonceurs de marque qui souhaitent utiliser ces enseignements pour orienter leur stratégie marketing. 
+
+L’API prendra en charge les tests A/B pour toute variable de campagne, notamment :
+
+* Créatif
+
+* Ciblage
+
+* Type d’enchère
+
+* Unité d’enchère
+
+<div id="attributes">
+  ### Attributs
+</div>
+
+Les tests A/B sont représentés sous forme de structures imbriquées. Il existe des champs de niveau supérieur pour le test A/B lui‑même et un tableau d’objets de groupes d’utilisateurs, chacun avec un ensemble de champs qui le décrivent.
+
+De manière générale, chaque test A/B doit inclure les informations suivantes.
+
+* La durée du test, représentée par les champs start&#95;time et end&#95;time
+
+* Le niveau auquel la répartition aura lieu, représenté par le champ entity&#95;type
+
+* Au moins deux (et au maximum 30) groupes d’utilisateurs, chacun représenté comme un objet dans le tableau user&#95;groups
+
+Chaque groupe d’utilisateurs *doit* inclure les informations suivantes.
+
+* Le pourcentage d’utilisateurs qui doivent être alloués au groupe d’utilisateurs donné, représenté par le champ size
+
+* Les ID de campagne/ID de line item qui doivent constituer le pool d’utilisateurs pour le groupe d’utilisateurs donné, représentés par le tableau entity&#95;ids
+
+En option, des valeurs de nom et de description peuvent être définies pour les tests A/B et pour les groupes d’utilisateurs. Des informations sur les règles de validation et d’autres contraintes sont disponibles ci‑dessous.
+
+D’autres métadonnées, comme l’ID ou l’horodatage de création, sont également incluses, mais sont automatiquement définies par X.
+
+Un exemple d’entité de test A/B au niveau de la campagne est présenté ci‑dessous.
+
+```json
+{
+  "created_at": "2020-12-01T00:00:00Z",
+  "created_by": {
+    "user_id": "756201191646691328",
+    "username": "apimctestface"
+  },
+  "deleted": false,
+  "description": "documentation example",
+  "end_time": "2020-12-05T01:00:00Z",
+  "entity_type": "CAMPAIGN",
+  "id": "hr7l0",
+  "name": "first AB test",
+  "start_time": "2020-12-01T01:00:00Z",
+  "status": "SCHEDULED",
+  "user_groups": [
+    {
+      "id": "p1bcx",
+      "name": "first group",
+      "description": null,
+      "size": "50.0",
+      "entity_ids": [
+        "f2qcw",
+        "f2tht"
+      ]
+    },
+    {
+      "id": "p1bcy",
+      "name": "second group",
+      "description": "second AB test group",
+      "size": 50,
+      "entity_ids": [
+        "f2rqi",
+        "f2tws"
+      ]
+    }
+  ],
+  "updated_at": "2020-12-01T00:00:00Z",
+  "updated_by": {
+    "user_id": "756201191646691328",
+    "username": "apimctestface"
+  }
+}
+```
+
+Un exemple d’entité de test A/B au niveau de l’élément de campagne est présenté ci-dessous.
+
+```json
+{
+   "created_by":{
+      "user_id":"756201191646691328",
+      "username":"apimctestface"
+   },
+   "name":"Test2e",
+   "start_time":"2022-08-15T00:00:00Z",
+   "updated_by":{
+      "user_id":"756201191646691328",
+      "username":"apimctestface"
+   },
+   "description":"My Second AB test",
+   "entity_type":"LINE_ITEM",
+   "end_time":"2022-08-30T00:00:00Z",
+   "id":"1ul",
+   "user_groups":[
+      {
+         "name":"first group",
+         "size":"50.0",
+         "description":"first group description",
+         "entity_ids":[
+            "ij9dh"
+         ],
+         "id":"4xe"
+      },
+      {
+         "name":"second group",
+         "size":"50.0",
+         "description":"second group description",
+         "entity_ids":[
+            "ihng8"
+         ],
+         "id":"4xf"
+      }
+   ],
+   "status":"SCHEDULED",
+   "created_at":"2022-08-11T00:10:50Z",
+   "updated_at":"2022-08-11T00:10:50Z",
+   "deleted":false
+}
+```
+
+<div id="usage">
+  ### Utilisation
+</div>
+
+Les sous-sections ci-dessous décrivent la création et la mise à jour des tests A/B. Les opérations de lecture et de suppression fonctionnent de la même manière que pour tous les autres endpoints de l’API Ads.
+
+<div id="creating">
+  #### Création
+</div>
+
+Créez un test A/B à l&#39;aide du endpoint [POST accounts/:account&#95;id/ab&#95;tests](https://developer.x.com/en/docs/x-ads-api/measurement/api-reference/ab-tests). Le endpoint accepte uniquement des corps de requête POST au format JSON. Le paramètre Content-Type doit être défini sur application/json.
+
+Une fois que l&#39;annonceur a configuré au moins deux campagnes, un test A/B peut être créé. Comme indiqué ci-dessus, les tests A/B *doivent* inclure : la durée du test, le niveau de répartition et au moins deux groupes d&#39;utilisateurs. Chaque groupe d&#39;utilisateurs doit déclarer le pourcentage d&#39;utilisateurs qui doit lui être attribué, ainsi que les ID de campagne qui doivent constituer son pool d&#39;utilisateurs. Chacun de ces éléments est décrit plus en détail ci‑dessous.
+
+Durée du test :
+
+* Les valeurs start&#95;time et end&#95;time doivent
+
+  * Être dans le futur (par rapport au moment où le test A/B est créé)
+
+  * Chevaucher les dates de diffusion de la campagne/du line item
+
+* Le test doit durer au moins un jour pour les campagnes qui ne sont pas basées sur une application et au moins cinq jours pour les campagnes basées sur une application
+
+Niveau de répartition :
+
+* La valeur entity&#95;type peut être définie sur CAMPAIGN ou LINE&#95;ITEM
+
+Groupes d&#39;utilisateurs :
+
+* Chaque groupe d&#39;utilisateurs est représenté par un objet dans le tableau user&#95;groups
+
+  * Un minimum de deux groupes d&#39;utilisateurs est requis
+
+  * Un maximum de 30 groupes d&#39;utilisateurs est autorisé
+
+* La taille de chaque groupe d&#39;utilisateurs est définie à l&#39;aide d&#39;une représentation sous forme de chaîne d&#39;une valeur numérique comprise entre 1.00 et 99.00
+
+  * **Remarque** : Les valeurs de taille *entre les objets* **doivent** avoir une somme égale à 100.00
+
+* Les ID de campagne doivent être spécifiés dans le tableau entity&#95;ids de chaque groupe d&#39;utilisateurs
+
+Vous pouvez éventuellement définir le nom et la description du test A/B ou d&#39;un ou de plusieurs groupes d&#39;utilisateurs.
+
+La requête suivante crée un test A/B au niveau de la campagne qui dure quatre jours et comporte deux groupes d&#39;utilisateurs avec 50 % des utilisateurs dans chaque groupe. Le premier groupe d&#39;utilisateurs est basé sur les campagnes f2qcw et f2tht ; le second groupe d&#39;utilisateurs est basé sur les campagnes f2rqi et f2tws. La requête ajoute également des noms et des descriptions à certaines parties de l&#39;entité.
+
+twurl -X POST -H ads-api.x.com &quot;/8/accounts/18ce54d4x5t/ab&#95;tests&quot; -d &#39;&#123;&quot;end&#95;time&quot;: &quot;2020-12-05T01:00:00Z&quot;, &quot;entity&#95;type&quot; : &quot;CAMPAIGN&quot;, &quot;start&#95;time&quot;: &quot;2020-12-01T01:00:00Z&quot;, &quot;user&#95;groups&quot;: [&#123;&quot;entity&#95;ids&quot;: [&quot;f2qcw&quot;, &quot;f2tht&quot;], &quot;size&quot;: &quot;50.00&quot;, &quot;name&quot;: &quot;first group&quot;&#125;,&#123;&quot;entity&#95;ids&quot;: [&quot;f2rqi&quot;, &quot;f2tws&quot;], &quot;size&quot;: &quot;50.00&quot;, &quot;name&quot;: &quot;second group&quot;, &quot;description&quot;: &quot;second AB test group&quot;&#125;], &quot;name&quot;: &quot;first AB test&quot;, &quot;description&quot;: &quot;documentation example&quot;&#125;&#39;
+
+```json
+twurl -X POST -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests" -d '{"end_time": "2020-12-05T01:00:00Z", "entity_type" : "CAMPAIGN", "start_time": "2020-12-01T01:00:00Z", "user_groups": [{"entity_ids": ["f2qcw", "f2tht"], "size": "50.00", "name": "first group"},{"entity_ids": ["f2rqi", "f2tws"], "size": "50.00", "name": "second group", "description": "second AB test group"}], "name": "first AB test", "description": "documentation example"}'
+
+{
+  "request": {
+    "params": {
+      "account_id": "18ce54d4x5t",
+      "end_time": "2020-12-05T01:00:00Z",
+      "entity_type": "CAMPAIGN",
+      "start_time": "2020-12-01T01:00:00Z",
+      "user_groups": [
+        {
+          "entity_ids": [
+            "f2qcw",
+            "f2tht"
+          ],
+          "size": "50.0",
+          "name": "first group"
+        },
+        {
+          "entity_ids": [
+            "f2rqi",
+            "f2tws"
+          ],
+          "size": "50.0",
+          "name": "second group",
+          "description": "second AB test group"
+        }
+      ],
+      "name": "first AB test",
+      "description": "documentation example"
+    }
+  },
+  "data": {
+    "created_at": "2020-12-01T00:00:00Z",
+    "created_by": {
+      "user_id": "756201191646691328",
+      "username": "apimctestface"
+    },
+    "deleted": false,
+    "description": "documentation example",
+    "end_time": "2020-12-05T01:00:00Z",
+    "entity_type": "CAMPAIGN",
+    "id": "hr7l0",
+    "name": "first AB test",
+    "start_time": "2020-12-01T01:00:00Z",
+    "status": "SCHEDULED",
+    "user_groups": [
+      {
+        "id": "p1bcx",
+        "name": "first group",
+        "description": null,
+        "size": "50.0",
+        "entity_ids": [
+          "f2qcw",
+          "f2tht"
+        ]
+      },
+      {
+        "id": "p1bcy",
+        "name": "second group",
+        "description": "second AB test group",
+        "size": "50.0",
+        "entity_ids": [
+          "f2rqi",
+          "f2tws"
+        ]
+      }
+    ],
+    "updated_at": "2020-12-01T00:00:00Z",
+    "updated_by": {
+      "user_id": "756201191646691328",
+      "username": "apimctestface"
+    }
+  }
+}
+```
+
+**Pour les tests A/B au niveau de l’élément de campagne**
+
+La principale différence entre les tests A/B au niveau de la campagne et au niveau de l’élément de campagne est le entity&#95;type. Nous devons le définir sur ‘entity&#95;type’ = ‘LINE&#95;ITEM’ pour les tests A/B au niveau de l’élément de campagne. Cela s’applique à toutes les actions ci‑dessous sur un test A/B déjà créé. 
+
+Exigences :
+
+1. Tous les éléments de campagne de la campagne de test A/B doivent être inclus dans le test de répartition.
+2. Seule une répartition égale est autorisée au niveau de l’élément de campagne.
+3. Le nombre d’éléments de campagne de groupes d’utilisateurs autorisés dans 1 test de répartition doit être inférieur ou égal à 5. 
+4. Un seul élément de campagne par groupe d’utilisateurs.
+
+<div id="updating">
+  ### Mise à jour
+</div>
+
+Mettez à jour un test A/B à l’aide de l’endpoint [PUT accounts/:account&#95;id/ab&#95;tests/:ab&#95;test&#95;id](https://developer.x.com/en/docs/x-ads-api/measurement/api-reference/ab-tests). Cet endpoint requiert l’envoi d’un bloc JSON dans la requête. L’en-tête Content-Type doit être défini sur application/json.
+
+Comme pour les autres endpoints de mise à jour, l’endpoint [PUT accounts/:account&#95;id/ab&#95;tests/:ab&#95;test&#95;id](/fr/x-ads-api/measurement/ab-testing#get-accounts-account-id-ab-tests) exige que l’ID du test A/B soit référencé dans l’URL. En règle générale, les tests A/B ne peuvent être mis à jour que lorsque leur statut est SCHEDULED. Il existe une exception : il est possible de mettre à jour le end&#95;time du test A/B lorsqu’il est LIVE.
+
+Cet endpoint accepte du JSON partiel avec des IDs d’objets. Les principes suivants s’appliquent :
+
+* Pour ajouter ou supprimer des objets ou des éléments, transmettez l’intégralité du tableau (et de ses sous-structures) ; il s’agit d’une opération de **remplacement**
+
+* Sinon, modifiez (ajoutez, changez, supprimez) les *champs* existants en faisant référence aux noms de clés ou aux IDs
+
+  * Pour supprimer un champ, définissez sa valeur sur null
+
+  * Les champs qui ne sont pas transmis ne sont pas modifiés
+
+Par exemple, pour ajouter un troisième groupe d’utilisateurs au test A/B précédemment créé, nous devrions envoyer le tableau user&#95;groups contenant les deux objets de groupes d’utilisateurs existants ainsi que le nouveau que nous souhaitons ajouter. Considérez cela comme une *recréation* du tableau user&#95;groups ; transmettez les données comme si vous étiez en train de le créer de cette manière dès le départ (ne transmettez pas les IDs des objets de groupes d’utilisateurs). Le tableau user&#95;groups dans la requête de mise à jour pourrait se présenter comme suit.
+
+```json
+[
+  {
+    "entity_ids": [
+      "f2qcw",
+      "f2tht"
+    ],
+    "size": "30.0",
+    "name": "first group"
+  },
+  {
+    "entity_ids": [
+      "f2rqi",
+      "f2tws"
+    ],
+    "size": "30.0",
+    "name": "second group",
+    "description": "second AB test group"
+  },
+  {
+    "entity_ids": [
+      "i1vwr",
+      "i1xre"
+    ],
+    "size": "40.0"
+  }
+]
+```
+
+Remarquez que les valeurs de size des différents objets totalisent toujours 100,00. Si nous ne les avions pas mises à jour pour les deux premiers objets — précédemment définis à 50,00 chacun — la requête aurait échoué.
+
+Si, en revanche, nous voulions simplement ajouter une description au premier groupe d’utilisateurs, le tableau user&#95;groups dans la requête de mise à jour serait représenté comme suit.
+
+```json
+[
+  {
+    "id": "p1bcx",
+    "description": "updated using a PUT request"
+  }
+]
+```
+
+Nous faisons référence à l’objet de groupe d’utilisateurs par son id et incluons uniquement le champ que nous souhaitons modifier.
+
+<div id="request-examples">
+  #### Exemples de requêtes
+</div>
+
+Cette section fournit des exemples supplémentaires de requêtes de mise à jour. Supposons qu’elles soient appelées séquentiellement. Les blocs JSON sont formatés pour une meilleure lisibilité. Les réponses sont omises.
+
+Pour effectuer les modifications suivantes, la requête serait la suivante. (Il s’agit du même exemple que celui utilisé précédemment.)
+
+1. Ajoute un troisième groupe d’utilisateurs sans nom ni description
+
+2. Modifie le pourcentage d’utilisateurs dans chaque groupe d’utilisateurs
+
+twurl -X PUT -H ads-api.x.com &quot;/8/accounts/18ce54d4x5t/ab&#95;tests/hr7l0&quot; -d &#39;
+
+```json
+twurl -X PUT -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests/hr7l0" -d '
+{
+  "user_groups": [
+    {
+      "entity_ids": [
+        "f2qcw",
+        "f2tht"
+      ],
+      "size": "30.00",
+      "name": "first group"
+    },
+    {
+      "entity_ids": [
+        "f2rqi",
+        "f2tws"
+      ],
+      "size": "30.00",
+      "name": "second group",
+      "description": "second AB test group"
+    },
+    {
+      "entity_ids": [
+        "i1vwr",
+        "i1xre"
+      ],
+      "size": "40.00"
+    }
+  ]
+}'
+```
+
+Pour effectuer les modifications suivantes, la requête serait la suivante.
+
+1. Supprime la description du test A/B
+
+2. Ajoute une description au premier groupe d’utilisateurs
+
+3. Ajoute un ID d’entité (f2syz) au deuxième groupe d’utilisateurs
+
+twurl -X PUT -H ads-api.x.com &quot;/8/accounts/18ce54d4x5t/ab&#95;tests/hr7l0&quot; -d &#39;
+
+```json
+twurl -X PUT -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests/hr7l0" -d '
+{
+  "description": null,
+  "user_groups": [
+    {
+      "id": "p1bcx",
+      "description": "first AB test group"
+    },
+    {
+      "id": "p1bcy",
+      "entity_ids": [
+        "f2rqi",
+        "f2tws",
+        "f2syz"
+      ]
+    }
+  ]
+}'
+```
+
+La troisième modification exige que nous transmettions les deux `id` d&#39;entité existants ainsi que le nouvel `id`. Notez qu&#39;aucun changement n&#39;a été apporté au troisième groupe d&#39;utilisateurs.
+
+Pour effectuer les modifications suivantes, la requête serait la suivante :
+
+1. Supprime le deuxième groupe d&#39;utilisateurs
+
+2. Modifie le pourcentage d&#39;utilisateurs dans chaque groupe d&#39;utilisateurs
+
+```json
+twurl -X PUT -H ads-api.x.com "/8/accounts/18ce54d4x5t/ab_tests/hr7l0" -d '
+{
+  "user_groups": [
+    {
+      "entity_ids": [
+        "f2qcw",
+        "f2tht"
+      ],
+      "size": "55.00",
+      "name": "first group"
+    },
+    {
+      "entity_ids": [
+        "i1vwr",
+        "i1xre"
+      ],
+      "size": "45.00"
+    }
+  ]
+}'
+```
+
+<div id="api-reference">
+  ## Référence de l’API
+</div>
+
+<div id="ab-tests">
+  ### Tests A/B
+</div>
+
+[]()
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Exécuter dans Postman
+</Button>
+
+<div id="get-accountsaccount_idab_tests">
+  #### GET accounts/:account_id/ab_tests
+</div>
+
+Récupérer les détails de certains ou de l’ensemble des tests A/B.
+
+<div id="resource-url">
+  ##### URL de la ressource
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/ab_tests`
+
+<div id="parameters">
+  ##### Paramètres
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | Identifiant du compte utilisé. Apparaît dans le chemin de la ressource et est généralement un paramètre obligatoire pour toutes les requêtes de l’API Advertiser, à l’exception de [GET accounts](/fr/x-ads-api/campaign-management#accounts). Le compte spécifié doit être associé à l’utilisateur authentifié.<br /><br />Type : string<br /><br />Exemple : `18ce54d4x5t` |
+| ab&#95;test&#95;ids  <br />*optional* | Filtre la réponse pour ne conserver que les tests A/B souhaités en spécifiant une liste d’identifiants séparés par des virgules. Jusqu’à 200 ID peuvent être fournis.<br /><br />Type : string<br /><br />Exemple : `hr7l0` |
+| count  <br />*optional* | Spécifie le nombre d’enregistrements à tenter de récupérer par requête distincte.<br /><br />Type : int<br /><br />Valeur par défaut : `200`  <br />Min, Max : `1`, `1000` |
+| cursor  <br />*optional* | Spécifie un curseur pour obtenir la page de résultats suivante. Voir [Pagination](/fr/x-ads-api/introduction) pour plus d’informations.<br /><br />Type : string<br /><br />Exemple : `8x7v00oow` |
+| live&#95;during  <br />*optional* | Filtre la réponse pour ne conserver que les tests A/B qui étaient ou seront en cours pendant l’intervalle de dates donné. Renvoie les tests A/B dont les heures de début et de fin se chevauchent — partiellement ou totalement — avec l’intervalle de dates fourni.<br /><br />Spécifiez les valeurs sous forme de dates séparées par des virgules, exprimées au format [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601). La date la plus ancienne doit être spécifiée en premier.<br /><br />Type : string<br /><br />Exemple : `2020-11-01T08:00:00Z,2020-12-01T08:00:00Z` |
+| q  <br />*optional* | Requête optionnelle pour filtrer la ressource par `name`. Omettez ce paramètre pour tout récupérer.<br /><br />Type : string<br /><br />Longueur min, max : `1`, `80` |
+| sort&#95;by  <br />*optional* | Trie selon un attribut pris en charge, dans l’ordre croissant ou décroissant. Voir [Sorting](/fr/x-ads-api/fundamentals/sorting) pour plus d’informations.<br /><br />Type : string<br /><br />Exemple : `created_at-asc` |
+| status  <br />*optional* | Filtre la réponse pour ne conserver que les tests A/B ayant l’état souhaité.<br /><br />Type : enum<br /><br />Valeurs possibles : `COMPLETED`, `LIVE`, `SCHEDULED` |
+| user&#95;id  <br />*optional* | Filtre la réponse pour ne conserver que les tests A/B créés par l’ID utilisateur spécifié.<br /><br />**Remarque** : ne peut pas être spécifié en même temps que `username`.<br /><br />Type : long<br /><br />Exemple : `756201191646691328` |
+| username  <br />*optional* | Filtre la réponse pour ne conserver que les tests A/B créés par le nom d’utilisateur spécifié. N’incluez pas le symbole « @ » au début.<br /><br />**Remarque** : ne peut pas être spécifié en même temps que `user_id`.<br /><br />Type : string<br /><br />Exemple : `apimctestface` |
+| with&#95;deleted  <br />*optional* | Inclut les résultats supprimés dans votre requête.<br /><br />Type : boolean<br /><br />Valeur par défaut : `false`  <br />Valeurs possibles : `true`, `false` |
+
+<div id="example-request">
+  ##### Exemple de requête
+</div>
+
+`GET https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests`
+
+<div id="example-response">
+  ##### Exemple de réponse
+</div>
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data": [
+        {
+          "created_at": "2022-05-25T00:00:00Z",
+          "created_by": {
+            "user_id": "756201191646691328",
+            "username": "apimctestface"
+          },
+          "deleted": false,
+          "description": "documentation example",
+          "end_time": "2022-05-30T01:00:00Z",
+          "entities": [
+            {
+              "id": "p1bcx",
+              "account_id": "18ce54d4x5t"
+            },
+            {
+              "id": "p1bcy",
+              "account_id": "18ce54d4x5t"
+            }
+          ],
+          "entity_type": "CAMPAIGN",
+          "id": "hr7l0",
+          "name": "first AB test",
+          "start_time": "2022-05-25T01:00:00Z",
+          "status": "SCHEDULED",
+          "user_groups": [
+            {
+              "id": "p1bcx",
+              "name": "first group",
+              "description": null,
+              "size": "50.0",
+              "entity_ids": [
+                "f2qcw",
+                "f2tht"
+              ]
+            },
+            {
+              "id": "p1bcy",
+              "name": "second group",
+              "description": "deuxième groupe de test AB",
+              "size": "50.0",
+              "entity_ids": [
+                "f2rqi",
+                "f2tws"
+              ]
+            }
+          ],
+          "updated_at": "2022-05-25T00:00:00Z",
+          "updated_by": {
+            "user_id": "756201191646691328",
+            "username": "apimctestface"
+          }
+        }
+      ],
+      "next_cursor": null
+    }
+```
+
+<div id="post-accountsaccount_idab_tests">
+  #### POST accounts/:account_id/ab_tests
+</div>
+
+Créer un test A/B.
+
+Tous les paramètres sont envoyés dans le corps de la requête et l’en-tête `Content-Type` doit être défini sur `application/json`.
+
+<div id="resource-url">
+  ##### URL de la ressource
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/ab_tests`
+
+<div id="parameters">
+  ##### Paramètres
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | Identifiant du compte utilisé. Apparaît dans le chemin de la ressource et est généralement un paramètre obligatoire pour toutes les requêtes de l’API Advertiser, à l’exception de [GET accounts](/fr/x-ads-api/campaign-management#accounts). Le compte indiqué doit être associé à l’utilisateur authentifié.<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| end&#95;time  <br />*required* | Heure de fin du test A/B, exprimée au format ISO 8601.<br /><br />Type: string<br /><br />Example: `2020-10-02T00:00:00Z` |
+| entity&#95;type  <br />*required* | Type d’entité à utiliser pour la segmentation en groupes d’utilisateurs.<br /><br />Type: enum<br /><br />Possible values: `CAMPAIGN`, `LINE_ITEM` |
+| start&#95;time  <br />*required* | Heure de début du test A/B, exprimée au format ISO 8601.<br /><br />Type: string<br /><br />Example: `2022-05-30T00:00:00Z` |
+| user&#95;groups  <br />*required* | Décrit les groupes d’utilisateurs. Plus d’informations dans le tableau ci‑dessous. Entre 2 et 30 groupes d’utilisateurs peuvent être spécifiés.<br /><br />Type: array of objects |
+| description  <br />*optional* | Description du test A/B. Longueur maximale : 1 024 caractères.<br /><br />Type: string<br /><br />Example: `documentation example` |
+| name  <br />*optional* | Nom du test A/B. Longueur maximale : 255 caractères.<br /><br />Type: string<br /><br />Example: `first AB test` |
+
+<div id="user-groups">
+  #### Groupes d’utilisateurs
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| entity&#95;ids  <br />*required* | Un tableau d’identifiants d’entités.<br /><br />**Remarque** : les entités ne peuvent être associées qu’à un seul test A/B.<br /><br />Type : array<br /><br />Exemple : `["dxi0l", "e66bl"]` |
+| size  <br />*required* | Le pourcentage d’utilisateurs à allouer à ce groupe d’utilisateurs. Il s’agit d’une valeur numérique représentée sous forme de chaîne de caractères avec au maximum deux chiffres après la virgule. Par exemple, représentez 40 % comme suit : 40, 40.0 ou 40.00.<br /><br />**Remarque** : les valeurs de size pour l’ensemble des *objects* **doivent** totaliser 100.00.<br /><br />Type : array<br /><br />Min, Max : `1.00`, `99.00` |
+| description  <br />*optional* | La description du groupe d’utilisateurs. Longueur maximale : 1 024 caractères.<br /><br />Type : string<br /><br />Exemple : `second AB test group` |
+| name  <br />*optional* | Le nom du groupe d’utilisateurs. Longueur maximale : 255 caractères.<br /><br />Type : string<br /><br />Exemple : `first group` |
+
+### Exemple de requête
+
+`POST https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests -d '{"end_time": "2022-05-30T01:00:00Z", "entity_type" : "CAMPAIGN", "start_time": "2022-05-25T01:00:00Z", "user_groups": [{"entity_ids": ["f2qcw", "f2tht"], "size": "50.00", "name": "first group"},{"entity_ids": ["f2rqi", "f2tws"], "size": "50.00", "name": "second group", "description": "second AB test group"}], "name": "first AB test", "description": "documentation example"}'`
+
+### Exemple de réponse
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "end_time": "2022-05-30T01:00:00Z",
+          "entity_type": "CAMPAIGN",
+          "start_time": "2022-05-25T01:00:00Z",
+          "user_groups": [
+            {
+              "entity_ids": [
+                "f2qcw",
+                "f2tht"
+              ],
+              "size": "50.0",
+              "name": "first group"
+            },
+            {
+              "entity_ids": [
+                "f2rqi",
+                "f2tws"
+              ],
+              "size": "50.0",
+              "name": "deuxième groupe",
+              "description": "deuxième groupe de test AB"
+            }
+          ],
+          "name": "first AB test",
+          "description": "documentation example"
+        }
+      },
+      "data": {
+        "created_at": "2022-05-25T00:00:00Z",
+        "created_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        },
+        "deleted": false,
+        "description": "documentation example",
+        "end_time": "2022-05-30T01:00:00Z",
+        "entities": [
+          {
+            "id": "p1bcx",
+            "account_id": "18ce54d4x5t"
+          },
+          {
+            "id": "p1bcy",
+            "account_id": "18ce54d4x5t"
+          }
+        ],
+        "entity_type": "CAMPAIGN",
+        "id": "hr7l0",
+        "name": "first AB test",
+        "start_time": "2022-05-25T01:00:00Z",
+        "status": "SCHEDULED",
+        "user_groups": [
+          {
+            "id": "p1bcx",
+            "name": "first group",
+            "description": null,
+            "size": "50.0",
+            "entity_ids": [
+              "f2qcw",
+              "f2tht"
+            ]
+          },
+          {
+            "id": "p1bcy",
+            "name": "second group",
+            "description": "second AB test group",
+            "size": "50.0",
+            "entity_ids": [
+              "f2rqi",
+              "f2tws"
+            ]
+          }
+        ],
+        "updated_at": "2022-05-25T00:00:00Z",
+        "updated_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        }
+      }
+    }
+```
+
+<div id="put-accountsaccount_idab_testsab_test_id">
+  #### PUT accounts/:account_id/ab_tests/:ab_test_id
+</div>
+
+Met à jour le test A/B spécifié.
+
+Tous les paramètres sont envoyés dans le corps de la requête et un `Content-Type` de `application/json` est requis.
+
+Cet endpoint prend en charge le JSON partiel avec des id d’objet. Les principes suivants s’appliquent :
+
+* Pour ajouter ou supprimer des objets ou des éléments, transmettez l’intégralité du tableau (et ses sous-structures) ; il s’agit d’une opération de **remplacement**
+  * Considérez cela comme le fait de recréer le tableau
+* Sinon, modifiez (changez, ajoutez, supprimez) les champs existants en faisant référence aux noms de clés ou aux id
+  * Pour supprimer un champ, affectez-lui la valeur `null`
+  * Les champs qui ne sont pas transmis ne sont pas modifiés
+
+De manière générale, les tests A/B ne peuvent être mis à jour que lorsque le `status` est `SCHEDULED`. Il existe une exception : il est possible de mettre à jour le champ `end_time` du test A/B lorsqu’il est `LIVE`.
+
+<div id="resource-url">
+  ##### URL de la ressource
+</div>
+
+`https://ads-api.x.com/12/accounts/18ce54d4x5t/:ab_test_id`
+
+<div id="parameters">
+  ##### Paramètres
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | L’identifiant du compte utilisé. Apparaît dans le chemin de la ressource et est généralement un paramètre requis pour toutes les requêtes de l’Advertiser API, à l’exception de [GET accounts](/fr/x-ads-api/campaign-management#accounts). Le compte spécifié doit être associé à l’utilisateur authentifié.<br /><br />Type : string<br /><br />Exemple : `18ce54d4x5t` |
+| ab&#95;test&#95;id  <br />*required* | Référence au test A/B utilisé dans la requête.<br /><br />Type : string<br /><br />Exemple : `hr7l0` |
+| description  <br />*optional* | La description du test A/B. Longueur maximale : 1 024 caractères.<br /><br />**Remarque** : ne peut être mise à jour que lorsque le `status` du test A/B est `SCHEDULED`.<br /><br />Type : string<br /><br />Exemple : `documentation example` |
+| end&#95;time  <br />*optional* | L’heure à laquelle le test A/B se termine, exprimée au format ISO 8601.<br /><br />**Remarque** : ne peut être mise à jour que lorsque le `status` du test A/B est `SCHEDULED` ou `LIVE`.<br /><br />Type : string<br /><br />Exemple : `2020-10-02T00:00:00Z` |
+| name  <br />*optional* | Le nom du test A/B. Longueur maximale : 255 caractères.<br /><br />**Remarque** : ne peut être mis à jour que lorsque le `status` du test A/B est `SCHEDULED`.<br /><br />Type : string<br /><br />Exemple : `first AB test` |
+| start&#95;time  <br />*optional* | L’heure à laquelle le test A/B commence, exprimée au format ISO 8601.<br /><br />**Remarque** : ne peut être mise à jour que lorsque le `status` du test A/B est `SCHEDULED`.<br /><br />Type : string<br /><br />Exemple : `2022-05-30T00:00:00Z` |
+| user&#95;groups  <br />*required* | Description des groupes d’utilisateurs. Plus d’informations dans le tableau ci-dessous.<br /><br />**Remarque** : ne peut être mis à jour que lorsque le `status` du test A/B est `SCHEDULED`.<br /><br />Type : tableau d’objets |
+
+<div id="user-groups">
+  #### Groupes d’utilisateurs
+</div>
+
+| Nom | Description |
+| :--- | :--- |
+| id  <br />*parfois requis* | Une référence à l’objet groupe d’utilisateurs utilisé dans la requête.<br /><br />**Remarque** : Obligatoire lors de la modification (changement, ajout ou suppression) des *champs* de l’objet groupe d’utilisateurs.<br /><br />**Remarque** : Ne spécifiez pas d’ID lors de l’ajout ou de la suppression de groupes d’utilisateurs entiers.<br /><br />Type : string<br /><br />Exemple : `p1bcx` |
+| description  <br />*optionnel* | La description du groupe d’utilisateurs. Longueur maximale : 1 024 caractères.<br /><br />**Remarque** : Pour supprimer la valeur, indiquez le champ avec la valeur `null`.<br /><br />Type : string<br /><br />Exemple : `second AB test group` |
+| entity&#95;ids  <br />*optionnel* | Un tableau d’identifiants d’entité.<br /><br />**Remarque** : Il s’agit d’une opération de remplacement. Elle écrase toute valeur précédemment définie.<br /><br />**Remarque** : Les entités ne peuvent être associées qu’à un seul test A/B.<br /><br />Type : array<br /><br />Exemple : `["dxi0l", "e66bl"]` |
+| name  <br />*optionnel* | Le nom du groupe d’utilisateurs. Longueur maximale : 255 caractères.<br /><br />**Remarque** : Pour supprimer la valeur, indiquez le champ avec la valeur `null`.<br /><br />Type : string<br /><br />Exemple : `first group` |
+| size  <br />*optionnel* | Le pourcentage d’utilisateurs à allouer à ce groupe d’utilisateurs. Il s’agit d’une valeur numérique représentée sous forme de chaîne avec au maximum deux chiffres après la virgule. Par exemple, représentez 40 % comme : 40, 40.0 ou 40.00.<br /><br />**Remarque** : Les valeurs de taille de l’ensemble des *objets* **doivent** totaliser 100.00.<br /><br />Type : string<br /><br />Min, Max : `1.00`, `99.00` |
+
+<div id="example-request">
+  ##### Exemple de requête
+</div>
+
+Cette requête effectue les modifications suivantes :
+
+1. Supprime la description du test A/B
+2. Modifie l’heure de fin
+3. Ajoute une description au premier groupe d’utilisateurs
+4. Modifie la proportion d’utilisateurs dans chaque groupe d’utilisateurs
+5. Ajoute un ID d’entité (`f2syz`) au deuxième groupe d’utilisateurs
+
+`PUT https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests/hr7l0 -d '{"description": null, "end_time": "2022-06-01T01:00:00Z", "user_groups": [{"id": "p1bcx", "description": "first AB test group", "size": "60.00"},{"id": "p1bcy", "size": "40.00", "entity_ids": ["f2rqi", "f2tws", "f2syz"]}]}'`
+
+<div id="example-response">
+  ##### Exemple de réponse
+</div>
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "ab_test_id": "hr7l0",
+          "description": null,
+          "end_time": "2022-06-01T01:00:00Z",
+          "user_groups": [
+            {
+              "id": "p1bcx",
+              "description": "first AB test group",
+              "size": "60.0"
+            },
+            {
+              "id": "p1bcy",
+              "size": "40.0",
+              "entity_ids": [
+                "f2rqi",
+                "f2tws",
+                "f2syz"
+              ]
+            }
+          ]
+        }
+      },
+      "data": {
+        "created_at": "2020-05-25T00:00:00Z",
+        "created_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        },
+        "deleted": false,
+        "description": null,
+        "end_time": "2022-06-01T01:00:00Z",
+        "entities": [
+          {
+            "id": "p1bcx",
+            "account_id": "18ce54d4x5t"
+          },
+          {
+            "id": "p1bcy",
+            "account_id": "18ce54d4x5t"
+          }
+        ],
+        "entity_type": "CAMPAIGN",
+        "id": "hr7l0",
+        "name": "first AB test",
+        "start_time": "2022-05-25T01:00:00Z",
+        "status": "SCHEDULED",
+        "user_groups": [
+          {
+            "id": "p1bcx",
+            "name": "first group",
+            "description": "first AB test group",
+            "size": "60.0",
+            "entity_ids": [
+              "f2qcw",
+              "f2tht"
+            ]
+          },
+          {
+            "id": "p1bcy",
+            "name": "second group",
+            "description": "second AB test group",
+            "size": "40.0",
+            "entity_ids": [
+              "f2rqi",
+              "f2tws",
+              "f2syz"
+            ]
+          }
+        ],
+        "updated_at": "2022-05-25T00:17:23Z",
+        "updated_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        }
+      }
+    }
+```
+
+<div id="delete-accountsaccount_idab_testsab_test_id">
+  #### DELETE accounts/:account_id/ab_tests/:ab_test_id
+</div>
+
+Supprimer le test A/B spécifié.
+
+**Remarque** : la suppression d’un test A/B est irréversible et toute nouvelle tentative de supprimer la ressource renverra un code d’état HTTP 404.
+
+##### URL de ressource
+
+`https://ads-api.x.com/12/accounts/:account_id/ab_tests/:ab_test_id`
+
+<div id="parameters">
+  ##### Paramètres
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| ab&#95;test&#95;id  <br />*required* | Une référence au test A/B que vous utilisez dans la requête.<br /><br />Type : string<br /><br />Exemple : `hr7l0` |
+
+<div id="example-request">
+  ##### Exemple de requête
+</div>
+
+`DELETE https://ads-api.x.com/12/accounts/18ce54d4x5t/ab_tests/hr7l0`
+
+### Exemple de réponse
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "ab_test_id": "hr7l0"
+        }
+      },
+      "data": {
+        "created_at": "2022-05-25T00:00:00Z",
+        "created_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        },
+        "deleted": true,
+        "description": null,
+        "end_time": "2022-06-01T01:00:00Z",
+        "entities": [
+          {
+            "id": "p1bcx",
+            "account_id": "18ce54d4x5t"
+          },
+          {
+            "id": "p1bcy",
+            "account_id": "18ce54d4x5t"
+          }
+        ],
+        "entity_type": "CAMPAIGN",
+        "id": "hr7l0",
+        "name": "first AB test",
+        "start_time": "2022-05-25T01:00:00Z",
+        "status": "SCHEDULED",
+        "user_groups": [
+          {
+            "id": "p1bcx",
+            "name": "first group",
+            "description": "first AB test group",
+            "size": "60.0",
+            "entity_ids": [
+              "f2qcw",
+              "f2tht"
+            ]
+          },
+          {
+            "id": "p1bcy",
+            "name": "second group",
+            "description": "second AB test group",
+            "size": "40.0",
+            "entity_ids": [
+              "f2rqi",
+              "f2tws",
+              "f2syz"
+            ]
+          }
+        ],
+        "updated_at": "2022-06-02T00:18:31Z",
+        "updated_by": {
+          "user_id": "756201191646691328",
+          "username": "apimctestface"
+        }
+      }
+    }
+```

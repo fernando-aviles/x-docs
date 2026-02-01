@@ -1,0 +1,275 @@
+---
+title: 快速入门
+sidebarTitle: 快速入门
+description: 根据 id 或所有者查找列表
+keywords: ["列表查找快速入门", "GET 列表教程", "列表查找指南"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你通过列表查询端点来查找列表信息。
+
+<Note>
+  **前提条件**
+
+  在开始之前，你需要：
+
+  * 一个拥有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer 令牌
+</Note>
+
+***
+
+<div id="get-a-list-by-id">
+  ## 根据 ID 获取列表
+</div>
+
+获取某个特定列表的详细信息：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/1234567890?\
+  list.fields=description,owner_id,member_count,follower_count,private,created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 根据 ID 获取列表
+  response = client.lists.get(
+      "1234567890",
+      list_fields=["description", "owner_id", "member_count", "follower_count", "private", "created_at"]
+  )
+
+  print(f"List: {response.data.name}")
+  print(f"Members: {response.data.member_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 根据 ID 获取列表
+  const response = await client.lists.get("1234567890", {
+    listFields: ["description", "owner_id", "member_count", "follower_count", "private", "created_at"],
+  });
+
+  console.log(`List: ${response.data?.name}`);
+  console.log(`Members: ${response.data?.member_count}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### 响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "name": "Tech News",
+    "description": "Top tech journalists and publications",
+    "owner_id": "2244994945",
+    "private": false,
+    "member_count": 50,
+    "follower_count": 1250,
+    "created_at": "2023-01-15T10:00:00.000Z"
+  }
+}
+```
+
+***
+
+<div id="get-lists-owned-by-a-user">
+  ## 获取某个用户拥有的列表
+</div>
+
+获取特定用户拥有的所有列表：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/owned_lists?\
+  list.fields=description,member_count,follower_count&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 使用分页获取某个用户拥有的列表
+  for page in client.lists.get_owned_lists(
+      "2244994945",
+      list_fields=["description", "member_count", "follower_count"],
+      max_results=100
+  ):
+      for lst in page.data:
+          print(f"{lst.name} - {lst.member_count} members")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 使用分页获取某个用户拥有的列表
+  const paginator = client.lists.getOwnedLists("2244994945", {
+    listFields: ["description", "member_count", "follower_count"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((lst) => {
+      console.log(`${lst.name} - ${lst.member_count} members`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### 响应
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Tech News",
+      "description": "Top tech journalists",
+      "member_count": 50,
+      "follower_count": 1250
+    },
+    {
+      "id": "9876543210",
+      "name": "Developer Tools",
+      "description": "Useful tools for developers",
+      "member_count": 25,
+      "follower_count": 500
+    }
+  ],
+  "meta": {
+    "result_count": 2
+  }
+}
+```
+
+***
+
+<div id="include-owner-information">
+  ## 包含所有者信息
+</div>
+
+展开所有者的用户数据：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/1234567890?\
+  list.fields=description,owner_id&\
+  expansions=owner_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取包含所有者信息的列表
+  response = client.lists.get(
+      "1234567890",
+      list_fields=["description", "owner_id"],
+      expansions=["owner_id"],
+      user_fields=["username", "verified"]
+  )
+
+  print(f"List: {response.data.name}")
+  # 所有者信息位于 response.includes.users 中
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 获取包含所有者信息的列表
+  const response = await client.lists.get("1234567890", {
+    listFields: ["description", "owner_id"],
+    expansions: ["owner_id"],
+    userFields: ["username", "verified"],
+  });
+
+  console.log(`List: ${response.data?.name}`);
+  // 所有者信息位于 response.includes?.users 中
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 包含扩展的响应
+</div>
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "name": "Tech News",
+    "description": "Top tech journalists",
+    "owner_id": "2244994945"
+  },
+  "includes": {
+    "users": [
+      {
+        "id": "2244994945",
+        "username": "XDevelopers",
+        "verified": true
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="available-fields">
+  ## 可用字段
+</div>
+
+| 字段 | 描述 |
+|:------|:------------|
+| `description` | 列表描述 |
+| `owner_id` | 所有者的用户 id |
+| `private` | 列表是否为私密 |
+| `member_count` | 成员数量 |
+| `follower_count` | 关注者数量 |
+| `created_at` | 列表创建日期 |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="列表中的帖子" icon="list" href="/zh/x-api/lists/list-tweets/quickstart">
+    从列表中获取帖子
+  </Card>
+
+  <Card title="列表成员" icon="users" href="/zh/x-api/lists/list-members/quickstart/list-members-lookup">
+    获取列表成员
+  </Card>
+
+  <Card title="管理列表" icon="pen" href="/zh/x-api/lists/manage-lists/quickstart">
+    创建和更新列表
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/lists/list-lookup-by-list-id">
+    完整接口文档
+  </Card>
+</CardGroup>

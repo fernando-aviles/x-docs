@@ -1,0 +1,258 @@
+---
+title: 用户被提及时间线
+sidebarTitle: 用户被提及
+description: 获取提及特定用户的帖子
+keywords: ["用户被提及", "被提及时间线", "提及时间线", "被提及快速入门", "被提及教程", "获取提及"]
+---
+
+import { Button } from '/snippets/zh/button.mdx';
+
+本指南将引导你获取提及特定用户的帖子。
+
+<Note>
+  **先决条件**
+
+  在开始之前，你需要：
+
+  * 一个具有已获批准 App 的[开发者账号](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 你的 App 的 Bearer 令牌（用于公共数据）或用户访问令牌（用于私有指标）
+</Note>
+
+***
+
+<div id="get-user-mentions">
+  ## 获取用户提及
+</div>
+
+<Steps>
+  <Step title="获取用户 ID">
+    使用 [user lookup endpoint](/zh/x-api/users/lookup/introduction) 查找用户 ID。例如，@XDevelopers 的用户 ID 为 `2244994945`。
+  </Step>
+
+  <Step title="请求提及时间线">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/mentions?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 获取支持分页的提及时间线
+      for page in client.posts.get_user_mentions(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"@{post.author_id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 获取支持分页的提及时间线
+      const paginator = client.posts.getUserMentions("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`@${post.author_id}: ${post.text?.slice(0, 50)}...`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="查看响应">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1301573587187331074",
+          "text": "Hey @XDevelopers, love the new API!",
+          "author_id": "1234567890",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          }
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "1234567890",
+            "username": "developer",
+            "name": "Dev Person",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "newest_id": "1301573587187331074",
+        "oldest_id": "1301573587187331074",
+        "result_count": 1,
+        "next_token": "t3buvdr5pujq9g7bggsnf3ep2ha28"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="filter-mentions">
+  ## 筛选 @ 提及
+</div>
+
+<div id="exclude-replies">
+  ### 排除回复
+</div>
+
+只获取提及该用户的原创帖子：
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?\
+  exclude=replies&\
+  max_results=10" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取不包含回复的提及
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      exclude=["replies"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 获取不包含回复的提及
+  const paginator = client.posts.getUserMentions("2244994945", {
+    exclude: ["replies"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="get-mentions-in-a-time-range">
+  ### 获取指定时间范围内的提及
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?\
+  start_time=2024-01-01T00%3A00%3A00Z&\
+  end_time=2024-01-31T23%3A59%3A59Z" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 获取指定时间范围内的提及
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      start_time="2024-01-01T00:00:00Z",
+      end_time="2024-01-31T23:59:59Z"
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 获取指定时间范围内的提及
+  const paginator = client.posts.getUserMentions("2244994945", {
+    startTime: "2024-01-01T00:00:00Z",
+    endTime: "2024-01-31T23:59:59Z",
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="common-parameters">
+  ## 通用参数
+</div>
+
+| 参数 | 描述 | 默认值 |
+|:----------|:------------|:--------|
+| `max_results` | 每页返回的结果数 (1-100) | 10 |
+| `start_time` | 最早帖子的时间戳 (ISO 8601) | — |
+| `end_time` | 最新帖子的时间戳 (ISO 8601) | — |
+| `since_id` | 返回此 ID 之后的帖子 | — |
+| `until_id` | 返回此 ID 之前的帖子 | — |
+| `exclude` | 排除 `retweets`、`replies`，或两者都排除 | — |
+| `pagination_token` | 下一页的令牌 | — |
+
+***
+
+<div id="next-steps">
+  ## 后续步骤
+</div>
+
+<CardGroup cols={2}>
+  <Card title="主页时间线" icon="house" href="/zh/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
+    获取用户的主页时间线
+  </Card>
+
+  <Card title="集成指南" icon="book" href="/zh/x-api/posts/timelines/integrate">
+    关键概念和最佳实践
+  </Card>
+
+  <Card title="API 参考" icon="code" href="/zh/x-api/posts/user-mention-timeline-by-user-id">
+    该端点的完整文档
+  </Card>
+
+  <Card title="分页指南" icon="arrow-right" href="/zh/x-api/fundamentals/pagination">
+    浏览大规模结果集
+  </Card>
+</CardGroup>

@@ -1,0 +1,245 @@
+---
+title: 从 v1 到 v2
+sidebarTitle: 从 v1 到 v2
+keywords: ["v1.1 to v2 migration", "filtered stream migration", "migrate filtered stream", "standard to v2 filtered stream", "v1 to v2 filtered stream", "migration guide"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### 标准 v1.1 与 X API v2 的比较
+</div>
+
+如果您一直在使用 v1.1 的 [statuses/filter](https://developer.x.com/en/docs/x-api/v1/tweets/filter-realtime/api-reference/post-statuses-filter) 端点，本指南可以帮助您了解标准端点与 X API v2 过滤流端点之间的相似点和差异。
+
+* **相似之处**
+  * 请求参数和运算符
+  * 对帖子编辑历史和元数据的支持
+* **差异之处**
+  * 端点 URL
+  * App 和 Project 要求
+  * 身份验证方式
+  * 规则数量和持久化流
+  * 响应数据格式
+  * 请求参数
+  * 恢复和冗余功能的可用性
+  * 查询运算符
+
+<div id="similarities">
+  #### 相似点
+</div>
+
+**请求参数和运算符**
+
+标准 v1.1 `statuses/filter` 端点提供了一些参数，可以随请求一起传递以过滤流。在 v2 过滤流中，你则使用一组可以通过布尔逻辑连接在一起的[运算符](/zh/x-api/posts/filtered-stream#building-rules-for-filtered-stream)来筛选所需的帖子。可用的运算符中，有一些是对现有标准 v1.1 参数的直接替代。 
+
+以下标准 v1.1 请求参数在 X API v2 中有等效的运算符： 
+
+| **Standard** | **X API v2** |
+| :--- | :--- |
+| follow - 以逗号分隔的用户 ID 列表，表示应在流中投递其帖子的用户。 | 多种运算符，可帮助你查找与特定用户相关的帖子：<br /><br />* @<br />* from:<br />* to:<br />* 等等 |
+| track - 以逗号分隔的短语列表，这些短语将用于决定哪些帖子会被投递到流中。 | 多种运算符，可帮助你查找与特定关键词相关的帖子：<br /><br />* keyword<br />* &quot;exact phrase match&quot;<br />* #<br />* 等等 |
+
+**对帖子编辑历史和元数据的支持**
+
+这两个版本都提供描述任何编辑历史的元数据。请参阅 [filtered stream API 参考](/zh/x-api/posts/filtered-stream#api-reference-index)和 [帖子编辑基础页面](/zh/x-api/fundamentals/edit-posts)，了解更多详情。 
+
+<div id="differences">
+  #### 差异
+</div>
+
+**Endpoint URL**
+
+* 标准 v1.1 端点：
+  * https://stream.x.com/1.1/statuses/filter.json
+* X API v2 端点：
+  * https://api.x.com/2/tweets/search/stream
+  * https://api.x.com/2/tweets/search/stream/rule
+
+**App 和 Project 要求**
+
+在对请求进行认证时，X API v2 端点要求你使用与某个 [developer App](/zh/resources/fundamentals/developer-apps) 关联的 [Project](/zh/resources/fundamentals/developer-apps) 的凭证。所有 X API v1.1 端点都可以使用来自 App，或来自与 Project 关联的 App 的凭证。
+
+**认证方式**
+
+标准端点支持 [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication)，而 X API v2 过滤流端点支持 [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0)（也称为仅应用程序认证，Application-only authentication）。要向 X API v2 版本发起请求，你必须使用 App Access Token 来对请求进行认证。
+
+如果你不再拥有在 Developer Console 中创建 App 时提供给你的 App Access Token，可以在 Developer Console 中转到应用的 “Keys and tokens” 页面来生成新的 Token。如果你希望通过编程方式生成 App Access Token，请参阅此 [OAuth 2.0 App-Only 指南](/zh/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token)。 
+
+**规则数量和持久流**
+
+标准 v1.1 端点仅支持使用单条规则来过滤流式连接。要更改规则，你必须先断开流，然后提交一个新请求，并将更新后的过滤规则作为参数提交。 
+
+X API v2 过滤流端点允许你对单个流应用多条规则，并且在保持流连接的同时向流中添加或删除规则。 
+
+**响应数据格式**
+
+标准 v1.1 与 X API v2 端点版本之间最大的差异之一，是你如何选择在 payload 中返回哪些字段。
+
+对于标准端点，你默认会收到许多响应字段，然后可以选择使用参数来指定应在 payload 中返回哪些字段或字段集。
+
+X API v2 版本默认只返回帖子 id 和 text 字段。要请求任何其他字段或对象，你需要使用 [fields](/zh/x-api/fundamentals/fields) 和 [expansions](/zh/x-api/fundamentals/expansions) 参数。你从这些端点请求的任何帖子字段都会返回在主帖子对象中。任何扩展的用户、媒体、投票或地点对象及其字段都会返回在响应中的 includes 对象内。然后，你可以通过匹配帖子对象和扩展对象中出现的 ID，将任何扩展对象关联回帖子对象。 
+
+我们鼓励你在各自的指南中进一步了解这些新参数，或者阅读我们的[如何使用 fields 和 expansions](/zh/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) 指南。 
+
+我们还整理了一个 [数据格式迁移指南](/zh/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2)，帮助你将标准 v1.1 字段映射到较新的 v2 字段。该指南还会为你提供需要在 v2 请求中传递的特定 expansion 和 field 参数，以返回特定字段。 
+ 
+
+除了在请求某些字段的方式上的变化之外，X API v2 还为 API 返回的对象（包括帖子和 [user](/zh/x-api/fundamentals/data-dictionary#user) 对象）引入了新的 JSON 设计。
+
+* 在 JSON 根级别，标准端点在 statuses 数组中返回帖子对象，而 X API v2 在 data 数组中返回对象。 
+* X API v2 JSON 不再引用被转发和被引用的 “statuses”，而是引用被转发和被引用的推文（Retweeted and Quoted Tweets）。许多传统和已弃用字段（例如 contributors 和 user.translator&#95;type）正在被移除。 
+* X API v2 不再同时使用 favorites（在帖子对象中）和 favourites（在用户对象中），而是统一使用术语 like。 
+* X 采用的约定是，对于没有值的 JSON 字段（例如 null），不会写入到 payload 中。帖子和用户属性只有在其具有非 null 值时才会被包含。 
+   
+
+我们还在 [Post object](/zh/x-api/fundamentals/data-dictionary#tweet) 中引入了一组新的字段，包括以下内容：
+
+* 一个 [conversation&#95;id](/zh/x-api/fundamentals/conversation-id) 字段
+* 两个新的 [annotations](/zh/x-api/fundamentals/post-annotations) 字段，包括 context 和 entities
+* 若干新的 [metrics](/zh/x-api/fundamentals/metrics) 字段
+* 一个新的 reply&#95;setting 字段，用于显示谁可以回复某条给定的帖子
+
+**Request parameters**
+
+还有一组标准的过滤流请求参数在 X API v2 中**不**受支持：
+
+| Standard v1.1 parameter | Details |
+| :--- | :--- |
+| locations - 以逗号分隔的 longitude,latitude 对列表，用于指定一组边界框，以此对帖子进行过滤。 | 我们尚未为 X API v2 提供基于位置的运算符。 |
+| Delimited | 在 v1.1 端点中，将此设置为字符串长度表示应在流中对状态消息进行分隔，这样客户端就知道在状态消息结束前需要读取多少字节。<br /><br />此功能在 X API v2 中不可用。 |
+| Stall&#95;warnings | 在 v1.1 端点中，将此参数设置为 true 会在客户端有断开连接风险时，周期性地发送消息。<br /><br />在 X API v2 中，stall 警告默认会发送，并且会不时以新行的形式发送。 |
+
+**Availability of recovery and redundancy features**
+
+X API v2 版本的过滤流引入了恢复和冗余功能，可帮助你最大化流式传输的在线时间，并在断开连接持续时间不超过五分钟的情况下，恢复可能错过的帖子。
+
+冗余连接允许你对给定流最多建立两个连接，这有助于确保你在任何时候都保持与流的连接，即便其中一个连接发生故障。
+
+backfill&#95;minutes 参数可用于恢复最多五分钟内错过的数据。
+
+这两个功能仅通过 [Academic Research access](/zh/x-api/getting-started/about-x-api) 提供。你可以在我们的 [recovery and redundancy features](/zh/x-api/posts/filtered-stream#filtered-stream-recovery-and-redundancy-features) 集成指南中进一步了解此功能。 
+
+**New query operators**
+
+X API v2 引入了新的运算符，以支持两个新功能： 
+
+* **[Conversation IDs](/zh/x-api/fundamentals/conversation-id)** - 随着对话在 X 上展开，会提供一个会话 ID，用于标记属于该对话的帖子。对话中的所有帖子，其 conversation&#95;id 都会被设置为发起该对话的帖子 ID。 
+  * conversation&#95;id:
+* **[X Annotations](/zh/x-api/fundamentals/post-annotations)** 为帖子提供上下文信息，并包含 entity 和 context 注释。Entities 由人物、地点、产品和组织构成。Contexts 是领域或主题，已识别的实体属于这些领域或主题的一部分。例如，帖子中提到的人物可能具有一个 context，表明他们是运动员、演员或政治人物。
+  * context: - 匹配已被标注为具有某个目标 context 的帖子。
+  * entity: - 匹配已被标注为具有某个目标 entity 的帖子。
+
+***
+
+<div id="code-examples">
+  ## 代码示例
+</div>
+
+<div id="add-a-rule-to-filtered-stream-v2">
+  ### 向过滤流（v2）添加规则
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+    -H "Authorization: Bearer $BEARER_TOKEN" \
+    -H "Content-Type: "application/json" \
+    -d '{"add": [{"value": "cat has:images", "tag": "cats with images"}]}'
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream/rules"
+
+  headers = {
+      "Authorization": f"Bearer {bearer_token}",
+      "Content-Type": "application/json"
+  }
+
+  data = {
+      "add": [{"value": "cat has:images", "tag": "cats with images"}]
+  }
+
+  response = requests.post(url, headers=headers, json=data)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 向过滤流添加规则
+  response = client.posts.add_stream_rules(
+      add=[{"value": "cat has:images", "tag": "cats with images"}]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 向过滤流添加规则
+  const response = await client.posts.addStreamRules({
+    add: [{ value: "cat has:images", tag: "cats with images" }],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="connect-to-filtered-stream-v2">
+  ### 连接到过滤流 (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/stream?tweet.fields=created_at,author_id" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream"
+
+  params = {"tweet.fields": "created_at,author_id"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  # 实时获取帖子流
+  response = requests.get(url, headers=headers, params=params, stream=True)
+  for line in response.iter_lines():
+      if line:
+          print(line.decode("utf-8"))
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 连接到过滤流
+  for post in client.posts.stream(
+      tweet_fields=["created_at", "author_id"]
+  ):
+      print(f"{post.data.created_at}: {post.data.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 连接到过滤流
+  const stream = client.posts.stream({
+    tweetFields: ["created_at", "author_id"],
+  });
+
+  for await (const post of stream) {
+    console.log(`${post.data?.created_at}: ${post.data?.text?.slice(0, 50)}...`);
+  }
+  ```
+</CodeGroup>

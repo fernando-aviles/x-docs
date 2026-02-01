@@ -1,0 +1,75 @@
+---
+title: Pagination
+sidebarTitle: Pagination
+---
+
+La X API utilise la pagination pour les endpoints qui renvoient plusieurs pages de résultats (par exemple les timelines, la recherche, etc.). Chaque réponse à un appel d’API inclut un objet `meta` avec `result_count`, `previous_token` et `next_token`. Le XDK se charge d’effectuer plusieurs appels d’API en utilisant le `next_token`, afin que les développeurs puissent simplement spécifier la quantité de données souhaitée sans avoir à effectuer plusieurs appels.
+Le SDK simplifie cela avec :
+
+- **Itérateurs intégrés** : utilisez des fonctions génératrices pour récupérer plusieurs pages de manière transparente.
+- **Gestion explicite des jetons** : permet un contrôle manuel flexible en passant `pagination_token` lorsque nécessaire.
+- **Application du nombre maximal de résultats** : respecte `max_results` par appel (jusqu’aux limites de l’API, par exemple 100 pour la recherche).
+
+<div id="automatic-pagination-recommended">
+  ## Pagination automatique (recommandée)
+</div>
+
+Utilisez la méthode `iterate()` sur les réponses paginées pour récupérer tous les résultats de façon différée (lazy).
+**Exemple : recherche paginée**
+
+```python
+from xdk import Client
+client = Client(bearer_token="your_bearer_token")
+# Recherche avec pagination automatique
+all_posts = []
+for page in client.posts.search_recent(
+    query="python",
+    max_results=100,  # Par page
+    tweet_fields=["created_at", "author_id"]  # Expansions facultatives
+):
+    all_posts.extend(page.data)
+    print(f"Fetched {len(page.data)} Posts (total: {len(all_posts)})")
+print(f"Total tweets: {len(all_posts)}")
+```
+
+* L’itérateur gère automatiquement `next_token`.
+* S’arrête lorsqu’aucun `next_token` n’est présent.
+* Gère la temporisation liée aux limites de débit pour éviter les erreurs 429.
+
+
+<div id="manual-pagination">
+  ## Pagination manuelle
+</div>
+
+Si vous devez contrôler les résultats pour implémenter une logique personnalisée (par exemple traiter les résultats page par page), vous pouvez toujours utiliser le `next_token` et effectuer la pagination manuellement comme illustré ci-dessous :
+
+```python
+# Get first page - search_recent returns an Iterator
+first_page = next(client.posts.search_recent(
+    query="xdk python sdk",
+    max_results=100,
+    pagination_token=None  # First page
+))
+print(f"First page: {len(first_page.data) if first_page.data else 0} Posts")
+# Extract next_token from meta
+next_token = None
+if hasattr(first_page, 'meta') and first_page.meta:
+    if hasattr(first_page.meta, 'next_token'):
+        next_token = first_page.meta.next_token
+    elif isinstance(first_page.meta, dict):
+        next_token = first_page.meta.get('next_token')
+if next_token:
+    second_page = next(client.posts.search_recent(
+        query="xdk python sdk",
+        max_results=100,
+        pagination_token=next_token
+    ))
+    print(f"Deuxième page : {len(second_page.data) if second_page.data else 0} Publications")
+```
+
+**Conseils** :
+
+* Précisez systématiquement `max_results` pour optimiser les performances (la valeur par défaut varie selon l’endpoint).
+* Surveillez `meta.result_count` pour le débogage.
+* Pour des requêtes très volumineuses, envisagez l’itération asynchrone pour éviter le blocage.
+  Pour des exemples de code détaillés utilisant le XDK Python, consultez notre [dépôt GitHub d’exemples de code](https://github.com/xdevplatform/samples/tree/main/python).
