@@ -1,11 +1,11 @@
 ---
-title: 포스트 수정
-sidebarTitle: 포스트 수정
-description: X API에서 수정된 포스트를 다루기
-keywords: ["포스트 수정", "트윗 수정", "수정 이력", "포스트 편집", "수정 메타데이터", "수정 가능 시간"]
+title: 포스트 편집
+sidebarTitle: 포스트 편집
+description: X API에서 편집된 포스트를 활용하는 방법
+keywords: ["포스트 편집", "트윗 편집", "편집 내역", "포스트 편집", "편집 메타데이터", "편집 가능 시간"]
 ---
 
-X의 포스트는 게시 후 30분 이내에 최대 5번까지 수정할 수 있습니다. X API는 전체 수정 이력과 메타데이터에 대한 완전한 접근을 제공합니다.
+X의 포스트는 게시 후 30분 이내에 최대 5회까지 편집할 수 있습니다. X API를 통해 전체 편집 내역과 메타데이터를 모두 조회할 수 있습니다.
 
 ***
 
@@ -13,12 +13,12 @@ X의 포스트는 게시 후 30분 이내에 최대 5번까지 수정할 수 있
   ## 편집 규칙
 </div>
 
-| 규칙 | 세부 사항 |
+| 규칙 | 세부 정보 |
 |:-----|:--------|
-| **시간 제한** | 원본 포스트 작성 시각 기준 30분 이내 |
-| **편집 한도** | 최대 5회까지 편집 가능 |
-| **ID 동작** | 각 편집 시마다 새로운 포스트 id가 생성됨 |
-| **삭제** | 어떤 버전이든 삭제하면 전체 체인이 삭제됨 |
+| **시간 제한** | 원본 포스트 게시 시점부터 30분 |
+| **편집 횟수 제한** | 최대 5회 편집 가능 |
+| **ID 동작** | 각 편집 시 새로운 포스트 ID가 생성됩니다 |
+| **삭제** | 어떤 버전이든 삭제하면 전체 체인이 삭제됩니다 |
 
 ***
 
@@ -26,27 +26,27 @@ X의 포스트는 게시 후 30분 이내에 최대 5번까지 수정할 수 있
   ## 편집할 수 없는 항목
 </div>
 
-일부 포스트 유형은 편집할 수 없습니다:
+일부 포스트 유형은 편집할 수 없습니다.
 
 * 프로모션 포스트(광고)
-* 설문조사가 포함된 포스트
-* 다른 사람에게 단 답글(자신의 스레드가 아님)
+* 투표가 포함된 포스트
+* 다른 사용자에게 단 답글(자기 자신과의 스레드가 아님)
 * 리포스트(인용 포스트는 *편집할 수 있습니다*)
 * 커뮤니티 포스트
-* 협업 포스트
+* 공동 작성 포스트
 * 예약된 포스트
 
 ***
 
 <div id="edit-data-in-responses">
-  ## 응답 데이터 편집하기
+  ## 응답의 data 수정
 </div>
 
 <div id="default-fields">
   ### 기본 필드
 </div>
 
-모든 포스트 응답에는 기본적으로 `edit_history_tweet_ids` 필드가 포함됩니다:
+모든 포스트 응답에는 `edit_history_tweet_ids`가 기본적으로 포함됩니다.
 
 ```json
 {
@@ -58,14 +58,14 @@ X의 포스트는 게시 후 30분 이내에 최대 5번까지 수정할 수 있
 }
 ```
 
-* 단일 id = 편집된 적 없음
-* 여러 id = 편집 이력(오래된 것부터)
+* 단일 ID = 한 번도 편집되지 않음
+* 여러 ID = 편집 기록(오래된 것부터)
 
 <div id="edit-controls">
-  ### 편집 제어
+  ### 편집 컨트롤
 </div>
 
-편집 상태를 확인하려면 `edit_controls`를 요청하세요:
+편집 상태 정보를 가져오려면 `edit_controls`를 요청합니다:
 
 ```bash
 curl "https://api.x.com/2/tweets/1234567891?tweet.fields=edit_controls" \
@@ -87,19 +87,19 @@ curl "https://api.x.com/2/tweets/1234567891?tweet.fields=edit_controls" \
 }
 ```
 
-| Field              | Description       |
-| :----------------- | :---------------- |
-| `is_edit_eligible` | 포스트를 수정할 수 있는지 여부 |
-| `editable_until`   | 수정 가능 기간이 끝나는 시각  |
-| `edits_remaining`  | 남은 수정 횟수 (0-5)    |
+| Field              | Description           |
+| :----------------- | :-------------------- |
+| `is_edit_eligible` | 포스트를 수정할 수 있는지 여부     |
+| `editable_until`   | 포스트 수정 가능 시간이 종료되는 시각 |
+| `edits_remaining`  | 남은 수정 가능 횟수(0-5)      |
 
 ***
 
 <div id="getting-edit-history">
-  ## 편집 이력 가져오기
+  ## 편집 기록 가져오기
 </div>
 
-모든 버전의 전체 포스트 객체를 가져오려면 `edit_history_tweet_ids` 확장을 사용하세요:
+`edit_history_tweet_ids` 확장을 사용하여 모든 버전에 대한 전체 포스트 객체를 가져옵니다:
 
 ```bash
 curl "https://api.x.com/2/tweets/1234567891?\
@@ -143,7 +143,7 @@ expansions=edit_history_tweet_ids" \
 
 기본적으로 API는 수정된 포스트의 **가장 최근 버전**을 반환합니다.
 
-특정 버전을 가져오려면 해당 포스트 ID를 직접 지정해 요청하세요:
+특정 버전을 가져오려면 해당 포스트 ID를 사용해 직접 요청하세요.
 
 ```bash
 # 원본 버전 가져오기
@@ -156,24 +156,24 @@ curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
 ***
 
 <div id="metrics-for-edited-posts">
-  ## 편집된 포스트에 대한 지표
+  ## 편집된 포스트의 지표
 </div>
 
-편집된 포스트의 각 버전에는 고유한 참여 지표가 있습니다. 지표는 참여가 발생했을 때 노출되어 있던 버전에 해당됩니다.
+편집된 포스트의 각 버전은 고유한 참여 지표를 가집니다. 각 지표는 참여가 발생했을 때 사용자에게 표시되고 있던 버전에 집계됩니다.
 
 ***
 
 <div id="availability">
-  ## 사용 가능 여부
+  ## 이용 가능 여부
 </div>
 
-편집 메타데이터는 다음과 같은 경우에 제공됩니다:
+편집 메타데이터는 다음에 대해 사용할 수 있습니다:
 
 * 2022년 9월 29일 이후에 생성된 모든 포스트
 * 포스트를 반환하는 모든 v2 엔드포인트
-* 검색, 타임라인, 스트림, 조회 엔드포인트를 포함
+* 검색, 타임라인, 스트림, 조회를 포함하여
 
-이 날짜 이전에 생성된 포스트에는 편집 메타데이터가 없습니다.
+이 날짜 이전에 생성된 포스트에는 편집 메타데이터가 제공되지 않습니다.
 
 ***
 
@@ -183,18 +183,18 @@ curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
 
 <Tabs>
   <Tab title="변경 사항 추적">
-    포스트의 수정을 모니터링하고 변경 내용을 기록합니다:
+    포스트의 편집을 모니터링하고 변경 내용을 기록합니다:
 
     ```python
     def check_for_edits(post):
         history = post.get("edit_history_tweet_ids", [])
         if len(history) > 1:
-            print(f"포스트 {post['id']}가 {len(history) - 1}번 수정되었습니다")
+            print(f"Post {post['id']} has been edited {len(history) - 1} times")
     ```
   </Tab>
 
-  <Tab title="수정 상태 표시">
-    UI에 &quot;수정됨&quot; 배지를 표시합니다:
+  <Tab title="편집 여부 표시">
+    UI에 &quot;edited&quot; 배지를 표시합니다:
 
     ```javascript
     const isEdited = post.edit_history_tweet_ids?.length > 1;
@@ -205,7 +205,7 @@ curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
   </Tab>
 
   <Tab title="원본 콘텐츠 가져오기">
-    수정된 포스트의 원본 버전을 가져옵니다:
+    편집된 포스트의 원본 버전을 가져옵니다:
 
     ```python
     original_id = post["edit_history_tweet_ids"][0]

@@ -1,11 +1,11 @@
 ---
 title: 대화 ID
 sidebarTitle: 대화 ID
-description: 대화 스레드를 추적하고 재구성하기
+description: 대화 스레드 추적 및 재구성
 keywords: ["대화 ID", "대화 스레드", "답글 스레드", "스레드 추적", "대화 추적"]
 ---
 
-X에서 각 답글은 하나의 대화 스레드에 속합니다. `conversation_id` 필드를 사용하면 전체 대화 트리를 식별하고 추적하며 재구성할 수 있습니다.
+X에서 각 답글은 하나의 대화 스레드에 속합니다. `conversation_id` 필드는 전체 대화 트리를 식별하고 추적하며 재구성할 수 있도록 해 줍니다.
 
 ***
 
@@ -13,7 +13,7 @@ X에서 각 답글은 하나의 대화 스레드에 속합니다. `conversation_
   ## 작동 방식
 </div>
 
-누군가 포스트를 작성하고 다른 사람들이 답글을 달면, 모든 답글은 동일한 `conversation_id`를 공유합니다. 이 값은 대화를 시작한 원본 포스트의 ID입니다.
+어떤 사용자가 포스트를 작성하고 다른 사람들이 답글을 달면, 모든 답글은 동일한 `conversation_id`를 공유합니다. 이 값은 해당 대화를 시작한 원본 포스트의 ID입니다.
 
 ```
 Original post (ID: 1234567890)  ← conversation_id for all replies
@@ -23,15 +23,15 @@ Original post (ID: 1234567890)  ← conversation_id for all replies
     └── Reply to Reply 2        → conversation_id: 1234567890
 ```
 
-스레드가 얼마나 깊어지더라도 모든 포스트는 동일한 `conversation_id` 값을 가집니다.
+스레드가 아무리 길어져도 모든 포스트는 동일한 `conversation_id`를 공유합니다.
 
 ***
 
 <div id="requesting-conversation_id">
-  ## conversation_id 요청하기
+  ## conversation_id 요청
 </div>
 
-`conversation_id`를 `tweet.fields`에 추가하세요:
+`tweet.fields`에 `conversation_id`를 추가하세요:
 
 ```bash
 curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_reply_to_user_id,referenced_tweets" \
@@ -61,7 +61,7 @@ curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_repl
   ## 전체 대화 가져오기
 </div>
 
-스레드에 포함된 모든 포스트를 가져오려면 `conversation_id`를 검색 연산자로 사용하세요:
+스레드의 모든 포스트를 검색하려면 `conversation_id` 검색 연산자를 사용하세요:
 
 ```bash
 curl "https://api.x.com/2/tweets/search/recent?\
@@ -71,7 +71,7 @@ expansions=author_id" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-이는 원본 포스트에 달린 모든 답글을 최신순으로 정렬하여 반환합니다.
+이는 원본 포스트에 대한 모든 답글을 최신순(가장 최근 것이 먼저 오도록)으로 정렬해 반환합니다.
 
 ***
 
@@ -81,7 +81,7 @@ expansions=author_id" \
 
 <Tabs>
   <Tab title="스레드 재구성">
-    전체 대화 트리를 구성합니다:
+    전체 대화 트리를 복원합니다:
 
     ```python
     import requests
@@ -97,16 +97,16 @@ expansions=author_id" \
     response = requests.get(url, headers=headers, params=params)
     replies = response.json()["data"]
 
-    # 생성 시간을 기준으로 정렬해 시간순으로 나열합니다
+    # created_at으로 정렬하여 시간 순서대로 정렬합니다
     replies.sort(key=lambda x: x["created_at"])
     ```
   </Tab>
 
   <Tab title="대화 모니터링">
-    특정 대화의 답글을 실시간으로 스트리밍합니다:
+    특정 대화에 대한 답글을 실시간으로 스트리밍합니다:
 
     ```bash
-    # 특정 대화에 대한 필터링 스트림 규칙을 추가합니다
+    # 특정 대화를 위한 필터링된 스트림 규칙을 추가합니다
     curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
       -H "Authorization: Bearer $TOKEN" \
       -d '{"add": [{"value": "conversation_id:1234567890"}]}'
@@ -114,7 +114,7 @@ expansions=author_id" \
   </Tab>
 
   <Tab title="대화 분석">
-    대화에서 답글 수를 집계합니다:
+    대화 내 답글 수를 집계합니다:
 
     ```bash
     curl "https://api.x.com/2/tweets/counts/recent?\
@@ -130,16 +130,16 @@ expansions=author_id" \
   ## 관련 필드
 </div>
 
-| 필드 | 설명 |
+| Field | Description |
 |:------|:------------|
 | `conversation_id` | 스레드를 시작한 원본 포스트의 id |
-| `in_reply_to_user_id` | 답장하는 대상 포스트 작성자의 사용자 id |
-| `referenced_tweets` | `type: "replied_to"`와 상위 포스트 id를 포함하는 배열 |
+| `in_reply_to_user_id` | 답글 대상 포스트 작성자의 사용자 id |
+| `referenced_tweets` | `type: "replied_to"` 및 상위 포스트 id를 포함하는 배열 |
 
 ***
 
 <div id="example-full-thread-retrieval">
-  ## 예시: 전체 스레드 가져오기
+  ## 예시: 전체 스레드 조회
 </div>
 
 ```json
@@ -186,9 +186,9 @@ expansions=author_id" \
 </div>
 
 * 원본 포스트의 `conversation_id`는 해당 포스트의 `id`와 동일합니다
-* `conversation_id`는 포스트를 반환하는 모든 v2 엔드포인트에서 사용할 수 있습니다
+* `conversation_id`는 포스트를 반환하는 모든 v2 엔드포인트에서 제공됩니다
 * 실시간으로 대화를 모니터링하려면 [filtered stream](/ko/x-api/posts/filtered-stream/introduction)과 함께 사용하세요
-* 대화 스레드가 큰 경우에는 [pagination](/ko/x-api/fundamentals/pagination)과 함께 사용해 처리하세요
+* 대규모 스레드를 처리하려면 [pagination](/ko/x-api/fundamentals/pagination)과 함께 사용하세요
 
 ***
 
@@ -198,10 +198,10 @@ expansions=author_id" \
 
 <CardGroup cols={2}>
   <Card title="포스트 검색" icon="magnifying-glass" href="/ko/x-api/posts/search/introduction">
-    conversation&#95;id로 검색합니다.
+    conversation&#95;id를 기준으로 검색합니다.
   </Card>
 
   <Card title="필터링된 스트림" icon="signal-stream" href="/ko/x-api/posts/filtered-stream/introduction">
-    대화를 실시간으로 모니터링합니다.
+    실시간으로 대화를 모니터링합니다.
   </Card>
 </CardGroup>

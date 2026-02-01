@@ -1,13 +1,13 @@
 ---
 title: 集成指南
 sidebarTitle: 集成指南
-description: 集成静音端点的关键概念和最佳实践
-keywords: ["静音功能集成", "静音用户集成", "静音功能指南"]
+description: 用于集成 mutes 端点的关键概念和最佳实践
+keywords: ["mutes 集成", "mute users 集成", "mutes 指南"]
 ---
 
 import { Button } from '/snippets/zh/button.mdx';
 
-本指南介绍将静音（mutes）端点集成到你的应用中所需掌握的关键概念。
+本指南介绍在你的应用中集成 mutes 端点所需的关键概念。
 
 ***
 
@@ -15,26 +15,26 @@ import { Button } from '/snippets/zh/button.mdx';
   ## 身份验证
 </div>
 
-Mutes 端点需要用户身份验证才能访问私密静音列表：
+Mute 相关端点需要用户身份验证才能访问私密静音列表：
 
 | Method | Description |
 |:-------|:------------|
-| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 推荐用于新应用 |
-| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 旧版支持 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 建议用于新应用 |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 为旧版集成提供支持 |
 
 <Warning>
-  不支持仅应用身份验证（App-Only authentication）。你必须代表用户进行身份验证。
+  不支持仅应用程序身份验证（App-Only authentication）。你必须以用户身份进行身份验证。
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### 必需的 scope（OAuth 2.0）
+  ### 必需的 Scope（OAuth 2.0）
 </div>
 
-| Scope | 用于 |
+| Scope | 必需用于的操作 |
 |:------|:-------------|
-| `mute.read` | 获取被静音的账号 |
-| `mute.write` | 静音和取消静音账号 |
-| `users.read` | 与静音相关 scope 一起使用时为必需 |
+| `mute.read` | 获取已静音的账号 |
+| `mute.write` | 对账号执行静音和取消静音操作 |
+| `users.read` | 与静音相关的 scope 一起使用时为必需 |
 
 ***
 
@@ -42,19 +42,16 @@ Mutes 端点需要用户身份验证才能访问私密静音列表：
   ## 端点概览
 </div>
 
-| Method | Endpoint | Description |
+| 方法 | 端点 | 说明 |
 |:-------|:---------|:------------|
 | GET | `/2/users/:id/muting` | 获取已静音的账号列表 |
 | POST | `/2/users/:id/muting` | 将账号静音 |
 | DELETE | `/2/users/:source_user_id/muting/:target_user_id` | 取消账号静音 |
+-----------------------------------------------------------------------
 
-***
+## 字段与扩展
 
-<div id="fields-and-expansions">
-  ## 字段和扩展
-</div>
-
-<div id="default-response">
+<div id="available-fields">
   ### 默认响应
 </div>
 
@@ -70,29 +67,27 @@ Mutes 端点需要用户身份验证才能访问私密静音列表：
 }
 ```
 
-<div id="available-fields">
+<div id="example-with-fields">
   ### 可用字段
 </div>
 
 <Accordion title="user.fields">
-  | 字段 | 描述 |
+  | 字段 | 说明 |
   |:------|:------------|
-  | `created_at` | 账户创建时间 |
-  | `description` | 用户个人简介 |
+  | `created_at` | 账号创建日期 |
+  | `description` | 用户简介 |
   | `profile_image_url` | 头像 URL |
-  | `public_metrics` | 粉丝/关注数 |
+  | `public_metrics` | 关注者/关注数量 |
   | `verified` | 认证状态 |
 </Accordion>
 
 <Accordion title="expansions">
-  | 扩展项 | 描述 |
+  | 扩展项 | 说明 |
   |:----------|:------------|
-  | `pinned_tweet_id` | 用户的置顶帖子 |
+  | `pinned_tweet_id` | 用户置顶的帖子 |
 </Accordion>
 
-<div id="example-with-fields">
-  ### 包含字段的示例
-</div>
+### 包含字段参数的示例
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -107,7 +102,7 @@ Mutes 端点需要用户身份验证才能访问私密静音列表：
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # 获取被静音用户，并返回附加字段
+  # 获取包含附加字段的被静音用户
   for page in client.users.get_muting(
       user_id="123456789",
       user_fields=["username", "verified", "created_at"],
@@ -137,19 +132,19 @@ Mutes 端点需要用户身份验证才能访问私密静音列表：
 
 ***
 
-<div id="pagination">
+<div id="behavior-differences">
   ## 分页
 </div>
 
-对于静音列表很长的用户，结果会以分页形式返回：
+对于静音列表较大的用户，结果会进行分页：
 
 <CodeGroup dropdown>
   ```bash cURL
-  # 首次请求
+  # 第一次请求
   curl "https://api.x.com/2/users/123/muting?max_results=100" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
 
-  # 带有分页令牌的后续请求
+  # 携带分页令牌的后续请求
   curl "https://api.x.com/2/users/123/muting?max_results=100&pagination_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
   ```
@@ -189,65 +184,59 @@ Mutes 端点需要用户身份验证才能访问私密静音列表：
     return allMuted;
   }
 
-  // 用法示例
+  // 用法
   const muted = await getAllMutedUsers("123");
   console.log(`Muted ${muted.length} users`);
   ```
 </CodeGroup>
 
 <Card title="分页指南" icon="arrow-right" href="/zh/x-api/fundamentals/pagination">
-  了解分页的更多信息
+  进一步了解分页
 </Card>
 
 ***
 
-<div id="behavior-differences">
-  ## 行为差异
-</div>
+## 行为差异
 
-<div id="muting-vs-blocking">
-  ### 静音与拉黑
-</div>
+### 静音与拉黑
 
 | 功能 | 静音 | 拉黑 |
 |:--------|:-----|:------|
-| 你能看到对方的帖子 | 否（隐藏） | 否 |
-| 对方能看到你的帖子 | 是 | 否 |
-| 对方能关注你 | 是（可以关注） | 否（已移除关注） |
-| 对方能给你发私信 | 是 | 否 |
-| 是否发送通知 | 否 | 否 |
+| 你能看到他们的帖子 | 否（已隐藏） | 否 |
+| 他们能看到你的帖子 | 是 | 否 |
+| 他们能关注你 | 是（可以关注） | 否（已取消关注） |
+| 他们能向你发送私信 | 是 | 否 |
+| 是否会发送通知 | 否 | 否 |
 
 <Tip>
-  静音操作是私密的——被静音的用户不会收到通知，也无法察觉自己被静音。
+  静音是私密的——被静音的用户不会收到通知，也无法察觉自己已经被静音。
 </Tip>
 
 ***
 
-<div id="error-handling">
+<div id="next-steps">
   ## 错误处理
 </div>
 
 | 状态码 | 错误 | 解决方案 |
 |:-------|:------|:---------|
-| 400 | 无效请求 | 检查用户 ID 格式 |
-| 401 | 未获授权 | 验证访问令牌 |
-| 403 | 禁止访问 | 检查 scope 和权限设置 |
+| 400 | 无效请求 | 检查用户 ID 格式是否正确 |
+| 401 | 未授权 | 检查访问令牌 |
+| 403 | 禁止访问 | 检查权限范围（scopes）和权限设置 |
 | 404 | 未找到 | 用户不存在 |
-| 429 | 请求过于频繁 | 等待后重试 |
+| 429 | 请求过多 | 等待一段时间后重试 |
 
 ***
 
-<div id="next-steps">
-  ## 后续步骤
-</div>
+## 后续步骤
 
 <CardGroup cols={2}>
-  <Card title="快速入门" icon="rocket" href="/zh/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+  <Card title="快速开始" icon="rocket" href="/zh/x-api/users/mutes/quickstart/manage-mutes-quickstart">
     发起你的第一个静音请求
   </Card>
 
   <Card title="屏蔽" icon="ban" href="/zh/x-api/users/blocks/introduction">
-    选择屏蔽用户而不是静音
+    使用屏蔽而不是静音用户
   </Card>
 
   <Card title="API 参考" icon="code" href="/zh/x-api/users/get-muting">

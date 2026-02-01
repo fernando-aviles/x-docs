@@ -2,16 +2,16 @@
 title: Comptage des caractères
 sidebarTitle: Comptage des caractères
 icon: text-size
-description: Comment X compte les caractères dans les publications
-keywords: ["comptage des caractères", "longueur des Tweets", "280 caractères", "limites de caractères", "Unicode", "caractères emoji", "longueur des URL", "composition des Tweets"]
+description: Comment X compte les caractères des publications
+keywords: ["comptage des caractères", "longueur des Tweets", "280 caractères", "limites de caractères", "Unicode", "caractères emoji", "longueur des URL", "composition d’un Tweet"]
 ---
 
-Les publications sur X peuvent contenir jusqu’à **280 caractères**. Cependant, tous les caractères ne sont pas comptés de la même manière : les émojis, les URL et certaines plages Unicode obéissent à des règles de comptage particulières.
+Les publications sur X peuvent contenir jusqu’à **280 caractères**. Cependant, tous les caractères ne sont pas comptabilisés de la même manière : les emojis, les URL et certaines plages Unicode ont des règles de comptage spécifiques.
 
 ---
 
 <div id="character-weights">
-  ## Pondération des caractères
+  ## Poids des caractères
 </div>
 
 X utilise un système de comptage pondéré des caractères. La plupart des caractères comptent pour 1, mais certains comptent pour 2 :
@@ -20,11 +20,11 @@ X utilise un système de comptage pondéré des caractères. La plupart des cara
 |:------------------|:------|:-----------------------------|
 | Latin, ponctuation, symboles courants | 1 | 280 |
 | Emojis | 2 | 140 emojis |
-| CJK (chinois, japonais, coréen) | 2 | 140 caractères |
+| CJK (chinois, japonais, coréen) | 2 | 140 caractères |
 | Autres caractères Unicode | 2 (par défaut) | Variable |
 
 <Tip>
-Utilisez la bibliothèque open source [twitter-text](https://github.com/twitter/twitter-text) pour compter avec précision les caractères dans votre application.
+Utilisez la bibliothèque open source [twitter-text](https://github.com/twitter/twitter-text) pour obtenir un comptage précis des caractères dans votre application.
 </Tip>
 
 ---
@@ -35,22 +35,21 @@ Utilisez la bibliothèque open source [twitter-text](https://github.com/twitter/
 
 Tous les émojis comptent pour **2 caractères**, quelle que soit leur complexité :
 
-| Emoji | Affichage | Nombre de caractères | Unicode |
-|:------|:----------|:---------------------|:--------|
+| Emoji | Rendu | Nombre de caractères | Unicode |
+|:------|:------|:---------------------|:--------|
 | 👾 | Émoji unique | 2 | U+1F47E |
-| 🙋🏽 | Avec tonalité de peau | 2 | 🙋 + modificateur 🏽 |
+| 🙋🏽 | Avec couleur de peau | 2 | 🙋 + modificateur 🏽 |
 | 👨‍🎤 | Combiné avec ZWJ | 2 | 👨 + ZWJ + 🎤 |
 | 👨‍👩‍👧‍👦 | Séquence familiale | 2 | 4 émojis + 3 ZWJ |
 
-Les « zero-width joiners » (ZWJ) combinent les émojis visuellement mais ne comptent pas dans le nombre de caractères.
-
+Les zero-width joiners (ZWJ) combinent visuellement les émojis mais ne sont pas pris en compte dans le décompte.
 ---
 
-<div id="url-handling">
+<div id="special-cases">
   ## Gestion des URL
 </div>
 
-Toutes les URL sont raccourcies avec le service `t.co` et comptent pour **23 caractères**, quelle que soit leur longueur d’origine :
+Toutes les URL sont raccourcies à l’aide du service `t.co` et comptent pour **23 caractères**, quelle que soit leur longueur d’origine :
 
 ```
 https://example.com                    → 23 caractères
@@ -58,30 +57,30 @@ https://example.com/very/long/path     → 23 caractères
 ```
 
 <Note>
-  Ceci s’applique à toute URL valide détectée dans le texte d’une publication.
+  Cela s’applique à toute URL valide détectée dans le texte de la publication.
 </Note>
 
 ***
 
 
-<div id="special-cases">
+<div id="text-encoding">
   ## Cas particuliers
 </div>
 
 | Contenu | Règle de comptage |
 |:--------|:------------------|
-| **@mentions dans les réponses** | Les @mentions renseignées automatiquement au début des réponses ne sont pas comptabilisées |
-| **Nouvelles @mentions** | Les @mentions que vous ajoutez manuellement sont comptabilisées normalement |
-| **Médias** | Les médias joints (via les clients officiels) ne consomment aucun caractère |
+| **@mentions in replies** | Les @mentions renseignées automatiquement au début des réponses ne sont pas comptabilisées |
+| **New @mentions** | Les @mentions que vous ajoutez manuellement sont comptabilisées normalement |
+| **Media** | Les médias joints (via les clients officiels) comptent pour 0 caractère |
 | **Hashtags** | Sont comptabilisés normalement (# + texte du tag) |
 
 ---
 
-<div id="text-encoding">
+<div id="implementation">
   ## Encodage du texte
 </div>
 
-X API requiert un encodage **UTF-8**. La longueur des caractères est calculée à l'aide de la forme de normalisation Unicode C (NFC).
+L’X API requiert un encodage **UTF-8**. La longueur en caractères est calculée à l'aide de la forme de normalisation Unicode C (NFC).
 
 Exemple avec `café` :
 
@@ -90,15 +89,15 @@ Exemple avec `café` :
 | NFC (composé) | `c a f é` | 4 |
 | NFD (décomposé) | `c a f e ́` | 5 |
 
-X normalise en NFC, de sorte que les deux sont comptés comme 4 caractères.
+X applique une normalisation en NFC, donc les deux variantes comptent pour 4 caractères.
 
 ---
 
-<div id="implementation">
+<div id="resources">
   ## Implémentation
 </div>
 
-Utilisez la bibliothèque officielle [twitter-text](https://github.com/twitter/twitter-text) pour compter précisément les caractères :
+Utilisez la bibliothèque officielle [twitter-text](https://github.com/twitter/twitter-text) pour un comptage précis des caractères&nbsp;:
 
 <Tabs>
   <Tab title="JavaScript">
@@ -121,19 +120,17 @@ print(result.valid)           # True
   </Tab>
 </Tabs>
 
-La bibliothèque gère tous les cas particuliers, notamment les séquences d’emojis, la détection d’URL et la normalisation Unicode.
+La bibliothèque gère tous les cas particuliers, y compris les séquences d’emoji, la détection d’URL et la normalisation Unicode.
 
 ---
 
-<div id="resources">
-  ## Ressources
-</div>
+## Ressources
 
 <CardGroup cols={2}>
   <Card title="Bibliothèque twitter-text" icon="github" href="https://github.com/twitter/twitter-text">
-    Bibliothèque open source officielle pour l’analyse de texte.
+    Bibliothèque officielle open source pour l’analyse de texte.
   </Card>
   <Card title="Fichier de configuration" icon="file-code" href="https://github.com/twitter/twitter-text/tree/master/config">
-    Définition des poids des caractères et des plages Unicode.
+    Définitions des poids de caractères et plages Unicode.
   </Card>
 </CardGroup>

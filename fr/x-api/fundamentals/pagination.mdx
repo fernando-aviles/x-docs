@@ -1,11 +1,11 @@
 ---
 title: Pagination
 sidebarTitle: Pagination
-description: Parcourir de grands ensembles de résultats
-keywords: ["pagination", "jetons de pagination", "jeton suivant", "parcourir les résultats", "pagination par curseur"]
+description: Naviguer dans de grands ensembles de résultats
+keywords: ["pagination", "jetons de pagination", "jeton suivant", "parcourir les résultats page par page", "pagination par curseur"]
 ---
 
-Lorsqu’une réponse d’API contient plus de résultats qu’il n’est possible d’en retourner en une seule fois, utilisez la pagination pour récupérer toutes les pages de données.
+Lorsqu&#39;une réponse d&#39;API contient plus de résultats que ce qui peut être renvoyé en une seule fois, utilisez la pagination pour récupérer toutes les pages de données.
 
 ***
 
@@ -14,8 +14,8 @@ Lorsqu’une réponse d’API contient plus de résultats qu’il n’est possib
 </div>
 
 1. Effectuez votre requête initiale avec `max_results`
-2. Vérifiez la réponse pour un `next_token` dans l&#39;objet `meta`
-3. S&#39;il est présent, effectuez une autre requête en utilisant ce jeton comme `pagination_token`
+2. Vérifiez si la réponse contient un `next_token` dans l&#39;objet `meta`
+3. Le cas échéant, effectuez une autre requête avec ce jeton comme `pagination_token`
 4. Répétez jusqu&#39;à ce qu&#39;aucun `next_token` ne soit renvoyé
 
 ```bash
@@ -37,11 +37,11 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## Jetons de pagination
 </div>
 
-| Token | Description |
+| Jeton | Description |
 |:------|:------------|
-| `next_token` | Dans l’objet `meta` de la réponse. À utiliser pour obtenir la page suivante. |
-| `previous_token` | Dans l’objet `meta` de la réponse. À utiliser pour revenir à la page précédente. |
-| `pagination_token` | Paramètre de requête. À définir avec la valeur de `next_token` ou `previous_token`. |
+| `next_token` | Dans les métadonnées de la réponse `meta`. À utiliser pour obtenir la page suivante. |
+| `previous_token` | Dans les métadonnées de la réponse `meta`. À utiliser pour revenir à la page précédente. |
+| `pagination_token` | Paramètre de requête. À définir sur la valeur de `next_token` ou `previous_token`. |
 
 ***
 
@@ -63,7 +63,7 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 }
 ```
 
-Lorsqu&#39;il n&#39;y a plus de résultats, `next_token` est omis :
+Lorsqu&#39;il n&#39;y a plus de résultats, `next_token` n&#39;est pas renvoyé :
 
 ```json
 {
@@ -82,7 +82,7 @@ Lorsqu&#39;il n&#39;y a plus de résultats, `next_token` est omis :
 </div>
 
 | Paramètre | Description | Valeur par défaut |
-|:----------|:------------|:--------|
+|:----------|:------------|:------------------|
 | `max_results` | Résultats par page | Spécifique à l’endpoint |
 | `pagination_token` | Jeton de la réponse précédente | Aucune |
 
@@ -113,7 +113,7 @@ Consultez la Référence de l’API de chaque endpoint pour connaître les limit
             if "data" in data:
                 all_tweets.extend(data["data"])
             
-            # Vérifier la présence d'une page suivante
+            # Vérifier s’il existe une page suivante
             next_token = data.get("meta", {}).get("next_token")
             if not next_token:
                 break
@@ -162,20 +162,20 @@ Consultez la Référence de l’API de chaque endpoint pour connaître les limit
 </div>
 
 <CardGroup cols={2}>
-  <Card title="Utiliser max_results" icon="arrow-up-1-9">
-    Demandez la valeur maximale autorisée pour `max_results` afin de minimiser les appels à l’API.
+  <Card title="Utilisez max_results" icon="arrow-up-1-9">
+    Demandez la valeur maximale autorisée pour `max_results` afin de réduire au minimum les appels à l’API.
   </Card>
 
   <Card title="Gérer les pages partielles" icon="square-check">
     La dernière page peut contenir moins de résultats que `max_results`.
   </Card>
 
-  <Card title="Conserver les jetons" icon="database">
-    Enregistrez `next_token` si vous devez reprendre la pagination plus tard.
+  <Card title="Stocker les jetons" icon="database">
+    Stockez `next_token` si vous devez reprendre la pagination plus tard.
   </Card>
 
-  <Card title="Ne pas utiliser la pagination pour sonder" icon="clock">
-    Pour obtenir de nouvelles données, utilisez `since_id` au lieu de paginer plusieurs fois.
+  <Card title="Ne sondez pas avec la pagination" icon="clock">
+    Pour les nouvelles données, utilisez `since_id` au lieu de paginer de manière répétée.
   </Card>
 </CardGroup>
 
@@ -185,12 +185,12 @@ Consultez la Référence de l’API de chaque endpoint pour connaître les limit
   ## Ordre des résultats
 </div>
 
-Les résultats sont renvoyés par **ordre chronologique inverse** :
+Les résultats sont retournés dans l’**ordre chronologique inverse** :
 
 * Premier résultat sur la première page = le plus récent
 * Dernier résultat sur la dernière page = le plus ancien
 
-Cette règle s’applique au sein d’une page et entre les pages.
+Cela s’applique au sein d’une page comme entre les pages.
 
 ***
 
@@ -198,23 +198,23 @@ Cette règle s’applique au sein d’une page et entre les pages.
   ## Notes
 </div>
 
-* Les jetons de pagination sont des chaînes de caractères opaques — ne tentez pas de les analyser ni de les modifier
-* Les jetons peuvent expirer après un certain temps
-* Si vous obtenez moins de résultats que `max_results`, il peut en exister davantage (continuez jusqu&#39;à ce qu&#39;il n&#39;y ait plus de `next_token`)
-* Utilisez les [SDK](/fr/x-api/tools-and-libraries/sdks) pour gérer automatiquement la pagination
+* Les jetons de pagination sont des chaînes de caractères opaques — ne les analysez ni ne les modifiez
+* Les jetons peuvent expirer au bout d&#39;un certain temps
+* Si vous obtenez moins de résultats que `max_results`, il peut encore en rester (continuez jusqu&#39;à ce qu&#39;il n&#39;y ait plus de `next_token`)
+* Utilisez les [SDKs](/fr/x-api/tools-and-libraries/sdks) pour la gestion automatique de la pagination
 
 ***
 
 <div id="next-steps">
-  ## Prochaines étapes
+  ## Étapes suivantes
 </div>
 
 <CardGroup cols={2}>
   <Card title="Limites de débit" icon="gauge-high" href="/fr/x-api/fundamentals/rate-limits">
-    Comprendre les limites de requêtes applicables à la pagination.
+    Comprenez les limites de requêtes lors de la pagination.
   </Card>
 
   <Card title="SDKs" icon="cube" href="/fr/x-api/tools-and-libraries/sdks">
-    Bibliothèques avec pagination intégrée.
+    Bibliothèques avec prise en charge intégrée de la pagination.
   </Card>
 </CardGroup>

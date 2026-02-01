@@ -1,13 +1,13 @@
 ---
-title: 統合ガイド
-sidebarTitle: 統合ガイド
-description: 投稿ルックアップを統合する際の重要な概念とベストプラクティス
-keywords: ["投稿ルックアップの統合", "ルックアップ統合ガイド", "ルックアップ実装", "ルックアップ設定", "ツイートルックアップの統合"]
+title: 連携ガイド
+sidebarTitle: 連携ガイド
+description: 投稿ルックアップを連携する際の主要な概念とベストプラクティス
+keywords: ["投稿ルックアップ連携", "ルックアップ連携ガイド", "ルックアップ実装", "ルックアップ設定", "ツイートルックアップ連携"]
 ---
 
 import { Button } from "/snippets/ja/button.mdx"
 
-このガイドでは、投稿ルックアップエンドポイントをアプリケーションに組み込むために必要となる基本的な概念を説明します。
+このガイドでは、投稿ルックアップエンドポイントをアプリケーションに統合するために必要な主要な概念について説明します。
 
 ***
 
@@ -15,19 +15,19 @@ import { Button } from "/snippets/ja/button.mdx"
   ## 認証
 </div>
 
-すべての X API v2 エンドポイントでは認証が必要です。ユースケースに合った方法を選択してください。
+すべての X API v2 エンドポイントには認証が必要です。ユースケースに合った認証方法を選択してください。
 
-| 方法 | 最適な用途 | 非公開メトリクスへのアクセス可否 |
+| 認証方法 | 主な用途 | プライベートメトリクスへのアクセス可否 |
 |:-------|:---------|:---------------------------|
-| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | サーバー間通信、公開データ | 不可 |
-| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向けアプリケーション | 可（承認されたユーザーの投稿） |
-| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー連携 | 可（承認されたユーザーの投稿） |
+| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | サーバー間、公開データ | いいえ |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向けアプリ | はい（アプリを承認したユーザーの投稿） |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー統合 | はい（アプリを承認したユーザーの投稿） |
 
 <div id="app-only-authentication">
-  ### App-Only 認証
+  ### アプリケーション専用認証
 </div>
 
-公開されている投稿データには、Bearer Token を使用します。
+公開されている投稿データを取得するには、Bearer Token を使用します。
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -40,7 +40,7 @@ import { Button } from "/snippets/ja/button.mdx"
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # ID で単一の投稿を取得する
+  # ID を指定して単一の投稿を取得
   response = client.posts.get("1234567890")
   print(response.data)
   ```
@@ -59,10 +59,10 @@ import { Button } from "/snippets/ja/button.mdx"
   ### User Context 認証
 </div>
 
-プライベートメトリクスにアクセスするには、投稿の作成者に代わって認証を行います。
+非公開メトリクスにアクセスするには、投稿の作成者として認証してください。
 
 <Warning>
-  次のフィールドにアクセスするには User Context 認証が必要です:
+  次のフィールドには User Context 認証が必要です:
 
   * `tweet.fields.non_public_metrics`
   * `tweet.fields.promoted_metrics`
@@ -78,10 +78,10 @@ import { Button } from "/snippets/ja/button.mdx"
   ## フィールドと展開
 </div>
 
-X API v2 は、既定では最小限の data のみを返します。必要な情報だけを取得するために、`fields` と `expansions` を使用してください。
+X API v2 はデフォルトで最小限の data のみが返されます。必要な情報だけを取得するには、`fields` と `expansions` を使用してください。
 
 <div id="default-response">
-  ### デフォルトレスポンス
+  ### デフォルトのレスポンス
 </div>
 
 ```json
@@ -101,18 +101,18 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 <Accordion title="tweet.fields">
   | Field | Description |
   |:------|:------------|
-  | `created_at` | 投稿の作成日時 |
+  | `created_at` | 投稿の作成タイムスタンプ |
   | `author_id` | 投稿者のユーザーID |
-  | `public_metrics` | いいね、リツイート、返信、引用の数 |
+  | `public_metrics` | いいね、リポスト、返信、引用数 |
   | `entities` | ハッシュタグ、メンション、URL、キャッシュタグ |
   | `attachments` | メディアキー、投票ID |
   | `conversation_id` | スレッド識別子 |
   | `context_annotations` | トピック／エンティティの分類情報 |
   | `in_reply_to_user_id` | 返信先のユーザー |
   | `lang` | 検出された言語 |
-  | `source` | 投稿元クライアント |
-  | `possibly_sensitive` | センシティブなコンテンツかどうかを示すフラグ |
-  | `reply_settings` | 誰が返信できるかの設定 |
+  | `source` | 投稿に使用されたクライアント |
+  | `possibly_sensitive` | センシティブなコンテンツを示すフラグ |
+  | `reply_settings` | 返信できる相手の範囲 |
 </Accordion>
 
 <Accordion title="user.fields (requires author_id expansion)">
@@ -120,9 +120,9 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
   |:------|:------------|
   | `username` | @ハンドル |
   | `name` | 表示名 |
-  | `profile_image_url` | アバターのURL |
-  | `verified` | 認証状態 |
-  | `description` | 自己紹介文 |
+  | `profile_image_url` | アバターURL |
+  | `verified` | 認証ステータス |
+  | `description` | 自己紹介 |
   | `public_metrics` | フォロワー数／フォロー数 |
   | `created_at` | アカウント作成日時 |
 </Accordion>
@@ -130,16 +130,16 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 <Accordion title="media.fields (requires attachments.media_keys expansion)">
   | Field | Description |
   |:------|:------------|
-  | `url` | メディアのURL |
-  | `preview_image_url` | サムネイルのURL |
+  | `url` | メディアURL |
+  | `preview_image_url` | サムネイルURL |
   | `type` | photo、video、animated&#95;gif |
   | `duration_ms` | 動画の再生時間 |
   | `height`, `width` | 縦横サイズ |
-  | `alt_text` | アクセシビリティ向けテキスト |
+  | `alt_text` | アクセシビリティ用テキスト |
 </Accordion>
 
 <div id="example-with-fields">
-  ### フィールドを指定した例
+  ### フィールド指定の例
 </div>
 
 <CodeGroup dropdown>
@@ -157,7 +157,7 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # 追加のフィールドと展開を指定して投稿を取得します
+  # 追加のフィールドと展開を含む投稿を取得します
   response = client.posts.get(
       "1234567890",
       tweet_fields=["created_at", "public_metrics", "entities"],
@@ -167,7 +167,7 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
   )
 
   print(response.data)
-  print(response.includes)  # 展開されたユーザーおよびメディアオブジェクトが含まれます
+  print(response.includes)  # 展開されたユーザーおよびメディアオブジェクトを含みます
   ```
 
   ```javascript JavaScript SDK
@@ -183,7 +183,7 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
   });
 
   console.log(response.data);
-  console.log(response.includes); // 展開されたユーザーおよびメディアオブジェクトが含まれます
+  console.log(response.includes); // 展開されたユーザーおよびメディアオブジェクトを含みます
   ```
 </CodeGroup>
 
@@ -193,15 +193,15 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
   ## 投稿の編集
 </div>
 
-投稿は、作成から30分以内であれば最大5回まで編集できます。
+投稿は、作成後30分以内であれば最大5回まで編集できます。
 
 <div id="how-it-works">
   ### 仕組み
 </div>
 
-* 編集を行うたびに新しい投稿 ID が作成されます
-* `edit_history_tweet_ids` にはすべてのバージョンが含まれます（最も古いものが先頭に来ます）
-* エンドポイントでは常に最新バージョンが返されます
+* 各編集のたびに新しい投稿IDが作成されます
+* `edit_history_tweet_ids` にはすべてのバージョンが格納されます（古いものから順）
+* エンドポイントは常に最新バージョンを返します
 
 <div id="example-response">
   ### レスポンス例
@@ -222,7 +222,7 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 ```
 
 <Tip>
-  30 分間の編集可能な時間枠を過ぎてから取得された投稿は、最終版となります。リアルタイム性が求められるユースケースでは、公開された直後の投稿は、まだ編集されている可能性があることに留意してください。
+  30 分の編集可能時間を過ぎた後に取得した投稿は、最終版を表します。リアルタイムのユースケースでは、公開された直後の投稿は、まだ編集される可能性がある点に注意してください。
 </Tip>
 
 ***
@@ -232,25 +232,25 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 </div>
 
 <div id="common-errors">
-  ### よくあるエラー
+  ### 一般的なエラー
 </div>
 
-| ステータス | エラー | 解決方法 |
-|:-------|:------|:---------|
+| Status | エラー内容 | 解決方法 |
+|:-------|:-----------|:---------|
 | 400 | 無効なリクエスト | パラメータの形式を確認してください |
 | 401 | 認証されていません | 認証情報を確認してください |
 | 403 | アクセスが禁止されています | アプリの権限を確認してください |
-| 404 | 見つかりません | 投稿が削除されているか、存在しません |
-| 429 | リクエストが多すぎます | 待機してから再試行してください（レート制限を参照） |
+| 404 | 見つかりません | 投稿が削除されたか、存在しません |
+| 429 | リクエストが多すぎます | しばらく待ってから再試行してください（レート制限を参照） |
 
 <div id="deleted-or-protected-posts">
   ### 削除済みまたは保護された投稿
 </div>
 
-投稿が削除されているか、フォローしていない保護されたアカウントからの投稿である場合:
+削除された投稿、またはあなたがフォローしていない保護されたアカウントの投稿の場合:
 
 * 単一投稿のルックアップは `404` を返します
-* 複数投稿のルックアップでは、その投稿は結果に含まれず、代わりに `errors` 配列が返されます
+* 複数投稿のルックアップでは、その投稿は結果から省かれ、`errors` 配列が返されます
 
 ```json
 {
@@ -276,19 +276,19 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 
 <CardGroup cols={2}>
   <Card title="バッチリクエスト" icon="layer-group">
-    最大 100 件の投稿を一度に取得できる multi-Post エンドポイントを使用して、API コールを削減します。
+    multi-Post エンドポイントを使用して一度に最大 100 件の投稿を取得し、API コール数を削減します。
   </Card>
 
   <Card title="必要なフィールドのみをリクエスト" icon="filter">
-    必要なフィールドだけを指定して、レスポンスサイズと処理時間を最小限に抑えます。
+    レスポンスサイズと処理時間を最小限に抑えるために、必要なフィールドのみを指定します。
   </Card>
 
-  <Card title="レスポンスのキャッシュ" icon="database">
-    同じコンテンツへの繰り返しリクエストを減らすために、投稿データをローカルにキャッシュします。
+  <Card title="レスポンスをキャッシュ" icon="database">
+    同一コンテンツへの繰り返しリクエストを減らすために、投稿の data をローカルにキャッシュします。
   </Card>
 
   <Card title="編集への対応" icon="clock-rotate-left">
-    リアルタイムアプリでは、30 分の編集ウィンドウ後に投稿を再取得することを検討してください。
+    リアルタイムアプリケーションの場合は、30 分の編集ウィンドウ後に投稿を再取得することを検討してください。
   </Card>
 </CardGroup>
 
@@ -300,11 +300,11 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
 
 <CardGroup cols={2}>
   <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/post-lookup-by-post-id">
-    エンドポイントの包括的なドキュメント
+    エンドポイントの詳細ドキュメント
   </Card>
 
-  <Card title="データ辞書" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
-    利用可能なすべてのオブジェクトとフィールドの一覧
+  <Card title="データディクショナリ" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
+    利用可能なすべてのオブジェクトとフィールド
   </Card>
 
   <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
@@ -312,6 +312,6 @@ X API v2 は、既定では最小限の data のみを返します。必要な�
   </Card>
 
   <Card title="エラー処理" icon="triangle-exclamation" href="/ja/x-api/fundamentals/response-codes-and-errors">
-    エラーを適切に処理する
+    エラーを適切に扱う
   </Card>
 </CardGroup>

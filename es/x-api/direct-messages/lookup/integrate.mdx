@@ -1,13 +1,13 @@
 ---
 title: Guía de integración
 sidebarTitle: Guía de integración
-description: Conceptos clave y prácticas recomendadas para integrar endpoints de consulta de mensajes directos (DM)
+description: Conceptos clave y buenas prácticas para integrar endpoints de consulta de MD
 keywords: ["integración de mensajes directos", "integración de DM", "integración de consulta de DM"]
 ---
 
 import { Button } from '/snippets/es/button.mdx';
 
-Esta guía cubre los conceptos clave que necesitas para integrar los endpoints de consulta de Mensajes Directos en tu aplicación.
+Esta guía describe los conceptos clave que necesitas para integrar en tu aplicación los endpoints de consulta de Mensajes Directos.
 
 ***
 
@@ -15,26 +15,26 @@ Esta guía cubre los conceptos clave que necesitas para integrar los endpoints d
   ## Autenticación
 </div>
 
-Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para acceder a conversaciones privadas:
+Los endpoints de mensajes directos requieren autenticación de usuario para acceder a conversaciones privadas:
 
-| Método | Descripción |
+| Method | Description |
 |:-------|:------------|
 | [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recomendado |
 | [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Compatibilidad con versiones anteriores |
 
 <Warning>
-  La autenticación App-Only no es compatible. Todos los mensajes directos son privados.
+  La autenticación de solo aplicación (App-only) no se admite. Todos los mensajes directos son privados.
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### Permisos (scopes) obligatorios (OAuth 2.0)
+  ### Scopes obligatorios (OAuth 2.0)
 </div>
 
-| Alcance | Obligatorio para |
-|:------|:-------------|
-| `dm.read` | Lectura de eventos de mensajes directos (MD) |
-| `tweet.read` | Obligatorio con dm.read |
-| `users.read` | Obligatorio con dm.read |
+| Scope | Obligatorio para |
+|:------|:-----------------|
+| `dm.read` | Leer eventos de mensajes directos |
+| `tweet.read` | Obligatorio con `dm.read` |
+| `users.read` | Obligatorio con `dm.read` |
 
 ***
 
@@ -44,7 +44,7 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
 
 <CardGroup cols={2}>
   <Card title="Uno a uno" icon="message">
-    Siempre tiene exactamente dos participantes. Formato del id de la conversación: `{smaller_user_id}-{larger_user_id}`
+    Siempre incluye exactamente dos participantes. Formato del id de la conversación: `{smaller_user_id}-{larger_user_id}`
   </Card>
 
   <Card title="Grupo" icon="comments">
@@ -65,7 +65,7 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
 | `ParticipantsLeave` | Un usuario abandonó el grupo | `participant_ids` |
 
 <div id="example-events">
-  ### Ejemplos de eventos
+  ### Eventos de ejemplo
 </div>
 
 <AccordionGroup>
@@ -129,8 +129,8 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
 
 | Field | Description | Events |
 |:------|:------------|:-------|
-| `dm_conversation_id` | ID de la conversación | All |
-| `created_at` | Marca de tiempo del evento | All |
+| `dm_conversation_id` | ID de la conversación | Todos |
+| `created_at` | Marca de tiempo del evento | Todos |
 | `sender_id` | Quién envió/invitó | MessageCreate, Join |
 | `attachments` | Archivos multimedia adjuntos | MessageCreate |
 | `referenced_tweets` | Publicaciones compartidas | MessageCreate |
@@ -141,10 +141,10 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
 
 | Expansión | Devuelve |
 |:----------|:--------|
-| `sender_id` | Objeto de usuario del remitente |
-| `participant_ids` | Objetos de usuario de los participantes |
-| `attachments.media_keys` | Objetos multimedia |
-| `referenced_tweets.id` | Objetos de publicaciones |
+| `sender_id` | Objeto User del remitente |
+| `participant_ids` | Objetos User de los participantes |
+| `attachments.media_keys` | Objetos Media |
+| `referenced_tweets.id` | Objetos Post |
 
 <div id="example-with-expansions">
   ### Ejemplo con expansions
@@ -160,12 +160,12 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
   ```
 
-  ```python Python SDK
+  ```python SDK de Python
   from xdk import Client
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # Obtener eventos de mensajes directos (DM) con expansions
+  # Obtener eventos de MD con expansions
   for page in client.dm_events.list(
       dm_event_fields=["created_at", "sender_id", "attachments"],
       expansions=["sender_id", "attachments.media_keys"],
@@ -174,10 +174,10 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
       max_results=100
   ):
       for event in page.data:
-          print(f"Event: {event.event_type} - {event.text}")
+          print(f"Evento: {event.event_type} - {event.text}")
   ```
 
-  ```javascript JavaScript SDK
+  ```javascript SDK de JavaScript
   import { Client } from "@xdevplatform/xdk";
 
   const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
@@ -192,7 +192,7 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario para
 
   for await (const page of paginator) {
     page.data?.forEach((event) => {
-      console.log(`Event: ${event.event_type} - ${event.text}`);
+      console.log(`Evento: ${event.event_type} - ${event.text}`);
     });
   }
   ```
@@ -229,7 +229,7 @@ Los eventos de MD se devuelven en orden cronológico inverso (los más recientes
       if page.data:
           all_events.extend(page.data)
 
-  print(f"Found {len(all_events)} DM events")
+  print(f"Se encontraron {len(all_events)} eventos de MD")
   ```
 
   ```javascript JavaScript SDK
@@ -254,24 +254,24 @@ Los eventos de MD se devuelven en orden cronológico inverso (los más recientes
 
   // Uso
   const events = await getAllDMEvents();
-  console.log(`Found ${events.length} DM events`);
+  console.log(`Se encontraron ${events.length} eventos de MD`);
   ```
 </CodeGroup>
 
 <Note>
-  Los eventos de hasta **30 días de antigüedad** están disponibles.
+  Los eventos de los últimos **30 días** están disponibles.
 </Note>
 
 ***
 
 <div id="id-compatibility-with-v11">
-  ## Compatibilidad de IDs con v1.1
+  ## Compatibilidad de id con v1.1
 </div>
 
-Los IDs de conversación y de eventos se comparten entre los endpoints v1.1 y v2. Esto significa que puedes:
+Los id de conversaciones y de eventos son comunes entre los extremos de v1.1 y v2. Esto significa que puedes:
 
 * Usar v2 para obtener eventos y luego usar v1.1 para eliminar mensajes específicos
-* Hacer referencia a IDs de conversación de URL de x.com en solicitudes a la API
+* Hacer referencia a id de conversación a partir de direcciones URL de x.com en solicitudes de API
 
 ***
 
@@ -280,11 +280,11 @@ Los IDs de conversación y de eventos se comparten entre los endpoints v1.1 y v2
 </div>
 
 <CardGroup cols={2}>
-  <Card title="Guía de inicio rápido" icon="rocket" href="/es/x-api/direct-messages/lookup/quickstart">
-    Realiza tu primera solicitud para consultar Mensajes Directos
+  <Card title="Inicio rápido" icon="rocket" href="/es/x-api/direct-messages/lookup/quickstart">
+    Realiza tu primera solicitud de consulta de MD
   </Card>
 
-  <Card title="Enviar Mensajes Directos" icon="paper-plane" href="/es/x-api/direct-messages/manage/introduction">
+  <Card title="Enviar MD" icon="paper-plane" href="/es/x-api/direct-messages/manage/introduction">
     Envía Mensajes Directos
   </Card>
 

@@ -1,16 +1,16 @@
 ---
 title: 集成指南
 sidebarTitle: 概览
-description: 集成 Search Posts 端点到应用程序中的关键概念和最佳实践
-keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖子搜索集成"]
+description: 集成搜索帖子功能的关键概念和最佳实践
+keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "推文搜索集成"]
 ---
 
-本指南介绍将 Search Posts 端点集成到应用程序中所需掌握的关键概念。
+本指南介绍将 Search Posts 端点集成到你的应用程序中所需的关键概念。
 
 ***
 
 <div id="authentication">
-  ## 身份验证
+  ## 认证
 </div>
 
 <div id="recent-search">
@@ -22,26 +22,26 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 | 方法 | 使用场景 |
 |:-------|:---------|
 | [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 公开帖子数据 |
-| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 私有指标 |
-| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 私有指标 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 私有指标数据 |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 私有指标数据 |
 
 <div id="full-archive-search">
-  ### 全量存档搜索
+  ### 全量归档搜索
 </div>
 
-全量存档搜索仅支持通过 [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) 进行身份验证。
+全量归档搜索仅支持 [OAuth 2.0 仅限应用 (App-Only)](/zh/resources/fundamentals/authentication#oauth-2-0) 认证。
 
 <Warning>
-  由于全量存档搜索仅支持 App-Only 身份验证，因此无法获取私密指标（`non_public_metrics`、`organic_metrics`、`promoted_metrics`）。
+  由于全量归档搜索仅支持 App-Only 认证，因此无法获取私密指标（`non_public_metrics`、`organic_metrics`、`promoted_metrics`）。
 </Warning>
 
 ***
 
 <div id="building-queries">
-  ## 构建查询语句
+  ## 构建查询
 </div>
 
-查询使用运算符来匹配帖子，可以通过布尔逻辑组合这些运算符：
+查询通过运算符来匹配帖子。可以使用布尔逻辑组合这些运算符：
 
 ```
 (AI OR "machine learning") lang:en -is:retweet has:links
@@ -51,10 +51,10 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   ### 查询长度限制
 </div>
 
-| 访问权限级别 | 最近搜索 | 全量归档搜索 |
+| 访问级别 | 近期搜索 | 全量存档搜索 |
 |:-------------|:--------------|:--------------------|
-| 自助 | 512 个字符 | 1,024 个字符 |
-| 企业级 | 4,096 个字符 | 4,096 个字符 |
+| 自助版 | 512 个字符 | 1,024 个字符 |
+| 企业版 | 4,096 个字符 | 4,096 个字符 |
 
 <div id="operator-types">
   ### 运算符类型
@@ -62,15 +62,15 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 
 | 类型 | 描述 | 示例 |
 |:-----|:------------|:--------|
-| **独立使用** | 可以单独使用 | `#python`, `from:user` |
-| **需配合使用** | 必须与独立运算符一起使用 | `has:media`, `is:retweet` |
+| **独立运算符** | 可以单独使用 | `#python`, `from:user` |
+| **需连用运算符** | 必须与独立运算符一起使用 | `has:media`, `is:retweet` |
 
 <Card title="构建查询" icon="magnifying-glass" href="/zh/x-api/posts/search/integrate/build-a-query">
-  深入了解查询语法
+  详细了解查询语法
 </Card>
 
 <Card title="运算符参考" icon="list-check" href="/zh/x-api/posts/search/integrate/operators">
-  查看全部可用运算符
+  查看所有可用运算符
 </Card>
 
 ***
@@ -79,7 +79,7 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   ## 字段和扩展
 </div>
 
-默认情况下，响应仅包含 `id`、`text` 和 `edit_history_tweet_ids`。使用参数来请求更多数据。
+默认情况下，响应只包含 `id`、`text` 和 `edit_history_tweet_ids`。使用参数来请求额外的数据。
 
 <div id="example-request">
   ### 示例请求
@@ -101,7 +101,7 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # 搜索最新的帖子
+  # 搜索最近的帖子
   for page in client.posts.search_recent(
       query="python",
       tweet_fields=["created_at", "public_metrics", "author_id"],
@@ -119,7 +119,7 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 
   const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
 
-  // 搜索最新的帖子
+  // 搜索最近的帖子
   const paginator = client.posts.searchRecent("python", {
     tweetFields: ["created_at", "public_metrics", "author_id"],
     expansions: ["author_id", "attachments.media_keys"],
@@ -143,14 +143,14 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 | 扩展项 | 返回内容 |
 |:----------|:--------|
 | `author_id` | 作者的用户对象 |
-| `attachments.media_keys` | 附带的媒体对象 |
-| `attachments.poll_ids` | 附带的投票对象 |
+| `attachments.media_keys` | 附加的媒体对象 |
+| `attachments.poll_ids` | 附加的投票对象 |
 | `referenced_tweets.id` | 被引用或被回复的帖子 |
 | `geo.place_id` | 地点对象 |
 | `entities.mentions.username` | 被提及的用户对象 |
 
 <Card title="字段和扩展指南" icon="sliders" href="/zh/x-api/fundamentals/fields">
-  进一步了解如何自定义响应
+  了解更多关于如何自定义响应的内容
 </Card>
 
 ***
@@ -159,16 +159,16 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   ## 分页
 </div>
 
-搜索端点以分页形式返回结果。使用响应中的 `next_token` 来获取更多结果页。
+搜索端点会以分页方式返回结果。使用响应中的 `next_token` 来获取后续页面。
 
 <div id="how-it-works">
   ### 工作原理
 </div>
 
 1. 使用 `max_results` 发起初始请求
-2. 检查 `meta` 对象中的 `next_token`
+2. 在 `meta` 对象中检查 `next_token`
 3. 在后续请求中包含 `next_token`
-4. 重复上述步骤，直到不再返回 `next_token`
+4. 重复上述步骤，直到响应中不再返回 `next_token`
 
 <div id="example">
   ### 示例
@@ -180,7 +180,7 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100" \
     -H "Authorization: Bearer $BEARER_TOKEN"
 
-  # 使用分页令牌的后续请求
+  # 包含分页 token 的后续请求
   curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100&next_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $BEARER_TOKEN"
   ```
@@ -197,7 +197,7 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
       if page.data:
           all_posts.extend(page.data)
 
-  print(f"找到 {len(all_posts)} 条帖子")
+  print(f"共找到 {len(all_posts)} 条帖子")
   ```
 
   ```javascript JavaScript SDK
@@ -222,12 +222,12 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 
   // 用法
   const posts = await getAllResults("python");
-  console.log(`找到 ${posts.length} 条帖子`);
+  console.log(`共找到 ${posts.length} 条帖子`);
   ```
 </CodeGroup>
 
 <Card title="分页指南" icon="arrow-right" href="/zh/x-api/posts/search/integrate/paginate">
-  了解更多分页相关内容
+  了解更多关于分页的信息
 </Card>
 
 ***
@@ -236,18 +236,18 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   ## 帖子编辑
 </div>
 
-帖子在发布后 30 分钟内最多可编辑 5 次。搜索端点始终返回帖子最新的版本。
+帖子在发布后的 30 分钟内最多可以编辑 5 次。搜索端点始终返回帖子最新版本。
 
 <div id="considerations">
   ### 注意事项
 </div>
 
-* `edit_history_tweet_ids` 包含所有帖子 ID（从最早到最新）
-* 在 30 分钟编辑窗口结束后获取的帖子即为最终版本
-* 在近实时场景中，最近发布的帖子可能仍会被编辑
+* `edit_history_tweet_ids` 包含所有帖子 ID（按时间从早到晚排序）
+* 在 30 分钟时间窗口之后获取的帖子为最终版本
+* 对于近实时场景，最近发布的帖子可能仍会被编辑
 
-<Card title="帖子编辑基础知识" icon="clock-rotate-left" href="/zh/x-api/fundamentals/edit-posts">
-  深入了解帖子编辑
+<Card title="编辑帖子基础" icon="clock-rotate-left" href="/zh/x-api/fundamentals/edit-posts">
+  详细了解帖子编辑
 </Card>
 
 ***
@@ -257,12 +257,12 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
 </div>
 
 <CardGroup cols={2}>
-  <Card title="从具体条件入手" icon="crosshairs">
-    使用多个运算符来缩小结果范围并减少噪声。
+  <Card title="从具体入手" icon="crosshairs">
+    使用多个运算符缩小结果范围，减少噪声。
   </Card>
 
   <Card title="迭代测试" icon="flask">
-    先从范围较宽的查询开始，然后根据结果逐步优化。
+    先从宽泛的条件开始，再根据结果不断优化。
   </Card>
 
   <Card title="处理分页" icon="arrow-right">
@@ -270,7 +270,7 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   </Card>
 
   <Card title="缓存结果" icon="database">
-    在本地存储结果以避免重复请求。
+    将结果缓存在本地以避免重复请求。
   </Card>
 </CardGroup>
 
@@ -294,6 +294,6 @@ keywords: ["搜索集成", "搜索概览", "搜索指南", "搜索实现", "帖�
   </Card>
 
   <Card title="API 参考" icon="code" href="/zh/x-api/posts/recent-search">
-    完整端点文档
+    完整的端点文档
   </Card>
 </CardGroup>

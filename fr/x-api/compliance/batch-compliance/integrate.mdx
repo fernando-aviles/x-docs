@@ -1,7 +1,7 @@
 ---
-title: Guide d’intégration
-sidebarTitle: Guide d’intégration
-keywords: ["intégration de conformité par lots", "intégration par lots de conformité", "intégration de tâches de conformité", "configuration de la conformité par lots"]
+title: Guide d'intégration
+sidebarTitle: Guide d'intégration
+keywords: ["intégration de conformité par lots", "intégration par lots de conformité", "intégration des jobs de conformité", "configuration de la conformité par lots"]
 ---
 
 import { Button } from '/snippets/fr/button.mdx';
@@ -10,21 +10,21 @@ import { Button } from '/snippets/fr/button.mdx';
   ## Utilisation des téléversements reprenables
 </div>
 
-Lors de l’utilisation des endpoints Batch compliance, les développeurs peuvent téléverser en lot de grandes quantités de données X et déterminer les actions à entreprendre pour s’assurer que leurs jeux de données reflètent l’intention des utilisateurs et l’état actuel du contenu sur X. Le téléversement de grandes quantités de données vers un serveur distant est une opération relativement simple lorsque les systèmes et la connectivité sont stables et fiables. Cependant, ce n’est pas toujours le cas. Certains environnements peuvent imposer un délai d’expiration de la connexion, coupant ainsi la connexion entre votre application et le serveur de téléversement après un certain temps ; vous pouvez également rencontrer des problèmes de connexion, par exemple lorsque vous essayez de téléverser un fichier volumineux depuis votre ordinateur portable via une connexion Wi-Fi. Dans ces circonstances, il est préférable de téléverser de plus petites portions de ce fichier à la fois, plutôt que d’avoir une seule connexion continue.
+Les endpoints Batch compliance permettent aux développeurs de téléverser en lot de grandes quantités de données X et de déterminer quelles actions sont nécessaires pour garantir que leurs ensembles de données reflètent l’intention des utilisateurs et l’état actuel du contenu sur X. Le téléversement de grandes quantités de data vers un serveur distant est une opération relativement simple lorsque les systèmes et la connectivité sont stables et fiables. Cependant, ce n’est pas toujours le cas. Certains environnements peuvent imposer un délai d’expiration de la connexion, ce qui coupe la connexion entre votre application et le serveur de téléversement après une durée déterminée ; vous pouvez également rencontrer des problèmes de connexion, par exemple lorsque vous essayez de téléverser un fichier volumineux depuis votre ordinateur portable via une connexion Wi‑Fi. Dans ces circonstances, il est préférable de téléverser de plus petites portions de ce fichier à la fois, plutôt que d’établir une seule connexion continue.
 
-Les endpoints Batch compliance de X s’appuient sur Google Cloud Storage pour traiter des fichiers volumineux. Ce type de stockage est optimisé pour diverses applications ; Cloud Storage prend en charge une technique de gestion des fichiers volumineux appelée téléversements reprenables.
+Les endpoints Batch compliance de X s’appuient sur Google Cloud Storage pour traiter des fichiers volumineux. Ce type de stockage est optimisé pour diverses applications ; Cloud Storage prend en charge une technique de gestion des fichiers volumineux appelée téléversement reprenable.
 
-Si le téléversement échoue à un moment donné, Google Cloud Storage est capable de reprendre l’opération là où elle s’est arrêtée.
+Si le téléversement échoue à un moment quelconque, Google Cloud Storage est capable de reprendre l’opération là où elle s’est arrêtée.
 
 <div id="creating-a-resumable-job">
-  ### Création d&#39;une tâche de téléversement pouvant être reprise
+  ### Création d’une tâche de téléversement reprenable
 </div>
 
 <div id="step-one">
   #### Première étape :
 </div>
 
-Tout d’abord, vous devez créer un job de conformité et spécifier si vous allez importer des ID de Publication ou des ID d’utilisateur (en utilisant le paramètre type). De plus, ajoutez `resumable` au corps de la requête et définissez sa valeur sur `true`. Assurez-vous de remplacer le $APP&#95;ACCESS&#95;TOKEN ci-dessous par votre App only Access Token.
+Tout d’abord, vous devez créer un job de conformité et indiquer si vous allez téléverser des ID de Publication ou des ID d’utilisateur (en utilisant le paramètre type). Ajoutez également resumable au corps de la requête et définissez-le sur true. Assurez-vous de remplacer $APP&#95;ACCESS&#95;TOKEN ci-dessous par le jeton d’accès App only de votre application.
 
 ```
 curl --request POST \
@@ -34,7 +34,7 @@ curl --request POST \
 }'
 ```
 
-Si votre appel à l’API réussit, vous obtiendrez une réponse similaire à la suivante :
+Si votre appel à l&#39;API réussit, vous obtiendrez une réponse similaire à la suivante :
 
 ```
 {
@@ -52,13 +52,13 @@ Si votre appel à l’API réussit, vous obtiendrez une réponse similaire à la
 }
 ```
 
-Notez la valeur d’`upload&#95;url`, vous en aurez besoin pour les étapes suivantes.
+Notez la valeur de `upload&#95;url`, dont vous aurez besoin pour les étapes suivantes.
 
 <div id="step-two">
-  #### Étape 2 :
+  #### Étape deux :
 </div>
 
-Ensuite, vous devez initialiser le téléversement reprenable. Pour ce faire, effectuez un appel **POST** vers l’upload&#95;url de l’étape précédente et assurez-vous d’inclure les en-têtes suivants :
+Ensuite, vous devrez initialiser le téléversement reprenable. Pour ce faire, effectuez une requête **POST** vers l’`upload_url` de l’étape précédente et veillez à inclure les en-têtes suivants :
 
 Content-Type: text/plain
 
@@ -74,36 +74,36 @@ curl --request POST \
  'x-goog-resumable: start
 ```
 
-Si cet appel aboutit, vous recevrez un code de réponse 201. Ensuite, dans l’en-tête de réponse, copiez la valeur de l’en-tête Location, qui ressemblera à ceci :
+Si cet appel réussit, vous obtiendrez un code de réponse 201. Ensuite, dans l’en-tête de la réponse, copiez la valeur de l’en-tête `Location`, qui ressemblera à ceci :
 
 ```
 https://storage.googleapis.com/twttr-tweet-compliance/1430227686685757442/submission/1202726487847104512_1430227686685757442?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=complianceapi-public-svc-acct%40twttr-compliance-public-prod.iam.gserviceaccount.com%2F20210824%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20210824T175707Z&X-Goog-Expires=900&X-Goog-SignedHeaders=content-length%3Bcontent-type%3Bhost%3Bx-goog-resumable&X-Goog-Signature=890d958f9c7dcb7f238e4971b59da5afc5b8329fb197c67b5930fe0f9dfe180afe2d4bec341111809b88ccfab46ab1f81f4242abc1af7b67c6e8977c52e6d486f5f43ce6a37a7a6530d25f15e2bcd9bb54655fe4ee22b26f8886ba71b67b7b11afd1198d658d1b6f0c41260f55260a260e1be0239977feba43dce40bc0e8e6293a4a3a3f7ee0afc74d3d2f7f2d3d514f108d5887a52ac85760385e5b9bb67cd26bfcf6b1c19151ea8111e217a29407722dc0dc9ab373334e88c18159546237ec9334f9a1e33717dc82800c6a45bba82706d5aece84ecdf3fcac52b21c8a3085a639047cf2707a8b9e4c296fc7cf05edbb110f07b89e38f0f5ea77e8b313cade7&upload_id=ADPycds-_Ow7aqcpbG4XguXSVAgd_2fy-XiDA2qm-It9PCwBlZhF4e2bfOAQzEmRJ4T_l6jU6LfYdfrKa_KlFFBOyx3PjYzrxQ
 ```
 
-Vous pouvez ensuite envoyer les identifiants (id) de vos Publications ou Utilisateurs à cet emplacement en suivant l’étape deux et les suivantes, [à partir du guide de démarrage rapide](/fr/x-api/compliance/batch-compliance#getting-started-with-the-batch-compliance-endpoints).
+Vous pouvez ensuite téléverser vos identifiants de Publications ou d’utilisateurs à cet emplacement en suivant, à partir de l’étape 2, les instructions du [guide de démarrage rapide](/fr/x-api/compliance/batch-compliance#getting-started-with-the-batch-compliance-endpoints).
 
-En raison de leur complexité technique, les téléversements reprenables sont plus simples à utiliser lorsqu’ils sont effectués via du code. Ce guide utilise Node.js avec la [bibliothèque de requêtes needle](https://www.npmjs.com/package/needle).
+En raison de leur complexité technique, les téléversements reprenables sont plus efficaces lorsqu’ils sont pilotés par du code. Ce guide utilise Node.js avec la [bibliothèque de requêtes needle](https://www.npmjs.com/package/needle).
 
 <div id="install-the-dependencies">
   ### Installer les dépendances
 </div>
 
-Avant de continuer, vous devez disposer d’un environnement Node.js ; vous pouvez télécharger Node.js depuis son site web. Une fois installé, Node.js inclut un utilitaire appelé npm ; vérifiez que Node et npm sont tous deux installés en exécutant la commande suivante, et assurez-vous qu’elle ne renvoie pas d’erreur.
+Avant de continuer, vous devez avoir un environnement Node.js installé ; vous pouvez obtenir Node.js depuis son site web. Une fois installé, Node.js contient un utilitaire appelé npm ; assurez-vous que Node et npm sont tous deux installés en exécutant la commande suivante et vérifiez qu’elle ne renvoie pas d’erreur.
 
 `$ npm -v
 6.4.1`
 
-Un numéro de version similaire signifie que votre environnement est prêt (notez que votre numéro de version peut être différent). Nous allons utiliser npm pour installer la bibliothèque de téléversement. Exécutez cette commande :
+Un numéro de version similaire à celui-ci indique que votre environnement est prêt (notez que votre numéro de version peut différer). Nous utiliserons npm pour installer la bibliothèque de téléversement. Exécutez cette commande :
 
 `$ npm install -g needle`
 
-Tout est en place ; aucune configuration supplémentaire n’est nécessaire.
+Tout est prêt ; aucune configuration supplémentaire n’est requise.
 
 <div id="request-a-resumable-destination">
-  #### Demander une destination de téléversement reprenable
+  #### Demander une destination pour téléversement reprenable
 </div>
 
-Lors de la création d’un nouveau job, définissez le paramètre resumable sur true afin d’obtenir une destination qui prend en charge un téléversement reprenable. Dans le corps de la réponse, vous recevrez une valeur upload&#95;url.
+Lors de la création d’une nouvelle tâche, définissez le paramètre resumable sur true afin d’obtenir une destination qui prend en charge un téléversement reprenable. Dans la charge utile de la Réponse, vous recevrez une valeur upload&#95;url.
 
 ```
 "upload_url":\
@@ -114,9 +114,9 @@ Lors de la création d’un nouveau job, définissez le paramètre resumable sur
   #### Préparer le code pour téléverser un fichier
 </div>
 
-Par défaut, la bibliothèque crée une nouvelle destination de téléversement à partir d’un emplacement de téléversement (appelé bucket) et du nom du fichier que vous souhaitez téléverser. Comme les endpoints de conformité par lots créent leur propre destination, nous devons indiquer à la bibliothèque que nous avons déjà un emplacement prêt à accepter notre téléversement.
+Par défaut, la bibliothèque crée une nouvelle destination de téléversement à partir d’un emplacement de téléversement (appelé bucket) et du nom du fichier que vous souhaitez téléverser. Comme les endpoints de conformité par lot créent leur propre destination, nous devons indiquer à la bibliothèque que nous disposons déjà d’un emplacement prêt à accepter notre téléversement. 
 
-Nous devrons transmettre cette valeur à la bibliothèque de téléversement, ainsi que le nom du fichier contenant les données à téléverser. Créez un fichier et nommez‑le ***twitter-upload.js***. Ajoutez le code suivant :
+Nous devrons transmettre cette valeur à la bibliothèque de téléversement, ainsi que le nom du fichier contenant les données à téléverser. Créez un fichier et nommez-le ***twitter-upload.js***. Ajoutez le code suivant :
 
 ```
 const needle = require('needle');
@@ -206,10 +206,10 @@ async function requestResumableSession(url) {
 requestResumableSession(uploadURL).then(result => console.log('Téléversement terminé'));
 ```
 
-Enregistrez le fichier à l’emplacement le plus approprié. Ensuite, dans votre terminal, exécutez le script et passez deux paramètres :
+Enregistrez le fichier à l’emplacement le plus approprié. Ensuite, dans votre terminal, exécutez le script et passez-lui deux paramètres :
 
-1. Le premier sera l’emplacement du fichier (contenant les ID de Publication ou d’utilisateur) que vous souhaitez téléverser.
-2. Le second sera l’URL de téléversement que nous avons reçue dans la réponse de l’endpoint de conformité.
+1. Le premier sera l’emplacement du fichier (contenant les id de Publication ou d’utilisateur) que vous souhaitez téléverser.
+2. Le second sera l’URL de téléversement que nous avons reçue dans la Réponse de l’endpoint de conformité.
 
 Assurez-vous que l’URL est entourée de guillemets doubles, et faites de même pour le nom de votre fichier s’il contient des espaces ou d’autres caractères :
 
@@ -224,8 +224,8 @@ Vous verrez une sortie similaire à celle-ci :
 Upload not completed, resuming
 Initiating upload`
 
-Vous pouvez mettre en pause le téléversement à tout moment en appuyant sur Ctrl + C ou en fermant votre terminal. Vous pourrez ensuite reprendre le téléversement là où il s’est arrêté en exécutant la même commande ultérieurement. Une fois que le fichier a été entièrement téléversé, le message suivant s’affichera :
+Vous pouvez mettre le téléversement en pause à tout moment en appuyant sur Ctrl + C ou en fermant votre terminal. Vous pourrez reprendre le téléversement là où vous vous êtes arrêté en relançant la même commande ultérieurement. Une fois que le fichier a été entièrement téléversé, vous verrez le message suivant :
 
 `Upload complete`
 
-À ce stade, vous pourrez utiliser le [compliance status endpoint](/fr/x-api/compliance/get-compliance-job) pour vérifier l’état de votre tâche de conformité, et vous pourrez télécharger le résultat de conformité une fois celle-ci terminée.
+À ce stade, vous pourrez utiliser le [compliance status endpoint](/fr/x-api/compliance/get-compliance-job) pour vérifier l’état de votre tâche de conformité, et vous pourrez télécharger le résultat de cette tâche une fois qu’il sera prêt.

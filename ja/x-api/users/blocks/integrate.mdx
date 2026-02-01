@@ -1,13 +1,13 @@
 ---
 title: 連携ガイド
 sidebarTitle: 連携ガイド
-description: blocks エンドポイントを統合するための基本概念とベストプラクティス
-keywords: ["blocks integration", "block users integration", "blocks guide"]
+description: blocks エンドポイントと連携するための基本概念とベストプラクティス
+keywords: ["blocks 連携", "ユーザーのブロック連携", "blocks ガイド"]
 ---
 
 import { Button } from '/snippets/ja/button.mdx';
 
-このガイドでは、blocks エンドポイントをアプリケーションに統合するために必要となる主要な概念について説明します。
+このガイドでは、アプリケーションに blocks エンドポイントを統合するために必要な主要な概念について説明します。
 
 ***
 
@@ -15,47 +15,44 @@ import { Button } from '/snippets/ja/button.mdx';
   ## 認証
 </div>
 
-Blocks エンドポイントはユーザー認証が必要です。
+Blocks エンドポイントではユーザー認証が必要です。
 
-| Method | 説明 |
+| Method | Description |
 |:-------|:------------|
-| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 新規アプリケーション向けに推奨 |
-| [OAuth 1.0a ユーザーコンテキスト](/ja/resources/fundamentals/authentication) | レガシーサポート |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 新規アプリケーションに推奨されます |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー向けサポート |
 
 <Warning>
-  App-only 認証はサポートされていません。必ずユーザーに代わって認証する必要があります。
+  App-Only 認証はサポートされていません。必ずユーザーに代わって認証を行う必要があります。
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### 必須スコープ（OAuth 2.0）
+  ### 必要なスコープ（OAuth 2.0）
 </div>
 
-| Scope | 必須となるケース |
+| Scope | 必要となる操作 |
 |:------|:-------------|
 | `block.read` | ブロック済みアカウントの取得 |
 | `block.write` | アカウントのブロックおよびブロック解除 |
-| `users.read` | block スコープと併せて必須 |
+| `users.read` | block スコープと併用する際に必須 |
 
 ***
 
 <div id="endpoints-overview">
-  ## エンドポイントの概要
+  ## エンドポイント概要
 </div>
 
-| Method | Endpoint | Description |
+| Method | Endpoint | 説明 |
 |:-------|:---------|:------------|
-| GET | `/2/users/:id/blocking` | ブロックしているアカウントの一覧を取得します |
-| POST | `/2/users/:id/blocking` | アカウントをブロックします |
-| DELETE | `/2/users/:source_user_id/blocking/:target_user_id` | アカウントのブロックを解除します |
+| GET | `/2/users/:id/blocking` | ブロックしているアカウントの一覧を取得 |
+| POST | `/2/users/:id/blocking` | アカウントをブロック |
+| DELETE | `/2/users/:source_user_id/blocking/:target_user_id` | アカウントのブロックを解除 |
+--------------------------------------------------------------------------------
 
-***
+## フィールドと展開
 
-<div id="fields-and-expansions">
-  ## フィールドと展開
-</div>
-
-<div id="default-response">
-  ### 既定のレスポンス
+<div id="available-fields">
+  ### デフォルトのレスポンス
 </div>
 
 ```json
@@ -70,59 +67,57 @@ Blocks エンドポイントはユーザー認証が必要です。
 }
 ```
 
-<div id="available-fields">
-  ### 利用可能なフィールド
-</div>
+### 利用可能なフィールド
 
 <Accordion title="user.fields">
   | フィールド | 説明 |
   |:------|:------------|
-  | `created_at` | アカウントの作成日時 |
-  | `description` | ユーザーの自己紹介 |
-  | `profile_image_url` | プロフィール画像のURL |
+  | `created_at` | アカウント作成日 |
+  | `description` | ユーザーの自己紹介文 |
+  | `profile_image_url` | アバター画像のURL |
   | `public_metrics` | フォロー数／フォロワー数 |
-  | `verified` | 認証状態 |
+  | `verified` | 認証状況 |
 </Accordion>
 
 <Accordion title="expansions">
   | 展開 | 説明 |
   |:----------|:------------|
-  | `pinned_tweet_id` | ユーザーがピン留めした投稿 |
+  | `pinned_tweet_id` | ユーザーが固定表示している投稿 |
 </Accordion>
 
 ***
 
-<div id="what-happens-when-you-block">
+<div id="pagination">
   ## ブロックするとどうなるか
 </div>
 
 <CardGroup cols={2}>
-  <Card title="相手ができなくなること" icon="xmark">
-    * （ログアウトしていない限り）あなたの投稿を見ること
-    * あなたをフォローすること
-    * あなたにDMを送ること
-    * あなたをリストに追加すること
-    * 写真にあなたをタグ付けすること
+  <Card title="相手ができないこと" icon="xmark">
+    * あなたの投稿を見る（ログアウトしている場合を除き）
+    * あなたをフォローする
+    * あなたにDMを送る
+    * あなたをリストに追加する
+    * 写真であなたをタグ付けする
   </Card>
 
-  <Card title="自分ができなくなること" icon="xmark">
-    * 相手の投稿を見ること
-    * 相手をフォローすること
-    * 相手にDMを送ること
+  <Card title="あなたができないこと" icon="xmark">
+    * 相手の投稿を見る
+    * 相手をフォローする
+    * 相手にDMを送る
   </Card>
 </CardGroup>
 
 <Note>
-  あなたをフォローしている相手をブロックすると、その相手のあなたへのフォローは自動的に解除されます。
+  あなたをフォローしている相手をブロックすると、その相手のフォローは自動的に解除されます。
 </Note>
 
 ***
 
-<div id="pagination">
+<div id="error-handling">
   ## ページネーション
 </div>
 
-ブロックリストが大きい場合、結果はページ分割されます。
+ブロックしているユーザーが多い場合、結果はページ分割されます:
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -130,7 +125,7 @@ Blocks エンドポイントはユーザー認証が必要です。
   curl "https://api.x.com/2/users/123/blocking?max_results=100" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
 
-  # ページネーション用トークンを使用した後続のリクエスト
+  # ページネーショントークンを使用した後続リクエスト
   curl "https://api.x.com/2/users/123/blocking?max_results=100&pagination_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
   ```
@@ -179,27 +174,25 @@ Blocks エンドポイントはユーザー認証が必要です。
 
 ***
 
-<div id="error-handling">
+<div id="next-steps">
   ## エラー処理
 </div>
 
-| ステータス | エラー | 解決方法 |
+| ステータス | エラー | 解決策 |
 |:-------|:------|:---------|
-| 400 | Invalid request | ユーザーIDの形式を確認する |
-| 401 | Unauthorized | アクセストークンを確認する |
-| 403 | Forbidden | スコープと権限を確認する |
-| 404 | Not Found | ユーザーが存在しない |
-| 429 | Too Many Requests | しばらく待ってから再試行する |
+| 400 | 無効なリクエスト | ユーザーIDの形式を確認してください |
+| 401 | 認証されていません | 有効なアクセストークンか確認してください |
+| 403 | アクセスが禁止されています | スコープと権限を確認してください |
+| 404 | 見つかりません | ユーザーが存在しません |
+| 429 | リクエストが多すぎます | 待機してから再試行してください |
 
 ***
 
-<div id="next-steps">
-  ## 次のステップ
-</div>
+## 次のステップ
 
 <CardGroup cols={2}>
   <Card title="クイックスタート" icon="rocket" href="/ja/x-api/users/blocks/quickstart">
-    最初のブロックリクエストを送信する
+    初めてのブロックリクエストを送信する
   </Card>
 
   <Card title="ミュート" icon="volume-xmark" href="/ja/x-api/users/mutes/introduction">
@@ -207,7 +200,7 @@ Blocks エンドポイントはユーザー認証が必要です。
   </Card>
 
   <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-blocking">
-    エンドポイントの完全なドキュメント
+    エンドポイントの詳細なドキュメント
   </Card>
 
   <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">

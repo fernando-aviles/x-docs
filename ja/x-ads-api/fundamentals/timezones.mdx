@@ -1,15 +1,15 @@
 ---
 title: タイムゾーン
-keywords: ["タイムゾーン", "時間帯", "タイムゾーンの処理", "タイムゾーン形式", "タイムゾーン変換", "タイムゾーン設定"]
+keywords: ["timezones", "time zones", "timezone handling", "timezone format", "timezone conversion", "timezone settings"]
 ---
 
 <div id="timezones-accounts-and-billing">
-  ## タイムゾーン、アカウント、請求
+  ## タイムゾーン、アカウント、課金
 </div>
 
-Datetime 値は常に UTC 時刻で返されます（datetime 値の末尾の Z が UTC であることを示します）。POST または PUT コマンドでは、ISO 8601 標準のタイムゾーン形式を用いることで、任意のタイムゾーンで Datetime を指定できます。時刻は [ISO-8601](http://en.wikipedia.org/wiki/ISO_8601) の一部の形式で表現されます。より具体的には、当社の日付形式に対する strptime 文字列は `%Y-%m-%dT%l:%M:%S%z` です。公式な請求数値が確定される時刻は、広告主のアカウントのタイムゾーンによって決まります。
+日時の値は常に UTC 時刻（日時値の末尾にある Z で示されます）で返されます。POST または PUT コマンドでは、タイムゾーンについて ISO 8601 の標準形式を用いることで、任意のタイムゾーンで日時を指定できます。時刻は [ISO-8601](http://en.wikipedia.org/wiki/ISO_8601) のサブセットを使って表現されます。より具体的には、当社の日付形式に対応する strptime 形式の文字列は `'%Y-%m-%dT%l:%M:%S%z'` です。広告主アカウントのタイムゾーンによって、正式な課金数値が確定される実際の時刻が決まります。
 
-アカウントレベルで API をクエリする際（[GET accounts](/ja/x-ads-api/campaign-management#accounts)）、次のようなタイムゾーン情報が取得されます。
+アカウントレベルで API を問い合わせると（[GET accounts](/ja/x-ads-api/campaign-management#accounts)）、次のようなタイムゾーン情報が取得されます。
 
 ```json
     {
@@ -34,24 +34,24 @@ Datetime 値は常に UTC 時刻で返されます（datetime 値の末尾の Z 
     }
 ```
 
-ここには 2 つのタイムゾーン値が含まれます。`timezone`（概要については [Wikipedia の「タイムゾーン」](https://en.wikipedia.org/wiki/Tz_database#Names_of_time_zones) を参照）と `timezone_switch_at` です。`timezone_switch_at` は UTC タイムゾーン（+00:00）で指定されますが、指定されたタイムゾーンにおける真夜中を常に表します。
+これには2つのタイムゾーン値が含まれます：`timezone`（概要については [Wikipedia の timezones](https://en.wikipedia.org/wiki/Tz_database#Names_of_time_zones) を参照）と `timezone_switch_at` です。`timezone_switch_at` は UTC タイムゾーン（+00:00）で指定されますが、常に指定されたタイムゾーンにおける午前 0 時を表します。
 
-広告主のタイムゾーンは API を通じて変更できません。この属性は、広告主のアカウントマネージャーが X における契約／請求レベルで設定します。
+広告主のタイムゾーンは API 経由では変更できません。この属性は、X における広告主のアカウントマネージャーによって、契約／請求レベルで設定されます。
 
-アカウントが America/Los&#95;Angeles タイムゾーンから新しいローカルタイムゾーンに切り替わる当日にはデータにギャップが発生するため、レポートを作成したり、分析用エンドポイントにクエリを実行したりする際は、`timezone_switch_at` の値に注意してください。
+アカウントが America/Los&#95;Angeles タイムゾーンから新しいローカル値に切り替わる日に時刻のずれが発生するため、レポートを作成したりアナリティクス用エンドポイントにクエリを送信したりする際には、`timezone_switch_at` の値に注意してください。
 
 <div id="specifying-datetime-values-with-timezone">
-  ### タイムゾーン付きの日時値の指定
+  ### タイムゾーン付き日時値の指定
 </div>
 
-日時値は常に UTC 時刻（日時値の末尾にある `Z` で示されます）で返されます。POST または PUT コマンドでは、任意のタイムゾーンを使用し、タイムゾーンを表す [ISO 8601 規格](http://en.wikipedia.org/wiki/ISO_8601) 形式で日時を指定できます。たとえば、`2017-07-10T08:00:00-0800` は有効な入力値であり、自動的に UTC の値 `2017-07-10T16:00:00Z` に変換されます。
+日時値は常に UTC 時刻で返されます（日時値の末尾にある `Z` が UTC を示します）。POST または PUT コマンドでは、任意のタイムゾーンの日時を、タイムゾーンを表す [ISO 8601 standard](http://en.wikipedia.org/wiki/ISO_8601) 形式を使用して指定できます。たとえば、`2017-07-10T08:00:00-0800` は有効な入力値であり、自動的に UTC の値 `2017-07-10T16:00:00Z` に変換されます。
 
-`granularity` が `DAY` または `TOTAL` の analytics エンドポイントを使用する場合、`start_time` の値は、アカウント保有者のローカルタイムゾーンにおける対象日の午前 0 時ちょうどとして指定する必要があります。使用されるタイムゾーンオフセットは、対象日ではなく、リクエスト時点の当日のオフセットになります。たとえば、America/Los&#95;Angeles にある広告アカウントが太平洋夏時間中であれば、UTC オフセットは -0700 です。したがって、analytics リクエストでは、時刻は `start_time=2017-05-21T07:00:00Z` または `start_time=2017-05-21T00:00:00-0700` のように指定する必要があります。広告アカウントが Asia/Tokyo にあり、オフセットが常に +09:00 の場合、値は `start_time=2017-05-20T15:00:00Z` または `start_time=2017-05-21T00:00:00+0900` のように指定されます。
+`granularity` が `DAY` または `TOTAL` の analytics エンドポイントを使用する場合、`start_time` 値は、アカウント保有者のローカルタイムゾーンにおける対象日の午前 0 時として指定する必要があります。使用されるタイムゾーンオフセットは、「対象日」ではなく「現在の日付」のオフセットになります。たとえば、America/Los&#95;Angeles の広告アカウントが Pacific Daylight Time 期間中であれば、UTC オフセットは -0700 です。したがって、analytics リクエストでは、時刻は `start_time=2017-05-21T07:00:00Z` または `start_time=2017-05-21T00:00:00-0700` のように指定する必要があります。広告アカウントが Asia/Tokyo にあり、オフセットが常に +09:00 の場合、値は `start_time=2017-05-20T15:00:00Z` または `start_time=2017-05-21T00:00:00+0900` のように指定します。
 
 <div id="accepted-utc-offset-formats">
-  ### 許容される UTC オフセット形式
+  ### 利用可能なUTCオフセット形式
 </div>
 
 [ISO 8601 Time zone designators](http://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators) を参照してください。
 
-サポートされる形式: `Z`, `-HHMM`, `+HHMM`, `-HH:MM`, `+HH:MM`, `-HH`, `+HH`
+サポートされている形式: `Z`, `-HHMM`, `+HHMM`, `-HH:MM`, `+HH:MM`, `-HH`, `+HH`

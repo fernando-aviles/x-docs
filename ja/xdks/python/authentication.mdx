@@ -3,22 +3,23 @@ title: 認証
 sidebarTitle: 認証
 ---
 
-X API はすべてのエンドポイントで認証が必要です。XDK は 3 種類の認証方式をサポートしています:
+X API では、すべてのエンドポイントで認証が必須です。xdk は次の 3 つの認証方法をサポートしています。
 
-1. Bearer Token (アプリ専用)
+1. Bearer Token（アプリのみ）
 2. OAuth 2.0 with PKCE
-3. OAuth 1.0a (ユーザーコンテキスト)
+3. OAuth 1.0a（ユーザーコンテキスト）
 
-- **Bearer Token**: アプリ認証（app-auth）をサポートしているエンドポイントに対して、読み取り専用アクセスに使用します（例: 投稿の検索、ストリーミングエンドポイント）。
-- **OAuth 2.0 PKCE**: スコープベースでユーザーの許可を得た安全な認証方式です（例: 認証済みユーザーの投稿の非公開メトリクスを取得する場合）。
-- **OAuth 1.0a**: ユーザー固有の操作向けのレガシー認証方式です（例: ユーザーに代わって投稿する、リストを管理する）。
-[X Developer Console](https://developer.x.com/en/portal/dashboard) から認証情報を取得します。承認済みの開発者アカウントと、適切な権限（例: Read + Write）を持つアプリが必要です。
+- **Bearer Token**: アプリ認証をサポートするエンドポイントに対して、読み取り専用アクセスに使用します（例: 投稿の検索、ストリーミングエンドポイント）。
+- **OAuth 2.0 PKCE**: スコープベースのユーザー認可アクセス向けの安全な認証です（例: 認証済みユーザーの投稿の非公開メトリクスの取得）。
+- **OAuth 1.0a**: ユーザー固有の操作向けのレガシーな認証です（例: ユーザーに代わって投稿する、リストを管理する）。
+
+[X 開発者コンソール](https://developer.x.com/en/portal/dashboard) から認証情報を取得してください。承認済みの開発者アカウントと、適切な権限（例: 読み取り + 書き込み）を持つアプリが必要です。
 
 <div id="creating-a-client">
   ## クライアントの作成
 </div>
 
-すべての認証フローでは `Client` インスタンスを作成します。
+すべての認証フローで `Client` インスタンスが作成されます。
 
 ```python
 from xdk import Client
@@ -26,21 +27,21 @@ from xdk import Client
 
 
 <div id="1-bearer-token-app-only">
-  ### 1. Bearer Token (アプリ専用)
+  ### 1. Bearer Token（アプリ専用）
 </div>
 
-ユーザーコンテキストなしで読み取り専用の操作を行う場合に使用します。
+ユーザーコンテキストを伴わない読み取り専用の操作向けです。
 **手順**:
 
-1. Developer Console で、アプリ用の Bearer Token を生成します。
-2. 生成した Bearer Token を `Client` に渡します。
+1. 開発者コンソールで、アプリ用の Bearer Token を生成します。
+2. そのトークンを `Client` に渡します。
    **例**:
 
 ```python
 client = Client(bearer_token="XXXXX")
 ```
 
-**使い方**:
+**使用方法**:
 
 ```python
 # search_recent はイテレータを返すので、それを反復処理する
@@ -54,14 +55,14 @@ for page in client.posts.search_recent(query="python", max_results=10):
 
 
 <div id="2-oauth-20-with-pkce-user-context">
-  ### 2. OAuth 2.0 と PKCE の併用（ユーザーコンテキスト）
+  ### 2. OAuth 2.0 と PKCE（ユーザーコンテキスト）
 </div>
 
-この例では、Proof Key for Code Exchange（PKCE）を用いた OAuth 2.0 の使用方法を示します。ユーザーごとのアクセス（例：ユーザーに代わって投稿する、ユーザーのメディアをアップロードする）に使用します。
-**手順**:
+この例では、Proof Key for Code Exchange（PKCE）を用いた OAuth 2.0 の利用方法を示します。これは、ユーザーごとのアクセス（例：ユーザーに代わって投稿する、ユーザー用のメディアをアップロードするなど）に使用します。
+**手順：**
 
-1. Developer Console でリダイレクト URI（例: `http://localhost:8080/callback`）を指定してアプリを登録します。
-2. Client ID を取得します（PKCE ではシークレットは不要です）。
+1. 開発者コンソールで、リダイレクト URI（例：`http://localhost:8080/callback`）を指定してアプリを登録します。
+2. Client ID を取得します（PKCE ではクライアントシークレットは不要です）。
 3. フローを開始し、ユーザーを認可 URL にリダイレクトしてコールバックを処理します。
    **例**（コールバックに Web サーバーを使用する場合）:
 
@@ -93,7 +94,7 @@ client = Client(bearer_token=access_token)
 # client = Client(token=tokens)
 ```
 
-**トークンの更新**（長時間のセッションでは SDK により自動的に行われます）:
+**トークンの更新**（長期間有効なセッションでは SDK が自動で実行）:
 
 ```python
 # If access token expires, refresh using stored refresh_token
@@ -109,12 +110,12 @@ client = Client(bearer_token=tokens["access_token"])
   ### 3. OAuth 1.0a (ユーザーコンテキスト)
 </div>
 
-レガシーアプリケーションや、OAuth 1.0a 認証が必要な特定のユースケース向けの手順です。
+レガシーアプリケーションまたは OAuth 1.0a 認証が必要な特定のユースケース向けの手順です。
 **手順**:
 
-1. Developer Console で API Key と API Secret を取得します。
-2. すでにアクセストークンを持っている場合は、それをそのまま使用します。まだ持っていない場合は、OAuth 1.0a フローを実行して取得します。
-3. `OAuth1` インスタンスを作成し、それを `Client` に渡します。
+1. 開発者コンソールで API キーと API シークレットを取得します。
+2. 既にアクセストークンを持っている場合は、そのまま使用します。ない場合は、OAuth 1.0a フローを完了して取得します。
+3. OAuth1 インスタンスを作成し、クライアントに渡します。
    **例**（既存のアクセストークンを使用する場合）:
 
 ```python
@@ -142,32 +143,32 @@ print(me)
 from xdk import Client
 from xdk.oauth1_auth import OAuth1
 import webbrowser
-# Step 1: Create OAuth1 instance
+# ステップ1: OAuth1インスタンスを作成
 oauth1 = OAuth1(
     api_key="YOUR_API_KEY",
     api_secret="YOUR_API_SECRET",
     callback="http://localhost:8080/callback"
 )
-# Step 2: Get request token
+# ステップ2: リクエストトークンを取得
 request_token = oauth1.get_request_token()
-# Step 3: Get authorization URL
+# ステップ3: 認証URLを取得
 auth_url = oauth1.get_authorization_url(login_with_x=False)
-print(f"Visit this URL to authorize: {auth_url}")
+print(f"認証するには次のURLにアクセスしてください: {auth_url}")
 webbrowser.open(auth_url)
-# ステップ4: ユーザーが認可するとoauth_verifierを受け取ります
-# 実際のアプリケーションでは、コールバックURLを介してこれを処理します
-oauth_verifier = input("Enter the OAuth verifier from the callback: ")
-# Step 5: Exchange for access token
+# ステップ4: ユーザーが認証し、oauth_verifierを受け取る
+# 実際のアプリでは、コールバックURLを介して処理します
+oauth_verifier = input("コールバックから取得したOAuth verifierを入力してください: ")
+# ステップ5: アクセストークンと交換
 access_token = oauth1.get_access_token(oauth_verifier)
-# Step 6: Create client
+# ステップ6: クライアントを作成
 client = Client(auth=oauth1)
-# Now you can use the client
+# これでクライアントを使用できます
 response = client.users.get_me()
 ```
 
-**注意**:
+**注記**:
 
-* 本番環境ではシークレット情報をハードコードせず、環境変数やシークレットマネージャー（例: `os.getenv("X_BEARER_TOKEN")`）を使用してください。
-* PKCE を使用する場合、本番環境ではリダイレクト URI に必ず HTTPS を使用してください。
+* 本番環境ではシークレットをハードコードせず、環境変数やシークレットマネージャー（例: `os.getenv("X_BEARER_TOKEN")`）を使用してください。
+* PKCE を利用する場合、本番環境ではリダイレクト URI に HTTPS が設定されていることを確認してください。
 * SDK はトークンを検証し、失敗時には `xdk.AuthenticationError` をスローします。
-  Python XDK を使用した詳細なコード例については、[コードサンプルの GitHub リポジトリ](https://github.com/xdevplatform/samples/tree/main/python) を参照してください。
+  Python 用 XDK を使用した詳細なコード例については、[code samples GitHub リポジトリ](https://github.com/xdevplatform/samples/tree/main/python)を参照してください。

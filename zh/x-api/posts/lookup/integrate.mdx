@@ -1,13 +1,13 @@
 ---
 title: 集成指南
 sidebarTitle: 集成指南
-description: 集成帖子查询的关键概念和最佳实践
+description: 关于集成帖子查询的关键概念和最佳实践
 keywords: ["帖子查询集成", "查询集成指南", "查询实现", "查询设置", "推文查询集成"]
 ---
 
 import { Button } from "/snippets/zh/button.mdx"
 
-本指南介绍了将帖子查找端点集成到你的应用中所需掌握的关键概念。
+本指南介绍了将帖子查询端点集成到你的应用中所需了解的关键概念。
 
 ***
 
@@ -17,17 +17,17 @@ import { Button } from "/snippets/zh/button.mdx"
 
 所有 X API v2 端点都需要身份验证。请选择适合你用例的方法：
 
-| 方法 | 最适用于 | 能访问私有指标吗？ |
+| 方法 | 最适用场景 | 可访问私有指标？ |
 |:-------|:---------|:---------------------------|
-| [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 服务端到服务端、公共数据 | 否 |
-| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 面向用户的应用 | 可以（针对已授权用户的帖子） |
-| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 遗留集成 | 可以（针对已授权用户的帖子） |
+| [OAuth 2.0 App-Only](/zh/resources/fundamentals/authentication#oauth-2-0) | 服务器到服务器、访问公开数据 | 否 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 面向用户的应用 | 是（针对已授权用户的帖子） |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 遗留集成 | 是（针对已授权用户的帖子） |
 
 <div id="app-only-authentication">
-  ### 仅应用程序身份验证
+  ### 仅应用身份验证
 </div>
 
-对于公开的帖子数据，使用 Bearer Token：
+对于公开的帖子数据，请使用 Bearer Token：
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -59,7 +59,7 @@ import { Button } from "/snippets/zh/button.mdx"
   ### 用户上下文身份验证
 </div>
 
-若要访问非公开指标，请以帖子作者的身份进行身份验证：
+若要访问非公开指标，请代表帖子作者完成身份验证：
 
 <Warning>
   以下字段需要用户上下文身份验证：
@@ -78,7 +78,7 @@ import { Button } from "/snippets/zh/button.mdx"
   ## 字段和扩展
 </div>
 
-X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精确指定所需内容。
+默认情况下，X API v2 仅返回最少量的数据。使用 `fields` 和 `expansions` 来精确指定所需的内容。
 
 <div id="default-response">
   ### 默认响应
@@ -103,11 +103,11 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   |:------|:------------|
   | `created_at` | 帖子创建时间戳 |
   | `author_id` | 作者的用户 id |
-  | `public_metrics` | 点赞、转发、回复、引用数 |
-  | `entities` | 话题标签、提及、URL、货币标签 |
+  | `public_metrics` | 点赞、转发、回复、引用数量 |
+  | `entities` | 话题标签、提及、URL、股票代码标签 |
   | `attachments` | 媒体 key、投票 id |
-  | `conversation_id` | 线程标识符 |
-  | `context_annotations` | 主题/实体分类 |
+  | `conversation_id` | 会话标识符 |
+  | `context_annotations` | 主题/实体分类信息 |
   | `in_reply_to_user_id` | 被回复的用户 |
   | `lang` | 检测到的语言 |
   | `source` | 发帖客户端 |
@@ -115,24 +115,24 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   | `reply_settings` | 谁可以回复 |
 </Accordion>
 
-<Accordion title="user.fields（需要 author_id 扩展）">
+<Accordion title="user.fields (需要 author_id 扩展)">
   | 字段 | 说明 |
   |:------|:------------|
-  | `username` | @ 用户名（handle） |
+  | `username` | @ 用户名 |
   | `name` | 显示名称 |
   | `profile_image_url` | 头像 URL |
   | `verified` | 认证状态 |
   | `description` | 个人简介 |
-  | `public_metrics` | 粉丝数/关注数 |
+  | `public_metrics` | 关注者/关注数量 |
   | `created_at` | 账号创建日期 |
 </Accordion>
 
-<Accordion title="media.fields（需要 attachments.media_keys 扩展）">
+<Accordion title="media.fields (需要 attachments.media_keys 扩展)">
   | 字段 | 说明 |
   |:------|:------------|
   | `url` | 媒体 URL |
   | `preview_image_url` | 缩略图 URL |
-  | `type` | 类型（photo、video、animated&#95;gif） |
+  | `type` | photo、video、animated&#95;gif |
   | `duration_ms` | 视频时长（毫秒） |
   | `height`, `width` | 尺寸 |
   | `alt_text` | 无障碍文本 |
@@ -157,7 +157,7 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # 获取带有额外字段和扩展的帖子
+  # 获取带有附加字段和扩展的帖子
   response = client.posts.get(
       "1234567890",
       tweet_fields=["created_at", "public_metrics", "entities"],
@@ -167,7 +167,7 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   )
 
   print(response.data)
-  print(response.includes)  # 包含展开的用户和媒体对象
+  print(response.includes)  # 包含扩展后的用户和媒体对象
   ```
 
   ```javascript JavaScript SDK
@@ -183,7 +183,7 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   });
 
   console.log(response.data);
-  console.log(response.includes); // 包含展开的用户和媒体对象
+  console.log(response.includes); // 包含扩展后的用户和媒体对象
   ```
 </CodeGroup>
 
@@ -199,8 +199,8 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   ### 工作原理
 </div>
 
-* 每次编辑都会生成一个新的帖子 id
-* `edit_history_tweet_ids` 包含所有版本（最早的在前）
+* 每次编辑都会创建一个新的帖子 ID
+* `edit_history_tweet_ids` 包含所有版本（按时间从早到晚排列）
 * 该端点始终返回最新版本
 
 <div id="example-response">
@@ -222,7 +222,7 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
 ```
 
 <Tip>
-  在 30 分钟编辑窗口结束后获取的帖子即为最终版本。对于实时场景，请注意，最近发布的帖子可能仍在编辑窗口内。
+  在 30 分钟编辑窗口结束后获取的帖子即为最终版本。对于实时场景，请注意，最新发布的帖子可能仍会被编辑。
 </Tip>
 
 ***
@@ -238,10 +238,10 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
 | Status | 错误 | 解决方案 |
 |:-------|:------|:---------|
 | 400 | 无效请求 | 检查参数格式 |
-| 401 | 未授权 | 核实认证凭证 |
-| 403 | 权限不足 | 检查 App 权限 |
+| 401 | 未授权 | 验证身份凭证 |
+| 403 | 无权访问 | 检查 App 权限 |
 | 404 | 未找到 | 帖子已被删除或不存在 |
-| 429 | 请求过于频繁 | 等待后重试（参见速率限制） |
+| 429 | 请求过多 | 等待后重试（参见速率限制） |
 
 <div id="deleted-or-protected-posts">
   ### 已删除或受保护的帖子
@@ -250,7 +250,7 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
 如果某条帖子已被删除，或来自你未关注的受保护账号：
 
 * 单条帖子查询会返回 `404`
-* 多条帖子查询的结果中会省略该帖子，并在 `errors` 数组中返回错误信息
+* 多条帖子查询会在结果中省略该帖子，且响应中会包含一个 `errors` 数组
 
 ```json
 {
@@ -276,19 +276,19 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
 
 <CardGroup cols={2}>
   <Card title="批量请求" icon="layer-group">
-    使用 multi-Post 端点一次获取最多 100 条帖子，从而减少 API 调用次数。
+    使用多帖子 endpoint，一次最多获取 100 条帖子，以减少 API 调用次数。
   </Card>
 
-  <Card title="仅请求必要字段" icon="filter">
-    只指定所需字段，以尽量减小响应大小和处理时间。
+  <Card title="仅请求所需字段" icon="filter">
+    只指定你需要的字段，以尽量减小响应体大小并缩短处理时间。
   </Card>
 
   <Card title="缓存响应" icon="database">
-    在本地缓存帖子 data，以减少对相同内容的重复请求次数。
+    将帖子 data 缓存在本地，以减少对相同内容的重复请求。
   </Card>
 
   <Card title="处理编辑" icon="clock-rotate-left">
-    对于实时应用，请考虑在 30 分钟的编辑窗口期结束后重新获取帖子。
+    对于实时应用，考虑在 30 分钟编辑窗口结束后重新获取帖子。
   </Card>
 </CardGroup>
 
@@ -304,7 +304,7 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   </Card>
 
   <Card title="数据字典" icon="book" href="/zh/x-api/fundamentals/data-dictionary">
-    所有可用的对象和字段
+    所有可用对象和字段
   </Card>
 
   <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
@@ -312,6 +312,6 @@ X API v2 默认只返回最基本的 data。使用 `fields` 和 `expansions` 精
   </Card>
 
   <Card title="错误处理" icon="triangle-exclamation" href="/zh/x-api/fundamentals/response-codes-and-errors">
-    妥善处理错误
+    优雅处理错误
   </Card>
 </CardGroup>

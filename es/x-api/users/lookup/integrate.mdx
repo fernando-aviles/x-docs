@@ -1,13 +1,13 @@
 ---
 title: Guía de integración
 sidebarTitle: Guía de integración
-description: Conceptos clave y mejores prácticas para integrar la búsqueda de usuarios
-keywords: ["integración de búsqueda de usuarios", "guía de integración de usuarios", "implementación de la búsqueda de usuarios"]
+description: Conceptos clave y mejores prácticas para integrar la consulta de usuarios
+keywords: ["integración de consulta de usuarios", "guía de integración de usuarios", "implementación de la consulta de usuarios"]
 ---
 
 import { Button } from '/snippets/es/button.mdx';
 
-Esta guía abarca los conceptos clave que debes conocer para integrar los endpoints de búsqueda de usuarios en tu aplicación.
+Esta guía describe los conceptos clave que necesitas para integrar los endpoints de consulta de usuarios en tu aplicación.
 
 ***
 
@@ -15,19 +15,19 @@ Esta guía abarca los conceptos clave que debes conocer para integrar los endpoi
   ## Autenticación
 </div>
 
-Todos los endpoints de X API v2 requieren autenticación. Elige el método que se adapte a tu caso de uso:
+Todos los endpoints de X API v2 requieren autenticación. Elige el método que mejor se adapte a tu caso de uso:
 
 | Método | Ideal para | ¿Puede acceder a métricas privadas? |
 |:-------|:-----------|:------------------------------------|
-| [OAuth 2.0 App-Only](/es/resources/fundamentals/authentication#oauth-2-0) | Comunicación entre servidores, datos públicos | No |
+| [OAuth 2.0 App-Only](/es/resources/fundamentals/authentication#oauth-2-0) | Servidor a servidor, datos públicos | No |
 | [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Aplicaciones de cara al usuario | Sí (para los datos del usuario autorizado) |
-| [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Integraciones heredadas | Sí (para los datos del usuario autorizado) |
+| [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Integraciones de legado | Sí (para los datos del usuario autorizado) |
 
 <div id="app-only-authentication">
   ### Autenticación solo de aplicación
 </div>
 
-Para los datos públicos de usuario, utiliza un Bearer Token:
+Para los datos públicos de usuario, usa un Bearer Token:
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -40,7 +40,7 @@ Para los datos públicos de usuario, utiliza un Bearer Token:
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Obtener usuario por nombre de usuario
+  # Obtener un usuario por nombre de usuario
   response = client.users.get_by_username("XDevelopers")
   print(response.data)
   ```
@@ -59,7 +59,7 @@ Para los datos públicos de usuario, utiliza un Bearer Token:
   ### Autenticación con contexto de usuario
 </div>
 
-Obligatorio para el endpoint de usuario autenticado (`/2/users/me`):
+Requerida para el endpoint de usuario autenticado (`/2/users/me`):
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -70,7 +70,7 @@ Obligatorio para el endpoint de usuario autenticado (`/2/users/me`):
   ```python Python SDK
   from xdk import Client
 
-  # Uso de un token de acceso de usuario de OAuth 2.0
+  # Usar un token de acceso de usuario OAuth 2.0
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
   # Obtener el perfil del usuario autenticado
@@ -81,7 +81,7 @@ Obligatorio para el endpoint de usuario autenticado (`/2/users/me`):
   ```javascript JavaScript SDK
   import { Client } from "@xdevplatform/xdk";
 
-  // Uso de un token de acceso de usuario de OAuth 2.0
+  // Usar un token de acceso de usuario OAuth 2.0
   const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
 
   const response = await client.users.getMe();
@@ -90,16 +90,16 @@ Obligatorio para el endpoint de usuario autenticado (`/2/users/me`):
 </CodeGroup>
 
 <Warning>
-  El endpoint `/2/users/me` solo funciona con autenticación en contexto de usuario. Los tokens de solo aplicación devolverán un error.
+  El endpoint `/2/users/me` solo funciona con autenticación con contexto de usuario. Los tokens de solo aplicación devolverán un error.
 </Warning>
 
 ***
 
 <div id="fields-and-expansions">
-  ## Campos y expansions
+  ## Campos y expansiones
 </div>
 
-X API v2 devuelve datos mínimos de forma predeterminada. Usa `fields` y `expansions` para solicitar exactamente lo que necesitas.
+X API v2 devuelve datos mínimos de forma predeterminada. Utiliza `fields` y `expansions` para solicitar exactamente lo que necesitas.
 
 <div id="default-response">
   ### Respuesta predeterminada
@@ -122,26 +122,26 @@ X API v2 devuelve datos mínimos de forma predeterminada. Usa `fields` y `expans
 <Accordion title="user.fields">
   | Campo | Descripción |
   |:------|:------------|
-  | `created_at` | Marca temporal de creación de la cuenta |
+  | `created_at` | Marca de tiempo de creación de la cuenta |
   | `description` | Biografía del usuario |
-  | `entities` | URL extraídas de la biografía |
+  | `entities` | URL detectadas en la biografía |
   | `location` | Ubicación definida por el usuario |
   | `pinned_tweet_id` | ID de la Publicación fijada |
   | `profile_image_url` | URL del avatar |
   | `protected` | Indica si la cuenta está protegida |
-  | `public_metrics` | Recuentos de seguidores y seguidos |
+  | `public_metrics` | Recuento de seguidores/seguidos |
   | `url` | URL del sitio web |
   | `verified` | Estado de verificación |
   | `withheld` | Información sobre restricciones |
 </Accordion>
 
-<Accordion title="tweet.fields (requiere expansión pinned_tweet_id)">
+<Accordion title="tweet.fields (requiere la expansión pinned_tweet_id)">
   | Campo | Descripción |
   |:------|:------------|
-  | `created_at` | Marca temporal de creación de la Publicación |
+  | `created_at` | Marca de tiempo de creación de la Publicación |
   | `text` | Contenido de la Publicación |
-  | `public_metrics` | Recuentos de interacción |
-  | `entities` | Hashtags, menciones y URL |
+  | `public_metrics` | Recuento de interacciones |
+  | `entities` | Hashtags, menciones, URL |
 </Accordion>
 
 <div id="example-with-fields">
@@ -162,7 +162,7 @@ X API v2 devuelve datos mínimos de forma predeterminada. Usa `fields` y `expans
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Obtener usuario con campos adicionales y expansiones
+  # Obtener un usuario con campos adicionales y expansions
   response = client.users.get_by_username(
       "XDevelopers",
       user_fields=["created_at", "description", "public_metrics", "verified"],
@@ -221,17 +221,17 @@ X API v2 devuelve datos mínimos de forma predeterminada. Usa `fields` y `expans
 }
 ```
 
-<Card title="Guía sobre campos y expansions" icon="sliders" href="/es/x-api/fundamentals/fields">
-  Más información sobre cómo personalizar las respuestas
+<Card title="Guía de campos y expansions" icon="sliders" href="/es/x-api/fundamentals/fields">
+  Obtén más información sobre cómo personalizar las respuestas
 </Card>
 
 ***
 
 <div id="batch-lookups">
-  ## Búsquedas por lotes
+  ## Consultas por lotes
 </div>
 
-Busca varios usuarios en una sola solicitud:
+Consulta varios usuarios en una sola solicitud:
 
 <CodeGroup dropdown>
   ```bash cURL (by IDs)
@@ -251,7 +251,7 @@ Busca varios usuarios en una sola solicitud:
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Obtener varios usuarios por ID
+  # Obtener varios usuarios por IDs
   response = client.users.get_users(
       ids=["2244994945", "783214", "6253282"],
       user_fields=["username", "verified"]
@@ -259,7 +259,7 @@ Busca varios usuarios en una sola solicitud:
   for user in response.data:
       print(f"{user.username}: {user.verified}")
 
-  # Obtener varios usuarios por nombre de usuario
+  # Obtener varios usuarios por nombres de usuario
   response = client.users.get_users_by_usernames(
       usernames=["XDevelopers", "X", "XAPI"],
       user_fields=["username", "verified"]
@@ -273,7 +273,7 @@ Busca varios usuarios en una sola solicitud:
 
   const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
 
-  // Obtener varios usuarios por ID
+  // Obtener varios usuarios por IDs
   const byIds = await client.users.getUsers({
     ids: ["2244994945", "783214", "6253282"],
     userFields: ["username", "verified"],
@@ -282,7 +282,7 @@ Busca varios usuarios en una sola solicitud:
     console.log(`${user.username}: ${user.verified}`);
   });
 
-  // Obtener varios usuarios por nombre de usuario
+  // Obtener varios usuarios por nombres de usuario
   const byUsernames = await client.users.getUsersByUsernames({
     usernames: ["XDevelopers", "X", "XAPI"],
     userFields: ["username", "verified"],
@@ -311,18 +311,18 @@ Busca varios usuarios en una sola solicitud:
 |:-------|:------|:---------|
 | 400 | Solicitud no válida | Verifica el formato de los parámetros |
 | 401 | No autorizado | Verifica las credenciales de autenticación |
-| 403 | Acceso prohibido | Verifica los permisos de la aplicación |
-| 404 | No encontrado | El usuario no existe o ha sido suspendido |
+| 403 | Acceso denegado | Verifica los permisos de la app |
+| 404 | No encontrado | El usuario no existe o está suspendido |
 | 429 | Demasiadas solicitudes | Espera y vuelve a intentarlo (consulta los límites de frecuencia) |
 
 <div id="suspended-or-deleted-users">
   ### Usuarios suspendidos o eliminados
 </div>
 
-Si un usuario está suspendido o eliminado:
+Si un usuario está suspendido o se ha eliminado:
 
-* La consulta de un único usuario devuelve `404`
-* La consulta de múltiples usuarios omite a ese usuario de los resultados e incluye un array `errors`
+* La búsqueda de un único usuario devuelve un `404`
+* La búsqueda de varios usuarios omite a ese usuario de los resultados y devuelve un array `errors`
 
 ```json
 {
@@ -344,9 +344,9 @@ Si un usuario está suspendido o eliminado:
   ### Usuarios protegidos
 </div>
 
-Para las cuentas protegidas que no sigues:
+En el caso de cuentas protegidas que no sigues:
 
-* La información básica (id, name, username) está disponible
+* La información básica (id, nombre, username) está disponible
 * El contenido protegido (Publicación fijada) puede estar restringido
 * `protected: true` indica el estado de la cuenta
 
@@ -358,19 +358,19 @@ Para las cuentas protegidas que no sigues:
 
 <CardGroup cols={2}>
   <Card title="Solicitudes por lotes" icon="layer-group">
-    Utiliza endpoints multiusuario para obtener hasta 100 usuarios a la vez y reducir las llamadas a la API.
+    Usa endpoints para varios usuarios para obtener hasta 100 usuarios a la vez y reducir las llamadas a la API.
   </Card>
 
   <Card title="Solicita solo los campos necesarios" icon="filter">
-    Especifica solo los campos que necesitas para minimizar el tamaño de la respuesta.
+    Especifica únicamente los campos que necesitas para minimizar el tamaño de la respuesta.
   </Card>
 
   <Card title="Almacena en caché los datos de usuario" icon="database">
-    Almacena en caché los perfiles de usuario localmente para reducir las solicitudes repetidas.
+    Almacena en caché los perfiles de usuario localmente para reducir el número de solicitudes repetidas.
   </Card>
 
-  <Card title="Gestiona los errores correctamente" icon="triangle-exclamation">
-    Comprueba si hay errores parciales en las respuestas por lotes.
+  <Card title="Gestiona los errores de forma adecuada" icon="triangle-exclamation">
+    Verifica si hay errores parciales en las respuestas por lotes.
   </Card>
 </CardGroup>
 
@@ -394,6 +394,6 @@ Para las cuentas protegidas que no sigues:
   </Card>
 
   <Card title="Manejo de errores" icon="triangle-exclamation" href="/es/x-api/fundamentals/response-codes-and-errors">
-    Maneja los errores de forma adecuada
+    Gestiona los errores correctamente
   </Card>
 </CardGroup>

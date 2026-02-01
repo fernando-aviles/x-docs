@@ -1,55 +1,55 @@
 ---
 title: クエリを作成する
 sidebarTitle: クエリを作成する
-description: 演算子を使って検索クエリを作成する方法を学びます
-keywords: ["build query", "search query", "query builder", "search operators", "query syntax", "build search query", "query guide"]
+description: 演算子を使用して検索クエリを作成する方法を学ぶ
+keywords: ["クエリ 構築", "検索クエリ", "クエリビルダー", "検索演算子", "クエリ構文", "検索クエリ 構築", "クエリガイド"]
 ---
 
-検索エンドポイントは、GET リクエストで 1 つのクエリを受け取り、そのクエリに一致する過去の投稿の集合を返します。クエリは、さまざまな投稿属性に一致する演算子で構成されます。
+検索エンドポイントは、GET リクエストで 1 つのクエリを受け取り、そのクエリに一致する過去の投稿の集合を返します。クエリは、投稿のさまざまな属性にマッチする演算子で構成されます。
 
 ***
 
 <div id="query-limitations">
-  ## クエリの制限
+  ## クエリの制限事項
 </div>
 
-ご利用の [アクセスレベル](/ja/x-api/getting-started/about-x-api) によって、クエリには次の制限が適用されます。
+使用している[アクセスレベル](/ja/x-api/getting-started/about-x-api)に応じて、クエリの長さに制限があります。
 
 | アクセスレベル | 最近の検索 | 全アーカイブ検索 |
 | :--- | :--- | :--- |
-| Self-serve | 512文字 | 1,024文字 |
-| Enterprise | 4,096文字 | 4,096文字 |
+| セルフサーブ | 512 文字 | 1,024 文字 |
+| エンタープライズ | 4,096 文字 | 4,096 文字 |
 
 ***
 
 <div id="operator-availability">
-  ## オペレーターの利用可否
+  ## オペレーターの利用可能範囲
 </div>
 
-ほとんどのオペレーターはどの開発者でも利用できますが、一部は特定のアクセスレベルでのみ利用できます。
+ほとんどのオペレーターはすべての開発者が利用できますが、一部は特定のアクセスレベルでのみ使用できます。
 
-* **Core operators:** 任意の [Project](/ja/resources/fundamentals/developer-apps) を使用している場合に利用可能です
-* **Advanced operators:** 特定のアクセスレベルを持つ Project を使用している場合に利用可能です
+* **コアオペレーター:** 任意の [Project](/ja/resources/fundamentals/developer-apps) を使用している場合に利用可能
+* **アドバンストオペレーター:** 特定のアクセスレベルが付与された Project を使用している場合に利用可能
 
-利用可否の詳細については、[オペレーター一覧](/ja/x-api/posts/search/integrate/operators)を参照してください。
+利用可能範囲の詳細については、[オペレーターの一覧](/ja/x-api/posts/search/integrate/operators)を参照してください。
 
 ***
 
 <div id="operator-types-standalone-and-conjunction-required">
-  ## 演算子のタイプ: 単独使用可能と結合必須
+  ## 演算子のタイプ: 単独使用可能と結合が必須
 </div>
 
-**単独演算子** は、それ単体でも、（結合が必要な演算子を含む）他のどの演算子と組み合わせても使用できます。
+**単独演算子** は、それ単体で、または他の任意の演算子（結合が必須の演算子を含む）と組み合わせて使用できます。
 
-たとえば、このクエリが動作するのは、`#hashtag` が単独演算子であるためです。
+たとえば、このクエリが有効なのは、`#hashtag` が単独演算子であるためです。
 
 ```
 #xapiv2
 ```
 
-**連結必須の演算子** は、それ単体ではクエリ内で使用できません。少なくとも 1 つの単独で使用可能な演算子と組み合わせて使用する必要があります。これは、これらの演算子だけを使用すると、非常に大量の投稿にマッチしてしまうためです。
+**連結必須オペレーター** は、クエリ内で単体では使用できません。少なくとも 1 つの単独オペレーターと組み合わせてのみ使用できます。これは、これらのオペレーターだけを使用すると、極めて大量の投稿にマッチしてしまうためです。
 
-たとえば、次のクエリは連結必須の演算子のみを含んでいるため、**サポートされません**。
+たとえば、次のクエリは連結必須オペレーターのみを含んでいるため、**サポートされません**。
 
 ```
 has:media
@@ -59,7 +59,7 @@ has:media
 has:links OR is:retweet
 ```
 
-単独の演算子（たとえば `"X data"` のようなフレーズ）を追加すると、クエリは正しく動作します。
+`"X data"` のような単独の演算子フレーズを追加すると、クエリは正しく動作します。
 
 ```
 "X data" has:mentions (has:media OR has:links)
@@ -71,21 +71,21 @@ has:links OR is:retweet
   ## ブール演算子とグループ化
 </div>
 
-複数の演算子を、次の記法を使って組み合わせます。
+複数の演算子をこれらの方法で組み合わせて使用します。
 
-| Operator | Description | Example |
+| 演算子 | 説明 | 例 |
 | :--- | :--- | :--- |
-| **AND** (スペース) | 投稿は両方の条件に一致する必要があります | `snow day #NoSchool` は「snow」と「day」と #NoSchool をすべて含む投稿にマッチします |
-| **OR** | 投稿はいずれかの条件に一致する必要があります | `grumpy OR cat OR #meme` は「grumpy」または「cat」または #meme を含む投稿にマッチします |
-| **NOT** (ダッシュ) | この条件に一致する投稿を除外します | `cat #meme -grumpy` は「cat」と #meme を含むが「grumpy」を含まない投稿にマッチします |
-| **Grouping** (かっこ) | 演算子をまとめてグループ化します | `(grumpy cat) OR (#meme has:images)` は、いずれか一方のグループにマッチします |
+| **AND**（スペース） | 投稿が両方の条件を満たしている必要があります | `snow day #NoSchool` は &quot;snow&quot; AND &quot;day&quot; AND #NoSchool を含む投稿に一致します |
+| **OR** | 投稿がいずれか一方の条件を満たしていれば一致します | `grumpy OR cat OR #meme` は &quot;grumpy&quot; OR &quot;cat&quot; OR #meme を含む投稿に一致します |
+| **NOT**（ダッシュ） | この条件に一致する投稿を除外します | `cat #meme -grumpy` は &quot;cat&quot; と #meme を含むが &quot;grumpy&quot; は含まない投稿に一致します |
+| **Grouping**（丸括弧） | 演算子をまとめてグループ化します | `(grumpy cat) OR (#meme has:images)` はどちらか一方のグループに一致します |
 
 <Note>
-  **否定演算子について**
+  **否定に関する注意**
 
-  * 演算子 `-is:nullcast` は常に否定条件として使用する必要があります
-  * 否定された演算子は単独では使用できません
-  * グループ化した演算子全体を否定しないでください。`skiing -(snow OR day OR noschool)` の代わりに `skiing -snow -day -noschool` を使用してください
+  * 演算子 `-is:nullcast` は常に否定形で使用する必要があります
+  * 否定された演算子だけを単独で使用することはできません
+  * グループ化した演算子をまとめて否定しないでください。`skiing -(snow OR day OR noschool)` の代わりに、`skiing -snow -day -noschool` を使用してください
 </Note>
 
 ***
@@ -94,10 +94,10 @@ has:links OR is:retweet
   ## 演算の順序
 </div>
 
-AND と OR を組み合わせる場合:
+AND と OR を組み合わせる場合：
 
-1. まず AND ロジックで接続された条件がまとめて評価されます
-2. 次に、その結果に対して OR ロジックが適用されます
+1. AND 条件で接続された演算子が先にまとめて評価されます
+2. 次に、OR 条件で接続された演算子が適用されます
 
 **例:**
 
@@ -106,7 +106,7 @@ AND と OR を組み合わせる場合:
 | `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
 | `ipad iphone OR android` | `(iphone ipad) OR android` |
 
-あいまいさをなくすには、かっこを使用してください:
+あいまいさを避けるために、かっこを使用してください。
 
 ```
 (apple OR iphone) ipad
@@ -119,17 +119,17 @@ iphone (ipad OR android)
 ***
 
 <div id="punctuation-diacritics-and-case-sensitivity">
-  ## 句読点、ダイアクリティカルマーク、大文字と小文字の区別
+  ## 句読点、ダイアクリティカルマーク、大文字小文字の区別
 </div>
 
-**ダイアクリティカルマーク:** アクセントやダイアクリティカルマークを含む検索クエリは、それらのアクセントの有無にかかわらず投稿に一致します。たとえば、`Diacrítica` は *Diacrítica* と *Diacritica* の両方に一致します。
+**ダイアクリティカルマーク:** アクセントやダイアクリティカルマークを含む検索クエリは、そのアクセントのある投稿とない投稿の両方にマッチします。たとえば、`Diacrítica` は *Diacrítica* と *Diacritica* の両方にマッチします。
 
-**大文字と小文字の区別:** すべての演算子は大文字と小文字を区別しません。クエリ `cat` は *cat*、*CAT*、*Cat* に一致します。
+**大文字小文字の区別:** すべてのオペレーターは大文字小文字を区別しません。クエリ `cat` は *cat*、*CAT*、*Cat* にマッチします。
 
 <Note>
-  **Filtered stream は異なる動作をします**
+  **Filtered stream では動作が異なります**
 
-  [Filtered stream のルールを作成する](/ja/x-api/posts/filtered-stream/integrate/build-a-rule)場合、アクセント付きのキーワードは、そのアクセントを含む投稿にのみ一致します。たとえば、`Diacrítica` は *Diacrítica* にのみ一致し、*Diacritica* には一致しません。
+  [Filtered stream のルールを構築する](/ja/x-api/posts/filtered-stream/integrate/build-a-rule)場合、アクセント付きのキーワードは、そのアクセントを含む投稿にのみマッチします。たとえば、`Diacrítica` は *Diacrítica* にのみマッチし、*Diacritica* にはマッチしません。
 </Note>
 
 ***
@@ -138,29 +138,29 @@ iphone (ipad OR android)
   ## 引用ツイートのマッチング
 </div>
 
-Search Posts を使用する場合、演算子は引用ツイートのコンテンツにはマッチしますが、引用された元の投稿のコンテンツにはマッチ **しません**。
+Search Posts を使用する場合、オペレーターは引用ツイートのコンテンツにはマッチしますが、引用している元の投稿のコンテンツにはマッチ **しません**。
 
 <Note>
-  [Filtered stream](/ja/x-api/posts/filtered-stream/introduction) はこれとは異なり、引用ツイートと元の投稿の両方のコンテンツにマッチします。
+  [Filtered stream](/ja/x-api/posts/filtered-stream/introduction) は動作が異なり、引用ツイートと引用元の投稿の両方のコンテンツにマッチします。
 </Note>
 
 ***
 
 <div id="specificity-and-efficiency">
-  ## 具体性と効率性
+  ## 絞り込み精度と効率性
 </div>
 
 <Warning>
-  単一キーワードやハッシュタグといった広範な演算子の使用は推奨されません。膨大な数の投稿にマッチし、利用上限をすぐに消費してしまいます。
+  単一のキーワードやハッシュタグといった広い条件のオペレーターだけを使うことは推奨されません。そのようなクエリは膨大な数の投稿にマッチし、利用上限をすぐに消費してしまいます。
 </Warning>
 
 **効果的なクエリを構築するためのヒント:**
 
-1. **最初は具体的にして、そこから広げる** — 関連性の高い結果を返す、ターゲットを絞ったクエリを作成する
-2. **複数の演算子を使う** — 演算子を組み合わせて結果を絞り込む
-3. **文字数を意識する** — クエリ文字列全体が上限にカウントされる
+1. **最初は絞り込み、その後に広げる** — 関連性の高い結果を返す、ターゲットを絞ったクエリを作成する
+2. **複数のオペレーターを使う** — オペレーターを組み合わせて結果を絞り込む
+3. **文字数制限に注意する** — クエリ全体の文字列が制限に含まれる
 
-**クエリの発展例:**
+**段階的なクエリ構築の例:**
 
 ```
 # Too broad - 200,000+ Posts per day
@@ -176,11 +176,11 @@ happy
 ***
 
 <div id="iteratively-building-a-query">
-  ## クエリを段階的に作成する
+  ## クエリを段階的に構築する
 </div>
 
 <div id="step-1-start-with-a-basic-query">
-  ### ステップ 1: 基本的なクエリから始める
+  ### ステップ 1: まずは基本的なクエリから始める
 </div>
 
 ```
@@ -191,33 +191,33 @@ happy OR happiness
   ### ステップ 2: 結果に基づいてテストし、絞り込む
 </div>
 
-多言語の投稿が含まれていることに気付きました。言語フィルターを追加しましょう:
+多くの言語の投稿が含まれていることが分かりました。言語フィルターを追加しましょう:
 
 ```
 (happy OR happiness) lang:en
 ```
 
-誕生日のお祝いメッセージが多く含まれています。これらとリツイートを除外しましょう:
+誕生日を祝うメッセージが多く含まれています。これらとリツイートを除外します:
 
 ```
 (happy OR happiness) lang:en -birthday -is:retweet
 ```
 
 <div id="step-3-broaden-for-better-coverage">
-  ### ステップ 3: カバレッジを広げる
+  ### ステップ 3: 網羅性を高める
 </div>
 
-より多くのセンチメントを捉えるために、関連するキーワードを追加しましょう:
+より多くの感情を捉えられるように、関連するキーワードを追加します:
 
 ```
 (happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
 ```
 
 <div id="step-4-adjust-for-trends">
-  ### ステップ 4: トレンドに応じて調整する
+  ### ステップ 4: トレンドに合わせて調整する
 </div>
 
-ホリデー関連の投稿が含まれているので、除外します:
+ホリデー関連の投稿がヒットしています。これらを除外しましょう:
 
 ```
 (happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
@@ -226,10 +226,10 @@ happy OR happiness
 ***
 
 <div id="adding-a-query-to-your-request">
-  ## リクエストへのクエリの追加
+  ## リクエストにクエリを追加する
 </div>
 
-`query` パラメータを使用して、クエリを HTTP エンコードします。
+`query` パラメータを使用し、クエリを HTTP エンコードしたうえで送信してください。
 
 ```bash
 curl "https://api.x.com/2/tweets/search/recent?\
@@ -249,7 +249,7 @@ max_results=100" \
   ### 自然災害の追跡
 </div>
 
-ハリケーン・ハービーに関する気象機関の投稿を取得します:
+ハリケーン・ハービーに関する気象機関の投稿を取得します。
 
 **クエリ:**
 
@@ -257,14 +257,14 @@ max_results=100" \
 has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1) -is:retweet
 ```
 
-**完全なリクエスト URL：**
+**リクエストの完全な URL:**
 
 ```
 https://api.x.com/2/tweets/search/recent?query=has%3Ageo%20(from%3ANWSNHC%20OR%20from%3ANHC_Atlantic%20OR%20from%3ANWSHouston%20OR%20from%3ANWSSanAntonio%20OR%20from%3AUSGS_TexasRain%20OR%20from%3AUSGS_TexasFlood%20OR%20from%3AJeffLindner1)%20-is%3Aretweet
 ```
 
 <div id="sentiment-analysis-for-nowplaying">
-  ### #nowplaying のセンチメント分析
+  ### #nowplaying に関するセンチメント分析
 </div>
 
 **ポジティブなセンチメント:**
@@ -273,19 +273,19 @@ https://api.x.com/2/tweets/search/recent?query=has%3Ageo%20(from%3ANWSNHC%20OR%2
 #nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing
 ```
 
-**ネガティブなセンチメント:**
+**否定的な感情:**
 
 ```
 #nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible
 ```
 
 <div id="using-post-annotations">
-  ### 投稿アノテーションを使用する
+  ### 投稿アノテーションの使用
 </div>
 
-`context:` 演算子を使って、画像付きの、猫以外のペットに関する日本語の投稿を検索します。
+`context:` 演算子を使って、猫以外のペットに関する日本語の投稿のうち、画像を含むものを検索します。
 
-まず、[Post lookup](/ja/x-api/posts/lookup/introduction) で `tweet.fields=context_annotations` を使用して、domain.entity の ID を特定します。
+まず、[Post lookup](/ja/x-api/posts/lookup/introduction) で `tweet.fields=context_annotations` を指定して、domain と entity の ID を特定します。
 
 * Cats: `domain` 66、`entity` 852262932607926273
 * Pets: `domain` 65、`entity` 852262932607926273
@@ -302,8 +302,8 @@ context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:ima
   ## ツール
 </div>
 
-<Card title="Query Builder ツール" icon="wrench" href="https://developer.x.com/apitools/query?query=">
-  対話的にクエリを作成・テストできます
+<Card title="クエリビルダーツール" icon="wrench" href="https://developer.x.com/apitools/query?query=">
+  対話的にクエリを作成してテストできます
 </Card>
 
 ***
@@ -321,7 +321,7 @@ context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:ima
     最初の検索リクエストを実行する
   </Card>
 
-  <Card title="インテグレーションガイド" icon="book" href="/ja/x-api/posts/search/integrate/overview">
-    インテグレーションに関する包括的なドキュメント
+  <Card title="連携ガイド" icon="book" href="/ja/x-api/posts/search/integrate/overview">
+    連携に関する詳細なドキュメント
   </Card>
 </CardGroup>

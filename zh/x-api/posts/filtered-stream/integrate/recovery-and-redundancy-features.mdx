@@ -5,44 +5,44 @@ keywords: ["恢复", "冗余", "流恢复", "重新连接", "容错", "流冗余
 ---
 
 <div id="introduction">
-  #### 简介
+  #### 介绍
 </div>
 
-在消费流式数据时，尽可能延长连接时间并接收所有匹配的数据是一个基本目标。这意味着，充分利用冗余连接、自动检测断线并快速重连，以及制定恢复丢失数据的方案，十分重要。
+在消费流式数据时，最大化连接时间并接收所有匹配的数据是一个基本目标。这意味着，充分利用冗余连接、自动检测断线、快速重连，以及制定恢复丢失数据的方案都非常重要。
 
-在本集成指南中，我们将讨论不同的恢复和冗余特性：冗余连接、回填（backfill）以及恢复。
+在本集成指南中，我们将讨论不同的恢复和冗余功能：冗余连接、回填（backfill）和恢复。
  
 
 **冗余连接**
 
-冗余连接是指你可以与 Filtered stream 建立多个并发连接。这样，你可以让两个独立的消费者连接到同一个流，并通过两个连接接收相同的数据，从而提供冗余能力。由此，你的应用在多种情况下都具备热备故障切换能力，例如其中一个流连接被断开，或你的应用主服务器发生故障时。
+冗余连接可以让你向同一个 filtered stream 建立多个并发连接。这样可以通过让两个独立的消费者连接到同一条流，并在两条连接上接收相同的数据，从而提供冗余。因此，在各种情况下（例如其中一个流被断开，或者你的应用主服务器发生故障），你的应用就拥有一个热备用故障切换机制。
 
-当前，Filtered stream 仅允许具有 Enterprise 访问权限的 Project 最多建立两个冗余连接。要使用冗余连接，只需连接到与你的主连接相同的 URL。你的流数据将通过这两个连接同时发送。
+Filtered stream 目前只允许具有 Enterprise 访问权限的 Project 最多建立两条冗余连接。要使用冗余流，只需连接到与你的主连接相同的 URL。你的流数据将通过这两个连接发送。
 
 <div id="recovering-missed-data-after-a-disconnection-backfill">
-  #### 断开连接后恢复遗漏数据：回补（Backfill）
+  #### 在断开连接后恢复遗漏数据：回填（Backfill）
 </div>
 
-在检测到断开连接后，你的系统应能够智能地重新连接到流。如果可能，系统应记录断开连接持续的时间，以便你可以使用合适的恢复功能来回补数据。 
+在检测到断开连接之后，你的系统应当能够自动重新连接到流。如果可能，你的系统还应记录断开连接持续的时间，以便你可以使用合适的恢复功能来对数据进行回填。
 
-如果你正在使用具有 Enterprise 访问权限的 Project，并确认断开连接持续时间为五分钟或更短，则可以使用回补参数 `backfill_minutes`。如果在 [GET /tweets/search/stream](/zh/x-api/posts/filtered-stream#get-2-tweets-search-stream) 请求中传递该参数，你将会收到在过去一到五分钟内与你的规则匹配的帖子。我们通常会优先投递这些较旧的帖子，然后再投递任何新的匹配帖子，并且不会对帖子进行去重。这意味着，如果你断开连接了 90 秒，但请求了两分钟的回补数据，你将会收到 30 秒的重复帖子，你的系统应该能够容忍这些重复。下面是一个包含回补参数的请求示例：
+如果你在使用具有 Enterprise 访问权限的 Project，并确定断开连接持续时间为五分钟或更短，则可以使用回填参数 `backfill_minutes`。如果在 [GET /tweets/search/stream](/zh/x-api/posts/filtered-stream#get-2-tweets-search-stream) 请求中传递此参数，你将会收到过去一到五分钟内与你的规则匹配的帖子。通常我们会先发送这些较早的帖子，然后才发送任何新匹配到的帖子，并且不会对帖子进行去重。这意味着，如果你断线持续了 90 秒，但请求回填 2 分钟的数据，你将会收到 30 秒的重复帖子，你的系统应当能够容忍这些重复。下面是一个包含回填参数的请求示例：
 
 `curl 'https://api.x.com/2/tweets/search/stream?backfill_minutes=5' -H "Authorization: Bearer $ACCESS_TOKEN"`
 
-如果你没有 Enterprise 访问权限，或者确认断开连接时间超过了五分钟，你可以使用 [recent search endpoint](/zh/x-api/posts/search/introduction) 或恢复功能来请求遗漏的数据。但请注意，帖子搜索端点不支持 `sample:`、`bio:`、`bio_name:` 或 `bio_location:` 操作符，并且在将重音符号和变音符号与关键字和 `#hashtag` 操作符一起使用时，其匹配行为存在一些差异。这些差异可能意味着，你无法完全恢复通过 filtered stream 端点原本可能接收到的所有帖子。 
+如果你没有 Enterprise 访问权限，或者确定断开连接持续时间长于五分钟，则可以使用 [最近搜索端点（recent search endpoint）](/zh/x-api/posts/search/introduction) 或恢复功能来请求遗漏的数据。但是请注意，搜索帖子端点不支持 `sample:`、`bio:`、`bio_name:` 或 `bio_location:` 运算符，并且在与 `keyword` 和 `#hashtag` 运算符一起使用重音符号和变音符号时，在匹配行为上存在一定差异。这些差异意味着，你可能无法完全恢复通过过滤流端点本应接收到的所有帖子。
 
-**断开连接后恢复遗漏数据：Recovery**
+**在断开连接后恢复遗漏数据：Recovery**
 
-如果你正在使用具有 Enterprise 访问权限的 Project，当无法在 5 分钟的回补窗口内重新连接时，可以使用 Recovery 功能来恢复过去 24 小时内遗漏的数据。
+如果你在使用具有 Enterprise 访问权限的 Project，当你无法在 5 分钟回填窗口内重新连接时，可以使用 Recovery 功能在过去 24 小时内恢复遗漏的数据。
 
-流式恢复功能允许你拥有最长 24 小时的扩展回补窗口。Recovery 使你能够“重放”遗漏数据的那一时间段。当你在连接请求中使用 `start_time` 和 `end_time` 请求参数时，将启动一个恢复流。一旦连接成功，Recovery 会重新流式传输指定时间段的数据，然后断开连接。  
+流式恢复功能允许你将回填窗口扩展到 24 小时。Recovery 使你能够“重放”遗漏数据的那一时间段。当你使用 `start_time` 和 `end_time` 请求参数发起连接请求时，就会启动一个恢复流。连接建立后，Recovery 会重新推送所指定时间段的数据，然后断开连接。
 
-你可以同时向 Recovery 发起 2 个并发请求，即“两项恢复任务”。从技术上讲，Recovery 的工作方式与回补相同，只是定义了开始和结束时间。一个恢复周期对应于一个单独的时间范围。
+你最多可以同时向 Recovery 发起 2 个并发请求，即“两个恢复作业”。Recovery 在技术上与回填的工作方式相同，只是多定义了开始时间和结束时间。一个恢复周期对应单一的时间范围。
 
 |     |     |     |
 | :--- | :--- | :--- |
 | **Name** | **Type** | **Description** |
-| start&#95;time | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339)。<br /><br />以 UTC 表示的日期时间，用于指定恢复起始时间。 |
-| end&#95;time | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339)。<br /><br />以 UTC 表示的日期时间，用于指定恢复结束时间。 |
+| start&#95;time | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339)。<br /><br />以 UTC 表示的日期时间，标识要开始恢复的时间点。 |
+| end&#95;time | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339)。<br /><br />以 UTC 表示的日期时间，标识要恢复到的结束时间点。 |
 
 示例请求 URL： [https://api.x.com/2/tweets/search/stream?start&#95;time=2022-07-12T15:10:00Z&amp;end&#95;time=2022-07-12T15:20:00Z](https://api.x.com/2/tweets/search/stream?start_time=1985-04-12T23:20:50.52Z\&end_time=1985-04-13T00:20:50.52Z)

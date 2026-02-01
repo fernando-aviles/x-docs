@@ -1,7 +1,7 @@
 ---
 title: OAuth Echo
 sidebarTitle: OAuth Echo
-keywords: ["OAuth echo", "OAuth echo 测试", "OAuth 验证", "回显测试", "OAuth 1.0a echo", "验证 OAuth"]
+keywords: ["OAuth echo", "OAuth echo 测试", "OAuth 验证", "echo 测试", "OAuth 1.0a echo", "验证 OAuth"]
 ---
 
 import { Button } from "/snippets/zh/button.mdx";
@@ -15,34 +15,34 @@ OAuth Echo 是一种在与 API 交互时，将 OAuth 授权安全地委托给第
 
 在这一交互中涉及四方：
 
-* **User（用户）** 使用某个已授权的 X 应用访问 X
-* **Consumer（消费者）**，即试图与第三方媒体提供方（例如照片分享网站）交互的 X 应用
-* **Delegator（委托方）**，即第三方媒体提供方
-* **Service Provider（服务提供方）**，也就是 X 本身
+* **用户（User）**，通过某个已授权的 X 应用使用 X
+* **消费者（Consumer）**，即尝试与第三方媒体提供方（例如照片分享网站）交互的 X 应用
+* **委托方（Delegator）**，即第三方媒体提供方
+* **服务提供方（Service Provider）**，也就是 X 本身
      
 
-本质上，你需要为 Delegator 准备一个请求，由它代表某个应用和用户发送到 X API。将原本应该作为已签名 OAuth 请求发送的内容放入一个 HTTP 头中，并在完成中间操作后，要求 Delegator 将该请求发送给 X。
+从本质上讲，你需要为委托方准备一个代表某个应用和用户发送到 X API 的请求。将本应作为已签名 OAuth 请求发送的内容加入到一个 HTTP 头中，并要求委托方在完成中间操作后，将该请求发送给 X。
 
-例如：User 想要上传一张照片。Consumer 将使用 POST 向 Delegator 调用上传接口。POST 请求应包含图片，但它还应在 HTTP 头中包含两个额外字段：
+例如：用户想上传一张照片。消费者会通过 POST 向委托方发起上传调用。该 POST 应包含图像数据，同时还需要额外包含两个 HTTP 头：
 
-* `x-auth-service-provider` —— 实际上，这表示应将身份委托发送到的领域（realm）——在 X 的场景下，将其设置为 https://api.x.com/1.1/account/verify_credentials.json。基于 iOS5 的 X 集成会在该 URL 中添加一个额外的 `application_id` 参数，该参数也会用于计算 `x-verify-credentials-authorization` 中使用的 `oauth_signature`。
-* `x-verify-credentials-authorization` —— Consumer 应创建调用 https://api.x.com/1.1/account/verify_credentials.json 所需的全部 OAuth 参数，并将其放入 HTTP 头中（例如，其形式应类似于：OAuth oauth\_consumer\_key=”...”, oauth\_token=”...”, oauth\_signature\_method=”...”, oauth\_signature=”...”, oauth\_timestamp=”...”, oauth\_nonce=”...”, oauth_version=”...”）。
+* `x-auth-service-provider` —— 这实际上是应将身份委托发送到的“领域（realm）”——在 X 的场景中，将其设置为 https://api.x.com/1.1/account/verify_credentials.json。基于 iOS5 的 X 集成会在该 URL 中添加一个额外的 `application_id` 参数，该参数也会用于计算 `x-verify-credentials-authorization` 中使用的 `oauth_signature`。
+* `x-verify-credentials-authorization` —— 消费者应创建所有必要的 OAuth 参数，以便它可以在 HTTP 头中使用 OAuth 调用 https://api.x.com/1.1/account/verify_credentials.json（例如，其形式应类似于：`OAuth oauth_consumer_key="..."`, `oauth_token="..."`, `oauth_signature_method="..."`, `oauth_signature="..."`, `oauth_timestamp="..."`, `oauth_nonce="..."`, `oauth_version="..."`）。
      
 
-请记住，整个交互过程需要在 `oauth_timestamp` 仍然有效的时间范围内完成。
+请注意，整个交互过程必须在 `oauth_timestamp` 仍然有效的时间范围内完成。
 
-或者，可以不在头部发送这两个参数，而是在 POST 中以 `x_auth_service_provider` 和 `x_verify_credentials_authorization` 的形式发送——在这种情况下，请记得在 OAuth 签名基字符串中对这些参数进行转义并包含进去——这与在任何请求中对参数进行编码类似。为了尽可能将各个操作解耦，最好使用 HTTP 头。
+或者，也可以不在头中发送这两个参数，而是在 POST 中作为 `x_auth_service_provider` 和 `x_verify_credentials_authorization` 发送——在这种情况下，请记得在 OAuth 签名基字符串中对这些参数进行转义并包含进去，这与对任何请求中的参数进行编码类似。为了尽可能将各个操作解耦，最佳做法是使用 HTTP 头。
 
-此时，Delegator 的目标是在保存媒体之前，验证 User 是否确为其所声称的身份。一旦 Delegator 通过其上传方法接收到上述所有 data，它应临时存储图像，然后构造一次调用，请求 `x-auth-service-provider` 头中指定的 endpoint——在本例中是 https://api.x.com/1.1/account/verify_credentials.json，并使用 Consumer 在 `x-verify-credentials-authorization` 头中提供的同一 OAuth 认证头。
+此时，委托方的目标是，在保存媒体之前验证用户确实是其声称的身份。一旦委托方通过其上传方法接收到上述所有数据，它应临时存储图像，然后构造一个对 `x-auth-service-provider` 头中指定端点（在本例中为 https://api.x.com/1.1/account/verify_credentials.json）发起的调用，并在该调用中使用消费者在 `x-verify-credentials-authorization` 头中提供的同一个 OAuth 授权头。
  
 
 <div id="oauth-echo-best-practices">
   #### OAuth Echo 最佳实践
 </div>
 
-使用 `x-auth-service-provider` 提供的 URL 来进行查询，_而不是_ 使用硬编码的值。比如，在 Apple iOS 中，所有 OAuth 请求都会增加一个额外的 `application_id` 参数，并且在 OAuth Echo 的每个阶段都应该保留该参数。
+使用 `x-auth-service-provider` 提供的 URL 来执行查找，_不要_ 使用硬编码的值。比如，在 Apple iOS 中，会向所有 OAuth 请求添加一个额外的 application_id 参数，并且在 OAuth Echo 的每个阶段都应保持该参数。
 
-在 OAuth 授权部分，从 `x-verify-credentials-authorization` 中获取头部的值，并在向服务提供方发起调用时，将其放入单独的 Authorization 头部中。为保险起见，请确认 `x-auth-service-provider` 中的值符合预期。
+在 OAuth 授权部分，从 `x-verify-credentials-authorization` 中获取 header 的值，并在调用服务提供方时，将该值放入单独的 Authorization header 中。为确保无误，请确认 `x-auth-service-provider` 中的值是预期的值。
 
-* 如果服务提供方返回 HTTP 200，则说明一切正常。Delegator 应永久存储该图像、生成一个 URL，并将其返回。
+* 如果服务提供方返回 HTTP 200，则说明成功。Delegator 应永久存储该图像，生成一个 URL，并将其返回。
 * 如果服务提供方未返回 HTTP 200，则丢弃该图像，然后向 Consumer 返回一个错误。

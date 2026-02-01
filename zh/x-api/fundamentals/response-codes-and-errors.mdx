@@ -1,13 +1,13 @@
 ---
 title: 响应状态码与错误
 sidebarTitle: 响应状态码
-description: 适用于 X API 的 HTTP 状态码和错误处理
+description: X API 的 HTTP 状态码与错误处理
 keywords: ["响应状态码", "错误码", "HTTP 状态码", "API 错误", "错误处理", "调试"]
 ---
 
 import { Button } from '/snippets/zh/button.mdx';
 
-X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错时返回 4xx 或 5xx 状态码，并在响应正文中提供错误详情。
+X API 使用标准 HTTP 状态码。成功的请求会返回 2xx 状态码；错误会返回 4xx 或 5xx 状态码，并在响应体中包含详细信息。
 
 ***
 
@@ -19,11 +19,11 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
   ### 成功状态码
 </div>
 
-| 状态码 | 含义 | 说明 |
+| Code | 含义 | 描述 |
 |:-----|:--------|:------------|
 | **200** | OK | 请求成功 |
-| **201** | Created | 资源已创建（POST 请求） |
-| **204** | No Content | 成功但无响应正文（DELETE 请求） |
+| **201** | Created | 已创建资源（POST 请求） |
+| **204** | No Content | 成功但无响应主体（DELETE 请求） |
 
 <div id="client-error-codes">
   ### 客户端错误状态码
@@ -33,21 +33,21 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
 |:-----|:--------|:--------------|
 | **400** | 错误请求 | 无效的 JSON、格式错误的查询、缺少必需参数 |
 | **401** | 未授权 | 身份验证凭证无效或缺失 |
-| **403** | 禁止 | 认证有效但对该资源或操作没有权限 |
+| **403** | 禁止访问 | 身份验证有效，但没有此资源或操作的权限 |
 | **404** | 未找到 | 资源不存在或已被删除 |
-| **409** | 冲突 | 流没有规则（仅适用于 Filtered Stream） |
+| **409** | 冲突 | 流没有任何规则（仅适用于过滤流） |
 | **429** | 请求过多 | 超出速率限制或使用上限 |
 
 <div id="server-error-codes">
   ### 服务器错误代码
 </div>
 
-| 代码 | 含义 | 处理建议 |
+| Code | Meaning | What to do |
 |:-----|:--------|:-----------|
-| **500** | 内部服务器错误 | 请稍候重试；检查 [状态页](/zh/status) |
-| **502** | 错误网关 | 请稍候重试 |
-| **503** | 服务不可用 | X 负载过高；请稍候重试 |
-| **504** | 网关超时 | 请稍候重试 |
+| **500** | 内部服务器错误 | 稍后重试；检查 [状态页面](/zh/status) |
+| **502** | 错误网关 | 稍后重试 |
+| **503** | 服务不可用 | X 当前负载过高；稍后重试 |
+| **504** | 网关超时 | 稍后重试 |
 
 ***
 
@@ -65,13 +65,13 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
 }
 ```
 
-| 字段       | 描述            |
-| :------- | :------------ |
-| `type`   | 用于标识错误类型的 URI |
-| `title`  | 简要的错误描述       |
-| `detail` | 关于此错误的具体说明    |
+| 字段       | 描述          |
+| :------- | :---------- |
+| `type`   | 标识错误类型的 URI |
+| `title`  | 简短的错误描述     |
+| `detail` | 对此错误的具体说明   |
 
-视错误类型而定，可能还会包含其他字段。
+根据错误类型，响应中可能还会包含其他字段。
 
 ***
 
@@ -85,11 +85,11 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
 | `.../invalid-request` | 请求格式错误或参数无效 |
 | `.../resource-not-found` | 帖子、用户或其他资源不存在 |
 | `.../not-authorized-for-resource` | 无权访问私有/受保护内容 |
-| `.../client-forbidden` | 应用未注册或缺少必需访问权限 |
-| `.../usage-capped` | 超出使用上限 |
+| `.../client-forbidden` | 应用未注册或缺少必需的访问权限 |
+| `.../usage-capped` | 超出用量上限 |
 | `.../rate-limit-exceeded` | 超出速率限制 |
 | `.../streaming-connection` | 流式连接问题 |
-| `.../rule-cap` | 过滤流规则数量超限 |
+| `.../rule-cap` | 过滤流规则数量过多 |
 | `.../invalid-rules` | 规则语法错误 |
 | `.../duplicate-rules` | 规则已存在 |
 
@@ -99,7 +99,7 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
   ## 部分错误
 </div>
 
-某些请求可能会部分成功。200 响应可能同时包含 `data` 和 `errors`：
+某些请求可能会部分成功。HTTP 200 响应可能同时包含 `data` 和 `errors`：
 
 ```json
 {
@@ -118,53 +118,51 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
 }
 ```
 
-在请求多个资源且其中部分资源不可用时，会发生这种情况。
+当请求多个资源而其中某些资源不可用时，就会发生这种情况。
 
 ***
 
 <div id="troubleshooting-common-errors">
-  ## 排查常见错误
+  ## 常见错误排查
 </div>
 
 <Accordion title="401 未授权">
-  **检查你的身份验证：**
+  **检查身份验证：**
 
-  * 确认你为该端点使用了正确的身份验证方式
-  * 确认凭证没有被重新生成
-  * 检查 `Authorization` 请求头的格式
-  * 对于 OAuth 1.0a，核对签名计算是否正确
+  * 确认你为该端点使用了正确的认证方法
+  * 确保凭证没有被重新生成
+  * 检查 `Authorization` 标头的格式
+  * 对于 OAuth 1.0a，验证签名计算是否正确
 
-  [身份验证指南 →](/zh/resources/fundamentals/authentication/overview)
+  [认证指南 →](/zh/resources/fundamentals/authentication/overview)
 </Accordion>
 
 <Accordion title="403 禁止访问">
-  **检查你的访问权限：**
+  **检查访问权限：**
 
   * 确认你的应用对该端点具有访问权限
-  * 某些端点需要特定的注册或审批
-  * 需要用户上下文的端点需要合适的 OAuth 范围（scope）
+  * 某些端点需要特定的注册或批准
+  * 基于用户上下文的端点需要合适的 OAuth 范围
   * 资源可能是私有或受保护的
-
-  [访问控制指南 →](/zh/resources/fundamentals/authentication/overview)
 </Accordion>
 
 <Accordion title="429 请求过多">
-  **被限速：**
+  **触发速率限制：**
 
-  * 检查 `x-rate-limit-reset` 响应头以确定何时重试
+  * 检查 `x-rate-limit-reset` 标头以确定何时重试
   * 实现指数退避重试策略
   * 考虑缓存响应
-  * 将请求分散到整个时间窗口中
+  * 将请求分散在整个时间窗口内
 
-  [Rate limits guide →](/zh/x-api/fundamentals/rate-limits)
+  [速率限制指南 →](/zh/x-api/fundamentals/rate-limits)
 </Accordion>
 
-<Accordion title="400 错误请求">
-  **修正你的请求：**
+<Accordion title="400 错误的请求">
+  **修复你的请求：**
 
   * 验证 JSON 语法
   * 检查是否缺少必需参数
-  * 核对参数类型（字符串 vs. 数字）
+  * 验证参数类型（字符串与数字）
   * 在查询中转义特殊字符
 </Accordion>
 
@@ -173,17 +171,17 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
 
   * 受保护账号的帖子只有在授权后才可见
   * 已删除的帖子会返回 404
-  * 某些帖子在特定地区会被屏蔽
-  * 确认搜索查询语法正确
+  * 某些帖子在特定地区可能会被屏蔽
+  * 验证搜索查询语法是否正确
 </Accordion>
 
-<Accordion title="流连接中断">
-  **处理重连：**
+<Accordion title="流式连接中断">
+  **处理重新连接：**
 
-  * 实现带退避策略的自动重连
-  * 使用恢复功能获取遗漏的数据
-  * 检查是否因为缓冲区已满导致断开（客户端消费速度不够快）
-  * 确认至少存在一条流规则
+  * 实现带退避的自动重连
+  * 使用恢复功能获取错过的数据
+  * 检查是否因缓冲区已满而断开（客户端消费速度不够快）
+  * 验证至少存在一条流规则
 
   [流式传输指南 →](/zh/x-api/posts/filtered-stream/integrate/handling-disconnections)
 </Accordion>
@@ -191,10 +189,10 @@ X API 使用标准 HTTP 状态码。请求成功时返回 2xx 状态码；出错
 ***
 
 <div id="rate-limit-headers">
-  ## 速率限制相关的响应头
+  ## 速率限制头部
 </div>
 
-每个响应都会包含速率限制相关信息：
+每个响应都会包含速率限制信息：
 
 ```
 x-rate-limit-limit: 900
@@ -202,11 +200,11 @@ x-rate-limit-remaining: 847
 x-rate-limit-reset: 1705420800
 ```
 
-| Header                   | Description         |
-| :----------------------- | :------------------ |
-| `x-rate-limit-limit`     | 当前时间窗口内的最大请求数       |
-| `x-rate-limit-remaining` | 剩余可用请求数             |
-| `x-rate-limit-reset`     | 时间窗口重置时间点的 Unix 时间戳 |
+| Header                   | Description        |
+| :----------------------- | :----------------- |
+| `x-rate-limit-limit`     | 当前时间窗口内允许的最大请求数    |
+| `x-rate-limit-remaining` | 当前时间窗口内剩余可用请求数     |
+| `x-rate-limit-reset`     | 窗口重置时间对应的 Unix 时间戳 |
 
 ***
 
@@ -216,19 +214,19 @@ x-rate-limit-reset: 1705420800
 
 <CardGroup cols={2}>
   <Card title="检查状态码" icon="square-check">
-    在解析响应正文之前始终检查 HTTP 状态码。
+    在解析响应体之前务必先检查 HTTP 状态码。
   </Card>
 
   <Card title="处理部分错误" icon="triangle-exclamation">
-    即使在 200 响应中也要检查 `errors` 数组。
+    即使在返回 200 的响应中也要检查 `errors` 数组。
   </Card>
 
   <Card title="实现重试逻辑" icon="arrows-rotate">
-    对 429 和 5xx 错误使用指数退避。
+    对于 429 和 5xx 错误使用指数退避策略进行重试。
   </Card>
 
   <Card title="记录请求详情" icon="file-lines">
-    包含请求 id 和时间戳，便于调试。
+    记录请求 id 和时间戳以便调试。
   </Card>
 </CardGroup>
 
@@ -238,20 +236,20 @@ x-rate-limit-reset: 1705420800
   ## 获取帮助
 </div>
 
-在发布有关错误的问题时，请包含：
+在提问与错误相关的问题时，请包含：
 
 * API 端点 URL
-* 请求头（请去除凭证信息）
+* 请求头（去除/脱敏凭证信息）
 * 完整的错误响应
-* 你原本预期的结果
-* 你已经尝试过的步骤
+* 你期望的结果
+* 你已经尝试的步骤
 
 <CardGroup cols={2}>
-  <Card title="Developer Forum" icon="comments" href="https://devcommunity.x.com">
-    提出问题并查找解决方案。
+  <Card title="开发者论坛" icon="comments" href="https://devcommunity.x.com">
+    提问并查找解决方案。
   </Card>
 
-  <Card title="API Status" icon="signal" href="/zh/status">
-    检查是否存在已知问题。
+  <Card title="API 状态" icon="signal" href="/zh/status">
+    查看是否存在已知问题。
   </Card>
 </CardGroup>

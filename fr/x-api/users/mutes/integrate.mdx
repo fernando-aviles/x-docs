@@ -1,13 +1,13 @@
 ---
-title: Guide d'intégration
-sidebarTitle: Guide d'intégration
-description: Concepts clés et bonnes pratiques pour l’intégration des endpoints de mise en sourdine
-keywords: ["intégration des endpoints de mise en sourdine", "intégration de la mise en sourdine des utilisateurs", "guide de la mise en sourdine"]
+title: Guide d’intégration
+sidebarTitle: Guide d’intégration
+description: Concepts clés et bonnes pratiques pour intégrer les endpoints de mise en sourdine
+keywords: ["intégration des endpoints de mise en sourdine", "intégration de la mise en sourdine des utilisateurs", "guide des endpoints de mise en sourdine"]
 ---
 
 import { Button } from '/snippets/fr/button.mdx';
 
-Ce guide présente les principaux concepts nécessaires pour intégrer les endpoints de mise en sourdine dans votre application.
+Ce guide présente les principaux concepts dont vous avez besoin pour intégrer les endpoints de mise en sourdine dans votre application.
 
 ***
 
@@ -15,46 +15,43 @@ Ce guide présente les principaux concepts nécessaires pour intégrer les endpo
   ## Authentification
 </div>
 
-Les endpoints Mutes nécessitent une authentification utilisateur pour accéder aux listes de sourdine privées :
+Les endpoints de mise en sourdine nécessitent une authentification utilisateur pour accéder aux listes de sourdine privées :
 
 | Méthode | Description |
-|:-------|:------------|
-| [OAuth 2.0 Authorization Code avec PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandée pour les nouvelles applications |
-| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Prise en charge héritée |
+|:--------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandée pour les nouvelles applications |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Pour compatibilité avec les intégrations existantes |
 
 <Warning>
-  L&#39;authentification App-only n&#39;est pas prise en charge. Vous devez vous authentifier pour le compte d&#39;un utilisateur.
+  L’authentification « App-only » n’est pas prise en charge. Vous devez vous authentifier au nom d’un utilisateur.
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### Scopes requis (OAuth 2.0)
+  ### Scopes obligatoires (OAuth 2.0)
 </div>
 
 | Scope | Obligatoire pour |
 |:------|:-----------------|
 | `mute.read` | Récupérer les comptes mis en sourdine |
-| `mute.write` | Mettre en sourdine et retirer des comptes de sourdine |
-| `users.read` | Obligatoire avec les scopes mute |
+| `mute.write` | Mettre en sourdine et retirer la mise en sourdine de comptes |
+| `users.read` | Obligatoire avec les scopes de mise en sourdine |
+------------------------------------------------------------------
 
-***
-
-<div id="endpoints-overview">
-  ## Aperçu des points de terminaison
+<div id="fields-and-expansions">
+  ## Vue d’ensemble des endpoints
 </div>
 
 | Méthode | Endpoint | Description |
 |:-------|:---------|:------------|
-| GET | `/2/users/:id/muting` | Obtenir la liste des comptes mis en sourdine |
-| POST | `/2/users/:id/muting` | Mettre un compte en sourdine |
-| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | Annuler la mise en sourdine d’un compte |
+| GET | `/2/users/:id/muting` | Obtenir la liste des comptes masqués |
+| POST | `/2/users/:id/muting` | Masquer un compte |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | Ne plus masquer un compte |
 
 ***
 
-<div id="fields-and-expansions">
-  ## Champs et expansions
-</div>
+## Champs et expansions
 
-<div id="default-response">
+<div id="available-fields">
   ### Réponse par défaut
 </div>
 
@@ -70,7 +67,7 @@ Les endpoints Mutes nécessitent une authentification utilisateur pour accéder 
 }
 ```
 
-<div id="available-fields">
+<div id="example-with-fields">
   ### Champs disponibles
 </div>
 
@@ -80,19 +77,17 @@ Les endpoints Mutes nécessitent une authentification utilisateur pour accéder 
   | `created_at` | Date de création du compte |
   | `description` | Bio de l’utilisateur |
   | `profile_image_url` | URL de l’avatar |
-  | `public_metrics` | Nombre d’abonnés/abonnements |
+  | `public_metrics` | Nombre d’abonnés et d’abonnements |
   | `verified` | Statut de vérification |
 </Accordion>
 
 <Accordion title="expansions">
-  | Extension | Description |
+  | Expansion | Description |
   |:----------|:------------|
   | `pinned_tweet_id` | Publication épinglée de l’utilisateur |
 </Accordion>
 
-<div id="example-with-fields">
-  ### Exemple avec des champs
-</div>
+### Exemple avec des champs
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -107,14 +102,14 @@ Les endpoints Mutes nécessitent une authentification utilisateur pour accéder 
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # Récupérez les comptes mis en sourdine avec des champs supplémentaires
+  # Récupère les comptes mis en sourdine avec des champs supplémentaires
   for page in client.users.get_muting(
       user_id="123456789",
       user_fields=["username", "verified", "created_at"],
       max_results=100
   ):
       for user in page.data:
-          print(f"{user.username} - Verified: {user.verified}")
+          print(f"{user.username} - Vérifié : {user.verified}")
   ```
 
   ```javascript JavaScript SDK
@@ -129,7 +124,7 @@ Les endpoints Mutes nécessitent une authentification utilisateur pour accéder 
 
   for await (const page of paginator) {
     page.data?.forEach((user) => {
-      console.log(`${user.username} - Verified: ${user.verified}`);
+      console.log(`${user.username} - Vérifié : ${user.verified}`);
     });
   }
   ```
@@ -137,11 +132,11 @@ Les endpoints Mutes nécessitent une authentification utilisateur pour accéder 
 
 ***
 
-<div id="pagination">
+<div id="behavior-differences">
   ## Pagination
 </div>
 
-Pour les utilisateurs disposant de longues listes de comptes masqués, les résultats sont paginés :
+Pour les utilisateurs ayant d’importantes listes de comptes masqués, les résultats sont paginés :
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -159,14 +154,14 @@ Pour les utilisateurs disposant de longues listes de comptes masqués, les résu
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # Le SDK prend en charge la pagination automatiquement
+  # Le SDK gère la pagination automatiquement
   all_muted = []
 
   for page in client.users.get_muting(user_id="123", max_results=100):
       if page.data:
           all_muted.extend(page.data)
 
-  print(f"{len(all_muted)} utilisateurs masqués")
+  print(f"{len(all_muted)} comptes masqués")
   ```
 
   ```javascript JavaScript SDK
@@ -177,7 +172,7 @@ Pour les utilisateurs disposant de longues listes de comptes masqués, les résu
   async function getAllMutedUsers(userId) {
     const allMuted = [];
 
-    // Le SDK prend en charge la pagination automatiquement
+    // Le SDK gère la pagination automatiquement
     const paginator = client.users.getMuting(userId, { maxResults: 100 });
 
     for await (const page of paginator) {
@@ -191,55 +186,49 @@ Pour les utilisateurs disposant de longues listes de comptes masqués, les résu
 
   // Utilisation
   const muted = await getAllMutedUsers("123");
-  console.log(`${muted.length} utilisateurs masqués`);
+  console.log(`${muted.length} comptes masqués`);
   ```
 </CodeGroup>
 
-<Card title="Guide de pagination" icon="arrow-right" href="/fr/x-api/fundamentals/pagination">
+<Card title="Guide sur la pagination" icon="arrow-right" href="/fr/x-api/fundamentals/pagination">
   En savoir plus sur la pagination
 </Card>
 
 ***
 
-<div id="behavior-differences">
-  ## Différences de comportement
-</div>
+## Différences de comportement
 
-<div id="muting-vs-blocking">
-  ### Mise en sourdine vs blocage
-</div>
+### Mise en sourdine vs blocage
 
-| Fonction | Mise en sourdine | Blocage |
+| Fonctionnalité | Mettre en sourdine | Bloquer |
 |:--------|:-----|:------|
 | Voir leurs Publications | Non (masquées) | Non |
 | Ils voient vos Publications | Oui | Non |
-| Ils vous suivent | Oui (peuvent suivre) | Non (suivi supprimé) |
-| Ils peuvent vous envoyer un DM | Oui | Non |
+| Ils vous suivent | Oui (peuvent suivre) | Non (supprimé) |
+| Ils peuvent vous envoyer un message privé | Oui | Non |
 | Notification envoyée | Non | Non |
 
 <Tip>
-  La mise en sourdine est privée — l&#39;utilisateur mis en sourdine n&#39;est pas averti et ne peut pas savoir qu&#39;il l&#39;a été.
+  La mise en sourdine est privée — l’utilisateur mis en sourdine n’est pas notifié et ne peut pas savoir qu’il a été mis en sourdine.
 </Tip>
 
 ***
 
-<div id="error-handling">
+<div id="next-steps">
   ## Gestion des erreurs
 </div>
 
-| Status | Erreur | Solution |
+| Statut | Erreur | Solution |
 |:-------|:------|:---------|
-| 400 | Requête invalide | Vérifiez le format de l&#39;id utilisateur |
-| 401 | Non autorisé | Vérifiez le jeton d&#39;accès |
+| 400 | Requête non valide | Vérifiez le format de l’identifiant utilisateur |
+| 401 | Non autorisé | Vérifiez le jeton d’accès |
 | 403 | Interdit | Vérifiez les scopes et les autorisations |
-| 404 | Introuvable | L&#39;utilisateur n&#39;existe pas |
-| 429 | Trop de requêtes | Attendez, puis réessayez |
+| 404 | Introuvable | L’utilisateur n’existe pas |
+| 429 | Trop de requêtes | Attendez puis réessayez |
 
 ***
 
-<div id="next-steps">
-  ## Prochaines étapes
-</div>
+## Prochaines étapes
 
 <CardGroup cols={2}>
   <Card title="Démarrage rapide" icon="rocket" href="/fr/x-api/users/mutes/quickstart/manage-mutes-quickstart">
@@ -247,11 +236,11 @@ Pour les utilisateurs disposant de longues listes de comptes masqués, les résu
   </Card>
 
   <Card title="Blocages" icon="ban" href="/fr/x-api/users/blocks/introduction">
-    Bloquez des utilisateurs plutôt que de les masquer
+    Bloquer des utilisateurs plutôt que les masquer
   </Card>
 
   <Card title="Référence de l’API" icon="code" href="/fr/x-api/users/get-muting">
-    Documentation complète du endpoint
+    Documentation complète de l’endpoint
   </Card>
 
   <Card title="Exemples de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">

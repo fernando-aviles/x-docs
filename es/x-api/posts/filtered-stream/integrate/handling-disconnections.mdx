@@ -1,34 +1,34 @@
 ---
-title: Gestión de desconexiones
-sidebarTitle: Gestión de desconexiones
-keywords: ["desconexiones de streaming", "gestionar desconexiones", "reconectar el stream", "reconexión del stream", "gestión de desconexiones", "errores del stream"]
+title: Manejo de desconexiones
+sidebarTitle: Manejo de desconexiones
+keywords: ["desconexiones de streaming", "manejar desconexiones", "reconectar stream", "reconexión de stream", "manejo de desconexiones", "errores de streaming"]
 ---
 
 <div id="what-is-a-disconnection">
   ### ¿Qué es una desconexión?
 </div>
 
-Establecer una conexión con las APIs de streaming implica realizar una solicitud HTTPS de muy larga duración y analizar la respuesta de forma incremental. Al conectarte al endpoint de flujo filtrado, debes crear una solicitud HTTPS y consumir el flujo resultante durante el mayor tiempo posible. Nuestros servidores mantendrán la conexión abierta indefinidamente, salvo error del lado del servidor, retraso excesivo del lado del cliente, problemas de red, mantenimiento rutinario del servidor o inicios de sesión duplicados. Con las conexiones a endpoints de streaming, es probable, y debe esperarse, que se produzcan desconexiones y que se implemente lógica de reconexión.
+Establecer una conexión con las APIs de streaming implica realizar una solicitud HTTPS de muy larga duración y analizar la respuesta de forma incremental. Al conectarte al endpoint `filtered stream`, debes realizar una solicitud HTTPS y consumir el flujo resultante durante todo el tiempo que sea práctico. Nuestros servidores mantendrán la conexión abierta indefinidamente, salvo error del lado del servidor, retraso excesivo del lado del cliente, problemas de red, tareas de mantenimiento rutinarias del servidor o inicios de sesión duplicados. Con las conexiones a endpoints de streaming, es probable —y debe esperarse— que se produzcan desconexiones y que se implemente lógica de reconexión.
  
 
 <div id="why-a-streaming-connection-might-be-disconnected">
   #### Por qué una conexión de streaming podría desconectarse
 </div>
 
-Tu stream puede desconectarse por varios motivos. Inspecciona el mensaje de error devuelto por el stream para comprender el motivo del fallo. Las posibles razones de desconexión son las siguientes:
+Tu stream puede desconectarse por varias razones. Revisa el mensaje de error que devuelve el stream para entender el motivo del error. Las posibles razones de las desconexiones son las siguientes:
 
-* Un error de autenticación (como un token incorrecto o un método de autenticación equivocado).
-* Se reinicia un servidor de streaming del lado de X. Esto suele estar relacionado con un despliegue de código y, en general, debería esperarse y tenerse en cuenta en el diseño.
-* Tu cliente no logra seguir el ritmo del volumen de Publicaciones que el stream está entregando o está leyendo los datos demasiado lentamente. Cada conexión de streaming está respaldada por una cola de mensajes que se enviarán al cliente. Si esta cola crece demasiado con el tiempo, la conexión se cerrará.
+* Un error de autenticación (como un token incorrecto o un método de autenticación incorrecto).
+* Se reinicia un servidor de streaming en el lado de X. Esto suele estar relacionado con un despliegue de código y, en general, debe esperarse y contemplarse en el diseño.
+* Tu cliente no puede mantener el ritmo con el volumen de Publicaciones que el stream está entregando o está leyendo los datos demasiado lentamente. Cada conexión de streaming está respaldada por una cola de mensajes que se envían al cliente. Si esta cola crece demasiado con el tiempo, la conexión se cerrará.
 * Tu cuenta superó tu cuota diaria/mensual de Publicaciones.
 * Tienes demasiadas conexiones redundantes activas.
-* Un cliente deja de leer datos de forma repentina. Si la tasa de Publicaciones que se leen del stream cae de repente, la conexión se cerrará.
+* Un cliente deja de leer datos de repente. Si la velocidad de Publicaciones que se leen del stream cae repentinamente, la conexión se cerrará.
 * Posibles problemas de red entre el servidor y el cliente.
-* Un problema temporal del lado del servidor, mantenimiento y actualizaciones programadas. (Consulta la [página de estado](https://api.twitterstat.us/)).
+* Un problema temporal del lado del servidor, mantenimiento programado y actualizaciones. (Consulta la [página de estado](https://api.twitterstat.us/))
    
 
 <div id="common-disconnection-errors-include">
-  #### Algunos de los errores de desconexión más comunes son:
+  #### Algunos errores de desconexión comunes son:
 </div>
 
 ```{
@@ -51,61 +51,61 @@ Tu stream puede desconectarse por varios motivos. Inspecciona el mensaje de erro
 ```
 
 <div id="anticipating-disconnects-and-reconnecting">
-  #### Anticipar desconexiones y volver a conectarse
+  #### Anticipar desconexiones y reconectarse
 </div>
 
-Al hacer streaming de Publicaciones, el objetivo es permanecer conectado el mayor tiempo posible, reconociendo que pueden producirse desconexiones. El endpoint proporciona una señal de keep-alive (heartbeat) de 20 segundos (aparecerá como un carácter de nueva línea). Usa esta señal para detectar si te estás desconectando.
+Al transmitir Publicaciones en streaming, el objetivo es permanecer conectado el mayor tiempo posible, teniendo en cuenta que pueden producirse desconexiones. El endpoint proporciona una señal de keep-alive (heartbeat) cada 20 segundos (aparecerá como un carácter de nueva línea). Usa esta señal para detectar si te estás desconectando.
 
-1. Tu código debe detectar cuándo dejan de llegar contenido nuevo y la señal de latido.
-2. Si eso ocurre, tu código debe activar una lógica de reconexión. Algunos clientes y lenguajes te permiten especificar un tiempo de espera de lectura (read timeout), que puedes configurar en 20 segundos.
-3. Tu servicio debe detectar estas desconexiones y volver a conectarse tan pronto como sea posible.
+1. Tu código debe detectar cuándo dejan de llegar tanto contenido nuevo como la señal de latido.
+2. Si eso ocurre, tu código debe activar una lógica de reconexión. Algunos clientes y lenguajes te permiten especificar un tiempo de espera de lectura, que puedes configurar en 20 segundos.
+3. Tu servicio debe detectar estas desconexiones y reconectarse lo antes posible.
 
-Una vez que una conexión establecida se interrumpe, intenta volver a conectarte de inmediato. Si la reconexión falla, reduce la frecuencia de los intentos de reconexión según el tipo de error experimentado:
+Una vez que una conexión establecida se interrumpe, intenta reconectarte de inmediato. Si la reconexión falla, reduce la frecuencia de los intentos de reconexión según el tipo de error experimentado:
 
-* Aplica una espera lineal (backoff lineal) para errores de red a nivel TCP/IP. Estos problemas suelen ser temporales y tienden a resolverse rápidamente. Aumenta el retraso entre reconexiones en 250 ms en cada intento, hasta un máximo de 16 segundos.
-* Aplica una espera exponencial (backoff exponencial) para los errores HTTP para los que sea apropiado volver a conectar. Comienza con una espera de 5 segundos, duplicándola en cada intento, hasta un máximo de 320 segundos.
-* Aplica una espera exponencial para errores HTTP 429 (Rate limit exceeded). Comienza con una espera de 1 minuto y duplícala en cada intento. Ten en cuenta que cada HTTP 429 recibido aumenta el tiempo que debes esperar hasta que el límite de frecuencia deje de estar en vigor para tu cuenta.
+* Aplica un backoff lineal para errores de red a nivel TCP/IP. Estos problemas suelen ser temporales y tienden a resolverse rápidamente. Aumenta el retraso entre reconexiones en 250 ms en cada intento, hasta 16 segundos.
+* Aplica un backoff exponencial para errores HTTP para los que sea adecuado reconectarse. Comienza con una espera de 5 segundos, duplicándola en cada intento, hasta 320 segundos.
+* Aplica un backoff exponencial para errores HTTP 429 (Rate limit exceeded). Comienza con una espera de 1 minuto y duplícala en cada intento. Ten en cuenta que cada HTTP 429 recibido aumenta el tiempo que debes esperar hasta que el límite de frecuencia deje de estar en vigor para tu cuenta.
    
 
 <div id="recovering-lost-data">
   #### Recuperar datos perdidos
 </div>
 
-Si se produce una desconexión, hay diferentes estrategias que puedes usar para asegurarte de recibir todos los datos que puedas haberte perdido. Hemos documentado algunos pasos clave que puedes seguir para recuperar los datos perdidos en nuestra guía de integración sobre [recuperación de datos](/es/x-api/posts/filtered-stream/integrate/recovery-and-redundancy-features). 
+Si experimentas una desconexión, hay varias estrategias que puedes utilizar para asegurarte de recibir todos los datos que podrías haberte perdido. Hemos documentado algunos pasos clave que puedes seguir para recuperar los datos perdidos en nuestra guía de integración sobre [recuperación de datos](/es/x-api/posts/filtered-stream/integrate/recovery-and-redundancy-features). 
  
 
 <div id="rate-limits-and-usage">
   #### Límites de frecuencia y uso
 </div>
 
-Para comprobar los límites de conexión, la respuesta incluirá tres encabezados. Esto es útil para entender cuántas veces puedes usar el endpoint de reglas y cuántos intentos de reconexión se permiten para el endpoint de streaming.
+Para comprobar los límites de conexión, la Respuesta incluirá tres encabezados. Esto es útil para entender cuántas veces puedes usar el endpoint de reglas y cuántos intentos de reconexión se permiten para el endpoint de streaming.
 
-* x-rate-limit-limit indica el número de solicitudes asignadas que tu cliente puede realizar durante el intervalo de 15 minutos.
+* x-rate-limit-limit indica el número de solicitudes asignadas que tu Cliente puede realizar durante la ventana de 15 minutos.
 
-* x-rate-limit-remaining indica el número de solicitudes realizadas hasta el momento en el intervalo de 15 minutos.
+* x-rate-limit-remaining indica el número de solicitudes realizadas hasta el momento en la ventana de 15 minutos.
 
-* x-rate-limit-reset es una marca de tiempo UNIX que indica cuándo se reiniciará el intervalo de 15 minutos, restableciendo x-rate-limit-remaining a 0.
+* x-rate-limit-reset es una marca de tiempo UNIX que indica cuándo se reiniciará la ventana de 15 minutos, restableciendo x-rate-limit-remaining a 0.
 
-El endpoint de stream filtrado actualmente no informa datos de uso. Para comprobar cuántas Publicaciones se han entregado, tu código puede implementar una lógica de medición, de modo que el consumo pueda medirse y pausarse si es necesario. 
+El endpoint de filtro de streaming actualmente no informa datos de uso. Para comprobar cuántas Publicaciones se han entregado, tu código puede implementar una lógica de medición, de modo que el consumo pueda medirse y pausarse si es necesario. 
 
-El código que ejecuta el lado cliente del stream simplemente inserta las Publicaciones entrantes en una cola FIFO (first in, first out) o una estructura de memoria similar; un proceso/hilo separado debe consumir Publicaciones de esa cola para analizar y preparar el contenido para su almacenamiento. Con este diseño, puedes implementar un servicio que pueda escalar de forma eficiente en caso de que el volumen de Publicaciones entrantes cambie drásticamente. Conceptualmente, puedes pensarlo como descargar un archivo infinitamente largo mediante HTTP.
+El código que aloja el lado del Cliente del stream simplemente inserta las Publicaciones entrantes en una cola first in, first out (FIFO, primero en entrar, primero en salir), o en una estructura de memoria similar; un proceso o hilo separado debería consumir Publicaciones de esa cola para analizar y preparar el contenido para su almacenamiento. Con este diseño, puedes implementar un servicio que pueda escalar de manera eficiente en caso de que el volumen de Publicaciones entrantes cambie drásticamente. Conceptualmente, puedes pensarlo como descargar un archivo infinitamente largo a través de HTTP.
 
 <div id="reconnection-best-practices">
   #### Mejores prácticas de reconexión
 </div>
 
-**Probar estrategias de backoff**
+**Prueba las estrategias de backoff (retroceso)**
 
 Una buena manera de probar una implementación de backoff es usar credenciales de autorización no válidas y examinar los intentos de reconexión. Una buena implementación no recibirá ninguna respuesta 429.
 
-**Emitir alertas para múltiples reconexiones**
+**Genera alertas para múltiples reconexiones**
 
-Si un cliente alcanza su umbral máximo de tiempo entre reconexiones, debe enviarte notificaciones para que puedas priorizar y diagnosticar los problemas que afectan a tu conexión.
+Si un cliente alcanza su umbral máximo de tiempo entre reconexiones, debería enviarte notificaciones para que puedas diagnosticar los problemas que afectan a tu conexión.
 
-**Gestionar cambios de DNS**
+**Gestiona los cambios de DNS**
 
-Comprueba que el proceso de tu cliente respeta el tiempo de vida (TTL) de DNS. Algunos stacks almacenarán en caché una dirección resuelta durante toda la duración del proceso y no aplicarán los cambios de DNS dentro del TTL establecido. Este almacenamiento en caché agresivo provocará interrupciones del servicio en tu cliente a medida que X distribuya la carga entre direcciones IP.
+Comprueba que el proceso de tu cliente respeta el valor de Time To Live (TTL) de DNS. Algunos stacks almacenarán en caché una dirección resuelta durante toda la duración del proceso y no reflejarán los cambios de DNS dentro del TTL previsto. Un almacenamiento en caché tan agresivo provocará interrupciones del servicio en tu cliente cuando X desplace la carga entre direcciones IP.
 
-**User Agent**
+**Agente de usuario**
 
-Asegúrate de que tu encabezado HTTP user-agent incluya la versión del cliente. Esto será fundamental para diagnosticar problemas del lado de X. Si tu entorno impide configurar el campo user-agent, configura entonces un encabezado x-user-agent.
+Asegúrate de que tu encabezado HTTP `user-agent` incluye la versión del cliente. Esto será fundamental para diagnosticar problemas en el lado de X. Si tu entorno impide establecer el campo `user-agent`, entonces establece un encabezado `x-user-agent`.

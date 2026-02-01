@@ -2,12 +2,12 @@
 title: Guía de integración
 sidebarTitle: Guía de integración
 description: Conceptos clave y prácticas recomendadas para integrar los endpoints de silenciamiento
-keywords: ["integración de silenciamiento", "integración para silenciar usuarios", "guía de silenciamiento"]
+keywords: ["integración de silenciamiento", "integración de silenciamiento de usuarios", "guía de silenciamiento"]
 ---
 
 import { Button } from '/snippets/es/button.mdx';
 
-Esta guía cubre los conceptos clave que necesitas para integrar los endpoints de silenciamiento en tu aplicación.
+Esta guía abarca los conceptos clave que necesitas para integrar los endpoints de silenciamiento en tu aplicación.
 
 ***
 
@@ -15,26 +15,26 @@ Esta guía cubre los conceptos clave que necesitas para integrar los endpoints d
   ## Autenticación
 </div>
 
-Los endpoints de silenciamiento requieren autenticación de usuario para acceder a listas de silencio privadas:
+Los endpoints de silencios requieren autenticación de usuario para acceder a listas privadas de silencios:
 
 | Método | Descripción |
 |:-------|:------------|
-| [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recomendado para aplicaciones nuevas |
+| [OAuth 2.0 Authorization Code with PKCE](/es/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recomendado para nuevas aplicaciones |
 | [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Compatibilidad heredada |
 
 <Warning>
-  La autenticación App-Only no es compatible. Debes autenticarte en nombre de un usuario.
+  La autenticación de solo aplicación no es compatible. Debes autenticarte en nombre de un usuario.
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### Alcances obligatorios (OAuth 2.0)
+  ### Scopes obligatorios (OAuth 2.0)
 </div>
 
 | Scope | Obligatorio para |
-|:------|:-------------|
+|:------|:-----------------|
 | `mute.read` | Obtener cuentas silenciadas |
 | `mute.write` | Silenciar y dejar de silenciar cuentas |
-| `users.read` | Obligatorio con los alcances de mute |
+| `users.read` | Obligatorio con los scopes de silencio |
 
 ***
 
@@ -51,7 +51,7 @@ Los endpoints de silenciamiento requieren autenticación de usuario para acceder
 ***
 
 <div id="fields-and-expansions">
-  ## Campos y Expansions
+  ## Campos y expansions
 </div>
 
 <div id="default-response">
@@ -79,8 +79,8 @@ Los endpoints de silenciamiento requieren autenticación de usuario para acceder
   |:------|:------------|
   | `created_at` | Fecha de creación de la cuenta |
   | `description` | Biografía del usuario |
-  | `profile_image_url` | URL del avatar |
-  | `public_metrics` | Recuentos de seguidores y seguidos |
+  | `profile_image_url` | URL de la imagen de perfil |
+  | `public_metrics` | Número de seguidores y seguidos |
   | `verified` | Estado de verificación |
 </Accordion>
 
@@ -102,7 +102,7 @@ Los endpoints de silenciamiento requieren autenticación de usuario para acceder
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
   ```
 
-  ```python Python SDK
+  ```python SDK de Python
   from xdk import Client
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
@@ -114,10 +114,10 @@ Los endpoints de silenciamiento requieren autenticación de usuario para acceder
       max_results=100
   ):
       for user in page.data:
-          print(f"{user.username} - Verificado: {user.verified}")
+          print(f"{user.username} - Verified: {user.verified}")
   ```
 
-  ```javascript JavaScript SDK
+  ```javascript SDK de JavaScript
   import { Client } from "@xdevplatform/xdk";
 
   const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
@@ -129,7 +129,7 @@ Los endpoints de silenciamiento requieren autenticación de usuario para acceder
 
   for await (const page of paginator) {
     page.data?.forEach((user) => {
-      console.log(`${user.username} - Verificado: ${user.verified}`);
+      console.log(`${user.username} - Verified: ${user.verified}`);
     });
   }
   ```
@@ -141,7 +141,7 @@ Los endpoints de silenciamiento requieren autenticación de usuario para acceder
   ## Paginación
 </div>
 
-Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se paginan:
+Para usuarios con listas extensas de cuentas silenciadas, los resultados se paginan:
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -159,14 +159,14 @@ Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se p
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # El SDK se encarga de la paginación automáticamente
+  # El SDK gestiona la paginación automáticamente
   all_muted = []
 
   for page in client.users.get_muting(user_id="123", max_results=100):
       if page.data:
           all_muted.extend(page.data)
 
-  print(f"Se han silenciado {len(all_muted)} usuarios")
+  print(f"Has silenciado a {len(all_muted)} usuarios")
   ```
 
   ```javascript JavaScript SDK
@@ -177,7 +177,7 @@ Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se p
   async function getAllMutedUsers(userId) {
     const allMuted = [];
 
-    // El SDK se encarga de la paginación automáticamente
+    // El SDK gestiona la paginación automáticamente
     const paginator = client.users.getMuting(userId, { maxResults: 100 });
 
     for await (const page of paginator) {
@@ -191,12 +191,12 @@ Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se p
 
   // Uso
   const muted = await getAllMutedUsers("123");
-  console.log(`Se han silenciado ${muted.length} usuarios`);
+  console.log(`Has silenciado a ${muted.length} usuarios`);
   ```
 </CodeGroup>
 
 <Card title="Guía de paginación" icon="arrow-right" href="/es/x-api/fundamentals/pagination">
-  Obtén más información sobre la paginación
+  Más información sobre la paginación
 </Card>
 
 ***
@@ -206,32 +206,32 @@ Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se p
 </div>
 
 <div id="muting-vs-blocking">
-  ### Silenciar vs bloquear
+  ### Silenciar vs Bloquear
 </div>
 
-| Característica | Silenciar | Bloquear |
-|:--------|:-----|:------|
-| Ver sus publicaciones | No (oculto) | No |
-| Pueden ver tus publicaciones | Sí | No |
-| Pueden seguirte | Sí (pueden seguir) | No (se elimina) |
-| Pueden enviarte MD | Sí | No |
+| Función | Silenciar | Bloquear |
+|:--------|:----------|:---------|
+| Ver sus Publicaciones | No (ocultas) | No |
+| Pueden ver tus Publicaciones | Sí | No |
+| Te siguen | Sí (pueden seguirte) | No (seguimiento eliminado) |
+| Pueden enviarte Mensajes Directos | Sí | No |
 | Notificación enviada | No | No |
 
 <Tip>
-  Silenciar es una acción privada: el usuario silenciado no recibe ninguna notificación ni puede saber que ha sido silenciado.
+  Silenciar es privado: el usuario silenciado no recibe ninguna notificación y no puede saber que lo has silenciado.
 </Tip>
 
 ***
 
 <div id="error-handling">
-  ## Manejo de errores
+  ## Gestión de errores
 </div>
 
-| Status | Error | Solución |
+| Estado | Error | Solución |
 |:-------|:------|:---------|
-| 400 | Solicitud no válida | Comprueba el formato del id de usuario |
-| 401 | No autorizado | Comprueba el token de acceso |
-| 403 | Prohibido | Comprueba los scopes y los permisos |
+| 400 | Solicitud no válida | Verifica el formato del ID de usuario |
+| 401 | No autorizado | Verifica el token de acceso |
+| 403 | Prohibido | Verifica los scopes y los permisos |
 | 404 | No encontrado | El usuario no existe |
 | 429 | Demasiadas solicitudes | Espera y vuelve a intentarlo |
 
@@ -242,8 +242,8 @@ Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se p
 </div>
 
 <CardGroup cols={2}>
-  <Card title="Inicio rápido" icon="rocket" href="/es/x-api/users/mutes/quickstart/manage-mutes-quickstart">
-    Realiza tu primera solicitud para silenciar usuarios
+  <Card title="Guía de inicio rápido" icon="rocket" href="/es/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    Realiza tu primera solicitud para silenciar
   </Card>
 
   <Card title="Bloqueos" icon="ban" href="/es/x-api/users/blocks/introduction">
@@ -255,6 +255,6 @@ Para usuarios con listas de cuentas silenciadas muy grandes, los resultados se p
   </Card>
 
   <Card title="Código de ejemplo" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
-    Ejemplos de código funcional
+    Ejemplos de código listos para usar
   </Card>
 </CardGroup>

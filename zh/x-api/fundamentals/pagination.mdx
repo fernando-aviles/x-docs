@@ -2,10 +2,10 @@
 title: 分页
 sidebarTitle: 分页
 description: 浏览大型结果集
-keywords: ["分页", "分页令牌", "下一页令牌", "分页浏览结果", "游标分页"]
+keywords: ["分页", "分页令牌", "下一页令牌", "按页浏览结果", "游标分页"]
 ---
 
-当 API 响应包含的结果多于一次可返回的数量时，请使用分页来检索所有页的数据。
+当 API 响应包含的结果多于一次可返回的数量时，请使用分页来检索所有分页数据。
 
 ***
 
@@ -14,8 +14,8 @@ keywords: ["分页", "分页令牌", "下一页令牌", "分页浏览结果", "�
 </div>
 
 1. 使用 `max_results` 发起初始请求
-2. 检查响应中的 `meta` 对象是否包含 `next_token`
-3. 如果存在，使用该令牌作为 `pagination_token` 发起下一次请求
+2. 在 `meta` 对象中检查响应中是否包含 `next_token`
+3. 如果存在，使用该令牌作为 `pagination_token` 再次发起请求
 4. 重复此过程，直到不再返回 `next_token`
 
 ```bash
@@ -37,10 +37,10 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## 分页令牌
 </div>
 
-| 令牌 | 说明 |
+| Token | Description |
 |:------|:------------|
-| `next_token` | 位于响应的 `meta` 元数据中。用于获取下一页。 |
-| `previous_token` | 位于响应的 `meta` 元数据中。用于返回上一页。 |
+| `next_token` | 位于响应的 `meta` 对象中。用于获取下一页。 |
+| `previous_token` | 位于响应的 `meta` 对象中。用于返回上一页。 |
 | `pagination_token` | 请求参数。设置为 `next_token` 或 `previous_token` 的值。 |
 
 ***
@@ -63,7 +63,7 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 }
 ```
 
-当没有更多结果时，响应中不会包含 `next_token`：
+当没有更多结果时，`next_token` 会被省略：
 
 ```json
 {
@@ -81,17 +81,17 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## 分页参数
 </div>
 
-| 参数 | 说明 | 默认值 |
+| 参数 | 描述 | 默认值 |
 |:----------|:------------|:--------|
-| `max_results` | 每页结果数 | 取决于具体端点 |
-| `pagination_token` | 上一个响应中的令牌 | 无 |
+| `max_results` | 每页返回的结果数 | 取决于具体端点 |
+| `pagination_token` | 上一个响应返回的令牌 | 无 |
 
-请查阅各端点的 API 参考文档，了解该端点对 `max_results` 的具体限制。
+请查看各端点的 API 参考，了解各自的 `max_results` 限制。
 
 ***
 
 <div id="example-paginating-through-all-results">
-  ## 示例：分页获取所有结果
+  ## 示例：分页遍历所有结果
 </div>
 
 <Tabs>
@@ -113,7 +113,7 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
             if "data" in data:
                 all_tweets.extend(data["data"])
             
-            # 检查是否存在下一页
+            # 检查是否有下一页
             next_token = data.get("meta", {}).get("next_token")
             if not next_token:
                 break
@@ -162,20 +162,20 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 </div>
 
 <CardGroup cols={2}>
-  <Card title="使用最大返回数" icon="arrow-up-1-9">
-    请求允许的最大 `max_results` 值，以尽量减少 API 调用次数。
+  <Card title="使用最大返回数量" icon="arrow-up-1-9">
+    请求允许的最大 `max_results` 值，以减少 API 调用次数。
   </Card>
 
-  <Card title="处理部分页面" icon="square-check">
-    最后一页的结果可能少于 `max_results`。
+  <Card title="处理不完整页" icon="square-check">
+    最后一页的结果数可能少于 `max_results`。
   </Card>
 
-  <Card title="保存令牌" icon="database">
-    如果需要稍后继续分页，请保存 `next_token`。
+  <Card title="存储令牌" icon="database">
+    如果需要稍后恢复分页，请保存 `next_token`。
   </Card>
 
-  <Card title="不要用分页轮询" icon="clock">
-    对于新数据，请使用 `since_id`，而不是反复分页。
+  <Card title="不要通过分页轮询" icon="clock">
+    对于新增数据，请使用 `since_id`，而不是反复进行分页。
   </Card>
 </CardGroup>
 
@@ -185,12 +185,12 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## 结果排序
 </div>
 
-结果按时间**逆序**返回：
+结果按**时间倒序**返回：
 
-* 首页的第一个结果 = 最新
+* 第一页的第一个结果 = 最新
 * 最后一页的最后一个结果 = 最早
 
-这一规则适用于页内及跨页的结果。
+此规则适用于单页内以及跨页的结果。
 
 ***
 
@@ -198,9 +198,9 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## 注意事项
 </div>
 
-* 分页令牌是不透明的字符串，不要尝试解析或修改它们
-* 令牌可能会在一段时间后过期
-* 如果你获得的结果数量少于 `max_results`，可能仍然还有更多结果（继续请求，直到不再返回 `next_token`）
+* 分页 token 是不透明的字符串——不要尝试解析或修改它们
+* token 可能在一段时间后失效
+* 即使返回的结果少于 `max_results`，仍可能存在更多结果（继续请求，直到不再返回 `next_token`）
 * 使用 [SDK](/zh/x-api/tools-and-libraries/sdks) 来自动处理分页
 
 ***
@@ -210,11 +210,11 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 </div>
 
 <CardGroup cols={2}>
-  <Card title="速率限制" icon="gauge-high" href="/zh/x-api/fundamentals/rate-limits">
-    了解分页时的请求频率限制。
+  <Card title="访问频率限制" icon="gauge-high" href="/zh/x-api/fundamentals/rate-limits">
+    了解分页时的请求限制。
   </Card>
 
-  <Card title="SDK" icon="cube" href="/zh/x-api/tools-and-libraries/sdks">
-    内置分页功能的库。
+  <Card title="SDKs" icon="cube" href="/zh/x-api/tools-and-libraries/sdks">
+    包含内置分页功能的库。
   </Card>
 </CardGroup>

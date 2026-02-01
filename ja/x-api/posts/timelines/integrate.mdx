@@ -1,11 +1,11 @@
 ---
 title: 統合ガイド
 sidebarTitle: 統合ガイド
-description: Timelines エンドポイントを統合するための主要な概念とベストプラクティス
-keywords: ["タイムライン統合", "タイムラインガイド", "タイムライン実装", "ホームタイムライン統合", "ユーザータイムライン統合"]
+description: Timelines エンドポイントをアプリケーションに統合するために必要な主要な概念とベストプラクティス
+keywords: ["timeline integration", "timeline guide", "timeline implementation", "home timeline integration", "user timeline integration"]
 ---
 
-このガイドでは、Timelines エンドポイントをアプリケーションに統合するために必要となる主要な概念を解説します。
+このガイドでは、アプリケーションに Timelines エンドポイントを統合するために必要な主要な概念を解説します。
 
 ***
 
@@ -14,23 +14,23 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
 </div>
 
 <div id="endpoint-requirements">
-  ### エンドポイント要件
+  ### エンドポイントの要件
 </div>
 
 | エンドポイント | アプリのみ | ユーザーコンテキスト |
 |:---------|:---------|:-------------|
 | ユーザーの投稿タイムライン | ✓ | ✓ |
-| ユーザーのメンションタイムライン | ✓ | ✓ |
-| ホームタイムライン | — | ✓ (必須) |
+| ユーザーメンションタイムライン | ✓ | ✓ |
+| ホームタイムライン | — | ✓（必須） |
 
 <div id="private-metrics">
-  ### 非公開メトリクス
+  ### プライベートメトリクス
 </div>
 
-非公開メトリクスにアクセスするには、投稿の作成者として認証を行う必要があります。
+プライベートメトリクスにアクセスするには、投稿の作成者の代理として認証する必要があります。
 
 <Warning>
-  これらのフィールドには User Context 認証が必要です:
+  これらのフィールドには User Context での認証が必要です:
 
   * `tweet.fields.non_public_metrics`
   * `tweet.fields.promoted_metrics`
@@ -46,7 +46,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ## フィールドと展開
 </div>
 
-デフォルトでは、レスポンスには `id`、`text`、`edit_history_tweet_ids` だけが含まれます。追加のデータをリクエストするには次のようにします。
+デフォルトでは、レスポンスに含まれるのは `id`、`text`、`edit_history_tweet_ids` のみです。追加のデータをリクエストするには:
 
 <div id="example-request">
   ### リクエスト例
@@ -106,16 +106,16 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ### 主要フィールド
 </div>
 
-| Field | 説明 |
+| フィールド | 説明 |
 |:------|:------------|
-| `created_at` | 投稿の作成時刻 |
-| `public_metrics` | エンゲージメント数 |
+| `created_at` | 投稿の作成タイムスタンプ |
+| `public_metrics` | エンゲージメント指標 |
 | `conversation_id` | スレッドの識別子 |
 | `context_annotations` | トピックの分類情報 |
-| `entities` | ハッシュタグ、メンション、URL |
+| `entities` | ハッシュタグ、メンション、URL など |
 
 <Card title="フィールドと展開のガイド" icon="sliders" href="/ja/x-api/fundamentals/fields">
-  レスポンスのカスタマイズ方法について詳しく学ぶ
+  レスポンスのカスタマイズ方法について詳しく確認する
 </Card>
 
 ***
@@ -124,13 +124,13 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ## ページネーション
 </div>
 
-タイムラインは、リクエストごとに最大100件の投稿を返します。より多くの結果が必要な場合は、ページネーションを使用してください。
+タイムラインは、リクエストごとに最大 100 件の投稿を返します。より多くの結果を取得する場合は、ページネーションを使用してください。
 
 <div id="how-it-works">
-  ### 仕組み
+  ### 動作の仕組み
 </div>
 
-1. 最初のリクエストで `max_results` を指定して送信する
+1. `max_results` を指定して最初のリクエストを実行する
 2. `meta` オブジェクトから `next_token` を取得する
 3. 次のリクエストに `pagination_token` を含めて送信する
 4. `next_token` が返されなくなるまで繰り返す
@@ -145,7 +145,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   curl "https://api.x.com/2/users/123/tweets?max_results=100" \
     -H "Authorization: Bearer $BEARER_TOKEN"
 
-  # ページネーション用トークンを使用した後続リクエスト
+  # ページネーション用トークンを使った後続のリクエスト
   curl "https://api.x.com/2/users/123/tweets?max_results=100&pagination_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $BEARER_TOKEN"
   ```
@@ -155,7 +155,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # SDKがページネーションを自動で処理します
+  # SDK がページネーションを自動的に処理します
   all_posts = []
 
   for page in client.posts.get_user_posts(user_id="123", max_results=100):
@@ -173,7 +173,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   async function getAllTimelinePosts(userId) {
     const allPosts = [];
 
-    // SDKは非同期イテレーションを使ってページネーションを自動で処理します
+    // SDK は async iteration を使ってページネーションを自動的に処理します
     const paginator = client.posts.getUserPosts(userId, { maxResults: 100 });
 
     for await (const page of paginator) {
@@ -192,31 +192,31 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
 </CodeGroup>
 
 <Card title="ページネーションガイド" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
-  ページネーションの詳細はこちら
+  ページネーションの詳細についてはこちらをご覧ください
 </Card>
 
 ***
 
 <div id="filtering-results">
-  ## 結果のフィルタリング
+  ## 結果の絞り込み
 </div>
 
 <div id="time-based-filtering">
-  ### 時間ベースのフィルタリング
+  ### 時間によるフィルタリング
 </div>
 
-| Parameter | 説明 |
+| Parameter | Description |
 |:----------|:------------|
-| `start_time` | 最も古い投稿のタイムスタンプ (ISO 8601) |
-| `end_time` | 最も新しい投稿のタイムスタンプ (ISO 8601) |
-| `since_id` | このIDより後の投稿を返します |
-| `until_id` | このIDより前の投稿を返します |
+| `start_time` | 最も古い投稿のタイムスタンプ（ISO 8601） |
+| `end_time` | 最も新しい投稿のタイムスタンプ（ISO 8601） |
+| `since_id` | このid以降の投稿を返します |
+| `until_id` | このid以前の投稿を返します |
 
 <div id="exclude-parameter">
   ### exclude パラメーター
 </div>
 
-結果から特定の投稿の種類を除外します:
+結果から特定の種類の投稿を除外します:
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -229,7 +229,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # リツイートとリプライを除外
+  # リツイートと返信を除外
   for page in client.posts.get_user_posts(
       user_id="123",
       exclude=["retweets", "replies"]
@@ -243,7 +243,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
 
   const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
 
-  // リツイートとリプライを除外
+  // リツイートと返信を除外
   const paginator = client.posts.getUserPosts("123", {
     exclude: ["retweets", "replies"],
   });
@@ -254,10 +254,10 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ```
 </CodeGroup>
 
-| 値 | 効果 |
+| Value | Effect |
 |:------|:-------|
 | `retweets` | リツイートを除外 |
-| `replies` | リプライを除外 |
+| `replies` | 返信を除外 |
 
 ***
 
@@ -265,17 +265,17 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ## 取得件数の上限
 </div>
 
-各タイムラインには取得件数の上限があります。
+各タイムラインには、取得できる最大件数が設定されています。
 
 | Endpoint | 最大投稿数 |
 |:---------|:--------------|
-| User Posts timeline | 直近 3,200 件 |
-| User Posts (exclude=replies) | 直近 800 件 |
-| User mentions timeline | 直近 800 件 |
-| Home timeline | 3,200 件または 7 日分 |
+| User Posts timeline | 直近3,200件 |
+| User Posts (exclude=replies) | 直近800件 |
+| User mentions timeline | 直近800件 |
+| Home timeline | 最大3,200件または直近7日間分 |
 
 <Note>
-  これらの上限を超える投稿をリクエストすると、`data` フィールドを含まない成功レスポンスが返されます。
+  これらの上限を超える範囲の投稿をリクエストした場合、レスポンス自体は成功しますが、`data` フィールドには何も含まれません。
 </Note>
 
 ***
@@ -284,18 +284,18 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ## 投稿の編集
 </div>
 
-投稿は30分以内であれば最大5回まで編集できます。Timelineエンドポイントは常に最新のバージョンを返します。
+投稿は、30分以内に最大5回まで編集できます。タイムラインエンドポイントは常に最新バージョンを返します。
 
 <div id="considerations">
   ### 考慮事項
 </div>
 
-* 作成から30分以上経過した投稿は最終版として扱われます
-* 準リアルタイムのユースケースでは、編集が行われる可能性を考慮してください
-* 必要に応じて、Post lookup を使用して最終状態を確認してください
+* 30 分以上前の投稿は最終版を表します
+* ほぼリアルタイムのユースケースでは、編集が行われる可能性を考慮してください
+* 必要に応じて、最終状態を確認するために Post lookup を使用してください
 
 <Card title="投稿編集の基本" icon="clock-rotate-left" href="/ja/x-api/fundamentals/edit-posts">
-  投稿の編集について詳しく学ぶ
+  投稿の編集について詳しく学びましょう
 </Card>
 
 ***
@@ -308,7 +308,7 @@ keywords: ["タイムライン統合", "タイムラインガイド", "タイム
   ### 公開メトリクス
 </div>
 
-App-Only 認証または User Context 認証を使用する場合、すべての投稿で利用できます。
+App-Only 認証または User Context 認証で、すべての投稿について利用できます。
 
 ```json
 {
@@ -321,15 +321,13 @@ App-Only 認証または User Context 認証を使用する場合、すべての
 }
 ```
 
-<div id="private-metrics">
-  ### 非公開メトリクス
-</div>
+### 非公開メトリクス
 
-投稿の作成者によるユーザーコンテキスト認証が必要です:
+投稿の作成者に対するユーザーコンテキスト認証が必要です:
 
-* 過去30日以内の投稿にのみ利用できます
-* 認証済みユーザーが作成した投稿に対してのみ返されます
-* 他のユーザーの投稿に対してはエラーが返されます
+* 過去30日以内の投稿にのみ取得可能
+* 認証済みユーザーが作成した投稿に対してのみ返される
+* 他のユーザーの投稿に対してはエラーが返される
 
 ***
 
@@ -338,18 +336,18 @@ App-Only 認証または User Context 認証を使用する場合、すべての
 </div>
 
 <Accordion title="非公開メトリクスとページネーション">
-  30 日より前の投稿に対して非公開メトリクスをリクエストすると、`result_count: 0` の `next_token` を受け取る場合があります。これを回避するには、次のようにします:
+  30日より前に作成された投稿に対して非公開メトリクスをリクエストすると、`result_count: 0` の `next_token` を受け取る場合があります。これを避けるには、次のようにします：
 
-  * リクエスト対象を直近 30 日以内に限定する
+  * リクエスト対象を直近30日以内に限定する
   * `max_results` を少なくとも 10 に設定する
 </Accordion>
 
 <Accordion title="プロモーションされていない投稿のプロモーションメトリクス">
-  プロモーションされていない投稿に対してプロモーションメトリクスをリクエストすると、空のレスポンスが返されます。これは既知の不具合です。
+  プロモーションされていない投稿に対してプロモーションメトリクスをリクエストすると、空のレスポンスが返されます。これは既知の問題です。
 </Accordion>
 
-<Accordion title="リツイートのテキストが切り詰められる場合">
-  140 文字を超えるテキストを含むリツイートでは、text フィールドが切り詰められます。`referenced_tweets.id` の expansion を使用して、完全なテキストを取得してください。
+<Accordion title="リツイートのテキストの切り詰め">
+  140文字を超えるテキストを含むリツイートでは、text フィールドが切り詰められます。テキスト全体を取得するには、`referenced_tweets.id` の expansion パラメータを使用してください。
 </Accordion>
 
 ***
@@ -359,16 +357,16 @@ App-Only 認証または User Context 認証を使用する場合、すべての
 </div>
 
 <CardGroup cols={2}>
-  <Card title="ホームタイムライン クイックスタート" icon="house" href="/ja/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
+  <Card title="ホームタイムラインのクイックスタート" icon="house" href="/ja/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
     ユーザーのホームフィードを取得する
   </Card>
 
-  <Card title="メンション クイックスタート" icon="at" href="/ja/x-api/posts/timelines/quickstart/user-mention-quickstart">
-    ユーザー宛てのメンションを取得する
+  <Card title="メンションのクイックスタート" icon="at" href="/ja/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    ユーザーへのメンションを取得する
   </Card>
 
   <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/user-posts-timeline-by-user-id">
-    エンドポイントの詳細なドキュメント
+    エンドポイントの完全なドキュメント
   </Card>
 
   <Card title="ページネーション" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">

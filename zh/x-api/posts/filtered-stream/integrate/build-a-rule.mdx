@@ -2,12 +2,12 @@
 title: 构建规则
 sidebarTitle: 构建规则
 description: 了解如何使用运算符构建过滤流规则
-keywords: ["build rule", "filter rules", "stream rules", "rule builder", "filtered stream rules", "create rule", "rule guide"]
+keywords: ["构建规则", "过滤规则", "流规则", "规则构建器", "过滤流规则", "创建规则", "规则指南"]
 ---
 
-过滤流端点会返回符合应用在该流上的一组规则的帖子。规则由针对各种帖子属性进行匹配的运算符组成。
+过滤流端点会推送符合应用到流上的一组规则的帖子。规则由一系列用于匹配各种帖子属性的运算符组成。
 
-可以使用 [POST /tweets/search/stream/rules](/zh/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) 端点应用多个规则。添加规则并通过 [GET /tweets/search/stream](/zh/x-api/posts/filtered-stream#get-2-tweets-search-stream) 建立连接后，只有与您的规则匹配的帖子才会被返回。您无需断开连接即可添加或移除规则。
+可以使用 [POST /tweets/search/stream/rules](/zh/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) 端点应用多条规则。添加规则并通过 [GET /tweets/search/stream](/zh/x-api/posts/filtered-stream#get-2-tweets-search-stream) 建立连接后，只有符合你规则的帖子才会被推送。你无需断开连接即可添加或删除规则。
 
 ***
 
@@ -15,25 +15,25 @@ keywords: ["build rule", "filter rules", "stream rules", "rule builder", "filter
   ## 规则限制
 </div>
 
-规则数量上限取决于你的[访问级别](/zh/x-api/getting-started/about-x-api)。具体限制请参见[过滤流简介](/zh/x-api/posts/filtered-stream/introduction)。
+规则数量的上限取决于你的[访问级别](/zh/x-api/getting-started/about-x-api)。具体限制请参阅[过滤流简介](/zh/x-api/posts/filtered-stream/introduction)。
 
 ***
 
 <div id="operator-types-standalone-and-conjunction-required">
-  ## 运算符类型：独立运算符和必须组合使用的运算符
+  ## 运算符类型：独立型与需连词型
 </div>
 
-**独立运算符（standalone operators）** 可以单独使用，也可以与任何其他运算符（包括那些必须与其他运算符组合使用的运算符）一起使用。
+**独立运算符** 可以单独使用，也可以与任何其他运算符组合使用（包括那些必须与连词一起使用的运算符）。
 
-例如，下面的规则是有效的，因为 `#hashtag` 是一个独立运算符：
+例如，下面这条规则是有效的，因为 `#hashtag` 是一个独立运算符：
 
 ```
 #xapiv2
 ```
 
-**必须与其他条件组合使用的运算符**不能单独用于规则中；只有在规则中还包含至少一个可单独使用的运算符时，才能使用它们。原因是单独使用这些运算符会匹配到极其大量的帖子。
+**必须与其他条件组合使用的运算符** 不能在规则中单独使用；只有在规则中至少包含一个可独立使用的运算符时，它们才能被使用。原因是单独使用这些运算符会匹配到数量极其庞大的帖子。
 
-例如，下面的规则**不受支持**，因为它们只包含必须与其他条件组合使用的运算符：
+例如，以下规则 **不受支持**，因为它们只包含必须与其他条件组合使用的运算符：
 
 ```
 has:media
@@ -43,7 +43,7 @@ has:media
 has:links OR is:retweet
 ```
 
-如果我们添加一个单独的运算符，例如短语 `"X data"`，规则就能正常工作：
+如果我们添加一个单独的运算符，例如短语 `"X data"`，该规则就会正常工作：
 
 ```
 "X data" has:mentions (has:media OR has:links)
@@ -55,22 +55,22 @@ has:links OR is:retweet
   ## 布尔运算符和分组
 </div>
 
-使用以下方式将多个运算符组合在一起：
+使用以下运算符将多个条件串联在一起：
 
-| 运算符 | 描述 | 示例 |
+| Operator | Description | Example |
 | :--- | :--- | :--- |
-| **AND**（空格） | 帖子必须同时满足所有条件 | `snow day #NoSchool` 匹配同时包含 &quot;snow&quot;、&quot;day&quot; 和 #NoSchool 的帖子 |
-| **OR** | 帖子只需满足任一条件 | `grumpy OR cat OR #meme` 匹配包含 &quot;grumpy&quot; 或 &quot;cat&quot; 或 #meme 的帖子 |
+| **AND**（空格） | 帖子必须同时匹配这两个条件 | `snow day #NoSchool` 匹配同时包含 &quot;snow&quot;、&quot;day&quot; 和 #NoSchool 的帖子 |
+| **OR** | 帖子只需匹配其中一个条件 | `grumpy OR cat OR #meme` 匹配包含 &quot;grumpy&quot; 或 &quot;cat&quot; 或 #meme 的帖子 |
 | **NOT**（短横线） | 排除匹配此条件的帖子 | `cat #meme -grumpy` 匹配包含 &quot;cat&quot; 和 #meme 但不包含 &quot;grumpy&quot; 的帖子 |
-| **Grouping**（括号） | 将运算符进行分组 | `(grumpy cat) OR (#meme has:images)` 匹配任一分组 |
+| **Grouping**（括号） | 将运算符和条件分组 | `(grumpy cat) OR (#meme has:images)` 匹配任一分组 |
 
 <Note>
-  **关于否定的一些说明**
+  **关于取反的说明**
 
-  * 除了 `sample:` 之外，所有运算符都可以被否定
+  * 除了 `sample:` 之外，所有运算符都可以取反
   * 运算符 `-is:nullcast` 必须始终以否定形式使用
-  * 否定运算符不能单独使用
-  * 不要对成组运算符整体取反。不要使用 `skiing -(snow OR day OR noschool)`，而应使用 `skiing -snow -day -noschool`
+  * 被取反的运算符不能单独使用
+  * 不要对分组后的运算符整体取反。不要使用 `skiing -(snow OR day OR noschool)`，应使用 `skiing -snow -day -noschool`
 </Note>
 
 ***
@@ -81,17 +81,17 @@ has:links OR is:retweet
 
 当同时使用 AND 和 OR 时：
 
-1. 会先组合由 AND 逻辑连接的运算符
+1. 优先组合由 AND 逻辑连接的运算符
 2. 然后再应用由 OR 逻辑连接的运算符
 
 **示例：**
 
-| 查询                       | 实际解析为                      |
+| Query                    | Evaluated as               |
 | :----------------------- | :------------------------- |
 | `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
 | `ipad iphone OR android` | `(iphone ipad) OR android` |
 
-为避免歧义，请使用括号：
+为消除歧义，请使用括号：
 
 ```
 (apple OR iphone) ipad
@@ -104,17 +104,17 @@ iphone (ipad OR android)
 ***
 
 <div id="punctuation-diacritics-and-case-sensitivity">
-  ## 标点符号、变音符号和大小写敏感性
+  ## 标点符号、变音符号和大小写区分
 </div>
 
-**变音符号：** 包含变音符号的过滤流规则只会匹配同样包含该变音符号的帖子。例如，`diacrítica` 可以匹配 *diacrítica*，但**不会**匹配 *diacritica*。
+**变音符号：** 带有变音符号的过滤流规则只会匹配同样包含该变音符号的帖子。例如，`diacrítica` 能匹配 *diacrítica*，但**不能**匹配 *diacritica*。
 
-**大小写敏感性：** 所有运算符都不区分大小写。规则 `cat` 可以匹配 *cat*、*CAT* 和 *Cat*。
+**大小写区分：** 所有运算符都不区分大小写。规则 `cat` 可以匹配 *cat*、*CAT* 和 *Cat*。
 
 <Note>
-  **搜索帖子时的行为有所不同**
+  **搜索帖子时的行为不同**
 
-  在[构建搜索查询](/zh/x-api/posts/search/integrate/build-a-query)时，带变音符号的关键字可以匹配带变音和不带变音的帖子。例如，`Diacrítica` 可以同时匹配 *Diacrítica* 和 *Diacritica*。
+  在[构建搜索查询](/zh/x-api/posts/search/integrate/build-a-query)时，带变音符号的关键字会匹配同时包含和不包含变音符号的帖子。例如，`Diacrítica` 同时匹配 *Diacrítica* 和 *Diacritica*。
 </Note>
 
 ***
@@ -123,38 +123,38 @@ iphone (ipad OR android)
   ## 引用推文匹配
 </div>
 
-在使用 filtered stream 时，运算符会同时匹配引用推文的内容**以及**被引用的原始帖子的内容。
+在使用过滤流（filtered stream）时，运算符会同时匹配引用推文的内容**以及**被引用的原始帖子的内容。
 
 <Note>
-  [搜索帖子](/zh/x-api/posts/search/introduction) 的行为不同——它只会匹配引用推文的内容，而不会匹配原始帖子的内容。
+  [搜索帖子](/zh/x-api/posts/search/introduction) 的行为有所不同——它只匹配引用推文的内容，而不匹配原始帖子。
 </Note>
 
 ***
 
 <div id="specificity-and-efficiency">
-  ## 具体性和效率
+  ## 精确性与效率
 </div>
 
 <Warning>
-  不推荐只使用单个关键词或话题标签等宽泛运算符——这会匹配到海量帖子，并很快耗尽你的连接配额。
+  不建议只使用单个关键词或话题标签这类范围很广的运算符——它会匹配到海量帖子，并迅速耗尽你的连接资源。
 </Warning>
 
-**构建高效规则的技巧：**
+**构建有效规则的技巧：**
 
-1. **先从具体入手，再逐步放宽** — 先创建能返回高度相关结果的精准规则
-2. **使用多个运算符** — 组合运算符以缩小结果范围
-3. **注意字符数限制** — 整条规则字符串都会计入限制
+1. **先精确，再放宽** —— 先创建能返回高相关结果的精准规则
+2. **使用多个运算符** —— 组合运算符以收窄结果范围
+3. **注意字符数限制** —— 整个规则字符串都会计入限制
 
-**示例演进过程：**
+**示例演进：**
 
 ```
 # Too broad - 200,000+ Posts per day
 happy
 
-# Better - adds language filter and exclusions
+# 更好 - 添加了语言过滤器和排除项
 (happy OR happiness) lang:en -birthday -is:retweet
 
-# 最优 - 59 个字符,更加精确
+# Even better - 59 characters, more specific
 (happy OR happiness) place_country:GB -birthday -is:retweet
 ```
 
@@ -165,7 +165,7 @@ happy
 </div>
 
 <div id="step-1-start-with-a-basic-rule">
-  ### 步骤 1：从一个基本规则开始
+  ### 第 1 步：从一个基本规则开始
 </div>
 
 ```
@@ -182,27 +182,27 @@ happy OR happiness
 (happy OR happiness) lang:en
 ```
 
-我们会收到生日祝福。把这些以及转推排除掉：
+我们收到了生日祝福的推文。把这些和转推排除掉：
 
 ```
 (happy OR happiness) lang:en -birthday -is:retweet
 ```
 
 <div id="step-3-broaden-for-better-coverage">
-  ### 第 3 步：拓展规则以提升覆盖率
+  ### 步骤 3：扩大覆盖范围
 </div>
 
-我们希望捕捉更多情绪倾向。添加相关关键词：
+我们希望捕获更多情绪信息。添加相关关键词：
 
 ```
 (happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
 ```
 
 <div id="step-4-adjust-for-trends">
-  ### 步骤 4：按趋势调整
+  ### 步骤 4：根据趋势进行调整
 </div>
 
-开始出现节假日相关的帖子。将它们排除：
+节日相关的帖子开始出现了。将它们排除：
 
 ```
 (happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
@@ -240,7 +240,7 @@ curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
   ### 删除规则
 </div>
 
-提交一个 `delete` JSON 请求体，其中包含要删除的规则 id：
+提交一个 `delete` JSON 请求体，其中包含要删除的规则 ID：
 
 ```bash
 curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
@@ -263,20 +263,20 @@ curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
 </div>
 
 <div id="tracking-a-natural-disaster">
-  ### 跟踪自然灾害
+  ### 追踪自然灾害
 </div>
 
-匹配来自气象机构发布的、关于飓风哈维的帖子：
+匹配来自气象机构、有关飓风“哈维”的帖子：
 
 ```json
 {
   "value": "-is:retweet has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1)",
-  "tag": "Hurricane Harvey - weather agencies with geo"
+  "tag": "飓风哈维 - 带有地理位置的气象机构"
 }
 ```
 
 <div id="sentiment-analysis-for-nowplaying">
-  ### 关于 #nowplaying 的情感分析
+  ### #nowplaying 的情感分析
 </div>
 
 **积极情感：**
@@ -298,12 +298,12 @@ curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
 ```
 
 <div id="using-post-annotations">
-  ### 使用帖子注释
+  ### 使用帖子注解
 </div>
 
-使用 `context:` 运算符查找用日文撰写且带有图片的宠物相关帖子（不包括关于猫的帖子）：
+使用 `context:` 运算符查找带图片的日语宠物（不包括猫）帖子：
 
-首先，使用 [Post lookup](/zh/x-api/posts/lookup/introduction) 并指定 `tweet.fields=context_annotations` 来识别 domain.entity ID：
+首先，使用 [Post lookup](/zh/x-api/posts/lookup/introduction) 并通过 `tweet.fields=context_annotations` 来识别 domain.entity 的 ID：
 
 * Cats：`domain` 66，`entity` 852262932607926273
 * Pets：`domain` 65，`entity` 852262932607926273
@@ -323,11 +323,11 @@ curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
 
 <CardGroup cols={2}>
   <Card title="运算符参考" icon="list" href="/zh/x-api/posts/filtered-stream/integrate/operators">
-    完整的可用运算符列表
+    可用运算符的完整列表
   </Card>
 
   <Card title="过滤流快速入门" icon="rocket" href="/zh/x-api/posts/filtered-stream/quickstart">
-    连接到你的流
+    连接到您的流
   </Card>
 
   <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code/tree/master/Filtered-Stream">

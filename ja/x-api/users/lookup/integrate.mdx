@@ -1,13 +1,13 @@
 ---
-title: 連携ガイド
-sidebarTitle: 連携ガイド
-description: User lookup との連携に関する主要な概念とベストプラクティス
-keywords: ["User lookup 連携", "ユーザー連携ガイド", "User lookup 実装"]
+title: 統合ガイド
+sidebarTitle: 統合ガイド
+description: User lookup 統合の主要な概念とベストプラクティス
+keywords: ["User lookup 統合", "User lookup 統合ガイド", "User lookup 実装"]
 ---
 
 import { Button } from '/snippets/ja/button.mdx';
 
-本ガイドでは、アプリケーションに User lookup エンドポイントを統合するために必要となる基本的な概念について説明します。
+このガイドでは、アプリケーションに User lookup エンドポイントを組み込むために理解しておくべき主要な概念を説明します。
 
 ***
 
@@ -15,19 +15,19 @@ import { Button } from '/snippets/ja/button.mdx';
   ## 認証
 </div>
 
-すべての X API v2 エンドポイントでは認証が必要です。ユースケースに合った方法を選択してください。
+すべての X API v2 エンドポイントで認証が必要です。ユースケースに適した方法を選択してください。
 
-| Method | Best for | Can access private metrics? |
+| 方法 | 最適な用途 | プライベートメトリクスへのアクセス可否 |
 |:-------|:---------|:---------------------------|
-| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | サーバー間通信、公開データ | いいえ |
-| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向けアプリ | はい（認可されたユーザーのデータ） |
-| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシー統合 | はい（認可されたユーザーのデータ） |
+| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | サーバー間、公開データ | いいえ |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向けアプリケーション | はい（認可されたユーザーのデータ） |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシーな連携 | はい（認可されたユーザーのデータ） |
 
 <div id="app-only-authentication">
-  ### アプリのみ認証
+  ### App-Only 認証
 </div>
 
-公開ユーザーデータを取得する場合は Bearer Token を使用します。
+公開ユーザーデータには Bearer Token を使用します。
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -40,7 +40,7 @@ import { Button } from '/snippets/ja/button.mdx';
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Get user by username
+  # ユーザー名でユーザーを取得
   response = client.users.get_by_username("XDevelopers")
   print(response.data)
   ```
@@ -59,7 +59,7 @@ import { Button } from '/snippets/ja/button.mdx';
   ### User Context 認証
 </div>
 
-認証ユーザー向けエンドポイント（`/2/users/me`）では必須です:
+認証済みユーザー向けエンドポイント（`/2/users/me`）で必要です。
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -70,10 +70,10 @@ import { Button } from '/snippets/ja/button.mdx';
   ```python Python SDK
   from xdk import Client
 
-  # OAuth 2.0 ユーザーアクセストークンを使用
+  # OAuth 2.0 のユーザーアクセストークンを使用
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # 認証ユーザーのプロフィールを取得
+  # 認証済みユーザーのプロフィールを取得
   response = client.users.get_me()
   print(response.data)
   ```
@@ -81,7 +81,7 @@ import { Button } from '/snippets/ja/button.mdx';
   ```javascript JavaScript SDK
   import { Client } from "@xdevplatform/xdk";
 
-  // OAuth 2.0 ユーザーアクセストークンを使用
+  // OAuth 2.0 のユーザーアクセストークンを使用
   const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
 
   const response = await client.users.getMe();
@@ -90,7 +90,7 @@ import { Button } from '/snippets/ja/button.mdx';
 </CodeGroup>
 
 <Warning>
-  `/2/users/me` エンドポイントは User Context 認証でのみ利用できます。App-Only トークンではエラーが返されます。
+  `/2/users/me` エンドポイントは User Context 認証でのみ利用できます。App-Only トークンを使用した場合はエラーが返されます。
 </Warning>
 
 ***
@@ -99,10 +99,10 @@ import { Button } from '/snippets/ja/button.mdx';
   ## フィールドと展開
 </div>
 
-X API v2 は、デフォルトでは最小限の data のみを返します。必要な情報だけを取得するには、`fields` と `expansions` を指定してください。
+X API v2 は、デフォルトでは最小限の data のみを返します。必要な情報だけを取得するために、`fields` と `expansions` を使用してください。
 
 <div id="default-response">
-  ### デフォルトのレスポンス
+  ### デフォルトレスポンス
 </div>
 
 ```json
@@ -123,22 +123,22 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
   | フィールド | 説明 |
   |:------|:------------|
   | `created_at` | アカウント作成日時 |
-  | `description` | ユーザーの自己紹介 |
-  | `entities` | 自己紹介文に含まれる解析済み URL |
+  | `description` | ユーザーの自己紹介文 |
+  | `entities` | 自己紹介文内の解析済み URL |
   | `location` | ユーザーが指定した場所 |
   | `pinned_tweet_id` | 固定された投稿の ID |
-  | `profile_image_url` | アバターの URL |
+  | `profile_image_url` | プロフィール画像の URL |
   | `protected` | アカウントが非公開かどうか |
-  | `public_metrics` | フォロー/フォロワー数 |
+  | `public_metrics` | フォロワー数/フォロー数 |
   | `url` | Web サイトの URL |
-  | `verified` | 認証ステータス |
-  | `withheld` | 利用制限に関する情報 |
+  | `verified` | 認証状態 |
+  | `withheld` | 差し止めに関する情報 |
 </Accordion>
 
-<Accordion title="tweet.fields (pinned_tweet_id の展開が必要)">
+<Accordion title="tweet.fields (requires pinned_tweet_id expansion)">
   | フィールド | 説明 |
   |:------|:------------|
-  | `created_at` | 投稿作成日時 |
+  | `created_at` | 投稿の作成日時 |
   | `text` | 投稿内容 |
   | `public_metrics` | エンゲージメント数 |
   | `entities` | ハッシュタグ、メンション、URL |
@@ -162,7 +162,7 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # 追加フィールドと展開を指定してユーザー情報を取得
+  # 追加のフィールドと展開を含めてユーザーを取得
   response = client.users.get_by_username(
       "XDevelopers",
       user_fields=["created_at", "description", "public_metrics", "verified"],
@@ -171,7 +171,7 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
   )
 
   print(response.data)
-  print(response.includes)  # 展開された固定ツイートを含む
+  print(response.includes)  # 展開された固定表示ツイートを含みます
   ```
 
   ```javascript JavaScript SDK
@@ -186,12 +186,12 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
   });
 
   console.log(response.data);
-  console.log(response.includes); // 展開された固定ツイートを含む
+  console.log(response.includes); // 展開された固定表示ツイートを含みます
   ```
 </CodeGroup>
 
 <div id="response-with-expansions">
-  ### `expansions` を指定した場合のレスポンス
+  ### expansions を含むレスポンス
 </div>
 
 ```json
@@ -222,7 +222,7 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 ```
 
 <Card title="フィールドと展開のガイド" icon="sliders" href="/ja/x-api/fundamentals/fields">
-  レスポンスのカスタマイズ方法について詳しく学びましょう
+  レスポンスのカスタマイズについて詳しく学ぶ
 </Card>
 
 ***
@@ -231,16 +231,16 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
   ## バッチ検索
 </div>
 
-1 回のリクエストで複数のユーザー情報を取得します:
+単一のリクエストで複数のユーザーを取得します:
 
 <CodeGroup dropdown>
-  ```bash cURL（ID 指定）
+  ```bash cURL (ID で指定)
   curl "https://api.x.com/2/users?ids=2244994945,783214,6253282&\
   user.fields=username,verified" \
     -H "Authorization: Bearer $BEARER_TOKEN"
   ```
 
-  ```bash cURL（ユーザー名指定）
+  ```bash cURL (ユーザー名で指定)
   curl "https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&\
   user.fields=username,verified" \
     -H "Authorization: Bearer $BEARER_TOKEN"
@@ -294,7 +294,7 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 </CodeGroup>
 
 <Tip>
-  バッチリクエストでは一度に最大 100 ユーザーまで取得できます。より大きなデータセットが必要な場合は、複数のリクエストに分割してください。
+  バッチリクエストでは一度に最大 100 ユーザーまで取得できます。より大きなデータセットの場合は、複数のリクエストに分割して実行してください。
 </Tip>
 
 ***
@@ -304,25 +304,25 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 </div>
 
 <div id="common-errors">
-  ### 一般的なエラー
+  ### よくあるエラー
 </div>
 
-| ステータス | エラー | 解決方法 |
+| Status | Error | Solution |
 |:-------|:------|:---------|
 | 400 | 無効なリクエスト | パラメータの形式を確認してください |
 | 401 | 認証されていません | 認証情報を確認してください |
 | 403 | アクセスが禁止されています | App の権限を確認してください |
 | 404 | 見つかりません | ユーザーが存在しないか、凍結されています |
-| 429 | リクエストが多すぎます | 一定時間待ってから再試行してください（レート制限を参照） |
+| 429 | リクエストが多すぎます | しばらく待ってから再試行してください（レート制限を参照） |
 
 <div id="suspended-or-deleted-users">
   ### 凍結または削除されたユーザー
 </div>
 
-ユーザーが凍結または削除されている場合:
+ユーザーが凍結または削除されている場合は、次のようになります。
 
-* 単一ユーザーのルックアップでは `404` を返します
-* 複数ユーザーのルックアップでは、そのユーザーは結果に含まれず、レスポンスに `errors` 配列が含まれます
+* 単一ユーザーのルックアップは `404` を返します
+* 複数ユーザーのルックアップでは、結果にはそのユーザーは含まれず、代わりに `errors` 配列に含まれます
 
 ```json
 {
@@ -341,14 +341,14 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 ```
 
 <div id="protected-users">
-  ### 非公開アカウント
+  ### 保護されたユーザー
 </div>
 
-フォローしていない非公開アカウントの場合:
+フォローしていない保護アカウントの場合:
 
-* 基本情報（id、名前、ユーザー名）は参照できます
-* 保護されたコンテンツ（ピン留めされた投稿）はアクセスが制限される場合があります
-* `protected: true` はアカウントが非公開であることを示します
+* 基本情報（id、名前、ユーザー名）は参照可能です
+* 保護されたコンテンツ（固定された投稿など）は取得が制限される場合があります
+* `protected: true` はアカウントが保護状態であることを示します
 
 ***
 
@@ -357,20 +357,20 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 </div>
 
 <CardGroup cols={2}>
-  <Card title="バッチリクエスト" icon="layer-group">
-    マルチユーザーエンドポイントを使用して最大100人のユーザーを一度に取得し、API呼び出し回数を削減します。
+  <Card title="リクエストをバッチ化する" icon="layer-group">
+    最大100件のユーザー情報を一度に取得できるマルチユーザーエンドポイントを使用して、APIコール数を削減します。
   </Card>
 
-  <Card title="必要なフィールドのみをリクエストする" icon="filter">
-    必要なフィールドのみを指定して、レスポンスサイズを最小限に抑えます。
+  <Card title="必要なフィールドだけをリクエストする" icon="filter">
+    必要なフィールドだけを指定して、レスポンスサイズを最小限に抑えます。
   </Card>
 
   <Card title="ユーザーデータをキャッシュする" icon="database">
-    ユーザープロフィールをローカルにキャッシュして、重複するリクエスト回数を減らします。
+    同じリクエストを繰り返さないよう、ユーザープロフィールをローカルにキャッシュします。
   </Card>
 
   <Card title="エラーを適切に処理する" icon="triangle-exclamation">
-    バッチレスポンス内の部分的なエラーを確認します。
+    バッチレスポンス内に部分的なエラーが含まれていないか確認します。
   </Card>
 </CardGroup>
 
@@ -382,7 +382,7 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
 
 <CardGroup cols={2}>
   <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-user-by-id">
-    エンドポイントの完全なドキュメント
+    エンドポイントの詳細ドキュメント
   </Card>
 
   <Card title="データ辞書" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
@@ -393,7 +393,7 @@ X API v2 は、デフォルトでは最小限の data のみを返します。�
     実行可能なコード例
   </Card>
 
-  <Card title="エラー処理" icon="triangle-exclamation" href="/ja/x-api/fundamentals/response-codes-and-errors">
-    エラーを適切に扱う
+  <Card title="エラーハンドリング" icon="triangle-exclamation" href="/ja/x-api/fundamentals/response-codes-and-errors">
+    エラーを適切に処理する
   </Card>
 </CardGroup>

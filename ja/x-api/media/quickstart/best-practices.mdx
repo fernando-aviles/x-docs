@@ -1,27 +1,27 @@
 ---
 title: ベストプラクティス
 sidebarTitle: ベストプラクティス
-keywords: ["メディアアップロードのベストプラクティス", "メディアをアップロード", "メディアのベストプラクティス", "画像アップロード", "動画アップロード", "メディアアップロードガイド"]
+keywords: ["media upload best practices", "upload media", "media best practices", "image upload", "video upload", "media upload guide"]
 ---
 
-[`POST /2/media/upload`](/ja/x-api/media/media-upload) エンドポイントを利用する際には、理解しておくべき重要な概念がいくつかあります。OAuth を使ったメディアのアップロードは少々複雑になりがちなので、このエンドポイントを利用する際に留意すべき点と、実際に動作するサンプルコードをここで紹介します。
+[`POST /2/media/upload`](/ja/x-api/media/media-upload) エンドポイントを使用する際には、理解しておくべき重要な概念がいくつかあります。OAuth を用いたメディアのアップロードは少し扱いが難しい場合があるため、このエンドポイントを使用する際に留意すべき点と、実際に動作するサンプルをここで紹介します。
 
 <div id="keep-in-mind">
   ## 注意事項
 </div>
 
-* 1つの投稿には、写真を最大4枚、アニメーションGIFを1つ、または動画を1つ添付できます。
-* 渡す画像は、生のバイナリデータ、またはバイナリを base64 エンコードしたものとし、`Content-Type` が適切に設定されていれば、それ以外に内容をエンコードしたりエスケープしたりする必要はありません（迷った場合は `application/octet-stream` を使用してください）。
-* base64 エンコードした画像を投稿する場合は、メッセージ内の画像パートに「Content-Transfer-Encoding: base64」を必ず設定してください。
-* マルチパートメッセージの境界は、それ単独の行に置き、CRLF で終端する必要があります。
-* このエンドポイントを使った POST の具体例については、[xurl](https://github.com/xdevplatform/xurl) でテストすることを推奨します。また、利用可能な [X Libraries](/ja/resources/tools-and-libraries) も参照してください。
-* JavaScript や、長整数を正確に表現できないその他の言語では、API レスポンスで提供される `media_id_string` を使用してください。
+* 1つの投稿には、写真4枚、アニメーションGIF 1つ、または動画1本まで添付できます。
+* 送信する画像データは、生のバイナリデータ、もしくはバイナリを base64 エンコードしたものにしてください。`Content-Type` が適切に設定されていれば（迷った場合は `application/octet-stream`）、それ以外のエンコードやエスケープは不要です。
+* base64 エンコードした画像を送信する場合は、メッセージ内の画像パートに「Content-Transfer-Encoding: base64」を必ず設定してください。
+* マルチパートメッセージの境界文字列は、それ単独で1行に配置し、CRLF で終端する必要があります。
+* このエンドポイントを使って POST する実用的な例については、[xurl](https://github.com/xdevplatform/xurl) でのテストをおすすめします。また、利用可能な [X Libraries](/ja/resources/tools-and-libraries) も参照してください。
+* JavaScript や、長整数を正確に表現できない他の言語では、API レスポンスで提供される `media_id_string` を使用してください。
 
 <div id="media-categories">
   ## メディアカテゴリ
 </div>
 
-Media Category パラメータは、アップロードするメディアファイルの利用目的を定義し、メディアアップロードに対して適用されるファイルサイズ上限やその他の制約に影響する場合があります。アップロードしたメディアを利用する際に問題が発生しないよう、メディアをアップロードするときは必ず正しいメディアカテゴリを指定してください。これはアップロードフローの一部として、INIT リクエストで送信できる任意指定の値です。メディアカテゴリが指定されていない場合、アップロードされたメディアはコンテンツタイプに応じて、Post 用のメディア（`tweet_image`、`tweet_video`、`tweet_gif`）であるとみなされます。
+Media Category パラメータは、アップロードするメディアファイルの利用用途を定義し、アップロード時に適用されるファイルサイズ上限やその他の制約に影響する可能性があります。メディアを利用しようとした際の問題を避けるため、メディアをアップロードする際には正しいメディアカテゴリを使用することが重要です。これは、アップロードフローの一部として INIT リクエストで渡す任意の値です。メディアカテゴリが指定されていない場合、アップロードされたメディアはコンテンツタイプに応じて、投稿用メディア（`tweet_image`、`tweet_video`、`tweet_gif`）とみなされます。
 
 最も一般的なメディアカテゴリは次のとおりです。
 
@@ -33,63 +33,63 @@ Media Category パラメータは、アップロードするメディアファ�
 * `dm_gif`
 * `subtitles`
 
-Ads API パートナーの方は、プロモーション動画で使用する推奨メディアカテゴリの詳細について [こちらのドキュメント](/ja/x-ads-api/creatives#promoted-video) を参照してください。
+Ads API パートナーの方は、プロモーション動画に推奨されるメディアカテゴリについて、[これらのドキュメント](/ja/x-ads-api/creatives#promoted-video) を参照してください。
 
 <div id="image-specifications-and-recommendations">
   ## 画像の仕様と推奨事項
 </div>
 
-画像ファイルは、次のすべての条件を満たす必要があります。
+画像ファイルは、以下のすべての条件を満たしている必要があります。
 
-* **サポートされている画像メディアタイプ**: `JPG`, `PNG`, `GIF`, `WEBP`
+* **サポートされる画像メディアの種類**: `JPG`, `PNG`, `GIF`, `WEBP`
 * **画像サイズ**: `<= 5 MB`
 * **アニメーション GIF のサイズ**: `<= 15 MB`
 
-上記のファイルサイズ上限は、メディアアップロードエンドポイントによって制限されています。加えて、`media_id` を指定して投稿作成（または同様の）エンドポイントを呼び出す際には、プロダクトエンティティごとの別のファイルサイズ上限が適用されます。ファイルサイズ上限やその他の制約は、`media_category` パラメータに応じて異なる場合があります。
+上記のファイルサイズ上限は、メディアアップロードエンドポイントによって適用されます。加えて、`media_id` を指定して投稿作成（または同様の）エンドポイントを呼び出す際には、プロダクトエンティティごとに固有の別のファイルサイズ上限が適用されます。ファイルサイズの上限およびその他の制約は、`media_category` パラメータに応じて異なる場合があります。
 
 <div id="animated-gif-recommendations">
-  ## アニメーション GIF の推奨仕様
+  ## アニメーションGIFに関する推奨事項
 </div>
 
-ファイルサイズの上限内であっても、投稿の作成時に GIF の処理が失敗する場合があります。成功率を高めるため、以下の制約に従ってください。
+ファイルサイズの制限内に収まっていても、投稿の作成時に GIF のアップロードが失敗する場合があります。成功率を高めるには、次の制約を満たすようにしてください。
 
-* **解像度**: `<= 1280x1080`（`width` x `height`）
+* **解像度**: `<= 1280x1080` (`width` x `height`)
 * **フレーム数**: `<= 350`
-* **ピクセル数**: `<= 300 million`（`width` * `height` * `num_frames`）
+* **ピクセル数**: `<= 300 million` (`width` * `height` * `num_frames`)
 * **ファイルサイズ**: `<= 15Mb`
 
-より大きな GIF を処理するには、`media_category` パラメータを指定して [chunked upload](/ja/x-api/media/quickstart/media-upload-chunked) エンドポイントを使用します。これにより、サーバーは GIF ファイルを非同期で処理でき、大きなファイルを処理するにはこの方式が必須となります。アニメーション GIF を含む投稿で非同期アップロード動作を有効にするには、`media_category=tweet_gif` を指定してください。
+より大きな GIF を処理するには、`media_category` パラメータを指定して [chunked upload](/ja/x-api/media/quickstart/media-upload-chunked) エンドポイントを使用します。これにより、サーバーが GIF ファイルを非同期で処理できるようになり、より大きなファイルを処理するための要件を満たせます。アニメーション GIF を含む投稿で非同期アップロードを有効にするには、`media_category=tweet_gif` を指定してください。
 
 <div id="video-specifications-and-recommendations">
-  ## 動画仕様と推奨事項
+  ## 動画の仕様と推奨事項
 </div>
 
-メディアをアップロードする際は Async Path を使用してください。
+メディアのアップロードには Async Path の利用を推奨します。
 
 <div id="recommended">
   ### 推奨
 </div>
 
-* **ビデオコーデック**: `H264 High Profile`
-* **フレームレート**: `30 FPS`, `60 FPS`
-* **ビデオ解像度**: `1280x720`（横向き）、`720x1280`（縦向き）、`720x720`（正方形）。サブスクリプション登録ユーザーは 1080p の動画をアップロードして 1080p で再生できます。サブスクリプション未登録ユーザーは 720p の動画をアップロードして 720p で再生できます。
-* **最小ビデオビットレート**: `5,000 kbps`
-* **最小オーディオビットレート**: `128 kbps`
-* **オーディオコーデック**: `AAC LC`
-* **アスペクト比**: `16:9`（横向きまたは縦向き）、`1:1`（正方形）
+* **Video Codec**: `H264 High Profile`
+* **Frame Rates**: `30 FPS`, `60 FPS`
+* **Video Resolution**: `1280x720`（横向き）、`720x1280`（縦向き）、`720x720`（正方形）。サブスク登録済みのユーザーは 1080p 動画をアップロードして 1080p で再生できます。未登録のユーザーは 720p 動画をアップロードして 720p で再生できます。
+* **Minimum Video Bitrate**: `5,000 kbps`
+* **Minimum Audio Bitrate**: `128 kbps`
+* **Audio Codec**: `AAC LC`
+* **Aspect Ratio**: `16:9`（横向きまたは縦向き）、`1:1`（正方形）
 
 <div id="advanced">
-  ### 高度な仕様
+  ### 高度な要件
 </div>
 
 * **フレームレート**: `60 FPS` 以下である必要があります
 * **解像度**: `32x32` から `1280x1024` の範囲である必要があります
-* **ファイルサイズ**: `512 MB` を超えてはいけません
-* **再生時間**: `0.5 秒` から `140 秒` の範囲である必要があります
+* **ファイルサイズ**: `512 MB` を超えてはなりません
+* **再生時間**: `0.5秒` から `140秒` の範囲である必要があります
 * **アスペクト比**: `1:3` から `3:1` の範囲である必要があります
 * **[ピクセルアスペクト比](https://en.wikipedia.org/wiki/Pixel_aspect_ratio)**: `1:1` である必要があります
-* **ピクセルフォーマット**: [YUV](https://en.wikipedia.org/wiki/YUV) 4:2:0 のみサポートされています
-* 音声は [`AAC` Low Complexity プロファイル](https://en.wikipedia.org/wiki/Advanced_Audio_Coding#Modular_encoding)である必要があります（High-Efficiency `AAC` はサポートされていません）
+* **ピクセルフォーマット**: [YUV](https://en.wikipedia.org/wiki/YUV) 4:2:0 のみサポートされます
+* 音声は [`AAC` の Low Complexity プロファイル](https://en.wikipedia.org/wiki/Advanced_Audio_Coding#Modular_encoding) である必要があります（High-Efficiency `AAC` はサポートされていません）
 * 音声は `mono` または `stereo` である必要があり、5.1 以上は使用できません
 * [`open GOP`](https://en.wikipedia.org/wiki/Group_of_pictures) を使用してはなりません
 * [`progressive scan`](https://en.wikipedia.org/wiki/Progressive_scan) を使用する必要があります
@@ -98,9 +98,9 @@ Ads API パートナーの方は、プロモーション動画で使用する推
   ### 追加情報
 </div>
 
-以下の表の各行はアップロード時の推奨値を示しますが、必須ではありません。すべてのアップロードは、複数のプラットフォームで最適化されるよう処理されます。
+下表の各行はアップロードの推奨設定を示していますが、必須要件ではありません。すべてのアップロードメディアは、複数プラットフォーム向けに最適化されるよう処理されます。
 
-| 向き | 幅 | 高さ | ビデオビットレート | オーディオビットレート |
+| 向き | 幅 | 高さ | 動画ビットレート | 音声ビットレート |
 | :--- | :--- | :--- | :--- | :--- |
 | 横向き | 1280 | 720 | 2048K | 128K |
 | 横向き | 640 | 360 | 768K | 64K |
@@ -112,10 +112,10 @@ Ads API パートナーの方は、プロモーション動画で使用する推
 | 正方形 | 480 | 480 | 768K | 64K |
 | 正方形 | 240 | 240 | 256K | 32K |
 
-メディアのアップロード方法の例については、[chunked media upload ドキュメント](/ja/x-api/media/quickstart/media-upload-chunked)を参照してください。
+メディアのアップロード方法の例については、[chunked メディアアップロードのドキュメント](/ja/x-api/media/quickstart/media-upload-chunked)を参照してください。
 
 <div id="troubleshooting">
   ### トラブルシューティング
 </div>
 
-Media API に関する問題が発生した場合は、開発者フォーラムの [Media API カテゴリ](https://devcommunity.x.com/c/x-api/media-apis) をご確認ください。
+Media API に関する問題が発生した場合は、開発者フォーラムの [Media API カテゴリ](https://devcommunity.x.com/c/x-api/media-apis) を参照して解決策を確認してください。

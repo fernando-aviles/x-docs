@@ -2,12 +2,12 @@
 title: Guía de integración
 sidebarTitle: Guía de integración
 description: Conceptos clave y prácticas recomendadas para enviar Mensajes Directos
-keywords: ["integración para gestionar mensajes directos", "integración para la gestión de MD", "integración para enviar MD"]
+keywords: ["gestionar la integración de Mensajes Directos", "integración para la gestión de MD", "integración para enviar MD"]
 ---
 
 import { Button } from '/snippets/es/button.mdx';
 
-Esta guía cubre los conceptos clave que necesitas conocer para integrar en tu aplicación los endpoints para gestionar Mensajes Directos.
+Esta guía abarca los conceptos clave que necesitas para integrar en tu aplicación los endpoints para gestionar Mensajes Directos.
 
 ***
 
@@ -15,7 +15,7 @@ Esta guía cubre los conceptos clave que necesitas conocer para integrar en tu a
   ## Autenticación
 </div>
 
-Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario:
+Los endpoints de Mensajes Directos (MD) requieren autenticación de usuario:
 
 | Método | Descripción |
 |:-------|:------------|
@@ -23,31 +23,31 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario:
 | [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) | Compatibilidad heredada |
 
 <Warning>
-  La autenticación de solo aplicación (App-Only) no es compatible. Todos los mensajes directos son privados.
+  La autenticación App-only no se admite. Todos los mensajes directos son privados.
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### Ámbitos obligatorios (OAuth 2.0)
+  ### Scopes obligatorios (OAuth 2.0)
 </div>
 
 | Scope | Obligatorio para |
 |:------|:-------------|
 | `dm.write` | Enviar y eliminar mensajes |
-| `dm.read` | Obligatorio junto con `dm.write` |
-| `tweet.read` | Obligatorio con los ámbitos de DM |
-| `users.read` | Obligatorio con los ámbitos de DM |
+| `dm.read` | Obligatorio junto con dm.write |
+| `tweet.read` | Obligatorio junto con los scopes de DM |
+| `users.read` | Obligatorio junto con los scopes de DM |
 
 ***
 
 <div id="endpoints-overview">
-  ## Descripción general de endpoints
+  ## Descripción general de los endpoints
 </div>
 
 | Método | Endpoint | Descripción |
 |:-------|:---------|:------------|
-| POST | `/2/dm_conversations/with/:participant_id/messages` | Enviar mensaje individual |
+| POST | `/2/dm_conversations/with/:participant_id/messages` | Enviar mensaje uno a uno |
 | POST | `/2/dm_conversations` | Crear conversación de grupo |
-| POST | `/2/dm_conversations/:dm_conversation_id/messages` | Agregar un mensaje a la conversación |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | Agregar mensaje a la conversación |
 | DELETE | `/2/dm_events/:event_id` | Eliminar un mensaje |
 
 ***
@@ -60,14 +60,14 @@ Los endpoints de Mensajes Directos (DM) requieren autenticación de usuario:
   ### Mensaje uno a uno
 </div>
 
-Envía un mensaje a un usuario específico. Crea una conversación nueva si aún no existe:
+Envía un mensaje a un usuario específico. Crea una nueva conversación si aún no existe:
 
 <CodeGroup dropdown>
   ```bash cURL
   curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
-    -d '{"text": "¡Hola!"}'
+    -d '{"text": "Hello!"}'
   ```
 
   ```python Python SDK
@@ -75,10 +75,10 @@ Envía un mensaje a un usuario específico. Crea una conversación nueva si aún
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # Envía un MD uno a uno
+  # Envía un mensaje directo uno a uno
   response = client.dm_conversations.create_message(
       participant_id="9876543210",
-      text="¡Hola!"
+      text="Hello!"
   )
   print(response.data)
   ```
@@ -88,10 +88,10 @@ Envía un mensaje a un usuario específico. Crea una conversación nueva si aún
 
   const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
 
-  // Envía un MD uno a uno
+  // Envía un mensaje directo uno a uno
   const response = await client.dmConversations.createMessage({
     participantId: "9876543210",
-    text: "¡Hola!",
+    text: "Hello!",
   });
   console.log(response.data);
   ```
@@ -145,7 +145,7 @@ Crea un nuevo grupo y envía el primer mensaje:
 </CodeGroup>
 
 <Note>
-  El campo `conversation_type` debe configurarse como `"Group"` (sensible a mayúsculas y minúsculas).
+  El campo `conversation_type` debe establecerse en `"Group"` (sensible a mayúsculas y minúsculas).
 </Note>
 
 <div id="add-to-existing-conversation">
@@ -195,17 +195,17 @@ Envía un mensaje a cualquier conversación en la que participes:
   ## Archivos multimedia adjuntos
 </div>
 
-Adjunta un único elemento multimedia (foto, video o GIF) por mensaje.
+Adjunta un archivo multimedia (foto, video o GIF) por mensaje.
 
 <Steps>
-  <Step title="Subir archivo multimedia">
-    Usa el [Media Upload endpoint](/es/x-api/media/quickstart/media-upload-chunked) para subir tu archivo y obtener un `media_id`.
+  <Step title="Subir contenido multimedia">
+    Usa el [endpoint Media Upload](/es/x-api/media/quickstart/media-upload-chunked) para subir tu archivo y obtener un `media_id`.
   </Step>
 
   <Step title="Incluir en el mensaje">
     ```json
     {
-      "text": "¡Mira esta imagen!",
+      "text": "Mira esta imagen",
       "attachments": [{"media_id": "1583157113245011970"}]
     }
     ```
@@ -213,8 +213,8 @@ Adjunta un único elemento multimedia (foto, video o GIF) por mensaje.
 </Steps>
 
 <Note>
-  * El usuario autenticado debe haber subido el archivo multimedia
-  * El contenido multimedia estará disponible durante 24 horas después de la carga
+  * El usuario autenticado debe haber subido el contenido multimedia
+  * El contenido multimedia estará disponible durante 24 horas después de la subida
   * Solo se admite un archivo adjunto por mensaje
 </Note>
 
@@ -224,20 +224,20 @@ Adjunta un único elemento multimedia (foto, video o GIF) por mensaje.
   ## Compartir publicaciones
 </div>
 
-Incluye una publicación en tu mensaje añadiendo la URL de la publicación al texto:
+Incluye una publicación en tu mensaje agregando la URL de la publicación al texto:
 
 ```json
 {
-  "text": "¿Has visto esto? https://x.com/XDevelopers/status/1580559079470145536"
+  "text": "Have you seen this? https://x.com/XDevelopers/status/1580559079470145536"
 }
 ```
 
-La respuesta incluirá un campo `referenced_tweets` con el id de la publicación.
+La respuesta incluirá un campo `referenced_tweets` con el id de la Publicación.
 
 ***
 
 <div id="message-requirements">
-  ## Requisitos del mensaje
+  ## Requisitos de los mensajes
 </div>
 
 | Campo | Obligatorio | Notas |
@@ -245,31 +245,31 @@ La respuesta incluirá un campo `referenced_tweets` con el id de la publicación
 | `text` | Sí* | Obligatorio si no hay archivos adjuntos |
 | `attachments` | Sí* | Obligatorio si no hay texto |
 
-*Debe proporcionarse al menos uno de `text` o `attachments`.
+*Se debe proporcionar al menos uno de `text` o `attachments`.
 
 ***
 
 <div id="id-compatibility-with-v11">
-  ## Compatibilidad de identificadores con v1.1
+  ## Compatibilidad de ID con v1.1
 </div>
 
-Los identificadores de conversación y de evento se comparten entre los endpoints de v1.1 y v2. Esto permite flujos de trabajo híbridos:
+Los ID de conversación y de evento se comparten entre los endpoints de v1.1 y v2. Esto permite flujos de trabajo híbridos:
 
 * Crear mensajes con v2
 * Eliminar mensajes con v1.1 (aún no disponible en v2)
-* Hacer referencia a identificadores de conversación desde URL de x.com
+* Consultar ID de conversación en las URL de x.com
 
 ***
 
 <div id="error-handling">
-  ## Gestión de errores
+  ## Manejo de errores
 </div>
 
 | Status | Error | Solución |
 |:-------|:------|:---------|
 | 400 | Solicitud no válida | Comprueba el formato del cuerpo de la solicitud |
 | 401 | No autorizado | Comprueba el token de acceso |
-| 403 | Acceso denegado | Comprueba los scopes y los permisos del usuario |
+| 403 | Prohibido | Comprueba los scopes y los permisos del usuario |
 | 429 | Demasiadas solicitudes | Espera y vuelve a intentarlo |
 
 <div id="common-issues">
@@ -281,12 +281,12 @@ Los identificadores de conversación y de evento se comparten entre los endpoint
     Es posible que el destinatario tenga una configuración de MD que impida recibir mensajes de usuarios desconocidos o que te haya bloqueado.
   </Accordion>
 
-  <Accordion title="Error al adjuntar el contenido multimedia">
+  <Accordion title="Error al adjuntar contenido multimedia">
     Asegúrate de que el contenido multimedia haya sido subido por el mismo usuario autenticado y tenga menos de 24 horas de antigüedad.
   </Accordion>
 
   <Accordion title="Error al crear el grupo">
-    Verifica que todos los id de los participantes sean válidos y que los usuarios permitan invitaciones a MD de grupo.
+    Verifica que todos los id de los participantes sean válidos y que los usuarios permitan invitaciones a MD grupales.
   </Accordion>
 </AccordionGroup>
 
@@ -301,12 +301,12 @@ Los identificadores de conversación y de evento se comparten entre los endpoint
     Envía tu primer Mensaje Directo
   </Card>
 
-  <Card title="Búsqueda de MD" icon="inbox" href="/es/x-api/direct-messages/lookup/introduction">
-    Obtén conversaciones de MD
+  <Card title="Búsqueda de Mensajes Directos" icon="inbox" href="/es/x-api/direct-messages/lookup/introduction">
+    Recupera conversaciones de Mensajes Directos
   </Card>
 
-  <Card title="Carga de contenido multimedia" icon="image" href="/es/x-api/media/quickstart/media-upload-chunked">
-    Sube contenido multimedia para archivos adjuntos
+  <Card title="Carga de multimedia" icon="image" href="/es/x-api/media/quickstart/media-upload-chunked">
+    Sube archivos multimedia para adjuntarlos
   </Card>
 
   <Card title="Referencia de la API" icon="code" href="/es/x-api/direct-messages/create-dm-message-by-participant-id">

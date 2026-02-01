@@ -1,26 +1,26 @@
 ---
 title: 使用三方 OAuth 授权流程获取访问令牌
 sidebarTitle: 用户访问令牌（三方 OAuth 授权流程）
-keywords: ["3-legged OAuth", "用户访问令牌", "OAuth 授权流程", "获取访问令牌", "OAuth 1.0a 授权流程", "生成访问令牌"]
+keywords: ["三方 OAuth", "用户访问令牌", "OAuth 授权流程", "获取访问令牌", "OAuth 1.0a 授权流程", "访问令牌生成"]
 ---
 
 import { Button } from "/snippets/zh/button.mdx";
 
 <div id="obtaining-access-tokens-using-3-legged-oauth-flow">
-  ### 使用 3-legged OAuth 流程获取访问令牌
+  ### 使用三方 OAuth 流程获取访问令牌（Access Tokens）
 </div>
 
-若要代表其他用户执行操作，你需要获取他们的访问令牌。访问令牌指定了代表哪个 X 账号发起请求，因此，要想获取这些令牌，用户必须先授予你访问权限。这些令牌不会过期，但用户可以随时撤销。
+要代表其他用户执行操作，你需要获取他们的访问令牌。访问令牌会指定代表哪个 X 账号发起请求，因此在你获取这些令牌之前，对方需要先授予你访问权限。这些令牌不会过期，但用户可以在任何时间撤销它们。
 
-X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通过将用户重定向到 X 并让他们授权你的应用，使你的应用能够获取一个**访问令牌**和访问令牌密钥（access token secret）。此流程与[实现 Log in with X](/zh/resources/fundamentals/authentication/guides/log-in-with-x)中描述的流程几乎相同，但有两个例外：
+X 允许你通过三方 OAuth 流程获取用户访问令牌。该流程通过将用户重定向到 X 并让他们授权你的应用，从而让你的应用获取一个 **访问令牌（access token）** 和访问令牌密钥（access token secret）。此流程与[实现使用 X 登录](/zh/resources/fundamentals/authentication/guides/log-in-with-x)中描述的流程几乎相同，仅有两点不同：
 
-* 使用 [GET oauth/authorize](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authorize) 端点来代替 [GET oauth/authenticate](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authenticate)。
-* 无论之前是否已授予访问权限，系统**始终**会提示用户授权访问你的应用。
+* 使用 [GET oauth/authorize](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authorize) 端点，而不是 [GET oauth/authenticate](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authenticate)。
+* 即使之前已经授予过访问权限，系统**始终**会提示用户授权你的应用访问。
    
 
-在开始之前，你需要检查[应用](/zh/resources/fundamentals/developer-apps)的权限，并了解 consumer key 和回调 URL。如果你没有回调 URL 或公网可访问的 UI，可以考虑使用 [基于 PIN 的授权](/zh/resources/fundamentals/authentication/oauth-1-0a/pin-based-oauth)，该方式适用于无法访问或嵌入网页浏览器以在授权后重定向用户的应用。
+开始之前，你需要检查[应用程序](/zh/resources/fundamentals/developer-apps)的权限，并了解其 consumer key 和回调 URL（callback URL）。如果你没有回调 URL 或对公众开放的 UI，可以考虑使用 [基于 PIN 的授权](/zh/resources/fundamentals/authentication/oauth-1-0a/pin-based-oauth)，该方式适用于无法访问或嵌入浏览器来在授权后重定向用户的应用程序。
 
-3-legged 登录交互的可能状态在下图的流程图中进行了说明：
+下方流程图展示了三方登录交互可能出现的状态：
 
 ![](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/obtaining-access-tokens.png.twimg.1920.png)
 
@@ -30,32 +30,32 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 从整体上看，3-legged OAuth 流程将会：
 
-1. 为客户端应用创建一个请求，用于获取 request token。
-2. 让用户完成认证，并将 request token 返回给客户端应用。
-3. 将 request token 转换为可用的用户 access token。
+1. 创建一个请求，以便消费者应用获取一个 request token（请求令牌）。
+2. 让用户完成身份验证，并将 request token（请求令牌）发送回消费者应用。
+3. 将 request token（请求令牌）转换为可用的用户访问令牌（user access token）。
 
 **术语说明**
 
-在下面的指南中，你可能会看到不同的术语实际指代同一件事。
+在下面的指南中，你可能会看到不同的术语指代同一概念。
 
-**客户端凭证（Client credentials）：**
+**客户端凭证：**
 
-* App Key === API Key === Consumer API Key === Consumer Key === Customer Key === `oauth_consumer_key`
-* App Key Secret === API Secret Key === Consumer Secret === Consumer Key === Customer Key === `oauth_consumer_secret`
-* Callback URL === `oauth_callback`
+* App Key（应用密钥） === API Key === Consumer API Key === Consumer Key === Customer Key === `oauth_consumer_key`
+* App Key Secret（应用密钥密文） === API Secret Key === Consumer Secret === Consumer Key === Customer Key === `oauth_consumer_secret`
+* Callback URL（回调 URL） === `oauth_callback`
    
 
-**临时凭证（Temporary credentials）：**
+**临时凭证：**
 
-* Request Token === `oauth_token`
-* Request Token Secret === `oauth_token_secret`
+* Request Token（请求令牌） === `oauth_token`
+* Request Token Secret（请求令牌密文） === `oauth_token_secret`
 * oauth&#95;verifier
    
 
-**令牌凭证（Token credentials）：**
+**令牌凭证：**
 
-* Access token === Token === 生成的 `oauth_token`
-* Access token secret === Token Secret === 生成的 `oauth_token_secret`
+* Access token（访问令牌） === Token === resulting `oauth_token`
+* Access token secret（访问令牌密文） === Token Secret === resulting `oauth_token_secret`
 
 <div id="walkthrough-steps">
   #### 演练步骤
@@ -63,11 +63,11 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 **步骤 1： [POST oauth/request&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-request-token)**
 
-为消费者应用创建一个请求，以获取 request token。
+创建一个请求，使消费者应用获取一个 request token（请求令牌）。
 
-此请求中唯一特有的参数是 oauth&#95;callback，它必须是你希望用户在完成步骤 2 后被重定向到的 URL 的[URL 编码](/zh/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)版本。其余参数由 OAuth 签名流程添加。
+此请求中唯一特有的参数是 `oauth_callback`，它必须是你希望用户在完成步骤 2 后被重定向到的 URL 的[URL 编码](/zh/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)版本。其余参数由 OAuth 签名流程添加。
 
-请注意——你在 [POST oauth/request&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-request-token) 端点中使用的任何回调 URL，都必须先在 Developer Console 中该[开发者 App](/zh/resources/fundamentals/developer-apps)的应用详情页设置中进行配置。
+请注意——你在 [POST oauth/request&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-request-token) 端点中使用的任何回调 URL，都必须在开发者控制台中你的[开发者 App](/zh/resources/fundamentals/developer-apps) 的应用详情页面的设置里进行配置。
  
 
 **请求包含：**
@@ -76,7 +76,7 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 `oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w" `
 
-你的应用应检查响应的 HTTP 状态码。任何非 200 的值都表示失败。响应正文将包含 `oauth_token`、`oauth_token_secret` 和 `oauth_callback_confirmed` 参数。你的应用应验证 `oauth_callback_confirmed` 为 true，并将另外两个值存储起来以供后续步骤使用。
+你的应用应检查响应的 HTTP 状态码。任何不等于 200 的值都表示失败。响应正文将包含 `oauth_token`、`oauth_token_secret` 和 `oauth_callback_confirmed` 参数。你的应用应验证 `oauth_callback_confirmed` 为 `true`，并存储另外两个值以供后续步骤使用。
  
 
 **响应包含**
@@ -89,14 +89,14 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 **步骤 2： [GET oauth/authorize](/zh/resources/fundamentals/authentication/api-reference#get-oauth-authorize)**
 
-让用户进行身份验证，并向消费者应用发送 request token。
+让用户完成身份验证，并将请求令牌发送给消费者应用。
  
 
-**重定向用户的示例 URL：**
+**将用户重定向到的示例 URL：**
 
 `https://api.x.com/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
 
-成功验证后，你的 `callback_url` 将收到一个包含 `oauth_token` 和 `oauth_verifier` 参数的请求。你的应用应验证该 token 与步骤 1 中收到的 request token 相匹配。
+在成功完成身份验证后，你的 `callback_url` 将收到一个包含 `oauth_token` 和 `oauth_verifier` 参数的请求。你的应用应验证该 token 是否与在步骤 1 中收到的 request token 相匹配。
  
 
 **来自客户端重定向的请求：**
@@ -105,9 +105,9 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 **步骤 3： [POST oauth/access&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-access-token)**
 
-将 request token 转换为可用的 access token。
+将 request token 转换为可用的 access token（访问令牌）。
 
-要将 request token 转换为可用的 access token，你的应用必须向 [POST oauth/access&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-access-token) 端点发起请求，其中包含在步骤 2 中获得的 `oauth_verifier` 值。request token 也通过请求头中的 `oauth_token` 字段传递，但该字段会由签名流程添加。
+要将 request token 转换为可用的 access token，你的应用必须向 [POST oauth/access&#95;token](/zh/resources/fundamentals/authentication/api-reference#post-oauth-access-token) 端点发起请求，其中包含在步骤 2 中获取的 `oauth_verifier` 值。request token 也会在头部的 `oauth_token` 字段中传递，但该字段会由签名流程自动添加。
  
 
 **请求包含：**
@@ -120,7 +120,7 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 `oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
 
-成功的响应会包含 `oauth_token`、`oauth_token_secret` 参数。应将该 token 和 token secret 存储起来，并用于将来对 X API 的已授权请求。若要确定用户身份，请使用 [GET account/verify&#95;credentials](/zh/resources/fundamentals/authentication/api-reference)。
+成功的响应将包含 `oauth_token`、`oauth_token_secret` 这两个参数。应存储该 token 及 token secret，并在未来向 X API 发起的已认证请求中使用。要确定用户身份，请使用 [GET account/verify&#95;credentials](/zh/resources/fundamentals/authentication/api-reference)。
  
 
 **响应包含：**
@@ -129,12 +129,12 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
 
 `oauth_token_secret=PbKfYqSryyeKDWz4ebtY3o5ogNLG11WJuZBc9fQrQo`
 
-**将这些凭证用于要求使用 OAuth 1.0a（应用-用户）的请求**
+**将这些凭据用于需要 OAuth 1.0a（应用-用户）认证的请求**
 
-现在你已经获得了用户访问令牌，可以使用它们调用某些 API，例如 [POST statuses/update](/zh/x-api/posts/manage-tweets/introduction) 来代表用户创建推文。
+现在你已经获取了用户访问令牌，可以使用它们访问特定 API，例如 [POST statuses/update](/zh/x-api/posts/manage-tweets/introduction)，以代表用户创建推文。
  
 
-**请求内容包括：**
+**请求包括：**
 
 `POST statuses/update.json`
 
@@ -146,9 +146,9 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
   #### 示例用例
 </div>
 
-标准流程是基于 Web 的，并使用三方 OAuth 授权流程。此处展示的截图来自一个示例项目，你可以在此查看其源码：[https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web)。
+标准流程是基于 Web 的，并使用 3-legged OAuth 授权流程。此处展示的截图来自一个示例项目，你可以在 [https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web) 查看其源代码。
 
-在应用程序的某个步骤中，你需要重定向到 X，以便授权你的应用程序。
+在应用程序的某个环节，你需要重定向到 X 来授权你的应用程序。
 
 <Frame>
   <img src="/images/twauth-web-2.png" alt="" />
@@ -160,7 +160,7 @@ X 允许你通过 3-legged OAuth 流程获取用户访问令牌。该流程通�
   <img src="/images/twauth-web-3.png" alt="" />
 </Frame>
 
-在用户授权你的应用程序后，用户会被重定向到你在生成 request token 时提供的回调 URL。你将使用该回调来获取该用户的永久 access token，并将其本地存储。
+在用户授权你的应用程序后，用户会被重定向到你在生成 request token 时提供的回调 URL。你将使用该回调来为该用户获取永久 access token，并将其本地存储。
 
 <Frame>
   <img src="/images/twauth-web-4.png" alt="" />

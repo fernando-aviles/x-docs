@@ -1,13 +1,13 @@
 ---
 title: Guide d'intégration
 sidebarTitle: Guide d'intégration
-description: Concepts clés et bonnes pratiques pour intégrer les endpoints de blocage
-keywords: ["intégration des endpoints de blocage", "intégration du blocage d'utilisateurs", "guide sur les blocages"]
+description: Concepts clés et bonnes pratiques pour l'intégration des endpoints de blocage
+keywords: ["intégration du blocage", "intégration du blocage d'utilisateurs", "guide sur le blocage"]
 ---
 
 import { Button } from '/snippets/fr/button.mdx';
 
-Ce guide présente les principaux concepts nécessaires pour intégrer les endpoints de blocage à votre application.
+Ce guide présente les concepts clés à connaître pour intégrer les endpoints de blocage à votre application.
 
 ***
 
@@ -15,25 +15,25 @@ Ce guide présente les principaux concepts nécessaires pour intégrer les endpo
   ## Authentification
 </div>
 
-Les endpoints Blocks nécessitent une authentification utilisateur :
+Les endpoints de blocage nécessitent une authentification utilisateur :
 
 | Méthode | Description |
 |:-------|:------------|
 | [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandé pour les nouvelles applications |
-| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Pour les intégrations héritées |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Compatibilité héritée |
 
 <Warning>
   L’authentification App-Only n’est pas prise en charge. Vous devez vous authentifier pour le compte d’un utilisateur.
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### Scopes requis (OAuth 2.0)
+  ### Scopes obligatoires (OAuth 2.0)
 </div>
 
 | Scope | Obligatoire pour |
 |:------|:-----------------|
-| `block.read` | Consulter les comptes bloqués |
-| `block.write` | Bloquer et débloquer des comptes |
+| `block.read` | La récupération des comptes bloqués |
+| `block.write` | Le blocage et le déblocage des comptes |
 | `users.read` | Obligatoire avec les scopes de blocage |
 
 ***
@@ -44,14 +44,14 @@ Les endpoints Blocks nécessitent une authentification utilisateur :
 
 | Méthode | Endpoint | Description |
 |:-------|:---------|:------------|
-| GET | `/2/users/:id/blocking` | Récupérer la liste des comptes bloqués |
+| GET | `/2/users/:id/blocking` | Obtenir la liste des comptes bloqués |
 | POST | `/2/users/:id/blocking` | Bloquer un compte |
 | DELETE | `/2/users/:source_user_id/blocking/:target_user_id` | Débloquer un compte |
 
 ***
 
 <div id="fields-and-expansions">
-  ## Champs et expansions
+  ## Champs et Expansions
 </div>
 
 <div id="default-response">
@@ -93,27 +93,27 @@ Les endpoints Blocks nécessitent une authentification utilisateur :
 ***
 
 <div id="what-happens-when-you-block">
-  ## Ce qui se passe lorsque vous bloquez quelqu&#39;un
+  ## Ce qui se passe lorsque vous bloquez un compte
 </div>
 
 <CardGroup cols={2}>
   <Card title="Ils ne peuvent pas" icon="xmark">
-    * Voir vos publications (sauf lorsqu&#39;ils ne sont pas connectés)
+    * Voir vos Publications (à moins d&#39;être déconnectés)
     * Vous suivre
-    * Vous envoyer des messages privés
+    * Vous envoyer des DM
     * Vous ajouter à des Listes
-    * Vous identifier sur des photos
+    * Vous identifier dans des photos
   </Card>
 
   <Card title="Vous ne pouvez pas" icon="xmark">
-    * Voir leurs publications
+    * Voir leurs Publications
     * Les suivre
-    * Leur envoyer des messages privés
+    * Leur envoyer des DM
   </Card>
 </CardGroup>
 
 <Note>
-  Lorsque vous bloquez quelqu&#39;un qui vous suit, il cesse automatiquement de vous suivre.
+  Lorsque vous bloquez quelqu&#39;un qui vous suit, cette personne est automatiquement désabonnée de votre compte.
 </Note>
 
 ***
@@ -122,7 +122,7 @@ Les endpoints Blocks nécessitent une authentification utilisateur :
   ## Pagination
 </div>
 
-Pour les utilisateurs dont la liste de comptes bloqués est volumineuse, les résultats sont paginés :
+Pour les utilisateurs disposant de longues listes de comptes bloqués, les résultats sont paginés :
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -130,7 +130,7 @@ Pour les utilisateurs dont la liste de comptes bloqués est volumineuse, les ré
   curl "https://api.x.com/2/users/123/blocking?max_results=100" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
 
-  # Requête suivante avec jeton de pagination
+  # Requête suivante avec un jeton de pagination
   curl "https://api.x.com/2/users/123/blocking?max_results=100&pagination_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
   ```
@@ -173,7 +173,7 @@ Pour les utilisateurs dont la liste de comptes bloqués est volumineuse, les ré
 
   // Utilisation
   const blocked = await getAllBlockedUsers("123");
-  console.log(`Nombre d’utilisateurs bloqués : ${blocked.length}`);
+  console.log(`${blocked.length} utilisateurs bloqués`);
   ```
 </CodeGroup>
 
@@ -185,11 +185,11 @@ Pour les utilisateurs dont la liste de comptes bloqués est volumineuse, les ré
 
 | Statut | Erreur | Solution |
 |:-------|:------|:---------|
-| 400 | Requête non valide | Vérifiez le format de l’id utilisateur |
+| 400 | Requête invalide | Vérifiez le format de l’id utilisateur |
 | 401 | Non autorisé | Vérifiez le jeton d’accès |
-| 403 | Accès interdit | Vérifiez les scopes et les autorisations |
+| 403 | Interdit | Vérifiez les scopes et les autorisations |
 | 404 | Introuvable | L’utilisateur n’existe pas |
-| 429 | Trop de requêtes | Attendez puis réessayez |
+| 429 | Trop de requêtes | Patientez puis réessayez |
 
 ***
 
@@ -202,7 +202,7 @@ Pour les utilisateurs dont la liste de comptes bloqués est volumineuse, les ré
     Effectuez votre première requête de blocage
   </Card>
 
-  <Card title="Mise en sourdine" icon="volume-xmark" href="/fr/x-api/users/mutes/introduction">
+  <Card title="Mises en sourdine" icon="volume-xmark" href="/fr/x-api/users/mutes/introduction">
     Mettez des utilisateurs en sourdine plutôt que de les bloquer
   </Card>
 
@@ -210,7 +210,7 @@ Pour les utilisateurs dont la liste de comptes bloqués est volumineuse, les ré
     Documentation complète de l’endpoint
   </Card>
 
-  <Card title="Exemple de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+  <Card title="Exemples de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
     Exemples de code fonctionnels
   </Card>
 </CardGroup>

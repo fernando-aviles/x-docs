@@ -3,17 +3,17 @@ title: Authentification
 sidebarTitle: Authentification
 ---
 
-L'X API requiert une authentification pour tous les endpoints. Le XDK prend en charge trois méthodes d'authentification :
+X API requiert une authentification pour tous les points de terminaison. Le XDK prend en charge trois méthodes d'authentification :
 
 1. Bearer Token (application uniquement)
 2. OAuth 2.0 avec PKCE
 3. OAuth 1.0a (contexte utilisateur)
 
-- **Bearer Token** : utilisez ceci pour un accès en lecture seule aux endpoints qui prennent en charge l'authentification applicative (par exemple, la recherche de Publications, les endpoints de streaming).
-- **OAuth 2.0 PKCE** : authentification sécurisée pour un accès basé sur des scopes, autorisé par l'utilisateur (par exemple, obtenir les métriques `non_public` d'une Publication de l'utilisateur authentifié).
-- **OAuth 1.0a** : authentification héritée pour les opérations spécifiques à un utilisateur (par exemple, publier au nom d'un utilisateur, gérer des listes).
+- **Bearer Token** : utilisez-la pour un accès en lecture seule aux points de terminaison qui prennent en charge l’authentification d’application (par exemple, recherche de Publications, points de terminaison de streaming).
+- **OAuth 2.0 PKCE** : authentification sécurisée pour un accès basé sur des portées (scopes), autorisé par l’utilisateur (par exemple, obtenir les métriques non publiques des Publications de l’utilisateur authentifié).
+- **OAuth 1.0a** : ancienne méthode d’authentification pour les opérations spécifiques à un utilisateur (par exemple, publier au nom d’un utilisateur, gérer des listes).
 
-Obtenez des identifiants à partir de la [X Developer Console](https://developer.x.com/en/portal/dashboard). Vous aurez besoin d'un compte développeur approuvé et d'une application avec des autorisations appropriées (par exemple, lecture + écriture).
+Obtenez vos identifiants dans la [Console de Développement X](https://developer.x.com/en/portal/dashboard). Vous aurez besoin d’un compte développeur approuvé et d’une application avec les autorisations appropriées (par exemple, Lecture + Écriture).
 
 <div id="creating-a-client">
   ## Création d’un Client
@@ -27,13 +27,13 @@ from xdk import Client
 
 
 <div id="1-bearer-token-app-only">
-  ### 1. Bearer Token (application uniquement)
+  ### 1. Bearer Token (App-Only)
 </div>
 
-Pour les opérations en lecture seule sans contexte utilisateur.
+Pour effectuer des opérations en lecture seule sans contexte utilisateur.
 **Étapes** :
 
-1. Dans la Developer Console, générez un Bearer Token pour votre application.
+1. Dans la Console de Développement, générez un Bearer Token pour votre application.
 2. Transmettez-le au `Client`.
    **Exemple** :
 
@@ -41,10 +41,10 @@ Pour les opérations en lecture seule sans contexte utilisateur.
 client = Client(bearer_token="XXXXX")
 ```
 
-**Utilisation**:
+**Utilisation** :
 
 ```python
-# search_recent renvoie un Iterator, donc itérer sur celui-ci
+# search_recent renvoie un itérateur, donc itérer dessus
 for page in client.posts.search_recent(query="python", max_results=10):
     if page.data and len(page.data) > 0:
         first_post = page.data[0]
@@ -55,16 +55,16 @@ for page in client.posts.search_recent(query="python", max_results=10):
 
 
 <div id="2-oauth-20-with-pkce-user-context">
-  ### 2. OAuth 2.0 avec PKCE (contexte utilisateur)
+  ### 2. OAuth 2.0 avec PKCE (Contexte utilisateur)
 </div>
 
-Cet exemple montre comment utiliser OAuth 2.0 avec Proof Key for Code Exchange (PKCE). Utilisez-le pour un accès spécifique à un utilisateur (par exemple, publier au nom d’un utilisateur, téléverser des médias pour un utilisateur, etc.).
+Cet exemple illustre comment utiliser OAuth 2.0 avec Proof Key for Code Exchange (PKCE). Utilisez-le pour un accès spécifique à un utilisateur (par exemple pour publier au nom d’un utilisateur, téléverser des médias pour un utilisateur, etc.).
 **Étapes** :
 
-1. Dans la Developer Console, enregistrez votre application avec un URI de redirection (par exemple : `http://localhost:8080/callback`).
-2. Récupérez l’ID client (aucun secret n’est requis pour PKCE).
-3. Initialisez le flux, redirigez l’utilisateur vers l’URL d’authentification et traitez le callback.
-   **Exemple** (en utilisant un serveur Web pour le callback) :
+1. Dans la Console de Développement, enregistrez votre application avec un URI de redirection (par exemple : `http://localhost:8080/callback`).
+2. Récupérez le Client ID (aucun secret n’est nécessaire pour PKCE).
+3. Démarrez le flux, redirigez l’utilisateur vers l’URL d’authentification et gérez le callback.
+   **Exemple** (en utilisant un serveur web pour le callback) :
 
 ```python
 from xdk.oauth2_auth import OAuth2PKCEAuth
@@ -94,29 +94,29 @@ client = Client(bearer_token=access_token)
 # client = Client(token=tokens)
 ```
 
-**Actualisation du jeton** (automatique dans le SDK pour les sessions de longue durée) :
+**Actualisation du jeton** (automatique via le SDK pour les sessions longues) :
 
 ```python
-# If access token expires, refresh using stored refresh_token
+# Si le jeton d'accès expire, actualisez-le en utilisant le refresh_token stocké
 # La méthode refresh_token utilise le jeton stocké de l'instance OAuth2PKCEAuth
 tokens = auth.refresh_token()
-# Use the refreshed token
+# Utilisez le jeton actualisé
 client = Client(bearer_token=tokens["access_token"])
-# Or pass the full token dict: client = Client(token=tokens)
+# Ou passez le dictionnaire de jetons complet : client = Client(token=tokens)
 ```
 
 
 <div id="3-oauth-10a-user-context">
-  ### 3. OAuth 1.0a (contexte utilisateur)
+  ### 3. OAuth 1.0a (Contexte utilisateur)
 </div>
 
-Pour les anciennes applications ou les cas d’utilisation spécifiques qui nécessitent une authentification OAuth 1.0a :
+Pour les anciennes applications ou des cas d&#39;utilisation spécifiques qui nécessitent une authentification OAuth 1.0a :
 **Étapes** :
 
-1. Dans la Developer Console, récupérez votre clé API et votre secret d’API.
-2. Si vous disposez déjà de jetons d’accès, utilisez-les directement. Sinon, suivez le flux OAuth 1.0a pour les obtenir.
-3. Créez une instance OAuth1 et passez-la au Client.
-   **Exemple** (avec des jetons d’accès existants) :
+1. Dans la Console de Développement, récupérez votre API Key et votre API Secret.
+2. Si vous disposez déjà de jetons d&#39;accès, utilisez-les directement. Sinon, suivez le flux OAuth 1.0a pour les obtenir.
+3. Créez une instance `OAuth1` et transmettez-la au `Client`.
+   **Exemple** (avec des jetons d&#39;accès existants) :
 
 ```python
 from xdk import Client
@@ -137,7 +137,7 @@ me = response.data
 print(me)
 ```
 
-**Exemple** (flux complet OAuth 1.0a) :
+**Exemple** (flux OAuth 1.0a complet) :
 
 ```python
 from xdk import Client
@@ -156,7 +156,7 @@ auth_url = oauth1.get_authorization_url(login_with_x=False)
 print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
 # Étape 4 : L'utilisateur autorise et vous recevez oauth_verifier
-# Dans une application réelle, gérez cela via l'URL de rappel
+# Dans une application réelle, gérez cela via l'URL de callback
 oauth_verifier = input("Enter the OAuth verifier from the callback: ")
 # Step 5: Exchange for access token
 access_token = oauth1.get_access_token(oauth_verifier)
@@ -168,7 +168,7 @@ response = client.users.get_me()
 
 **Remarque** :
 
-* N’intégrez jamais de secrets en dur en production ; utilisez des variables d’environnement ou des gestionnaires de secrets (par exemple `os.getenv("X_BEARER_TOKEN")`).
-* Pour PKCE, veillez à utiliser HTTPS pour les URI de redirection en production.
-* Le SDK vérifie les jetons et lève `xdk.AuthenticationError` en cas d’échec.
+* Ne codez jamais en dur vos secrets en production ; utilisez des variables d’environnement ou des gestionnaires de secrets (par exemple, `os.getenv("X_BEARER_TOKEN")`).
+* Pour PKCE, assurez-vous d’utiliser HTTPS pour les URI de redirection en production.
+* Le SDK valide les jetons et déclenche une exception `xdk.AuthenticationError` en cas d’échec.
   Pour des exemples de code détaillés utilisant le XDK Python, consultez notre [dépôt GitHub d’exemples de code](https://github.com/xdevplatform/samples/tree/main/python).

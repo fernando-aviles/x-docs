@@ -3,9 +3,9 @@ title: '创建 DPA 广告系列 - 分步指南'
 keywords: ["DPA campaign", "dynamic product ads", "DPA", "create DPA campaign", "product ads", "dynamic ads"]
 ---
 
-以下示例假设你已经使用 twurl 安装、配置并授权了你的应用和用户。twurl 是一款类似 cURL 的命令行工具，可以优雅地处理 X OAuth 认证。twurl 非常适合快速测试和调试 Ads API（以及 REST API）功能。要查看请求和响应的完整头信息，请使用 `-t` 选项跟踪调用，其作用大致等同于 cURL 的 `-v` 选项。
+以下示例假定你已经使用 twurl 安装、配置并授权了你的应用和用户。twurl 是一款与 cURL 类似的命令行工具，可顺畅地处理 X 的 OAuth 身份验证。twurl 非常适合快速测试和调试 Ads API（以及 REST API）的功能。若要查看完整的请求和响应头信息，请使用 -t 对调用进行跟踪，其作用大致相当于 cURL 的 -v 选项。
 
-在本示例中，我们将创建一个动态产品广告（Dynamic Product Ads，DPA）广告系列。
+在此示例中，我们将创建一个动态产品广告（Dynamic Product Ads，DPA）广告系列。
 
 获取账户 id。
 
@@ -20,7 +20,7 @@ twurl -H ads-api.x.com /12/accounts/
   },
   "data": [
     {
-      "name": "@AdsAPI 的测试账户",
+      "name": "Test account for @AdsAPI",
       "timezone": "America/Los_Angeles",
       "timezone_switch_at": null,
       "id": "xxxxxx",
@@ -38,7 +38,7 @@ twurl -H ads-api.x.com /12/accounts/
 ```
 
 获取资金工具 id。
-使用在上一个命令中获取的账户 id 调用 GET accounts/:account&#95;id/funding&#95;instruments API。
+使用在上一条命令中获取的账户 id 调用 GET accounts/:account&#95;id/funding&#95;instruments API。
 
 ```bash
 twurl -H ads-api.x.com /12/accounts/xxxxxx/funding_instruments
@@ -74,13 +74,13 @@ twurl -H ads-api.x.com /12/accounts/xxxxxx/funding_instruments
 
 
 <div id="step-1-create-campaign">
-  ## 步骤 1：创建广告系列
+  ## 步骤 1：创建广告活动
 </div>
 
-创建一个广告系列，并将其与资金工具关联。
-为该广告系列指定开始时间和预算。
+创建一个广告活动，并将其与资金工具关联。
+为该广告活动指定开始时间和预算。
 
-* 必需字段：资金工具、广告系列名称、预算（总额/每日）、开始时间和广告账户 ID
+* 必需字段：资金工具、广告活动名称、预算（总预算/日预算）、开始时间和广告账户 id
 
 ```bash
 twurl -H ads-api.x.com -d "funding_instrument_id={FUNDING_INSTRUMENT_ID}&name={CAMPAIGN_NAME}&total_budget_amount_local_micro={TOTAL_BUDGET}&daily_budget_amount_local_micro={DAILY_BUDGET}&start_time={START_TIME}" /12/accounts/{ADS_ACCOUNT_ID}/campaigns | jq
@@ -88,13 +88,13 @@ twurl -H ads-api.x.com -d "funding_instrument_id={FUNDING_INSTRUMENT_ID}&name={C
 
 
 <div id="step-2-create-line-item-with-sales-objective">
-  ## 步骤 2：创建以销售为目标的广告单元（line item）
+  ## 步骤 2：创建以销售为目标的 line item
 </div>
 
-创建与该广告活动关联的广告单元（line item）。
+创建与该 campaign 关联的 line item。
 
-* 必需字段：campaign id（见步骤 1）、product type、placements、objective、goal、entity status、primary web event tag、catalog id、product set id、creative&#95;source、ads&#95;account&#95;id
-* catalog&#95;id 和 product&#95;set&#95;id 可在您的 Shopping Manager 中找到
+* 必需字段：campaign id（来自步骤 1）、product type、placements、objective、goal、entity status、primary web event tag、catalog id、product set id、creative&#95;source、ads&#95;account&#95;id
+* catalog&#95;id 和 product&#95;set&#95;id 可以在您的购物管理器中找到
 * creative&#95;source 应始终为 DYNAMIC&#95;PRODUCT&#95;CREATIVE
 * objective 应始终为 WEBSITE&#95;CLICKS
 * goal 应始终为 WEBSITE&#95;CONVERSIONS
@@ -103,7 +103,7 @@ twurl -H ads-api.x.com -d "funding_instrument_id={FUNDING_INSTRUMENT_ID}&name={C
 twurl -H ads-api.x.com -d "campaign_id={CAMPAIGN_ID}&product_type={product_type}&placements={PLACEMENTS}&objective=WEBSITE_CLICKS&goal=WEBSITE_CONVERSIONS&entity_status={entity_status}&primary_web_event_tag={WEB_EVENT_TAG}&catalog_id={catalog_id}&product_set_id={product_set_id}&creative_source=DYNAMIC_PRODUCT_CREATIVE" /12/accounts/{ADS_ACCOUNT_ID}/line_items | jq
 ```
 
-* 完成此步骤后，您就可以在 X 的 Ads Manager 中查看该广告活动。
+* 完成此步骤后，你可以在 X Ads Manager 中查看该广告系列。
 
 
 <div id="step-3-create-dpa-card">
@@ -113,9 +113,9 @@ twurl -H ads-api.x.com -d "campaign_id={CAMPAIGN_ID}&product_type={product_type}
 创建一个 DPA 卡片。
 
 * 必需参数：广告账户 ID 和 URL：
-* URL 必须以 https://twitter.com 开头，此后可以像下面的示例一样追加任意额外的 UTM 参数：
+* URL 必须以 https://twitter.com 开头，此后可以像下面示例一样附加任意 UTM：
   * `https://twitter.com?utm_source=%7B%7Bsite_source%7D%7D`
-* 此外，你可以通过指定 creative&#95;type 来选择卡片的格式，可选值包括：&quot;CAROUSEL&quot;、&quot;SINGLE&quot;、&quot;COLLECTION&quot;。如果未指定，将默认创建轮播卡片。
+* 还可以通过指定 creative&#95;type 来选择卡片的格式，可选值包括：&quot;CAROUSEL&quot;、&quot;SINGLE&quot;、&quot;COLLECTION&quot;。如果未指定，卡片将被创建为轮播卡片（carousel card）。
 
 ```bash
 twurl -X POST -H ads-api.twitter.com -A "Content-Type: application/json" "/12/accounts/{ADS_ACCOUNT_ID}/dynamic_product_cards" -d '{"url": "{URL}", "creative_type": "{CREATIVE_TYPE}"}' | jq
@@ -123,13 +123,13 @@ twurl -X POST -H ads-api.twitter.com -A "Content-Type: application/json" "/12/ac
 
 
 <div id="step-4-create-post">
-  ## 第 4 步：创建帖子
+  ## 步骤 4：创建帖子
 </div>
 
-创建帖子。
+创建一个帖子。
 
-* 必需参数：广告账户 ID、用户 ID、卡片 URI（来自第 3 步）、文本、名称和 dynamic&#95;product&#95;ad
-* dynamic&#95;product&#95;ad 应始终设置为 true
+* 必需参数：广告账户 ID、用户 ID、card URI（来自步骤 3）、文本、名称，以及 dynamic product ad
+* dynamic&#95;product&#95;ad 应始终设为 true
 
 ```bash
 twurl -X POST -H "https://ads-api.twitter.com" "/12/accounts/{ADS_ACCOUNT_ID}/tweet?as_user_id={USER_ID}1&card_uri=card%3A%2F%2F{CARD_URI}&text={POST_TEXT}&name={POST_NAME}%201&dynamic_product_ad=true" | jq
@@ -137,15 +137,15 @@ twurl -X POST -H "https://ads-api.twitter.com" "/12/accounts/{ADS_ACCOUNT_ID}/tw
 
 
 <div id="step-5-associate-post-with-line-item">
-  ## 步骤 5：将帖子与 line item 关联
+  ## 步骤 5：将帖子关联到订单项
 </div>
 
-将帖子与该 line item 关联。
+将帖子与订单项关联。
 
-* 必需参数：广告账户 id、line item id（来自步骤 2）和 tweet id（步骤 4 中的 id&#95;str）
+* 必需参数：广告账户 id、订单项 id（来自第 2 步）以及推文 id（来自第 4 步的 id&#95;str）
 
 ```bash
 twurl -X POST -H "https://ads-api.twitter.com" "/12/accounts/{ADS_ACCOUNT_ID}/promoted_tweets?line_item_id={line_item_id}&tweet_ids={tweet_id}" | jq
 ```
 
-如果广告主希望在界面中看到该卡片，也可以看到。
+如果广告主希望在界面中查看该卡片，它也会在那里可见。

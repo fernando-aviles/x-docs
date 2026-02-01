@@ -1,11 +1,11 @@
 ---
 title: 集成指南
 sidebarTitle: 集成指南
-description: 将 Timelines 端点集成到你的应用时的关键概念和最佳实践
+description: 将 Timelines 端点集成到你的应用中所需的关键概念和最佳实践
 keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时间线集成", "用户时间线集成"]
 ---
 
-本指南介绍在将 Timelines 端点集成到你的应用时需要掌握的关键概念。
+本指南介绍将 Timelines 端点集成到你的应用中所需的关键概念。
 
 ***
 
@@ -17,17 +17,17 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ### 端点要求
 </div>
 
-| 端点 | 仅应用 | 用户上下文 |
+| 端点 | 仅限应用 | 用户上下文 |
 |:---------|:---------|:-------------|
 | 用户帖子时间线 | ✓ | ✓ |
 | 用户提及时间线 | ✓ | ✓ |
-| 主页时间线 | — | ✓（必需） |
+| 主页时间线 | — | ✓ (必需) |
 
 <div id="private-metrics">
   ### 私有指标
 </div>
 
-要访问私有指标，你必须代表帖子作者完成身份验证：
+要访问私有指标，你必须代表帖子作者进行身份验证：
 
 <Warning>
   以下字段需要使用用户上下文（User Context）进行身份验证：
@@ -46,7 +46,7 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ## 字段和扩展
 </div>
 
-默认情况下，响应仅包含 `id`、`text` 和 `edit_history_tweet_ids`。要请求更多数据：
+默认情况下，响应仅包含 `id`、`text` 和 `edit_history_tweet_ids`。如需请求更多数据：
 
 <div id="example-request">
   ### 示例请求
@@ -106,16 +106,16 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ### 关键字段
 </div>
 
-| Field | Description |
+| 字段 | 描述 |
 |:------|:------------|
 | `created_at` | 帖子创建时间戳 |
-| `public_metrics` | 互动次数 |
+| `public_metrics` | 互动计数 |
 | `conversation_id` | 会话标识符 |
 | `context_annotations` | 主题分类 |
 | `entities` | 话题标签、提及、URL |
 
 <Card title="字段和扩展指南" icon="sliders" href="/zh/x-api/fundamentals/fields">
-  进一步了解如何自定义响应
+  了解更多关于自定义响应的内容
 </Card>
 
 ***
@@ -124,7 +124,7 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ## 分页
 </div>
 
-时间线接口每次请求最多返回 100 条帖子。对于更大的结果集，请使用分页。
+时间线每个请求最多返回 100 条帖子。如需获取更大的结果集，请使用分页。
 
 <div id="how-it-works">
   ### 工作原理
@@ -132,8 +132,8 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
 
 1. 使用 `max_results` 发起初始请求
 2. 从 `meta` 对象中获取 `next_token`
-3. 在后续请求中包含 `pagination_token`
-4. 重复此过程，直到不再返回 `next_token`
+3. 在下一次请求中包含 `pagination_token`
+4. 重复此过程，直到响应中不再返回 `next_token`
 
 <div id="example">
   ### 示例
@@ -145,7 +145,7 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   curl "https://api.x.com/2/users/123/tweets?max_results=100" \
     -H "Authorization: Bearer $BEARER_TOKEN"
 
-  # 使用分页令牌的后续请求
+  # 带有分页令牌的后续请求
   curl "https://api.x.com/2/users/123/tweets?max_results=100&pagination_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $BEARER_TOKEN"
   ```
@@ -173,7 +173,7 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   async function getAllTimelinePosts(userId) {
     const allPosts = [];
 
-    // SDK 通过异步迭代自动处理分页
+    // SDK 使用异步迭代自动处理分页
     const paginator = client.posts.getUserPosts(userId, { maxResults: 100 });
 
     for await (const page of paginator) {
@@ -192,31 +192,31 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
 </CodeGroup>
 
 <Card title="分页指南" icon="arrow-right" href="/zh/x-api/fundamentals/pagination">
-  进一步了解分页
+  了解更多分页相关内容
 </Card>
 
 ***
 
 <div id="filtering-results">
-  ## 筛选结果
+  ## 过滤结果
 </div>
 
 <div id="time-based-filtering">
-  ### 基于时间的筛选
+  ### 基于时间的过滤
 </div>
 
-| Parameter | Description |
+| 参数 | 描述 |
 |:----------|:------------|
 | `start_time` | 最早的帖子时间戳（ISO 8601） |
 | `end_time` | 最新的帖子时间戳（ISO 8601） |
-| `since_id` | 返回 ID 大于该值的帖子 |
-| `until_id` | 返回 ID 小于该值的帖子 |
+| `since_id` | 返回 id 大于此值的帖子 |
+| `until_id` | 返回 id 小于此值的帖子 |
 
 <div id="exclude-parameter">
-  ### `exclude` 参数
+  ### exclude 参数
 </div>
 
-从结果中排除特定类型的帖子：
+在结果中排除特定类型的帖子：
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -254,7 +254,7 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ```
 </CodeGroup>
 
-| Value | Effect |
+| 值 | 效果 |
 |:------|:-------|
 | `retweets` | 排除转发 |
 | `replies` | 排除回复 |
@@ -265,17 +265,17 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ## 数量限制
 </div>
 
-每个时间线都有最大可检索数量限制：
+每个时间线都有一个最大检索上限：
 
-| Endpoint | 最大帖子数 |
+| Endpoint | 最大帖子数量 |
 |:---------|:--------------|
-| User Posts timeline | 最近 3,200 条帖子 |
-| User Posts (exclude=replies) | 最近 800 条帖子 |
-| User mentions timeline | 最近 800 条帖子 |
-| Home timeline | 最多 3,200 条或最近 7 天内的帖子 |
+| 用户帖子时间线 | 最近 3,200 条 |
+| 用户帖子（exclude=replies） | 最近 800 条 |
+| 用户提及时间线 | 最近 800 条 |
+| 主页时间线 | 最近 3,200 条或最近 7 天内的帖子 |
 
 <Note>
-  请求超出这些限制范围的帖子时，会返回成功的响应，但 data 为空。
+  请求超过这些限制的帖子时，会返回成功的响应，但不包含任何 data。
 </Note>
 
 ***
@@ -284,18 +284,18 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ## 帖子编辑
 </div>
 
-帖子在 30 分钟内最多可以编辑 5 次。时间线端点始终返回最新版本。
+帖子在发布后 30 分钟内最多可以编辑 5 次。时间线类端点始终返回最新版本。
 
 <div id="considerations">
   ### 注意事项
 </div>
 
-* 超过 30 分钟的帖子将被视为最终版本
-* 准实时用例应考虑帖子可能被编辑
-* 如有需要，可使用帖子查找功能验证最终状态
+* 发布超过 30 分钟的帖子将被视为其最终版本
+* 近实时场景需考虑帖子可能被编辑
+* 如有需要，请使用 Post 查询来验证最终状态
 
-<Card title="编辑帖子基础" icon="clock-rotate-left" href="/zh/x-api/fundamentals/edit-posts">
-  进一步了解帖子编辑
+<Card title="帖子编辑基础" icon="clock-rotate-left" href="/zh/x-api/fundamentals/edit-posts">
+  详细了解帖子编辑
 </Card>
 
 ***
@@ -308,7 +308,7 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ### 公开指标
 </div>
 
-适用于所有通过 App-Only 或 User Context 身份验证的帖子：
+适用于使用仅应用（App-Only）或用户上下文（User Context）身份验证的所有帖子：
 
 ```json
 {
@@ -325,11 +325,11 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
   ### 私有指标
 </div>
 
-需要帖子作者的用户上下文身份验证：
+需要来自帖子作者的用户上下文身份验证：
 
-* 仅适用于最近 30 天内的帖子
-* 仅返回已认证用户本人发布的帖子
-* 对其他用户的帖子会返回错误
+* 仅适用于最近 30 天内发布的帖子
+* 仅对已通过身份验证用户发布的帖子返回
+* 对其他用户发布的帖子会返回错误
 
 ***
 
@@ -338,18 +338,18 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
 </div>
 
 <Accordion title="非公开指标与分页">
-  当你为超过 30 天的帖子请求非公开指标时，可能会收到带有 `result_count: 0` 的 `next_token`。为避免这种情况：
+  当请求超过 30 天的帖子非公开指标时，你可能会收到带有 `result_count: 0` 的 `next_token`。为避免这种情况：
 
-  * 将请求限制在最近 30 天内
-  * 使用至少为 10 的 `max_results`
+  * 将请求时间范围限制在最近 30 天内
+  * 将 `max_results` 设置为至少 10
 </Accordion>
 
-<Accordion title="未投放推广帖子的推广指标">
-  为未投放推广的帖子请求推广指标会返回空响应。这是一个已知问题。
+<Accordion title="未推广帖子的推广指标">
+  为未推广的帖子请求推广指标时，会返回空响应。这是一个已知问题。
 </Accordion>
 
 <Accordion title="被截断的转推文本">
-  对于文本长度超过 140 个字符的转推，`text` 字段会被截断。使用 `referenced_tweets.id` 扩展以获取完整文本。
+  对于文本超过 140 个字符的转推，`text` 字段会被截断。请使用 `referenced_tweets.id` 扩展以获取完整文本。
 </Accordion>
 
 ***
@@ -360,11 +360,11 @@ keywords: ["时间线集成", "时间线指南", "时间线实现", "主页时�
 
 <CardGroup cols={2}>
   <Card title="主页时间线快速入门" icon="house" href="/zh/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
-    获取用户的主页信息流
+    获取用户的主页时间线
   </Card>
 
   <Card title="提及快速入门" icon="at" href="/zh/x-api/posts/timelines/quickstart/user-mention-quickstart">
-    获取某个用户被提及的帖子
+    获取用户的提及内容
   </Card>
 
   <Card title="API 参考" icon="code" href="/zh/x-api/posts/user-posts-timeline-by-user-id">

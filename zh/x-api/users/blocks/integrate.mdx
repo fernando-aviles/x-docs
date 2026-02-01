@@ -1,13 +1,13 @@
 ---
 title: 集成指南
 sidebarTitle: 集成指南
-description: 用于集成 blocks 端点的关键概念和最佳实践
-keywords: ["blocks 集成", "block users 集成", "blocks 指南"]
+description: 集成 blocks 端点的关键概念和最佳实践
+keywords: ["blocks 集成", "屏蔽用户集成", "blocks 指南"]
 ---
 
 import { Button } from '/snippets/zh/button.mdx';
 
-本指南介绍在将 blocks 端点集成到你的应用程序时需要掌握的关键概念。
+本指南介绍将 blocks 端点集成到你的应用程序所需的关键概念。
 
 ***
 
@@ -17,24 +17,24 @@ import { Button } from '/snippets/zh/button.mdx';
 
 Blocks 相关端点需要用户身份验证：
 
-| 方法 | 说明 |
+| Method | Description |
 |:-------|:------------|
-| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 建议用于新应用 |
-| [OAuth 1.0a 用户上下文](/zh/resources/fundamentals/authentication) | 用于兼容旧版 |
+| [OAuth 2.0 Authorization Code with PKCE](/zh/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 推荐用于新应用程序 |
+| [OAuth 1.0a User Context](/zh/resources/fundamentals/authentication) | 用于兼容旧版集成 |
 
 <Warning>
-  不支持仅限应用（App-Only）的身份验证。你必须代表某个用户进行身份验证。
+  不支持仅应用（App-Only）身份验证。必须代表用户进行身份验证。
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### 必需的 Scope（OAuth 2.0）
+  ### 必需 Scope（OAuth 2.0）
 </div>
 
-| Scope | 必需场景 |
+| Scope | 用途 |
 |:------|:-------------|
-| `block.read` | 获取已拉黑的账号 |
-| `block.write` | 拉黑和取消拉黑账号 |
-| `users.read` | 与 block 相关 scope 一起使用时必需 |
+| `block.read` | 获取被屏蔽的账户 |
+| `block.write` | 屏蔽和取消屏蔽账户 |
+| `users.read` | 与 block 相关 scopes 一同使用时为必需 |
 
 ***
 
@@ -42,16 +42,16 @@ Blocks 相关端点需要用户身份验证：
   ## 端点概览
 </div>
 
-| 方法 | 端点 | 说明 |
+| 方法 | 端点 | 描述 |
 |:-------|:---------|:------------|
-| GET | `/2/users/:id/blocking` | 获取已屏蔽账号列表 |
+| GET | `/2/users/:id/blocking` | 获取被屏蔽账号列表 |
 | POST | `/2/users/:id/blocking` | 屏蔽账号 |
 | DELETE | `/2/users/:source_user_id/blocking/:target_user_id` | 取消屏蔽账号 |
 
 ***
 
 <div id="fields-and-expansions">
-  ## 字段和扩展
+  ## 字段与扩展
 </div>
 
 <div id="default-response">
@@ -75,17 +75,17 @@ Blocks 相关端点需要用户身份验证：
 </div>
 
 <Accordion title="user.fields">
-  | 字段 | 说明 |
+  | 字段 | 描述 |
   |:------|:------------|
   | `created_at` | 账户创建日期 |
   | `description` | 用户简介 |
   | `profile_image_url` | 头像 URL |
-  | `public_metrics` | 粉丝/关注数 |
+  | `public_metrics` | 粉丝数/关注数 |
   | `verified` | 认证状态 |
 </Accordion>
 
 <Accordion title="expansions">
-  | 扩展项 | 说明 |
+  | 扩展 | 描述 |
   |:----------|:------------|
   | `pinned_tweet_id` | 用户置顶帖子 |
 </Accordion>
@@ -98,10 +98,10 @@ Blocks 相关端点需要用户身份验证：
 
 <CardGroup cols={2}>
   <Card title="对方将无法" icon="xmark">
-    * 查看你的帖子（除非在未登录状态）
+    * 查看你的帖子（除非对方未登录账号）
     * 关注你
     * 向你发送私信
-    * 将你加入列表
+    * 将你添加到列表
     * 在照片中标记你
   </Card>
 
@@ -113,7 +113,7 @@ Blocks 相关端点需要用户身份验证：
 </CardGroup>
 
 <Note>
-  当你屏蔽关注你的用户时，该用户会自动取消关注你。
+  当你屏蔽关注你的用户时，他们会自动取消关注你。
 </Note>
 
 ***
@@ -122,11 +122,11 @@ Blocks 相关端点需要用户身份验证：
   ## 分页
 </div>
 
-对于屏蔽列表较长的用户，结果会分页返回：
+对于屏蔽列表较长的用户，结果会以分页形式返回：
 
 <CodeGroup dropdown>
   ```bash cURL
-  # 第一次请求
+  # 首次请求
   curl "https://api.x.com/2/users/123/blocking?max_results=100" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
 
@@ -171,7 +171,7 @@ Blocks 相关端点需要用户身份验证：
     return allBlocked;
   }
 
-  // 用法示例
+  // 使用示例
   const blocked = await getAllBlockedUsers("123");
   console.log(`Blocked ${blocked.length} users`);
   ```
@@ -183,13 +183,13 @@ Blocks 相关端点需要用户身份验证：
   ## 错误处理
 </div>
 
-| Status | 错误 | 解决方案 |
+| 状态码 | 错误 | 解决方案 |
 |:-------|:------|:---------|
-| 400 | 无效请求 | 检查用户 ID 格式 |
-| 401 | 未授权 | 验证访问令牌 |
-| 403 | 禁止访问 | 检查权限范围（scopes）和权限设置 |
+| 400 | 无效请求 | 检查用户 ID 的格式 |
+| 401 | 未授权 | 验证访问令牌是否有效 |
+| 403 | 禁止访问 | 检查 scope 和权限设置 |
 | 404 | 未找到 | 用户不存在 |
-| 429 | 请求过于频繁 | 等待一段时间后重试 |
+| 429 | 请求过多 | 等待一段时间后重试 |
 
 ***
 
@@ -198,16 +198,16 @@ Blocks 相关端点需要用户身份验证：
 </div>
 
 <CardGroup cols={2}>
-  <Card title="快速入门" icon="rocket" href="/zh/x-api/users/blocks/quickstart">
-    发起你的首个屏蔽请求
+  <Card title="快速开始" icon="rocket" href="/zh/x-api/users/blocks/quickstart">
+    发送你的第一个拉黑请求
   </Card>
 
   <Card title="静音" icon="volume-xmark" href="/zh/x-api/users/mutes/introduction">
-    将用户静音，而不是屏蔽
+    将用户静音而不是拉黑
   </Card>
 
   <Card title="API 参考" icon="code" href="/zh/x-api/users/get-blocking">
-    完整的端点文档
+    完整端点说明
   </Card>
 
   <Card title="示例代码" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">

@@ -1,11 +1,11 @@
 ---
 title: ページネーション
 sidebarTitle: ページネーション
-description: 大規模な結果セットを順番に取得する
-keywords: ["ページネーション", "ページネーショントークン", "next トークン", "結果のページ送り", "カーソルベースのページネーション"]
+description: 大規模な結果セットを順に取得する
+keywords: ["ページネーション", "ページネーショントークン", "next トークン", "結果をページ送りで取得", "カーソルベースのページネーション"]
 ---
 
-API レスポンスに一度に返せる量を超える結果が含まれている場合は、ページネーションを使用してすべてのページのデータを取得します。
+API レスポンスに一度に返せる数を超える結果が含まれている場合は、ページネーションを使ってすべてのページのデータを取得できます。
 
 ***
 
@@ -13,9 +13,9 @@ API レスポンスに一度に返せる量を超える結果が含まれてい�
   ## ページネーションの仕組み
 </div>
 
-1. 最初のリクエストで `max_results` を指定して送信する
-2. レスポンスの `meta` オブジェクトに `next_token` が含まれているか確認する
-3. 含まれている場合、そのトークンを `pagination_token` として指定して次のリクエストを行う
+1. 最初のリクエストで `max_results` パラメータを指定する
+2. レスポンスの `meta` オブジェクト内に `next_token` が含まれているか確認する
+3. 含まれている場合は、そのトークンを `pagination_token` パラメータとして指定して次のリクエストを送信する
 4. `next_token` が返されなくなるまで繰り返す
 
 ```bash
@@ -39,14 +39,14 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 
 | Token | Description |
 |:------|:------------|
-| `next_token` | レスポンスのメタデータオブジェクト `meta` に含まれます。次のページを取得するために使用します。 |
-| `previous_token` | レスポンスのメタデータオブジェクト `meta` に含まれます。前のページに戻るために使用します。 |
-| `pagination_token` | リクエストパラメータ。`next_token` または `previous_token` の値を指定します。 |
+| `next_token` | レスポンスの `meta` フィールドに含まれます。次のページを取得するために使用します。 |
+| `previous_token` | レスポンスの `meta` フィールドに含まれます。前のページを取得するために使用します。 |
+| `pagination_token` | リクエストパラメータです。`next_token` または `previous_token` の値を指定します。 |
 
 ***
 
 <div id="response-structure">
-  ## レスポンスの構造
+  ## レスポンス構造
 </div>
 
 ```json
@@ -63,7 +63,7 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 }
 ```
 
-追加の結果がない場合、`next_token` は返されません。
+結果がこれ以上ない場合、`next_token` は返されません。
 
 ```json
 {
@@ -81,17 +81,17 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## ページネーション用パラメータ
 </div>
 
-| パラメータ | 説明 | デフォルト値 |
+| Parameter | Description | Default |
 |:----------|:------------|:--------|
 | `max_results` | 1ページあたりの結果数 | エンドポイントごとに異なる |
-| `pagination_token` | 前のレスポンスからのトークン | なし |
+| `pagination_token` | 前のレスポンスで返されたトークン | なし |
 
-各エンドポイントの APIリファレンスで、`max_results` の上限値を確認してください。
+各エンドポイントのAPIリファレンスで、`max_results` の上限値を確認してください。
 
 ***
 
 <div id="example-paginating-through-all-results">
-  ## 例: ページネーションで全結果を取得する
+  ## 例: すべての結果をページングして取得する
 </div>
 
 <Tabs>
@@ -113,7 +113,7 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
             if "data" in data:
                 all_tweets.extend(data["data"])
             
-            # 次のページがあるかを確認
+            # 次のページがあるか確認
             next_token = data.get("meta", {}).get("next_token")
             if not next_token:
                 break
@@ -162,11 +162,11 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 </div>
 
 <CardGroup cols={2}>
-  <Card title="max_results を最大値まで指定する" icon="arrow-up-1-9">
-    API 呼び出し回数を最小限に抑えるため、許可されている最大値を `max_results` に指定してリクエストします。
+  <Card title="max_results を活用する" icon="arrow-up-1-9">
+    API 呼び出し回数を最小限に抑えるために、許可されている最大の `max_results` を指定します。
   </Card>
 
-  <Card title="最大件数未満のページを処理する" icon="square-check">
+  <Card title="部分ページを処理する" icon="square-check">
     最後のページには、`max_results` より少ない結果しか含まれない場合があります。
   </Card>
 
@@ -185,12 +185,12 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## 結果の並び順
 </div>
 
-結果は**時系列の逆順（新しいものが先）**で返されます。
+結果は**逆時系列順**で返されます。
 
 * 最初のページの最初の結果 = 最も新しい結果
 * 最後のページの最後の結果 = 最も古い結果
 
-この並び順は、ページ内およびページをまたいで適用されます。
+この並び順は、ページ内およびページ間の両方に適用されます。
 
 ***
 
@@ -198,10 +198,10 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
   ## 注意事項
 </div>
 
-* ページネーショントークンは不透明な文字列型です — 解析や変更は行わないでください
-* トークンは時間の経過とともに失効する場合があります
-* 取得件数が `max_results` 未満でも、さらに結果が存在する可能性があります（`next_token` が返ってこなくなるまで続けてください）
-* 自動的なページネーション処理には [SDK](/ja/x-api/tools-and-libraries/sdks) を使用してください
+* ページネーション用トークンは不透明な文字列型です。トークンの内容を解析したり、変更したりしないでください
+* トークンは一定時間後に期限切れになる場合があります
+* 取得した結果数が `max_results` より少なくても、さらに結果が存在する可能性があります（`next_token` が返ってこなくなるまで継続してください）
+* 自動ページネーション処理には [SDKs](/ja/x-api/tools-and-libraries/sdks) を使用してください
 
 ***
 
@@ -211,10 +211,10 @@ curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=ab
 
 <CardGroup cols={2}>
   <Card title="レート制限" icon="gauge-high" href="/ja/x-api/fundamentals/rate-limits">
-    ページネーション時のリクエスト上限について理解する。
+    ページネーション時のリクエスト上限について把握します。
   </Card>
 
   <Card title="SDK" icon="cube" href="/ja/x-api/tools-and-libraries/sdks">
-    ページネーション機能を備えたライブラリ。
+    ページネーション機能が組み込まれたライブラリ。
   </Card>
 </CardGroup>

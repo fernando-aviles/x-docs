@@ -5,7 +5,7 @@ description: 了解如何使用运算符构建搜索查询
 keywords: ["构建查询", "搜索查询", "查询生成器", "搜索运算符", "查询语法", "构建搜索查询", "查询指南"]
 ---
 
-搜索端点接收通过 GET 请求提交的单个查询，并返回与该查询匹配的一组历史帖子。查询由一系列运算符组成，这些运算符可匹配各种帖子属性。
+搜索端点接受包含单个查询的 GET 请求，并返回一组与该查询匹配的历史帖子。查询由一系列运算符组成，这些运算符可以匹配帖子的多种属性。
 
 ***
 
@@ -13,11 +13,11 @@ keywords: ["构建查询", "搜索查询", "查询生成器", "搜索运算符",
   ## 查询限制
 </div>
 
-根据你所使用的[访问级别](/zh/x-api/getting-started/about-x-api)，你的查询长度会受到限制：
+你的查询将根据你所使用的[访问级别](/zh/x-api/getting-started/about-x-api)而受到限制：
 
-| 访问级别 | 最近搜索 | 全量存档搜索 |
+| 访问级别 | 最近搜索 | 全量归档搜索 |
 | :--- | :--- | :--- |
-| 自助版 | 512 个字符 | 1,024 个字符 |
+| 自助服务 | 512 个字符 | 1,024 个字符 |
 | 企业版 | 4,096 个字符 | 4,096 个字符 |
 
 ***
@@ -26,30 +26,30 @@ keywords: ["构建查询", "搜索查询", "查询生成器", "搜索运算符",
   ## 运算符可用性
 </div>
 
-虽然大多数运算符对所有开发者都可用，但有一些仅限于特定访问级别的开发者使用：
+虽然大多数运算符对所有开发者开放，但有些仅限特定访问级别使用：
 
-* **核心运算符：** 在使用任意 [Project](/zh/resources/fundamentals/developer-apps) 时可用
-* **高级运算符：** 在使用具有特定访问级别的 Project 时可用
+* **核心运算符：** 使用任意 [Project](/zh/resources/fundamentals/developer-apps) 时可用
+* **高级运算符：** 使用具有特定访问级别的 Project 时可用
 
-有关可用性的详细信息，请参阅完整的[运算符列表](/zh/x-api/posts/search/integrate/operators)。
+有关可用性的完整说明，请参阅[运算符列表](/zh/x-api/posts/search/integrate/operators)。
 
 ***
 
 <div id="operator-types-standalone-and-conjunction-required">
-  ## 运算符类型：独立运算符与必须搭配连词的运算符
+  ## 运算符类型：独立运算符与需连词的运算符
 </div>
 
-**独立运算符** 可以单独使用，也可以与任何其他运算符（包括那些必须与连词一起使用的运算符）组合使用。
+**独立运算符** 可以单独使用，也可以与任意其他运算符（包括那些需要连词的运算符）一起使用。
 
-例如，这个查询之所以有效，是因为 `#hashtag` 是一个独立运算符：
+例如，这个查询是有效的，因为 `#hashtag` 是一个独立运算符：
 
 ```
 #xapiv2
 ```
 
-**需要连用的运算符** 不能单独用于查询中；只有在查询中还包含至少一个可单独使用的运算符时才能使用。这是因为单独使用这些运算符会匹配到数量极其庞大的帖子。
+**必须与其他条件连用的运算符** 不能单独用于查询中；只有在查询中还包含至少一个可单独使用的运算符时才能使用。原因是，如果单独使用这些运算符，将会匹配到数量极其庞大的帖子。
 
-例如，以下查询由于只包含需要连用的运算符，因此**不受支持**：
+例如，以下查询由于只包含必须与其他条件连用的运算符，因此**不受支持**：
 
 ```
 has:media
@@ -59,7 +59,7 @@ has:media
 has:links OR is:retweet
 ```
 
-如果我们添加一个单独的运算符，例如 `"X data"` 这样的短语，查询就能正常工作：
+如果我们添加一个单独使用的运算符，例如短语 `"X data"`，查询就能正常运行：
 
 ```
 "X data" has:mentions (has:media OR has:links)
@@ -71,21 +71,21 @@ has:links OR is:retweet
   ## 布尔运算符和分组
 </div>
 
-使用以下语法将多个运算符串联在一起：
+使用以下运算符和语法将多个条件连接在一起：
 
-| Operator | Description | Example |
+| 运算符 | 说明 | 示例 |
 | :--- | :--- | :--- |
-| **AND** (空格) | 帖子必须同时匹配所有条件 | `snow day #NoSchool` 会匹配同时包含 &quot;snow&quot;、&quot;day&quot; 和 #NoSchool 的帖子 |
-| **OR** | 帖子只需匹配任一条件 | `grumpy OR cat OR #meme` 会匹配包含 &quot;grumpy&quot;、&quot;cat&quot; 或 #meme 的帖子 |
-| **NOT** (短横线) | 排除匹配此条件的帖子 | `cat #meme -grumpy` 会匹配包含 &quot;cat&quot; 和 #meme 但不包含 &quot;grumpy&quot; 的帖子 |
-| **Grouping** (括号) | 将运算符分组 | `(grumpy cat) OR (#meme has:images)` 会匹配任一分组 |
+| **AND**（空格） | 帖子必须同时匹配所有条件 | `snow day #NoSchool` 匹配同时包含 &quot;snow&quot;、&quot;day&quot; 和 #NoSchool 的帖子 |
+| **OR** | 帖子只需匹配任一条件 | `grumpy OR cat OR #meme` 匹配包含 &quot;grumpy&quot; 或 &quot;cat&quot; 或 #meme 的帖子 |
+| **NOT**（短横线） | 排除匹配该条件的帖子 | `cat #meme -grumpy` 匹配包含 &quot;cat&quot; 和 #meme 但不包含 &quot;grumpy&quot; 的帖子 |
+| **Grouping**（括号） | 将运算符分组使用 | `(grumpy cat) OR (#meme has:images)` 匹配任一分组 |
 
 <Note>
-  **关于取反运算的说明**
+  **关于取反的说明**
 
   * 运算符 `-is:nullcast` 必须始终以否定形式使用
   * 被取反的运算符不能单独使用
-  * 不要对分组运算符整体取反。请将 `skiing -(snow OR day OR noschool)` 改为 `skiing -snow -day -noschool`
+  * 不要对分组的运算符整体取反。不要使用 `skiing -(snow OR day OR noschool)`，而应使用 `skiing -snow -day -noschool`
 </Note>
 
 ***
@@ -94,19 +94,19 @@ has:links OR is:retweet
   ## 运算顺序
 </div>
 
-在组合 AND 和 OR 时：
+当同时使用 AND 和 OR 时：
 
-1. 会先组合由 AND 逻辑连接的运算符
-2. 然后再应用由 OR 逻辑连接的运算符
+1. 会先对由 AND 逻辑连接的条件求值
+2. 然后再应用由 OR 逻辑连接的条件
 
 **示例：**
 
-| Query                    | Evaluated as               |
+| 查询                       | 实际求值方式                     |
 | :----------------------- | :------------------------- |
 | `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
 | `ipad iphone OR android` | `(iphone ipad) OR android` |
 
-为避免歧义，请使用括号：
+为消除歧义，请使用括号：
 
 ```
 (apple OR iphone) ipad
@@ -119,17 +119,17 @@ iphone (ipad OR android)
 ***
 
 <div id="punctuation-diacritics-and-case-sensitivity">
-  ## 标点符号、变音符号和大小写敏感性
+  ## 标点符号、变音符号与大小写敏感性
 </div>
 
-**变音符号：** 带有重音或其他变音符号的搜索查询，会匹配同时包含和不包含该重音符号的帖子。示例：`Diacrítica` 既能匹配 *Diacrítica*，也能匹配 *Diacritica*。
+**变音符号：** 带重音或变音符号的搜索查询会匹配同时包含和不包含该重音的帖子。例如，`Diacrítica` 会同时匹配 *Diacrítica* 和 *Diacritica*。
 
-**大小写敏感性：** 所有运算符都不区分大小写。查询 `cat` 会匹配 *cat*、*CAT* 和 *Cat*。
+**大小写敏感性：** 所有运算符均不区分大小写。查询 `cat` 会匹配 *cat*、*CAT* 和 *Cat*。
 
 <Note>
-  **Filtered stream 的行为有所不同**
+  **过滤流的行为不同**
 
-  在[构建 filtered stream 规则](/zh/x-api/posts/filtered-stream/integrate/build-a-rule)时，带重音的关键词只会匹配同样包含该重音的帖子。示例：`Diacrítica` 只会匹配 *Diacrítica*，而不会匹配 *Diacritica*。
+  在[构建过滤流规则](/zh/x-api/posts/filtered-stream/integrate/build-a-rule)时，带重音符号的关键字仅会匹配同样包含该重音的帖子。例如，`Diacrítica` 只会匹配 *Diacrítica*，不会匹配 *Diacritica*。
 </Note>
 
 ***
@@ -138,10 +138,10 @@ iphone (ipad OR android)
   ## 引用推文匹配
 </div>
 
-在使用 Search Posts 时，运算符会匹配引用推文本身的内容，但**不会**匹配被引用的原始帖子中的内容。
+在使用搜索帖子时，搜索运算符会匹配引用推文本身的内容，但**不会**匹配其引用的原始帖子的内容。
 
 <Note>
-  [过滤流](/zh/x-api/posts/filtered-stream/introduction) 的行为有所不同——它会同时匹配引用推文和原始帖子的内容。
+  [过滤流](/zh/x-api/posts/filtered-stream/introduction) 的行为不同——它会同时匹配引用推文和原始帖子的内容。
 </Note>
 
 ***
@@ -151,16 +151,16 @@ iphone (ipad OR android)
 </div>
 
 <Warning>
-  不建议使用单一关键词或话题标签等宽泛运算符——这会匹配海量帖子，并迅速耗尽你的使用配额。
+  不建议使用像单个关键词或标签这样宽泛的运算符——它会匹配到海量帖子，并迅速耗尽你的使用配额。
 </Warning>
 
-**构建高效查询的技巧：**
+**构建高效查询的建议：**
 
-1. **先从具体入手，再逐步放宽** — 创建能返回相关结果的有针对性的查询
-2. **使用多个运算符** — 组合运算符以收窄结果
-3. **留意字符数限制** — 整个查询字符串都会计入该限制
+1. **先从具体入手，再逐步放宽** — 先创建能返回高度相关结果的精确查询
+2. **使用多个运算符** — 组合运算符以收窄结果范围
+3. **注意字符数** — 整个查询字符串都会计入长度限制
 
-**示例逐步优化：**
+**示例演进：**
 
 ```
 # Too broad - 200,000+ Posts per day
@@ -180,7 +180,7 @@ happy
 </div>
 
 <div id="step-1-start-with-a-basic-query">
-  ### 第 1 步：从基础查询开始
+  ### 步骤 1：从一个基础查询开始
 </div>
 
 ```
@@ -191,23 +191,23 @@ happy OR happiness
   ### 步骤 2：根据结果进行测试并缩小范围
 </div>
 
-我们注意到有多种语言的帖子。添加一个语言过滤器：
+我们注意到帖子使用了多种语言。添加一个语言过滤器：
 
 ```
 (happy OR happiness) lang:en
 ```
 
-我们会收到生日祝福。把这些以及转推排除掉：
+我们收到了生日祝福。把这些祝福和转推都排除掉：
 
 ```
 (happy OR happiness) lang:en -birthday -is:retweet
 ```
 
 <div id="step-3-broaden-for-better-coverage">
-  ### 第 3 步：扩大范围以获得更全面的覆盖
+  ### 步骤 3：拓展以提高覆盖度
 </div>
 
-我们希望捕捉更多情感信号。添加相关关键词：
+我们希望捕捉到更多情感倾向。添加相关关键词：
 
 ```
 (happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
@@ -217,7 +217,7 @@ happy OR happiness
   ### 步骤 4：根据趋势进行调整
 </div>
 
-节日相关的帖子开始出现了。将它们排除：
+节假日相关的帖子开始出现。将它们排除在外：
 
 ```
 (happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
@@ -226,10 +226,10 @@ happy OR happiness
 ***
 
 <div id="adding-a-query-to-your-request">
-  ## 向请求中添加查询
+  ## 在请求中添加查询参数
 </div>
 
-使用 `query` 参数，并对查询进行 HTTP 编码：
+使用 `query` 参数，并对查询进行 URL 编码：
 
 ```bash
 curl "https://api.x.com/2/tweets/search/recent?\
@@ -249,7 +249,7 @@ max_results=100" \
   ### 追踪自然灾害
 </div>
 
-匹配气象机构发布的关于飓风哈维的帖子：
+匹配来自气象机构的、关于飓风哈维（Hurricane Harvey）的帖子：
 
 **查询：**
 
@@ -264,28 +264,28 @@ https://api.x.com/2/tweets/search/recent?query=has%3Ageo%20(from%3ANWSNHC%20OR%2
 ```
 
 <div id="sentiment-analysis-for-nowplaying">
-  ### 针对 #nowplaying 的情感分析
+  ### 关于 #nowplaying 的情绪分析
 </div>
 
-**正面情感：**
+**正面情绪：**
 
 ```
 #nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing
 ```
 
-**负面情绪：**
+**消极情绪：**
 
 ```
 #nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible
 ```
 
 <div id="using-post-annotations">
-  ### 使用帖子注解
+  ### 使用帖子注释
 </div>
 
-使用 `context:` 运算符查找带有图片的日语宠物帖子（不包含猫）：
+使用 `context:` 操作符查找带有图片的日语宠物相关帖子（不包含猫）：
 
-首先，使用 [帖子查找](/zh/x-api/posts/lookup/introduction)，并在 `tweet.fields=context_annotations` 中指定字段来识别 domain.entity ID：
+首先，使用 [Post lookup](/zh/x-api/posts/lookup/introduction) 并指定 `tweet.fields=context_annotations` 来识别 domain.entity 的 ID：
 
 * Cats：`domain` 66，`entity` 852262932607926273
 * Pets：`domain` 65，`entity` 852262932607926273
@@ -303,7 +303,7 @@ context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:ima
 </div>
 
 <Card title="查询构建工具" icon="wrench" href="https://developer.x.com/apitools/query?query=">
-  以交互方式构建和测试查询
+  以交互式方式构建和测试你的查询
 </Card>
 
 ***
@@ -313,8 +313,8 @@ context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:ima
 </div>
 
 <CardGroup cols={2}>
-  <Card title="运算符参考" icon="list" href="/zh/x-api/posts/search/integrate/operators">
-    所有可用运算符的完整列表
+  <Card title="运算符参考文档" icon="list" href="/zh/x-api/posts/search/integrate/operators">
+    可用运算符的完整清单
   </Card>
 
   <Card title="搜索快速入门" icon="rocket" href="/zh/x-api/posts/search/quickstart/recent-search">

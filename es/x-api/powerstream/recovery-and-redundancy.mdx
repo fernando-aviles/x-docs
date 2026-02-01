@@ -4,43 +4,43 @@ sidebarTitle: Recuperación y redundancia
 keywords: ["powerstream recovery", "powerstream redundancy", "recovery features", "redundancy features", "fault tolerance", "error recovery"]
 ---
 
-Al consumir datos en streaming, maximizar el tiempo de conexión y recibir todos los datos coincidentes es un objetivo fundamental. Esto significa que es importante aprovechar conexiones redundantes, detectar automáticamente las desconexiones, reconectarse rápidamente y contar con un plan para recuperar los datos perdidos.
+Al consumir datos de streaming, maximizar el tiempo de conexión y recibir todos los datos que coincidan es un objetivo fundamental. Esto significa que es importante aprovechar las conexiones redundantes, detectar automáticamente las desconexiones, reconectarse rápidamente y tener un plan para recuperar los datos perdidos.
 
-En esta guía de integración, trataremos diferentes características de recuperación y redundancia: conexiones redundantes, backfill y recuperación.
+En esta guía de integración, analizaremos diferentes funciones de recuperación y redundancia: conexiones redundantes, backfill y recuperación.
  
 
 <div id="redundant-connections">
   ## Conexiones redundantes
 </div>
 
-Una conexión redundante te permite establecer más de una conexión simultánea al stream. Esto proporciona redundancia al permitirte conectarte al mismo stream con dos consumidores independientes, recibiendo los mismos datos a través de ambas conexiones. De este modo, tu aplicación cuenta con una conmutación por error activa (hot failover) para diversas situaciones, como cuando un stream se desconecta o cuando falla el servidor principal de tu aplicación.
+Una conexión redundante simplemente te permite establecer más de una conexión simultánea al stream. Esto proporciona redundancia al permitirte conectarte al mismo stream con dos consumidores distintos, recibiendo los mismos datos a través de ambas conexiones. Así, tu aplicación cuenta con una conmutación por error en caliente (hot failover) para diversas situaciones, como cuando un stream se desconecta o cuando falla el servidor principal de tu aplicación.
 
-Para usar un stream redundante, conéctate a la misma URL que usas para tu conexión principal. Los datos de tu stream se enviarán a través de ambas conexiones.
+Para usar un stream redundante, simplemente conéctate a la misma URL que se usa para tu conexión principal. Los datos de tu stream se enviarán a través de ambas conexiones.
 
 <div id="backfill">
   ## Backfill
 </div>
 
-Después de detectar una desconexión, tu sistema debe ser lo suficientemente inteligente como para reconectarse al stream. Si es posible, tu sistema debería registrar cuánto tiempo duró la desconexión para que puedas usar la función de recuperación adecuada y volver a completar los datos. 
+Después de detectar una desconexión, tu sistema debe poder volver a conectarse al stream. Si es posible, tu sistema debe registrar cuánto tiempo duró la desconexión para que puedas usar la función de recuperación adecuada y realizar el backfill de los datos.
 
-Si identificaste que la desconexión duró cinco minutos o menos, puedes usar el parámetro de backfill, `backfillMinutes`. Si pasas este parámetro con tu solicitud `GET /powerstream`, recibirás las publicaciones que coincidan con tus reglas de entre el último minuto y los últimos cinco minutos. En general, entregamos primero estas publicaciones más antiguas antes que cualquier publicación que coincida posteriormente y tampoco eliminamos publicaciones duplicadas. Esto significa que, si estuviste desconectado durante 90 segundos pero solicitas dos minutos de datos de backfill, recibirás 30 segundos de publicaciones duplicadas, lo cual tu sistema debería tolerar. Aquí tienes un ejemplo de cómo podría verse una solicitud con el parámetro de backfill:
+Si identificaste que la desconexión duró cinco minutos o menos, puedes usar el parámetro de backfill, `backfillMinutes`. Si envías este parámetro con tu solicitud `GET /powerstream`, recibirás las Publicaciones que coincidan con tus reglas de entre el último minuto y los últimos cinco minutos. Por lo general, entregamos primero estas Publicaciones más antiguas antes que cualquier Publicación nueva que coincida, y tampoco desduplicamos las Publicaciones. Esto significa que, si estuviste desconectado durante 90 segundos pero solicitas dos minutos de datos de backfill, recibirás 30 segundos de Publicaciones duplicadas, lo cual tu sistema debe poder tolerar. Aquí tienes un ejemplo de cómo podría verse una solicitud con el parámetro de backfill:
 
 `curl 'https://api.x.com/2/powerstream?backfillMinutes=5' -H "Authorization: Bearer $ACCESS_TOKEN"`
 
-Si identificaste que el tiempo de desconexión fue superior a cinco minutos, puedes usar el [endpoint de búsqueda reciente](/es/x-api/posts/search/introduction) o la función de recuperación para solicitar los datos que te perdiste. 
+Si identificaste que la desconexión duró más de cinco minutos, puedes utilizar el [endpoint de búsqueda reciente](/es/x-api/posts/search/introduction) o la función de recuperación para solicitar los datos que faltan. 
 
 <div id="recovery">
   ## Recuperación
 </div>
 
-Puedes usar la función de recuperación para recuperar datos perdidos durante las últimas 24 horas si no puedes volver a conectarte dentro de la ventana de backfill de 5 minutos.
+Puedes utilizar la función de Recuperación para recuperar datos perdidos dentro de las últimas 24 horas si no puedes volver a conectarte dentro de la ventana de backfill de 5 minutos.
 
-La función de recuperación de streaming te permite disponer de una ventana de backfill ampliada de 24 horas. La recuperación te permite &quot;reproducir&quot; el período de tiempo de los datos perdidos. Un stream de recuperación se inicia cuando realizas una solicitud de conexión usando los parámetros de solicitud `startTime` y `endTime`. Una vez conectado, la recuperación volverá a transmitir el período de tiempo indicado y luego se desconectará.  
+La función de recuperación de streaming te permite contar con una ventana de backfill extendida de 24 horas. Recuperación te permite &quot;reproducir&quot; el período de tiempo de datos perdidos. Se inicia un flujo de recuperación cuando haces una solicitud de conexión usando los parámetros de solicitud `startTime` y `endTime`. Una vez conectado, Recuperación volverá a transmitir el periodo de tiempo indicado y luego se desconectará.  
 
 |     |     |     |
 | :--- | :--- | :--- |
 | **Nombre** | **Tipo** | **Descripción** |
-| `startTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Fecha en UTC que indica la hora de inicio a partir de la cual se va a recuperar. |
-| `endTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Fecha en UTC que indica la hora de finalización hasta la cual se va a recuperar. |
+| `startTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Fecha en UTC que indica la hora de inicio desde la cual recuperar. |
+| `endTime` | date (ISO 8601) | YYYY-MM-DDTHH:mm:ssZ (ISO 8601/RFC 3339).<br /><br />Fecha en UTC que indica la hora de finalización hasta la cual recuperar. |
 
 URL de solicitud de ejemplo: `https://api.x.com/2/powerstream?startTime=2022-07-12T15:10:00Z&endTime=2022-07-12T15:20:00Z`

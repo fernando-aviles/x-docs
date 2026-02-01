@@ -2,25 +2,25 @@
 title: セキュリティ
 sidebarTitle: セキュリティ
 icon: shield-halved
-description: X API 開発者向けのセキュリティに関するベストプラクティス
+description: X API 開発者向けのセキュリティ ベストプラクティス
 keywords: ["セキュリティ", "API セキュリティ", "OAuth セキュリティ", "API キーのセキュリティ", "トークンのセキュリティ", "セキュアコーディング", "脆弱性報告"]
 ---
 
-安全なアプリケーションを構築することは、ユーザーと X プラットフォームの双方を保護することにつながります。このガイドでは、X API 開発者向けの重要なセキュリティのベストプラクティスについて説明します。
+安全なアプリケーションを構築することは、ユーザーと X プラットフォームの双方を保護するうえで重要です。このガイドでは、X API を利用する開発者向けの重要なセキュリティ プラクティスを解説します。
 
 ***
 
 <div id="core-requirements">
-  ## 基本要件
+  ## コア要件
 </div>
 
 <CardGroup cols={2}>
   <Card title="TLS は必須" icon="lock">
-    すべての API リクエストで HTTPS を使用する必要があります。プレーンな HTTP は拒否されます。
+    すべての API リクエストで HTTPS を使用する必要があります。暗号化されていない HTTP は拒否されます。
   </Card>
 
-  <Card title="認証情報のセキュリティ" icon="key">
-    API キーやトークンをクライアント側のコード、ログ、リポジトリで決して公開しないでください。
+  <Card title="認証情報の保護" icon="key">
+    クライアント側のコード、ログ、リポジトリに API キーやトークンを決して含めないでください。
   </Card>
 </CardGroup>
 
@@ -30,7 +30,7 @@ keywords: ["セキュリティ", "API セキュリティ", "OAuth セキュリ�
   ## 資格情報の保護
 </div>
 
-API キーやトークンはアプリの鍵です。次の点に留意して安全に管理してください。
+API キーやトークンはアプリへのアクセスの鍵です。安全に管理してください。
 
 <Steps>
   <Step title="環境変数を使用する">
@@ -42,27 +42,27 @@ API キーやトークンはアプリの鍵です。次の点に留意して安�
     ```
   </Step>
 
-  <Step title="シークレットを絶対にコミットしない">
-    資格情報ファイルを `.gitignore` に追加してください。誤ってコミットしてしまうのを防ぐために、`git-secrets` などのツールを使用してください。
+  <Step title="シークレットを決してコミットしない">
+    資格情報ファイルを `.gitignore` に追加してください。`git-secrets` のようなツールを使って、誤ってコミットしてしまうことを防ぎます。
   </Step>
 
   <Step title="定期的にローテーションする">
-    鍵は定期的に再生成し、侵害が疑われる場合は直ちに再生成してください。
+    鍵は定期的に再生成し、漏えいが疑われる場合は直ちに再生成してください。
   </Step>
 
   <Step title="最小限の権限を使用する">
-    アプリに実際に必要な OAuth スコープだけをリクエストしてください。
+    アプリで実際に必要な OAuth スコープだけをリクエストしてください。
   </Step>
 </Steps>
 
 <div id="if-credentials-are-compromised">
-  ### 認証情報が漏えいした場合
+  ### 資格情報が漏えいした場合
 </div>
 
-1. [Developer Console](https://console.x.com) で**ただちに再生成する**
-2. **古いトークンを失効させる** — 再生成すると古い認証情報は自動的に無効になります
-3. **利用状況を監査する** — 不正な API 利用がないか確認する
-4. **アプリを更新する** — すべての環境に新しい認証情報をデプロイする
+1. [開発者コンソール](https://console.x.com) で**直ちに再生成する**
+2. **古いトークンを失効させる** — 再生成すると古い資格情報は自動的に無効になる
+3. **利用状況を監査する** — 不正な API アクティビティがないか確認する
+4. **アプリを更新する** — 新しい資格情報をすべての環境にデプロイする
 
 ***
 
@@ -74,7 +74,7 @@ API キーやトークンはアプリの鍵です。次の点に留意して安�
   ### 入力検証
 </div>
 
-ユーザーからの入力を決して信用しないでください。使用する前に、すべてのデータを検証し、サニタイズしてください。
+ユーザーからの入力を決して信用しないでください。使用する前に、すべてのデータを検証し、サニタイズ（無害化）してください。
 
 ```python
 # 悪い例 - インジェクション攻撃に対して脆弱
@@ -87,10 +87,10 @@ if re.match(r'^[a-zA-Z0-9_]{1,15}$', user_input):
 ```
 
 <div id="output-encoding">
-  ### 出力エンコーディング
+  ### 出力エンコード
 </div>
 
-XSS を防ぐために、HTML に表示する前に X API から取得した data をエスケープしてください。
+XSS を防ぐために、X API のデータを HTML に表示する前にエスケープしてください。
 
 ```javascript
 // 悪い例 - XSSに対して脆弱
@@ -101,15 +101,15 @@ element.textContent = tweet.text;
 ```
 
 <div id="common-vulnerabilities-to-prevent">
-  ### 防ぐべき一般的な脆弱性
+  ### 防止すべき一般的な脆弱性
 </div>
 
 | 脆弱性 | 対策 |
 |:--------------|:-----------|
-| **XSS** | レンダリング前に、ユーザーが生成したコンテンツをすべてエスケープする |
-| **CSRF** | フォームで anti-CSRF トークンを使用し、OAuth の state パラメータを検証する |
-| **SQL Injection** | パラメータ化されたクエリを使用し、ユーザー入力を決して文字列連結しない |
-| **Open redirects** | コールバック URL が許可リストに含まれていることを検証する |
+| **XSS** | レンダリング前に、ユーザー生成コンテンツをすべてエスケープ処理する |
+| **CSRF** | フォームで CSRF 対策トークンを使用し、OAuth の state パラメータを検証する |
+| **SQL Injection** | プレースホルダーを使ったパラメータ化クエリを使用し、ユーザー入力を決して連結しない |
+| **Open redirects** | コールバック URL を許可リストと照合して検証する |
 
 ***
 
@@ -121,7 +121,7 @@ element.textContent = tweet.text;
   ### state パラメータ
 </div>
 
-CSRF を防ぐために、OAuth フローでは必ず `state` パラメータを使用してください。
+CSRF を防ぐため、OAuth フローでは必ず `state` パラメータを使用してください。
 
 ```python
 import secrets
@@ -132,22 +132,21 @@ session['oauth_state'] = state
 
 # コールバック後にstateを検証
 if request.args.get('state') != session.get('oauth_state'):
-    abort(403)  # stateの不一致 - CSRF攻撃の可能性
+    abort(403)  # stateが一致しません - CSRF攻撃の可能性があります
 ```
 
 <div id="token-storage">
-  ### トークンの保管
+  ### トークンの保存
 </div>
 
-| トークンのタイプ | 推奨される保管場所 |
+| トークン種別 | 保存方法の推奨 |
 |:-----------|:-----------------------|
 | **Access tokens** | 暗号化されたデータベースまたはセキュアなボールト |
-| **Refresh tokens** | 追加のアクセス制御を備えた暗号化されたデータベース |
+| **Refresh tokens** | 追加のアクセス制御を施した暗号化されたデータベース |
 | **Bearer tokens** | 環境変数またはセキュアな設定 |
+--------------------------------------
 
-***
-
-<div id="secure-development-practices">
+<div id="reporting-security-issues">
   ## セキュアな開発のベストプラクティス
 </div>
 
@@ -156,12 +155,12 @@ if request.args.get('state') != session.get('oauth_state'):
     定期的にセキュリティレビューとペネトレーションテストを実施してください。
   </Card>
 
-  <Card title="依存関係のスキャン" icon="box">
-    依存関係を常に最新の状態に保ち、脆弱なパッケージを検出するツールを使用してください。
+  <Card title="依存関係スキャン" icon="box">
+    依存関係を最新の状態に保ち、脆弱なパッケージを検出するツールを使用してください。
   </Card>
 
   <Card title="ログ記録" icon="file-lines">
-    セキュリティイベントはログに記録しますが、認証情報や機密データをログに出力してはいけません。
+    セキュリティイベントをログに記録しますが、認証情報や機密データは決してログに残さないでください。
   </Card>
 
   <Card title="モニタリング" icon="chart-line">
@@ -171,57 +170,55 @@ if request.args.get('state') != session.get('oauth_state'):
 
 ***
 
-<div id="reporting-security-issues">
-  ## セキュリティ上の問題の報告
+<div id="compliance-checklist">
+  ## セキュリティ問題の報告
 </div>
 
-X に影響するセキュリティ脆弱性を発見した場合は、以下の方法でご報告ください。
+Xに影響するセキュリティ脆弱性を発見した場合：
 
 <Warning>
-  **48 時間以内に報告してください。** X Developer Platform のユーザーは、セキュリティインシデントが疑われてから 48 時間以内に X に通知する必要があります。
+  **48時間以内に報告してください。** X Developer Platform のユーザーは、セキュリティインシデントが疑われた時点から48時間以内に X に通知しなければなりません。
 </Warning>
 
 <CardGroup cols={2}>
   <Card title="X Bug Bounty" icon="bug" href="https://hackerone.com/twitter">
-    X のシステムにおける脆弱性は、HackerOne を通じて報告してください。
+    HackerOne を通じて X のシステムの脆弱性を報告してください。
   </Card>
 
-  <Card title="あなたのアプリのインシデント" icon="triangle-exclamation" href="https://hackerone.com/twitter">
-    X のデータを利用するあなたのアプリが侵害された場合も、同じ窓口から報告してください。
+  <Card title="Your app incident" icon="triangle-exclamation" href="https://hackerone.com/twitter">
+    X のデータを利用しているあなたのアプリが侵害を受けた場合も、同じチャネルから報告してください。
   </Card>
 </CardGroup>
 
 ***
 
-<div id="compliance-checklist">
-  ## コンプライアンスチェックリスト
+<div id="resources">
+  ## コンプライアンス チェックリスト
 </div>
 
 <Accordion title="X API 開発者向けセキュリティ要件">
   * [ ] すべての API リクエストで TLS/HTTPS を使用している
-  * [ ] 資格情報が安全に保管されている（コードやログ内に保存していない）
-  * [ ] ユーザートークンが保存時に暗号化されている
-  * [ ] すべてのユーザー入力データに対して入力バリデーションを実施している
-  * [ ] XSS を防ぐための出力エンコーディングを実施している
-  * [ ] OAuth フローに CSRF 対策が実装されている
-  * [ ] セキュリティログが有効化されている（機微なデータは含まない）
-  * [ ] インシデントレスポンス計画が文書化されている
-  * [ ] 依存関係が定期的に更新されている
-  * [ ] 最小限の OAuth スコープのみを要求している
+  * [ ] 認証情報を安全に保管している（コードやログ内に保存していない）
+  * [ ] ユーザートークンを保存時に暗号化している
+  * [ ] すべてのユーザーからの入力データに対して入力検証を行っている
+  * [ ] XSS を防ぐために出力エンコードを行っている
+  * [ ] OAuth フローに CSRF 対策を実装している
+  * [ ] セキュリティログを有効化している（機密情報を含まない）
+  * [ ] インシデント対応計画を文書化している
+  * [ ] 依存関係を定期的に更新している
+  * [ ] 要求する OAuth スコープを最小限に抑えている
 </Accordion>
 
 ***
 
-<div id="resources">
-  ## リソース
-</div>
+## リソース
 
 <CardGroup cols={2}>
   <Card title="認証ガイド" icon="key" href="/ja/resources/fundamentals/authentication/overview">
-    OAuth を正しく実装します。
+    OAuth を正しく実装する。
   </Card>
 
   <Card title="アプリの権限" icon="shield-check" href="/ja/resources/fundamentals/developer-apps#app-permissions">
-    必要最小限の権限を設定します。
+    必要最小限の権限を設定する。
   </Card>
 </CardGroup>

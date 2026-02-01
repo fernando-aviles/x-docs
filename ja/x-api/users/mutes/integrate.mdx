@@ -1,13 +1,13 @@
 ---
 title: 連携ガイド
 sidebarTitle: 連携ガイド
-description: mutes エンドポイントを連携するための主要な概念とベストプラクティス
-keywords: ["mutes integration", "mute users integration", "mutes guide"]
+description: ミュート関連エンドポイントを統合する際の主要な概念とベストプラクティス
+keywords: ["ミュート連携", "ユーザーのミュート統合", "ミュートガイド"]
 ---
 
 import { Button } from '/snippets/ja/button.mdx';
 
-このガイドでは、アプリケーションに mutes エンドポイントを統合するために必要な主要な概念について説明します。
+このガイドでは、アプリケーションにミュート関連のエンドポイントを組み込むために必要な主要な概念を説明します。
 
 ***
 
@@ -15,38 +15,38 @@ import { Button } from '/snippets/ja/button.mdx';
   ## 認証
 </div>
 
-Mutes エンドポイントでプライベートなミュートリストにアクセスするには、ユーザー認証が必要です。
+ミュートのエンドポイントで非公開のミュートリストにアクセスするには、ユーザー認証が必要です。
 
-| 認証方式 | 説明 |
+| メソッド | 説明 |
 |:-------|:------------|
-| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 新規アプリケーションに推奨される方式 |
-| [OAuth 1.0a ユーザーコンテキスト](/ja/resources/fundamentals/authentication) | レガシーサポート |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 新しいアプリケーション向けに推奨されます |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシーサポート |
 
 <Warning>
-  App-Only 認証はサポートされていません。ユーザーコンテキストで認証する必要があります。
+  App-only 認証はサポートされていません。ユーザーの代理として認証する必要があります。
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### 必須スコープ（OAuth 2.0）
+  ### 必要なスコープ（OAuth 2.0）
 </div>
 
-| スコープ | 必須となるケース |
+| Scope | 必須となる操作 |
 |:------|:-------------|
-| `mute.read` | ミュート済みアカウントの取得 |
+| `mute.read` | ミュートしているアカウントの取得 |
 | `mute.write` | アカウントのミュートおよびミュート解除 |
-| `users.read` | ミュート用スコープと併せて必須 |
+| `users.read` | mute スコープと併用する場合に必須 |
 
 ***
 
 <div id="endpoints-overview">
-  ## エンドポイントの概要
+  ## エンドポイント概要
 </div>
 
-| Method | Endpoint | Description |
+| Method | Endpoint | 説明 |
 |:-------|:---------|:------------|
-| GET | `/2/users/:id/muting` | ミュート中のアカウント一覧を取得する |
-| POST | `/2/users/:id/muting` | アカウントをミュートする |
-| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | アカウントのミュートを解除する |
+| GET | `/2/users/:id/muting` | ミュートしているアカウントの一覧を取得 |
+| POST | `/2/users/:id/muting` | アカウントをミュート |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | アカウントのミュートを解除 |
 
 ***
 
@@ -77,17 +77,17 @@ Mutes エンドポイントでプライベートなミュートリストにア�
 <Accordion title="user.fields">
   | フィールド | 説明 |
   |:------|:------------|
-  | `created_at` | アカウント作成日 |
+  | `created_at` | アカウント作成日時 |
   | `description` | ユーザーの自己紹介 |
-  | `profile_image_url` | アバターのURL |
-  | `public_metrics` | フォロー数／フォロワー数 |
-  | `verified` | 認証状態 |
+  | `profile_image_url` | プロフィール画像のURL |
+  | `public_metrics` | フォロー／フォロワー数 |
+  | `verified` | 認証ステータス |
 </Accordion>
 
 <Accordion title="expansions">
   | 展開 | 説明 |
   |:----------|:------------|
-  | `pinned_tweet_id` | ユーザーが固定表示している投稿 |
+  | `pinned_tweet_id` | ユーザーの固定された投稿 |
 </Accordion>
 
 <div id="example-with-fields">
@@ -107,7 +107,7 @@ Mutes エンドポイントでプライベートなミュートリストにア�
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # 追加フィールドも含めてミュートしているユーザーを取得
+  # 追加のフィールド情報付きでミュート中のユーザーを取得
   for page in client.users.get_muting(
       user_id="123456789",
       user_fields=["username", "verified", "created_at"],
@@ -141,7 +141,7 @@ Mutes エンドポイントでプライベートなミュートリストにア�
   ## ページネーション
 </div>
 
-ミュートしているアカウントが多いユーザーの場合、結果はページネーションされて返されます。
+ミュートリストが大きいユーザーの場合、結果はページ分割されて返されます。
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -149,7 +149,7 @@ Mutes エンドポイントでプライベートなミュートリストにア�
   curl "https://api.x.com/2/users/123/muting?max_results=100" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
 
-  # ページネーショントークンを使用した2回目以降のリクエスト
+  # ページネーション用トークンを指定した後続リクエスト
   curl "https://api.x.com/2/users/123/muting?max_results=100&pagination_token=NEXT_TOKEN" \
     -H "Authorization: Bearer $USER_ACCESS_TOKEN"
   ```
@@ -196,7 +196,7 @@ Mutes エンドポイントでプライベートなミュートリストにア�
 </CodeGroup>
 
 <Card title="ページネーションガイド" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
-  ページネーションの詳細はこちら
+  ページネーションの詳細は、こちらのガイドを参照してください
 </Card>
 
 ***
@@ -211,14 +211,14 @@ Mutes エンドポイントでプライベートなミュートリストにア�
 
 | 機能 | ミュート | ブロック |
 |:--------|:-----|:------|
-| 相手の投稿が見えるか | いいえ（非表示） | いいえ |
-| 相手があなたの投稿を見られるか | はい | いいえ |
-| 相手があなたをフォローできるか | はい（フォロー可能） | いいえ（解除される） |
-| 相手があなたにDMできるか | はい | いいえ |
+| 相手の投稿が表示されるか | いいえ（非表示） | いいえ |
+| 相手に自分の投稿が表示されるか | はい | いいえ |
+| 相手が自分をフォローできるか | はい（フォロー可能） | いいえ（フォロー解除） |
+| 相手が自分にDMを送れるか | はい | いいえ |
 | 通知が送信されるか | いいえ | いいえ |
 
 <Tip>
-  ミュートは非公開の操作です。ミュートされたユーザーには通知されず、自分がミュートされたことを知ることはできません。
+  ミュートは非公開の操作です。ミュートされたユーザーには通知されず、自分がミュートされたことを知ることもできません。
 </Tip>
 
 ***
@@ -227,13 +227,13 @@ Mutes エンドポイントでプライベートなミュートリストにア�
   ## エラー処理
 </div>
 
-| ステータス | エラー | 解決策 |
+| ステータス | エラー | 解決方法 |
 |:-------|:------|:---------|
-| 400 | 無効なリクエスト | ユーザーIDの形式を確認してください |
-| 401 | 認証されていません | アクセストークンを確認してください |
-| 403 | アクセスが禁止されています | スコープと権限を確認してください |
+| 400 | 無効なリクエスト | ユーザーIDの形式を確認する |
+| 401 | 認証されていません | アクセストークンを確認する |
+| 403 | アクセス拒否 | スコープと権限を確認する |
 | 404 | 見つかりません | ユーザーが存在しません |
-| 429 | リクエストが多すぎます | しばらく待ってから再試行してください |
+| 429 | リクエストが多すぎます | しばらく待ってから再試行する |
 
 ***
 
@@ -243,7 +243,7 @@ Mutes エンドポイントでプライベートなミュートリストにア�
 
 <CardGroup cols={2}>
   <Card title="クイックスタート" icon="rocket" href="/ja/x-api/users/mutes/quickstart/manage-mutes-quickstart">
-    mutesエンドポイントへの最初のリクエストを送信する
+    最初のミュートリクエストを送信する
   </Card>
 
   <Card title="ブロック" icon="ban" href="/ja/x-api/users/blocks/introduction">
@@ -251,10 +251,10 @@ Mutes エンドポイントでプライベートなミュートリストにア�
   </Card>
 
   <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/get-muting">
-    エンドポイントの詳細なドキュメント
+    エンドポイントの詳細ドキュメント
   </Card>
 
   <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
-    実行可能なコード例
+    動作するコードサンプル
   </Card>
 </CardGroup>

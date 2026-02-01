@@ -1,7 +1,7 @@
 ---
 title: 署名の作成
 sidebarTitle: 署名の作成
-keywords: ["OAuth signature", "署名の作成", "OAuth 1.0a signature", "HMAC 署名", "署名の生成", "OAuth 署名"]
+keywords: ["OAuth 署名", "署名の作成", "OAuth 1.0a 署名", "HMAC 署名", "署名生成", "OAuth 署名生成"]
 ---
 
 import { Button } from "/snippets/ja/button.mdx";
@@ -10,9 +10,9 @@ import { Button } from "/snippets/ja/button.mdx";
   ### 署名の作成
 </div>
 
-このページでは、HTTP リクエストに対する OAuth 1.0a の HMAC-SHA1 署名の生成方法を説明します。この署名は、[リクエストの認可](/ja/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) で説明しているとおり、認可されたリクエストの一部として X API に渡すことができます。
+このページでは、HTTP リクエストに対する OAuth 1.0a HMAC-SHA1 署名を生成する方法を説明します。この署名は、[リクエストの認可](/ja/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) で説明しているように、認可済みリクエストの一部として X API に渡すのに適切です。
 
-署名方法の例として使用するリクエストは、https://api.x.com/1.1/statuses/update.json への POST です。生の HTTP リクエストは次のようになります。
+以下では、署名の手順を示すために、https://api.x.com/1.1/statuses/update.json への POST リクエストを使用します。生のリクエストは次のようになります。
 
 ```
 POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
@@ -26,27 +26,27 @@ Host: api.x.com
 status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
 ```
 
-**リクエストメソッドとURLの取得**
+**リクエストメソッドとURLの収集**
 
-署名を作成するには、まずリクエストの HTTP メソッドと URL を特定します。これら 2 つはリクエストを作成する時点であらかじめ分かっているため、取得は簡単です。
+署名を生成するには、まずリクエストの HTTP メソッドと URL を特定します。この 2 つはリクエストを作成する時点で把握できているため、取得は容易です。
 
-X API へのリクエストでは、リクエストメソッドはほとんど常に GET または POST になります。
+X API へのリクエストでは、リクエストメソッドはほぼ常に GET か POST になります。
 
 |             |      |
 | :---------- | :--- |
 | HTTP Method | POST |
 
-ベース URL は、クエリ文字列やハッシュパラメータを除いた、リクエストの送信先となる URL です。ここで正しいプロトコルを使用することが重要なため、URL の「https://」の部分が、API に送信される実際のリクエストと一致していることを確認してください。
+ベース URL は、クエリ文字列やハッシュパラメータを除いた、リクエストの送信先となる URL です。ここで正しいプロトコルを使用することが重要なので、URL の「https://」の部分が、API に送信される実際のリクエストと一致していることを確認してください。
 
 |          |                                            |
 | :------- | :----------------------------------------- |
 | Base URL | https://api.x.com/1.1/statuses/update.json |
 
 <div id="collecting-parameters">
-  #### パラメータの収集
+  #### パラメーターの収集
 </div>
 
-次に、リクエストに含めるすべてのパラメータを収集します。これらの追加パラメータを指定できる場所は 2 か所あります。URL（クエリ文字列の一部）とリクエストボディです。サンプルリクエストでは、両方の場所それぞれに 1 つずつパラメータが含まれています。
+次に、リクエストに含まれるすべてのパラメーターを集めます。これらの追加パラメーターが入る場所は 2 か所あります。URL（クエリ文字列の一部）とリクエスト本文です。サンプルリクエストでは、同じパラメーターが両方の場所に 1 回ずつ含まれています。
 
 ```
 POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
@@ -60,7 +60,7 @@ Host: api.x.com
 status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
 ```
 
-HTTP リクエストには URL エンコードされたパラメータが含まれますが、取得する際は元の値を収集する必要があります。リクエストパラメータに加えて、すべての `oauth_*` パラメータも署名に含める必要があるため、それらも収集してください。[リクエストの認可](/ja/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) からのパラメータは次のとおりです。
+HTTP リクエストには URL エンコードされたパラメータが含まれていますが、エンコード前の生の値を収集する必要があります。リクエストパラメータに加えて、すべての `oauth_*` パラメータを署名に含める必要があるため、それらも収集します。[リクエストの認可](/ja/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request)から取得したパラメータは次のとおりです。
 
 |                                |                                                    |
 | :----------------------------- | :------------------------------------------------- |
@@ -73,25 +73,25 @@ HTTP リクエストには URL エンコードされたパラメータが含ま�
 | oauth&#95;token                | 370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb |
 | oauth&#95;version              | 1.0                                                |
 
-これらの値は 1 つの文字列にエンコードされ、後で使用されます。文字列を構築する手順は非常に厳密です。
+これらの値は 1 つの文字列にエンコードしておく必要があり、この文字列は後で使用します。文字列を構築する手順は非常に厳密に定義されています。
 
-1. 署名対象となるすべてのキーと値を [パーセントエンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) します。
-2. エンコードされたキーでアルファベット順にパラメータ一覧をソートします [[1]](/ja/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature) [[2]](/ja/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature)。
-3. 各キー／値のペアに対して:
-4. エンコードされたキーを出力文字列に追加します。
+1. 署名対象のすべてのキーと値を[パーセントエンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)します。
+2. エンコードされたキーでアルファベット順にパラメータの一覧をソートします [[1]](/ja/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature) [[2]](/ja/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature)。
+3. 各キー/値ペアに対して、次を実行します。
+4. 出力文字列にエンコードされたキーを追加します。
 5. 出力文字列に文字 ‘=’ を追加します。
-6. エンコードされた値を出力文字列に追加します。
-7. さらにキー／値ペアが残っている場合は、文字 ‘&amp;’ を出力文字列に追加します。
+6. 出力文字列にエンコードされた値を追加します。
+7. まだキー/値ペアが残っている場合は、出力文字列に文字 ‘&amp;’ を追加します。
     
 
-[1] OAuth 仕様では「辞書順 (lexicographically)」でソートすると規定されています。これは多くのライブラリにおけるデフォルトのアルファベット順ソートです。
+[1] OAuth 仕様では「辞書式順序でソートする」と記載されています。これは多くのライブラリでのデフォルトのアルファベット順ソートに相当します。
 
-[2] エンコード後のキーが同一のパラメータが 2 つある場合、OAuth 仕様では値に基づいてソートを続行すると規定されています。ただし、X の API リクエストでは重複したキーは受け付けられません。
+[2] エンコード後のキーが同一となる 2 つのパラメータがある場合、OAuth 仕様では値に基づいてソートを続行するように定められています。ただし、X の API リクエストでは重複するキーは受け付けられません。
  
 
 **パラメータ文字列**
 
-上記のパラメータに対してこれらの手順を繰り返すことで、次の *パラメータ文字列* が生成されます。
+上記で収集したパラメータにこれらの手順を適用すると、次の *パラメータ文字列* が生成されます。
 
 | status                   | Hello Ladies + Gentlemen, a signed OAuth request!  |
 | :----------------------- | :------------------------------------------------- |
@@ -107,60 +107,60 @@ HTTP リクエストには URL エンコードされたパラメータが含ま�
   #### 署名ベース文字列の作成
 </div>
 
-ここまでに収集した 3 つの値を結合して 1 つの文字列にし、その文字列から署名を生成します。OAuth 仕様では、この文字列を **signature base string**（署名ベース文字列）と呼びます。
+ここまでに収集した 3 つの値は、署名を生成するために 1 つの文字列に結合する必要があります。これは OAuth 仕様では **signature base string（署名ベース文字列）** と呼ばれます。
 
-HTTP メソッド、ベース URL、およびパラメーター文字列を 1 つの文字列にエンコードするには、次の手順を実行します。
+HTTP メソッド、ベース URL、およびパラメーター文字列を 1 つの文字列にエンコードするには、次の手順に従います。
 
-1. HTTP メソッドを大文字に変換し、この値を出力文字列とします。
-2. 出力文字列に「&amp;」文字を追加します。
-3. URL を[パーセントエンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)し、それを出力文字列に追加します。
-4. 出力文字列に「&amp;」文字を追加します。
-5. パラメーター文字列を[パーセントエンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)し、それを出力文字列に追加します。
+1. HTTP メソッドを大文字に変換し、その値を出力文字列とします。
+2. 出力文字列の末尾に ‘&amp;’ 文字を追加します。
+3. URL を[パーセントエンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)し、出力文字列の末尾に追加します。
+4. 出力文字列の末尾に ‘&amp;’ 文字を追加します。
+5. パラメーター文字列を[パーセントエンコード](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)し、出力文字列の末尾に追加します。
     
 
-これにより、次のような *signature base string*（署名ベース文字列）が生成されます。
+これにより、次のような *署名ベース文字列* が生成されます。
 
 ```
 POST&https%3A%2F%2Fapi.x.com%2F1.1%2Fstatuses%2Fupdate.json&include_entities%3Dtrue%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1318622958%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb%26oauth_version%3D1.0%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521
 ```
 
-パラメーター文字列は必ずパーセントエンコードしてください。署名ベース文字列には、アンパサンド ‘&amp;’ 文字がちょうど 2 つ含まれている必要があります。パラメーター文字列内のパーセント ‘%’ 文字は、署名ベース文字列内では %25 としてエンコードする必要があります。
+パラメータ文字列は必ずパーセントエンコードしてください。署名ベース文字列には、アンパサンド ‘&amp;’ 文字がちょうど 2 個含まれている必要があります。パラメータ文字列内のパーセント ‘%’ 文字は、署名ベース文字列内では %25 にエンコードされていなければなりません。
 
 <div id="getting-a-signing-key">
   #### 署名キーの取得
 </div>
 
-収集すべき最後のデータは、リクエストを送信している [X app](/ja/resources/fundamentals/developer-apps) を識別するシークレットと、そのリクエストが誰の代理で行われているのかを示すユーザーを識別するシークレットです。これらの値は極めて機密性の高い情報であり、決して他人と共有してはならない点に十分注意してください。
+最後に収集するデータは、リクエストを送信している [X app](/ja/resources/fundamentals/developer-apps) を識別するシークレットと、そのリクエストが代行しているユーザーを識別するシークレットです。これらの値は極めて機密性が高く、決して他者と共有してはならないことに注意してください。
 
-あなたのアプリを X に対して識別する値は **consumer secret** と呼ばれ、[Developer Console](/ja/resources/fundamentals/developer-portal) の [app details page](/ja/resources/fundamentals/developer-apps) を表示することで確認できます。これは、あなたの X app が送信するすべてのリクエストで同じ値になります。
+X 上であなたのアプリを識別する値は **consumer secret** と呼ばれ、[開発者コンソール](/ja/resources/fundamentals/developer-portal) の [アプリ詳細ページ](/ja/resources/fundamentals/developer-apps) で確認できます。これは、あなたの X app が送信するすべてのリクエストで同じ値になります。
 
 |     |     |
 | :--- | :--- |
-| Consumer secret | kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw |
+| Consumer secret | kAcSOqF21Fu85e7zjz7ZN2U4ZRh4V3WpwPAoE3Z7kBw |
 
-アプリケーションが代理として動作しているアカウントを識別する値は **OAuth token secret** と呼ばれます。この値は複数の方法で取得でき、そのすべてが [obtaining access tokens](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) で説明されています。
+アプリケーションが代行して動作しているアカウントを識別する値は **OAuth token secret** と呼ばれます。この値は複数の方法で取得でき、そのすべては [access token の取得](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) に記載されています。
 
 |     |     |
 | :--- | :--- |
 | OAuth token secret | LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE |
 
-繰り返しになりますが、これらの値はアプリケーション専用の秘密として厳重に管理することが重要です。これらの値が漏洩したおそれがある場合は、トークンを再生成してください（このページに記載されているトークンは、実際のリクエストには使用できないよう無効化されています）。
+繰り返しになりますが、これらの値はアプリケーション専用として厳重に管理してください。これらの値が漏洩したおそれがある場合は、トークンを再生成してください（このページに記載されているトークンは、実際のリクエストには無効化されています）。
 
-これら 2 つの値はどちらも組み合わせて、署名の生成に使用される **signing key** を構成する必要があります。signing key は、単に [percent encoded](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) されたトークンシークレットです。
+これら 2 つの値は組み合わせて、署名の生成に使用される **signing key** を構成する必要があります。signing key は単に、[パーセントエンコードされた](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) token secret です。
 
-[request token](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) を取得するときなど、一部のフローではトークンシークレットがまだ分からない場合がある点に注意してください。この場合、signing key は、[percent encoded](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) された **consumer secret** にアンパサンド文字「&amp;」を続けたものとする必要があります。
+なお、[request token](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) を取得する場合など、token secret がまだわからないフローもあります。この場合、signing key は [パーセントエンコードされた](/ja/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) **consumer secret** にアンパサンド文字「&amp;」を続けたものになります。
 
 |     |     |
 | :--- | :--- |
-| Signing key | kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw&amp;LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE |
+| Signing key | kAcSOqF21Fu85e7zjz7ZN2U4ZRh4V3WpwPAoE3Z7kBw&amp;LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE |
 
 <div id="calculating-the-signature">
   #### 署名の計算
 </div>
 
-最後に、署名ベース文字列と署名鍵を HMAC-SHA1 ハッシュアルゴリズムに渡して署名を計算します。アルゴリズムの詳細については hash&#95;hmac 関数の説明を参照してください。
+最後に、署名ベース文字列と署名鍵を HMAC-SHA1 ハッシュアルゴリズムに渡して署名を計算します。アルゴリズムの詳細については、`hash_hmac` 関数の説明を参照してください。
 
-HMAC 署名関数の出力はバイナリ文字列です。これを base64 でエンコードして署名文字列を生成する必要があります。たとえば、このページで示したベース文字列と署名鍵とした場合の出力は 2E CF 77 84 98 99 6D 0D DA 90 5D C7 17 7C 75 07 3F 3F CD 4E です。この値を base64 でエンコードしたものが、このリクエストの OAuth 署名になります。
+HMAC 署名関数の出力はバイナリ文字列です。これを base64 エンコードして署名文字列を生成する必要があります。たとえば、このページで示した署名ベース文字列と署名鍵を入力として得られる出力は 2E CF 77 84 98 99 6D 0D DA 90 5D C7 17 7C 75 07 3F 3F CD 4E です。この値を base64 に変換すると、このリクエストの OAuth 署名になります。
 
 |     |     |
 | :--- | :--- |

@@ -1,19 +1,19 @@
 ---
 title: 会話ID
 sidebarTitle: 会話ID
-description: 会話スレッドの追跡と再構築
-keywords: ["conversation ID", "conversation threads", "reply threads", "thread tracking", "conversation tracking"]
+description: 会話スレッドを追跡して再構築する
+keywords: ["会話ID", "会話スレッド", "返信スレッド", "スレッドの追跡", "会話の追跡"]
 ---
 
-X 上のすべての返信は、会話スレッドに属します。`conversation_id` フィールドを使用すると、会話ツリー全体を識別し、追跡して再構築できます。
+X 上のすべての返信は、会話スレッドに属しています。`conversation_id` フィールドを使うと、会話ツリー全体を特定・追跡・再構築できます。
 
 ***
 
 <div id="how-it-works">
-  ## 動作の仕組み
+  ## 仕組み
 </div>
 
-誰かが投稿し、他のユーザーが返信すると、すべての返信には、会話を開始した元の投稿の ID を示す同じ `conversation_id` が付きます。
+誰かが投稿し、他のユーザーが返信すると、すべての返信は同じ `conversation_id` を共有します。これは、その会話を開始した元の投稿のIDです。
 
 ```
 Original post (ID: 1234567890)  ← conversation_id for all replies
@@ -23,7 +23,7 @@ Original post (ID: 1234567890)  ← conversation_id for all replies
     └── Reply to Reply 2        → conversation_id: 1234567890
 ```
 
-スレッドがどれだけ深くなっても、すべての投稿は同じ `conversation_id` を持ちます。
+スレッドがどれだけ深くなっても、すべての投稿には同じ `conversation_id` が付きます。
 
 ***
 
@@ -31,7 +31,7 @@ Original post (ID: 1234567890)  ← conversation_id for all replies
   ## conversation_id をリクエストする
 </div>
 
-`tweet.fields` に `conversation_id` を追加します。
+`tweet.fields` に `conversation_id` を追加します:
 
 ```bash
 curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_reply_to_user_id,referenced_tweets" \
@@ -58,10 +58,10 @@ curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_repl
 ***
 
 <div id="getting-a-full-conversation">
-  ## 会話全体を取得する
+  ## 会話全体の取得
 </div>
 
-スレッド内のすべての投稿を取得するには、検索演算子として `conversation_id` を使用します。
+スレッド内のすべての投稿を取得するには、`conversation_id` を検索演算子として使用します。
 
 ```bash
 curl "https://api.x.com/2/tweets/search/recent?\
@@ -71,7 +71,7 @@ expansions=author_id" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-元の投稿へのすべての返信を逆時系列で返します。
+これは、元の投稿へのすべての返信を、新しいものから順に返します。
 
 ***
 
@@ -81,7 +81,7 @@ expansions=author_id" \
 
 <Tabs>
   <Tab title="スレッド再構築">
-    会話ツリー全体を再構築します:
+    会話ツリー全体を構築します。
 
     ```python
     import requests
@@ -97,24 +97,24 @@ expansions=author_id" \
     response = requests.get(url, headers=headers, params=params)
     replies = response.json()["data"]
 
-    # 返信を created_at でソートして時系列順に並べる
+    # 時系列順に並べるために created_at でソート
     replies.sort(key=lambda x: x["created_at"])
     ```
   </Tab>
 
   <Tab title="会話モニタリング">
-    特定の会話への返信をリアルタイムでストリームします:
+    特定の会話への返信をリアルタイムでストリーミングします。
 
     ```bash
-    # 会話用のフィルタ済みストリームルールを追加
+    # 会話用のフィルタ付きストリームルールを追加
     curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
       -H "Authorization: Bearer $TOKEN" \
       -d '{"add": [{"value": "conversation_id:1234567890"}]}'
     ```
   </Tab>
 
-  <Tab title="会話分析">
-    会話内の返信数を集計します:
+  <Tab title="会話アナリティクス">
+    会話内の返信数を集計します。
 
     ```bash
     curl "https://api.x.com/2/tweets/counts/recent?\
@@ -130,11 +130,11 @@ expansions=author_id" \
   ## 関連フィールド
 </div>
 
-| Field | Description |
+| フィールド | 説明 |
 |:------|:------------|
-| `conversation_id` | スレッドを開始した元の投稿のID |
+| `conversation_id` | スレッドを開始した元となる投稿のID |
 | `in_reply_to_user_id` | 返信先の投稿のユーザーID |
-| `referenced_tweets` | `type: "replied_to"` と親投稿のIDを含む配列 |
+| `referenced_tweets` | `type: "replied_to"` と親となる投稿のIDを含む配列 |
 
 ***
 
@@ -147,7 +147,7 @@ expansions=author_id" \
   "data": [
     {
       "id": "1234567893",
-      "text": "@user2 @user1 I agree with you both!",
+      "text": "@user2 @user1 お二人に賛成です!",
       "conversation_id": "1234567890",
       "author_id": "3333333333",
       "created_at": "2024-01-15T12:05:00.000Z",
@@ -187,8 +187,8 @@ expansions=author_id" \
 
 * 元の投稿の `conversation_id` は、その投稿自身の `id` と同じです
 * `conversation_id` は、投稿を返すすべての v2 エンドポイントで利用できます
-* 会話をリアルタイムで監視するには、[filtered stream](/ja/x-api/posts/filtered-stream/introduction) と組み合わせて使用してください
-* 大規模なスレッドを扱う場合は、[pagination](/ja/x-api/fundamentals/pagination) と組み合わせて使用してください
+* 会話をリアルタイムに監視するために、[filtered stream](/ja/x-api/posts/filtered-stream/introduction) と併用します
+* 大規模なスレッドを扱う場合は、[pagination](/ja/x-api/fundamentals/pagination) と組み合わせて使用します
 
 ***
 
@@ -198,10 +198,10 @@ expansions=author_id" \
 
 <CardGroup cols={2}>
   <Card title="投稿を検索" icon="magnifying-glass" href="/ja/x-api/posts/search/introduction">
-    conversation&#95;id を使って検索します。
+    conversation&#95;id で検索します。
   </Card>
 
-  <Card title="フィルター済みストリーム" icon="signal-stream" href="/ja/x-api/posts/filtered-stream/introduction">
-    会話をリアルタイムで監視します。
+  <Card title="フィルタ済みストリーム" icon="signal-stream" href="/ja/x-api/posts/filtered-stream/introduction">
+    会話をリアルタイムでモニタリングします。
   </Card>
 </CardGroup>

@@ -1,13 +1,13 @@
 ---
 title: Guide d'intégration
 sidebarTitle: Guide d'intégration
-description: Concepts clés et bonnes pratiques pour l'intégration de la recherche de listes
+description: Concepts clés et bonnes pratiques pour intégrer la recherche de listes
 keywords: ["intégration de la recherche de listes", "guide d'intégration des listes", "implémentation de la recherche de listes"]
 ---
 
 import { Button } from '/snippets/fr/button.mdx';
 
-Ce guide présente les principaux concepts nécessaires pour intégrer à votre application les endpoints de recherche de listes.
+Ce guide présente les concepts clés nécessaires pour intégrer les endpoints List lookup dans votre application.
 
 ***
 
@@ -15,13 +15,13 @@ Ce guide présente les principaux concepts nécessaires pour intégrer à votre 
   ## Authentification
 </div>
 
-Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’authentification :
+Les points de terminaison de recherche de Listes prennent en charge plusieurs méthodes d’authentification :
 
 | Méthode | Idéal pour | Accès aux Listes privées ? |
 |:--------|:-----------|:---------------------------|
 | [OAuth 2.0 App-Only](/fr/resources/fundamentals/authentication#oauth-2-0) | Données de Listes publiques | Non |
-| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Applications orientées utilisateur | Oui (créées/suivies) |
-| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Intégrations héritées | Oui (créées/suivies) |
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Applications destinées aux utilisateurs | Oui (possédées ou suivies) |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Anciennes intégrations | Oui (possédées ou suivies) |
 
 <div id="example-request">
   ### Exemple de requête
@@ -34,12 +34,12 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
     -H "Authorization: Bearer $BEARER_TOKEN"
   ```
 
-  ```python Python SDK
+  ```python SDK Python
   from xdk import Client
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Récupérer une liste par identifiant
+  # Récupérer une liste par id
   response = client.lists.get(
       list_id="84839422",
       list_fields=["description", "member_count", "follower_count", "private"]
@@ -47,7 +47,7 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
   print(response.data)
   ```
 
-  ```javascript JavaScript SDK
+  ```javascript SDK JavaScript
   import { Client } from "@xdevplatform/xdk";
 
   const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
@@ -67,8 +67,8 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
 
 | Méthode | Endpoint | Description |
 |:-------|:---------|:------------|
-| GET | [`/2/lists/:id`](/fr/x-api/lists/get-list) | Récupérer une liste par id |
-| GET | [`/2/users/:id/owned_lists`](/fr/x-api/users/get-owned-lists) | Récupérer les listes appartenant à un utilisateur |
+| GET | [`/2/lists/:id`](/fr/x-api/lists/get-list) | Obtenir une liste par id |
+| GET | [`/2/users/:id/owned_lists`](/fr/x-api/users/get-owned-lists) | Obtenir les listes dont un utilisateur est propriétaire |
 
 ***
 
@@ -104,10 +104,10 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
   | `private` | Indique si la liste est privée |
 </Accordion>
 
-<Accordion title="user.fields (requiert l’expansion owner_id)">
+<Accordion title="user.fields (requires owner_id expansion)">
   | Champ | Description |
   |:------|:------------|
-  | `username` | @handle du propriétaire |
+  | `username` | Identifiant @ du propriétaire |
   | `name` | Nom d’affichage du propriétaire |
   | `verified` | Statut de vérification du propriétaire |
   | `profile_image_url` | URL de l’avatar du propriétaire |
@@ -126,12 +126,12 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
     -H "Authorization: Bearer $BEARER_TOKEN"
   ```
 
-  ```python Python SDK
+  ```python SDK Python
   from xdk import Client
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Récupérer une liste avec l'expansion owner
+  # Récupérer une liste avec l'expansion du propriétaire
   response = client.lists.get(
       list_id="84839422",
       list_fields=["description", "member_count", "follower_count", "owner_id"],
@@ -143,7 +143,7 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
   print(response.includes)  # Contient l'objet utilisateur du propriétaire
   ```
 
-  ```javascript JavaScript SDK
+  ```javascript SDK JavaScript
   import { Client } from "@xdevplatform/xdk";
 
   const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
@@ -185,8 +185,8 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
 }
 ```
 
-<Card title="Guide des champs et des Expansions" icon="sliders" href="/fr/x-api/fundamentals/fields">
-  En savoir plus sur la personnalisation des réponses
+<Card title="Guide des champs et des expansions" icon="sliders" href="/fr/x-api/fundamentals/fields">
+  Pour en savoir plus sur la personnalisation des réponses
 </Card>
 
 ***
@@ -195,7 +195,7 @@ Les endpoints de recherche de Listes prennent en charge plusieurs méthodes d’
   ## Pagination
 </div>
 
-Lorsque vous récupérez les listes détenues, les résultats sont paginés :
+Lors de la récupération des listes dont vous êtes propriétaire, les résultats sont paginés :
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -213,7 +213,7 @@ Lorsque vous récupérez les listes détenues, les résultats sont paginés :
 
   client = Client(bearer_token="YOUR_BEARER_TOKEN")
 
-  # Le SDK gère automatiquement la pagination
+  # Le SDK gère la pagination automatiquement
   all_lists = []
 
   for page in client.lists.get_user_owned_lists(user_id="123", max_results=100):
@@ -231,7 +231,7 @@ Lorsque vous récupérez les listes détenues, les résultats sont paginés :
   async function getAllOwnedLists(userId) {
     const allLists = [];
 
-    // Le SDK gère automatiquement la pagination
+    // Le SDK gère la pagination automatiquement
     const paginator = client.lists.getUserOwnedLists(userId, { maxResults: 100 });
 
     for await (const page of paginator) {
@@ -250,7 +250,7 @@ Lorsque vous récupérez les listes détenues, les résultats sont paginés :
 </CodeGroup>
 
 <Card title="Guide de pagination" icon="arrow-right" href="/fr/x-api/fundamentals/pagination">
-  Pour en savoir plus sur la pagination
+  En savoir plus sur la pagination
 </Card>
 
 ***
@@ -260,7 +260,7 @@ Lorsque vous récupérez les listes détenues, les résultats sont paginés :
 </div>
 
 * Les listes privées ne sont visibles que par leur propriétaire
-* Vous devez vous authentifier en tant que propriétaire de la liste pour accéder aux détails d&#39;une liste privée
+* Vous devez vous authentifier en tant que propriétaire pour récupérer les détails d’une liste privée
 * Le champ `private` indique si une liste est privée
 
 ***
@@ -272,8 +272,8 @@ Lorsque vous récupérez les listes détenues, les résultats sont paginés :
 | Statut | Erreur | Solution |
 |:-------|:------|:---------|
 | 400 | Requête invalide | Vérifiez le format de l’id de liste |
-| 401 | Accès non autorisé | Vérifiez l’authentification |
-| 403 | Accès interdit | La liste est peut-être privée |
+| 401 | Non autorisé | Vérifiez l’authentification |
+| 403 | Interdit | La liste est peut-être privée |
 | 404 | Introuvable | La liste n’existe pas |
 | 429 | Trop de requêtes | Attendez et réessayez |
 
@@ -289,14 +289,14 @@ Lorsque vous récupérez les listes détenues, les résultats sont paginés :
   </Card>
 
   <Card title="Publications d’une liste" icon="list" href="/fr/x-api/lists/list-tweets/introduction">
-    Récupérez des publications depuis une liste
+    Récupérez des publications à partir d’une liste
   </Card>
 
   <Card title="Référence de l’API" icon="code" href="/fr/x-api/lists/get-list">
-    Documentation complète du point de terminaison
+    Documentation complète de l’endpoint
   </Card>
 
-  <Card title="Code d’exemple" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
-    Exemples de code fonctionnels
+  <Card title="Exemple de code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    Exemples de code prêts à l’emploi
   </Card>
 </CardGroup>

@@ -1,30 +1,30 @@
 ---
-title: Encodage en pourcentage des paramètres
-sidebarTitle: Encodage en pourcentage des paramètres
-keywords: ["encodage en pourcentage", "encodage d'URL", "encodage OAuth", "encodage des paramètres", "encoder une URL", "encodage OAuth 1.0a"]
+title: Paramètres encodés en pourcentage
+sidebarTitle: Paramètres encodés en pourcentage
+keywords: ["encodage en pourcentage", "encodage d’URL", "encodage OAuth", "encodage des paramètres", "encoder une URL", "encodage OAuth 1.0a"]
 ---
 
 import { Button } from "/snippets/fr/button.mdx";
 
 
 <div id="percent-encoding-parameters">
-  ### Encodage en pourcentage des paramètres
+  ### Paramètres d’encodage en pourcentage
 </div>
 
-Certaines parties de X API, en particulier celles qui concernent les signatures OAuth, exigent que les chaînes de caractères soient encodées conformément à [RFC 3986, Section 2.1](http://tools.ietf.org/html/rfc3986#section-2.1). Comme de nombreuses implémentations d’algorithmes d’encodage d’URL ne sont pas entièrement compatibles avec la RFC 3986, des encodages incorrects sont à l’origine de nombreuses erreurs de signature OAuth. Pour cette raison, l’algorithme de signature exact à utiliser est présenté sur cette page.
+Certaines parties de la X API, en particulier celles qui traitent des signatures OAuth, exigent que les chaînes de caractères soient encodées conformément à [RFC 3986, Section 2.1](http://tools.ietf.org/html/rfc3986#section-2.1). Comme de nombreuses implémentations d’algorithmes d’encodage d’URL ne sont pas entièrement compatibles avec la RFC 3986, des encodages incorrects sont à l’origine de nombreuses erreurs de signature OAuth. Pour cette raison, l’algorithme de signature exact à utiliser est décrit sur cette page.
 
-Cette page couvre le processus d’encodage d’URL décrit dans [RFC 3986, Section 2.1](http://tools.ietf.org/html/rfc3986#section-2.1). Nous vous encourageons à vous référer à cette spécification en cas d’ambiguïté ou de conflit avec ce document.
+Cette page couvre le processus d’encodage d’URL décrit dans [RFC 3986, Section 2.1](http://tools.ietf.org/html/rfc3986#section-2.1). Nous vous recommandons de vous référer à cette spécification en cas d’ambiguïté ou de conflit avec ce document.
  
 
 <div id="encoding-a-string">
   #### Encodage d’une chaîne de caractères
 </div>
 
-L’algorithme suivant suppose que vous encodez une chaîne de caractères SRC en copiant ses valeurs octet par octet dans une chaîne de caractères DST.
+L’algorithme suivant part du principe que vous encodez une chaîne de caractères SRC en copiant ses valeurs octet par octet dans une chaîne de caractères DST.
 
-**Étape 1 : Tant que SRC contient des octets non lus, lisez l’octet suivant (8 bits) depuis SRC.** En général, celui-ci est considéré comme un caractère, mais dans le cas d’encodages où un caractère peut occuper plus d’un octet (comme UTF-8), lisez uniquement le premier octet.
+**Étape 1 : Tant que SRC contient des octets non lus, lisez l’octet suivant (8 bits) à partir de SRC.** En général, celui-ci est considéré comme un caractère, mais dans le cas d’encodages où un caractère peut occuper plus d’un octet (comme UTF-8), lisez simplement le premier octet.
 
-**Étape 2 : Vérifiez si l’octet lu correspond à l’un des équivalents ASCII suivants.** Le tableau ci-dessous est divisé en plusieurs lignes pour plus de lisibilité, mais vous devez seulement déterminer si l’octet lu apparaît dans le tableau, et non dans quelle ligne spécifique.
+**Étape 2 : Vérifiez si l’octet lu correspond à l’un des équivalents ASCII suivants.** Le tableau suivant a été réparti en plusieurs lignes pour plus de lisibilité, mais vous devez uniquement déterminer si l’octet lu existe dans le tableau, et non à quelle ligne il appartient.
 
 | Nom | Caractères ASCII | Valeurs d’octet équivalentes |
 | :--- | :--- | :--- |
@@ -33,20 +33,20 @@ L’algorithme suivant suppose que vous encodez une chaîne de caractères SRC e
 | Lettres minuscules | ‘a’, ‘b’, ‘c’, ‘d’, ‘e’, ‘f’, ‘g’, ‘h’, ‘i’, ‘j’, ‘k’, ‘l’, ‘m’, ‘n’, ‘o’, ‘p’, ‘q’, ‘r’, ‘s’, ‘t’, ‘u’, ‘v’, ‘w’, ‘x’, ‘y’, ‘z’ | 0x61, 0x62, 0x63, 0x64, 0x65,0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B,0x6C, 0x6D, 0x6E, 0x6F, 0x70, 0x71,0x72, 0x73, 0x74, 0x75, 0x76, 0x77,0x78, 0x79, 0x7A |
 | Caractères réservés | ‘-‘, ‘.’, ‘_’, ‘~’ | 0x2D, 0x2E, 0x5F, 0x7E |
 
-**Étape 2b : Si l’octet ne figure pas dans le tableau ci-dessus, continuez.** Toute autre valeur doit être encodée. **Étape 2a : Si l’octet figure dans le tableau ci-dessus, copiez-le dans DST et revenez à l’étape 1.** Les caractères répertoriés dans le tableau ci-dessus n’ont pas besoin d’être échappés, vous copierez donc simplement l’octet directement.
+**Étape 2b : Si l’octet ne figure pas dans le tableau ci-dessus, continuez.** Toute autre valeur doit être encodée. **Étape 2a : Si l’octet figure dans le tableau ci-dessus, copiez-le dans DST et revenez à l’étape 1.** Les caractères listés dans le tableau ci-dessus n’ont pas besoin d’être échappés, vous copierez donc simplement l’octet directement.
 
-**Étape 3 : Écrivez le caractère ‘%’ dans DST.** Le caractère pourcentage ‘%’ (ou 0x25 en hexadécimal et 00100101 en binaire) indique que les deux octets suivants représenteront un octet encodé.
+**Étape 3 : Écrivez le caractère ‘%’ dans DST.** Le caractère de pourcentage ‘%’ (ou 0x25 en hexadécimal et 00100101 en binaire) indique que les deux octets suivants représenteront un octet encodé.
 
-**Étape 4 : Écrivez dans DST deux caractères représentant la valeur hexadécimale de l’octet courant, encodée en ASCII avec des lettres majuscules.** C’est un peu déroutant, voici donc un exemple. Supposons que l’octet courant soit 0xE6 (11100110 en binaire). Cela correspond à la valeur encodée en UTF-8 pour ‘æ’. Pour encoder cette valeur, écrivez le caractère ‘E’ (0x45, issu du tableau ci-dessus) puis le caractère ‘6’ (0x36) dans DST. Les trois derniers caractères écrits devraient être « %E6 ». Notez que si vous écrivez une lettre comme A, B, C, D, E ou F, vous devez utiliser le caractère majuscule.
+**Étape 4 : Écrivez dans DST deux caractères représentant la valeur hexadécimale ASCII de l’octet courant, encodée en majuscules.** Cela peut prêter à confusion, voici donc un exemple. Supposons que l’octet courant soit 0xE6 (11100110 en binaire). Cela correspond à la valeur UTF-8 encodée de ‘æ’. Pour encoder cette valeur, écrivez le caractère ‘E’ (0x45, issu du tableau ci-dessus) puis le caractère ‘6’ (0x36) dans DST. Les trois derniers caractères que vous aurez écrits doivent être « %E6 ». Notez que si vous écrivez une lettre telle que A, B, C, D, E ou F, vous devez utiliser le caractère majuscule.
 
-**Étape 5 : Revenez à l’étape 1.** Continuez jusqu’à ce que l’intégralité de SRC soit copiée dans DST.
+**Étape 5 : Revenez à l’étape 1.** Continuez jusqu’à ce que l’intégralité de SRC ait été copiée dans DST.
  
 
 <div id="examples">
   #### Exemples
 </div>
 
-Les exemples suivants peuvent vous aider à comparer avec le résultat de votre propre code. Considérez toute différence comme une erreur. Les espaces encodés comme des caractères « + » constituent un exemple d’encodage incorrect.
+Les exemples suivants peuvent vous aider à comparer avec le résultat de votre propre code. Toute différence doit être considérée comme une erreur. Les espaces encodés au moyen de caractères « + » constituent un exemple d’encodage incorrect.
 
 | Chaîne de caractères d’origine | Chaîne de caractères encodée |
 | :--- | :--- |

@@ -1,13 +1,13 @@
 ---
 title: Guide d'intégration
 sidebarTitle: Guide d'intégration
-description: Concepts clés et bonnes pratiques pour intégrer les endpoints de recherche de messages privés (MP)
-keywords: ["intégration des messages privés", "intégration des MP", "intégration des endpoints de recherche de MP"]
+description: Concepts clés et bonnes pratiques pour l'intégration des endpoints de consultation des DM
+keywords: ["intégration des messages privés", "intégration des DM", "intégration de la consultation des DM"]
 ---
 
 import { Button } from '/snippets/fr/button.mdx';
 
-Ce guide présente les principaux concepts nécessaires pour intégrer les endpoints de consultation des Messages privés dans votre application.
+Ce guide présente les principaux concepts à connaître pour intégrer les endpoints de recherche de messages privés (Direct Messages) dans votre application.
 
 ***
 
@@ -15,26 +15,26 @@ Ce guide présente les principaux concepts nécessaires pour intégrer les endpo
   ## Authentification
 </div>
 
-Les endpoints de messages privés (DM) nécessitent une authentification utilisateur pour accéder aux conversations privées :
+Les endpoints de DM nécessitent une authentification utilisateur pour accéder aux conversations privées :
 
 | Méthode | Description |
 |:-------|:------------|
-| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandé |
-| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Pour compatibilité ascendante |
+| [OAuth 2.0 Authorization Code with PKCE](/fr/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | Recommandée |
+| [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) | Ancienne (legacy) |
 
 <Warning>
-  L’authentification App-Only n’est pas prise en charge. Tous les messages privés (Direct Messages) sont privés.
+  L’authentification « App-Only » n’est pas prise en charge. Tous les Messages privés sont confidentiels.
 </Warning>
 
 <div id="required-scopes-oauth-20">
-  ### Scopes requis (OAuth 2.0)
+  ### Étendues requises (OAuth 2.0)
 </div>
 
-| Scope | Obligatoire pour |
-|:------|:-------------|
+| Étendue | Obligatoire pour |
+|:--------|:-----------------|
 | `dm.read` | Lecture des événements de DM |
-| `tweet.read` | Obligatoire avec dm.read |
-| `users.read` | Obligatoire avec dm.read |
+| `tweet.read` | Obligatoire avec `dm.read` |
+| `users.read` | Obligatoire avec `dm.read` |
 
 ***
 
@@ -43,12 +43,12 @@ Les endpoints de messages privés (DM) nécessitent une authentification utilisa
 </div>
 
 <CardGroup cols={2}>
-  <Card title="Un à un" icon="message">
-    A toujours exactement deux participants. Format d’identifiant de conversation : `{smaller_user_id}-{larger_user_id}`
+  <Card title="Individuelle" icon="message">
+    Contient toujours exactement deux participants. Format de l’identifiant de conversation : `{smaller_user_id}-{larger_user_id}`
   </Card>
 
   <Card title="Groupe" icon="comments">
-    Deux participants ou plus. Les membres du groupe peuvent changer au fil du temps.
+    Deux participants ou plus. La composition des membres peut évoluer au fil du temps.
   </Card>
 </CardGroup>
 
@@ -59,10 +59,10 @@ Les endpoints de messages privés (DM) nécessitent une authentification utilisa
 </div>
 
 | Événement | Description | Champs clés |
-|:----------|:------------|:-----------|
+|:------|:------------|:-----------|
 | `MessageCreate` | Un message a été envoyé | `text`, `sender_id` |
-| `ParticipantsJoin` | Un utilisateur a rejoint un groupe | `participant_ids`, `sender_id` |
-| `ParticipantsLeave` | Un utilisateur a quitté un groupe | `participant_ids` |
+| `ParticipantsJoin` | Un utilisateur a rejoint le groupe | `participant_ids`, `sender_id` |
+| `ParticipantsLeave` | Un utilisateur a quitté le groupe | `participant_ids` |
 
 <div id="example-events">
   ### Exemples d’événements
@@ -111,7 +111,7 @@ Les endpoints de messages privés (DM) nécessitent une authentification utilisa
 ***
 
 <div id="fields-and-expansions">
-  ## Champs et Expansions
+  ## Champs et expansions
 </div>
 
 <div id="default-fields">
@@ -128,11 +128,11 @@ Les endpoints de messages privés (DM) nécessitent une authentification utilisa
 </div>
 
 | Champ | Description | Événements |
-|:------|:------------|:----------|
+|:------|:------------|:-------|
 | `dm_conversation_id` | ID de conversation | Tous |
 | `created_at` | Horodatage de l’événement | Tous |
-| `sender_id` | Expéditeur / initiateur de l’invitation | MessageCreate, Join |
-| `attachments` | Pièces jointes multimédias | MessageCreate |
+| `sender_id` | Qui a envoyé ou invité | MessageCreate, Join |
+| `attachments` | Pièces jointes multimédia | MessageCreate |
 | `referenced_tweets` | Publications partagées | MessageCreate |
 
 <div id="available-expansions">
@@ -165,7 +165,7 @@ Les endpoints de messages privés (DM) nécessitent une authentification utilisa
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # Récupérez les événements DM avec expansions
+  # Récupérer les événements de DM avec expansions
   for page in client.dm_events.list(
       dm_event_fields=["created_at", "sender_id", "attachments"],
       expansions=["sender_id", "attachments.media_keys"],
@@ -204,7 +204,7 @@ Les endpoints de messages privés (DM) nécessitent une authentification utilisa
   ## Pagination
 </div>
 
-Les événements de MD sont renvoyés dans l&#39;ordre chronologique inversé (du plus récent au plus ancien) :
+Les événements de DM sont renvoyés par ordre chronologique inverse (du plus récent au plus ancien) :
 
 <CodeGroup dropdown>
   ```bash cURL
@@ -222,14 +222,14 @@ Les événements de MD sont renvoyés dans l&#39;ordre chronologique inversé (d
 
   client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
 
-  # Le SDK gère automatiquement la pagination
+  # Le SDK gère la pagination automatiquement
   all_events = []
 
   for page in client.dm_events.list(max_results=100):
       if page.data:
           all_events.extend(page.data)
 
-  print(f"{len(all_events)} événements de MD trouvés")
+  print(f"Found {len(all_events)} DM events")
   ```
 
   ```javascript JavaScript SDK
@@ -240,7 +240,7 @@ Les événements de MD sont renvoyés dans l&#39;ordre chronologique inversé (d
   async function getAllDMEvents() {
     const allEvents = [];
 
-    // Le SDK gère automatiquement la pagination
+    // Le SDK gère la pagination automatiquement
     const paginator = client.dmEvents.list({ maxResults: 100 });
 
     for await (const page of paginator) {
@@ -252,26 +252,26 @@ Les événements de MD sont renvoyés dans l&#39;ordre chronologique inversé (d
     return allEvents;
   }
 
-  // Utilisation
+  // Usage
   const events = await getAllDMEvents();
-  console.log(`${events.length} événements de MD trouvés`);
+  console.log(`Found ${events.length} DM events`);
   ```
 </CodeGroup>
 
 <Note>
-  Les événements des **30 derniers jours** sont disponibles.
+  Les événements datant de **jusqu’à 30 jours** sont disponibles.
 </Note>
 
 ***
 
 <div id="id-compatibility-with-v11">
-  ## Compatibilité des identifiants avec v1.1
+  ## Compatibilité des ID avec v1.1
 </div>
 
-Les identifiants de conversation et d’événement sont partagés entre les endpoints v1.1 et v2. Cela signifie que vous pouvez :
+Les ID de conversation et d’événement sont partagés entre les points de terminaison v1.1 et v2. Cela signifie que vous pouvez :
 
 * Utiliser v2 pour récupérer des événements, puis utiliser v1.1 pour supprimer des messages spécifiques
-* Utiliser des identifiants de conversation provenant d’URL x.com dans des requêtes API
+* Utiliser des ID de conversation provenant d’URL x.com dans des requêtes API
 
 ***
 
@@ -281,10 +281,10 @@ Les identifiants de conversation et d’événement sont partagés entre les end
 
 <CardGroup cols={2}>
   <Card title="Démarrage rapide" icon="rocket" href="/fr/x-api/direct-messages/lookup/quickstart">
-    Effectuez votre première requête de recherche de messages privés
+    Effectuez votre première requête de consultation de DM
   </Card>
 
-  <Card title="Envoyer des messages privés" icon="paper-plane" href="/fr/x-api/direct-messages/manage/introduction">
+  <Card title="Envoyer des DM" icon="paper-plane" href="/fr/x-api/direct-messages/manage/introduction">
     Envoyez des messages privés
   </Card>
 

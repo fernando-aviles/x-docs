@@ -3,22 +3,23 @@ title: 인증
 sidebarTitle: 인증
 ---
 
-X API는 모든 엔드포인트에서 인증이 필요합니다. XDK는 다음 세 가지 인증 방식을 지원합니다:
+X API는 모든 엔드포인트마다 인증이 필요합니다. XDK는 다음 세 가지 인증 방식을 지원합니다:
 
 1. Bearer Token (앱 전용)
 2. OAuth 2.0 with PKCE
 3. OAuth 1.0a (User Context)
 
-- **Bearer Token**: 앱 인증을 지원하는 엔드포인트에서 읽기 전용 액세스에 사용합니다(예: 포스트 검색, 스트리밍 엔드포인트).
-- **OAuth 2.0 PKCE**: 스코프 기반의, 사용자 승인을 거친 액세스를 위한 보안성이 높은 인증 방식입니다(예: 인증된 사용자의 포스트 `non_public` metrics 가져오기).
+- **Bearer Token**: 앱 인증을 지원하는 엔드포인트(예: 포스트 검색, 스트리밍 엔드포인트)에 대해 읽기 전용 액세스에 사용합니다.
+- **OAuth 2.0 with PKCE**: 스코프 기반의 사용자 승인 액세스를 위한 보안 인증 방식입니다(예: 인증된 사용자의 포스트 비공개 지표 조회).
 - **OAuth 1.0a**: 사용자별 작업을 위한 레거시 인증 방식입니다(예: 사용자를 대신해 포스트 작성, 리스트 관리).
-[X Developer Console](https://developer.x.com/en/portal/dashboard)에서 자격 증명을 발급받으세요. 승인된 개발자 계정과 적절한 권한(예: Read + Write)을 가진 앱이 필요합니다.
+
+[X 개발자 콘솔](https://developer.x.com/en/portal/dashboard)에서 자격 증명을 발급받으세요. 승인된 개발자 계정과 적절한 권한(예: 읽기 + 쓰기 권한)을 가진 앱이 필요합니다.
 
 <div id="creating-a-client">
   ## 클라이언트 생성
 </div>
 
-모든 인증 흐름은 `Client` 인스턴스를 생성합니다.
+모든 인증 플로우에서는 `Client` 인스턴스를 생성합니다.
 
 ```python
 from xdk import Client
@@ -29,10 +30,10 @@ from xdk import Client
   ### 1. Bearer Token (앱 전용)
 </div>
 
-사용자 컨텍스트가 없는 읽기 전용 작업에 사용합니다.
+사용자 컨텍스트 없이 읽기 전용 작업을 수행할 때 사용합니다.
 **단계**:
 
-1. Developer Console에서 앱용 Bearer Token을 생성합니다.
+1. 개발자 콘솔에서 앱용 Bearer Token을 생성합니다.
 2. 이를 `Client`에 전달합니다.
    **예시**:
 
@@ -54,15 +55,15 @@ for page in client.posts.search_recent(query="python", max_results=10):
 
 
 <div id="2-oauth-20-with-pkce-user-context">
-  ### 2. OAuth 2.0 with PKCE (사용자 컨텍스트)
+  ### 2. PKCE를 사용한 OAuth 2.0 (사용자 컨텍스트)
 </div>
 
-이 예제는 Proof Key for Code Exchange (PKCE)를 사용한 OAuth 2.0 사용 방법을 보여줍니다. 이는 사용자별 액세스(예: 사용자를 대신해 포스트 작성, 사용자용 미디어 업로드 등)와 같이 사용자 단위 권한이 필요한 경우에 사용합니다.
+이 예제는 Proof Key for Code Exchange(PKCE)를 사용해 OAuth 2.0을 사용하는 방법을 보여 줍니다. 이는 사용자별 액세스(예: 사용자를 대신해 포스트 작성), 사용자 미디어 업로드 등과 같은 경우에 사용합니다.
 **단계**:
 
-1. Developer Console에서 앱을 등록하고 리디렉트 URI를 설정합니다(예: `http://localhost:8080/callback`).
-2. Client ID를 가져옵니다(PKCE에는 Client secret이 필요하지 않습니다).
-3. 인증 플로우를 시작하고, 사용자를 auth URL로 리다이렉트한 뒤 콜백을 처리합니다.
+1. 개발자 콘솔에서 리디렉트 URI(예: `http://localhost:8080/callback`)와 함께 앱을 등록합니다.
+2. Client ID를 발급받습니다(PKCE에서는 클라이언트 시크릿이 필요하지 않습니다).
+3. 플로우를 시작하고, 사용자를 인증 URL로 리다이렉트한 후 콜백을 처리합니다.
    **예시** (콜백 처리를 위해 웹 서버를 사용하는 경우):
 
 ```python
@@ -93,7 +94,7 @@ client = Client(bearer_token=access_token)
 # client = Client(token=tokens)
 ```
 
-**토큰 갱신** (장기 세션의 경우 SDK에서 자동으로 갱신됨):
+**토큰 갱신** (장기 세션에서는 SDK에서 자동으로 갱신됨):
 
 ```python
 # If access token expires, refresh using stored refresh_token
@@ -109,13 +110,13 @@ client = Client(bearer_token=tokens["access_token"])
   ### 3. OAuth 1.0a (사용자 컨텍스트)
 </div>
 
-레거시 애플리케이션이거나 OAuth 1.0a 인증이 필요한 특정 사용 사례가 있는 경우:
+레거시 애플리케이션이거나 OAuth 1.0a 인증이 필요한 특정 사용 사례의 경우 다음 단계를 따르세요.
 **단계**:
 
-1. Developer Console에서 API Key와 API Secret을 가져옵니다.
-2. 이미 액세스 토큰이 있다면 그대로 사용합니다. 그렇지 않다면 OAuth 1.0a 플로우를 완료하여 토큰을 발급받습니다.
-3. OAuth1 인스턴스를 생성하고 이를 클라이언트에 전달합니다.
-   **예시** (기존 액세스 토큰이 있는 경우):
+1. 개발자 콘솔에서 API 키와 API 시크릿을 확인합니다.
+2. 이미 액세스 토큰이 있다면 그대로 사용합니다. 그렇지 않다면 OAuth 1.0a 플로우를 완료해 액세스 토큰을 발급받습니다.
+3. OAuth1 인스턴스를 생성하고 클라이언트에 전달합니다.
+   **예시** (기존 액세스 토큰 사용):
 
 ```python
 from xdk import Client
@@ -167,7 +168,7 @@ response = client.users.get_me()
 
 **참고**:
 
-* 운영 환경에서는 비밀 정보를 절대 하드코딩하지 말고, 환경 변수나 시크릿 관리자(예: `os.getenv("X_BEARER_TOKEN")`)를 사용하세요.
-* PKCE를 사용할 때는 운영 환경에서 리디렉션 URI에 HTTPS를 사용하는지 확인하세요.
+* 프로덕션 환경에서는 시크릿 값을 절대 하드코딩하지 말고, 환경 변수나 시크릿 매니저(예: `os.getenv("X_BEARER_TOKEN")`)를 사용하세요.
+* PKCE를 사용할 때는 프로덕션 환경에서 리디렉트 URI에 HTTPS가 사용되도록 해야 합니다.
 * SDK는 토큰을 검증하고, 실패 시 `xdk.AuthenticationError`를 발생시킵니다.
-  Python XDK를 사용하는 자세한 코드 예제는 [코드 샘플 GitHub 리포지토리](https://github.com/xdevplatform/samples/tree/main/python)를 참고하세요.
+  Python용 XDK를 사용하는 자세한 코드 예시는 [code samples GitHub repo](https://github.com/xdevplatform/samples/tree/main/python)를 참고하세요.

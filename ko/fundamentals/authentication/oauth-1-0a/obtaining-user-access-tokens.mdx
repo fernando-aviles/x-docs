@@ -1,26 +1,26 @@
 ---
-title: 3-legged OAuth 플로우를 사용한 액세스 토큰 발급
+title: 3-legged OAuth 플로우를 사용해 액세스 토큰 발급받기
 sidebarTitle: 사용자 액세스 토큰(3-legged OAuth 플로우)
-keywords: ["3-legged OAuth", "사용자 액세스 토큰", "OAuth 플로우", "액세스 토큰 발급", "OAuth 1.0a 플로우", "액세스 토큰 생성"]
+keywords: ["3-legged OAuth", "사용자 액세스 토큰", "OAuth 플로우", "액세스 토큰 발급", "OAuth 1.0a 플로우", "액세스 토큰 발급"]
 ---
 
 import { Button } from "/snippets/ko/button.mdx";
 
 <div id="obtaining-access-tokens-using-3-legged-oauth-flow">
-  ### 3-legged OAuth 플로우를 사용하여 액세스 토큰 가져오기
+  ### 3-legged OAuth 플로우를 사용하여 액세스 토큰 획득하기
 </div>
 
-다른 사용자를 대신해 작업을 수행하려면 해당 사용자의 액세스 토큰을 획득해야 합니다. 액세스 토큰은 요청이 어떤 X 계정을 대신하여 수행되는지를 지정하므로, 이를 얻기 위해서는 먼저 사용자가 귀하의 애플리케이션에 액세스 권한을 부여해야 합니다. 이 토큰은 만료되지 않지만 사용자가 언제든지 철회(revoke)할 수 있습니다.
+다른 사용자를 대신해 작업을 수행하려면 해당 사용자의 액세스 토큰을 획득해야 합니다. 액세스 토큰은 요청이 어떤 X 계정을 대신하여 수행되는지를 지정하므로, 이러한 토큰을 획득하려면 먼저 사용자가 여러분에게 액세스 권한을 부여해야 합니다. 이 토큰은 만료되지 않지만 사용자가 언제든지 철회(revoke)할 수 있습니다.
 
-X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻을 수 있습니다. 이 플로우에서는 사용자를 X로 리디렉션하여 애플리케이션을 승인하도록 함으로써, 애플리케이션이 **액세스 토큰(access token)**과 access token secret을 획득할 수 있습니다. 이 플로우는 [Log in with X 구현](/ko/resources/fundamentals/authentication/guides/log-in-with-x)에 설명된 플로우와 거의 동일하지만, 다음 두 가지 예외가 있습니다:
+X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 획득할 수 있습니다. 이 플로우에서는 사용자를 X로 리디렉트하여 여러분의 애플리케이션을 승인하도록 한 뒤, 애플리케이션이 **access token**과 access token secret을 획득할 수 있도록 합니다. 이 플로우는 [Log in with X 구현](/ko/resources/fundamentals/authentication/guides/log-in-with-x)에서 설명한 플로우와 거의 동일하지만 두 가지 예외가 있습니다.
 
-* [GET oauth/authenticate](/ko/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) 대신 [GET oauth/authorize](/ko/resources/fundamentals/authentication/api-reference#get-oauth-authorize) 엔드포인트가 사용됩니다.
-* 이전에 액세스가 부여된 적이 있더라도 사용자는 **항상** 귀하의 애플리케이션에 대한 액세스 권한 부여를 요청받게 됩니다.
+* [GET oauth/authorize](/ko/resources/fundamentals/authentication/api-reference#get-oauth-authorize) 엔드포인트가 [GET oauth/authenticate](/ko/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) 대신 사용됩니다.
+* 사용자가 이전에 액세스를 부여한 적이 있더라도, 여러분의 애플리케이션에 대한 액세스 권한을 부여하도록 **항상** 승인 화면이 표시됩니다.
    
 
-시작하기 전에 [애플리케이션](/ko/resources/fundamentals/developer-apps)의 권한을 확인하고 consumer key와 callback URL을 알고 있어야 합니다. callback URL이나 공개적으로 접근 가능한 UI가 없는 경우, 승인 후 사용자를 리디렉션하기 위해 웹 브라우저에 접근하거나 웹 브라우저를 임베드할 수 없는 애플리케이션을 위한 [PIN 기반 인증](/ko/resources/fundamentals/authentication/oauth-1-0a/pin-based-oauth) 사용을 고려하세요. 
+시작하기 전에 [애플리케이션](/ko/resources/fundamentals/developer-apps)의 권한을 확인하고 consumer key와 callback URL을 알고 있어야 합니다. callback URL이나 공개적으로 접근 가능한 UI가 없는 경우, 인증 후 사용자를 리디렉트하기 위해 웹 브라우저에 접근하거나 웹 브라우저를 임베드할 수 없는 애플리케이션을 위한 방식인 [PIN 기반 인증](/ko/resources/fundamentals/authentication/oauth-1-0a/pin-based-oauth) 사용을 고려하십시오. 
 
-3-legged 로그인 상호작용의 가능한 상태는 다음 플로우차트에 나와 있습니다:
+3-legged 로그인 상호작용의 가능한 상태는 아래 플로우차트에 나타나 있습니다:
 
 ![](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/obtaining-access-tokens.png.twimg.1920.png)
 
@@ -28,34 +28,34 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
   #### 프로세스 개요
 </div>
 
-개괄적으로, 3-legged OAuth 프로세스는 다음을 수행합니다.
+전체적인 흐름에서 보면 3-Legged OAuth 프로세스는 다음과 같이 진행됩니다.
 
-1. 컨슈머 애플리케이션이 요청 토큰을 얻을 수 있도록 요청을 생성합니다.
-2. 사용자가 인증을 수행하고, 컨슈머 애플리케이션에 요청 토큰을 보냅니다.
-3. 요청 토큰을 사용 가능한 사용자 액세스 토큰으로 변환합니다.
+1. 컨슈머 애플리케이션이 요청 토큰을 얻기 위한 요청을 생성합니다.
+2. 사용자가 인증을 완료하면, 컨슈머 애플리케이션으로 요청 토큰이 전송됩니다.
+3. 요청 토큰을 실제로 사용 가능한 사용자 액세스 토큰으로 변환합니다.
 
 **용어 설명**
 
-아래 가이드에서는 동일한 개념을 가리키는 여러 용어가 사용될 수 있습니다.
+아래 가이드에서는 같은 대상을 가리키는 서로 다른 용어들이 등장할 수 있습니다.
 
-**클라이언트 자격 증명:**
+**클라이언트 자격 증명(Client credentials):**
 
 * App Key === API Key === Consumer API Key === Consumer Key === Customer Key === `oauth_consumer_key`
 * App Key Secret === API Secret Key === Consumer Secret === Consumer Key === Customer Key === `oauth_consumer_secret`
 * Callback URL === `oauth_callback`
    
 
-**임시 자격 증명:**
+**임시 자격 증명(Temporary credentials):**
 
 * Request Token === `oauth_token`
 * Request Token Secret === `oauth_token_secret`
 * oauth&#95;verifier
    
 
-**토큰 자격 증명:**
+**토큰 자격 증명(Token credentials):**
 
-* Access token === Token === 결과로 생성되는 `oauth_token`
-* Access token secret === Token Secret === 결과로 생성되는 `oauth_token_secret`
+* Access token === Token === resulting `oauth_token`
+* Access token secret === Token Secret === resulting `oauth_token_secret`
 
 <div id="walkthrough-steps">
   #### 단계별 안내
@@ -63,11 +63,11 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 **1단계: [POST oauth/request&#95;token](/ko/resources/fundamentals/authentication/api-reference#post-oauth-request-token)**
 
-컨슈머 애플리케이션이 요청 토큰을 받을 수 있도록 요청을 생성합니다.
+컨슈머 애플리케이션이 요청 토큰을 받을 수 있도록 요청을 보냅니다.
 
-이 요청에서 유일한 고유 매개변수는 `oauth_callback`이며, 이는 사용자가 2단계를 완료했을 때 리디렉션되도록 할 URL을 [URL 인코딩](/ko/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)한 값이어야 합니다. 나머지 매개변수는 OAuth 서명 프로세스에 의해 추가됩니다.
+이 요청에서 유일하게 고유한 파라미터는 `oauth_callback`이며, 이는 사용자가 2단계를 완료했을 때 리디렉션되기를 원하는 URL을 [URL 인코딩](/ko/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters)한 값이어야 합니다. 나머지 파라미터는 OAuth 서명 과정에서 추가됩니다.
 
-주의: [POST oauth/request&#95;token](/ko/resources/fundamentals/authentication/api-reference#post-oauth-request-token) 엔드포인트와 함께 사용하는 모든 콜백 URL은 Developer Console의 앱 상세 정보 페이지에 있는 [개발자 App](/ko/resources/fundamentals/developer-apps) 설정에 미리 구성되어 있어야 합니다.
+참고: [POST oauth/request&#95;token](/ko/resources/fundamentals/authentication/api-reference#post-oauth-request-token) 엔드포인트와 함께 사용하는 모든 콜백 URL은 개발자 콘솔의 앱 상세 정보 페이지에 있는 [개발자 App](/ko/resources/fundamentals/developer-apps) 설정에서 구성해야 합니다.
  
 
 **요청에 포함되는 항목:**
@@ -76,7 +76,7 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 `oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w" `
 
-애플리케이션은 응답의 HTTP 상태 코드를 확인해야 합니다. 200이 아닌 값은 모두 실패를 의미합니다. 응답 본문에는 `oauth_token`, `oauth_token_secret`, `oauth_callback_confirmed` 매개변수가 포함됩니다. 애플리케이션은 `oauth_callback_confirmed` 값이 true인지 확인하고, 나머지 두 값을 다음 단계에서 사용할 수 있도록 저장해야 합니다.
+앱은 응답의 HTTP 상태 코드를 확인해야 합니다. 200이 아닌 값은 실패를 의미합니다. 응답 본문에는 `oauth_token`, `oauth_token_secret`, `oauth_callback_confirmed` 파라미터가 포함됩니다. 앱은 `oauth_callback_confirmed`가 true인지 확인하고, 나머지 두 값은 다음 단계를 위해 저장해야 합니다.
  
 
 **응답에 포함되는 항목**
@@ -89,17 +89,17 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 **2단계: [GET oauth/authorize](/ko/resources/fundamentals/authentication/api-reference#get-oauth-authorize)**
 
-사용자가 인증을 수행하도록 하고, 컨슈머 애플리케이션에 요청 토큰을 보냅니다.
+사용자가 인증을 수행하도록 하고, 컨슈머 애플리케이션에 요청 토큰을 전송합니다.
  
 
 **사용자를 리디렉션할 예시 URL:**
 
 `https://api.x.com/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
 
-인증이 성공하면, `callback_url` 로 `oauth_token` 및 `oauth_verifier` 매개변수가 포함된 요청이 전송됩니다. 애플리케이션은 이 토큰이 1단계에서 받은 요청 토큰과 일치하는지 확인해야 합니다.
+인증이 성공하면, `callback_url`은 `oauth_token` 및 `oauth_verifier` 파라미터가 포함된 요청을 받게 됩니다. 애플리케이션은 이 토큰이 1단계에서 수신한 요청 토큰과 일치하는지 확인해야 합니다.
  
 
-**클라이언트 리디렉트에서 들어온 요청:**
+**클라이언트 리디렉션에서의 요청:**
 
 `https://yourCallbackUrl.com?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
 
@@ -107,7 +107,7 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 요청 토큰을 사용 가능한 액세스 토큰으로 변환합니다.
 
-요청 토큰을 사용 가능한 액세스 토큰으로 변환하려면, 애플리케이션은 2단계에서 얻은 `oauth_verifier` 값을 포함하여 [POST oauth/access&#95;token](/ko/resources/fundamentals/authentication/api-reference#post-oauth-access-token) 엔드포인트에 요청을 보내야 합니다. 요청 토큰은 헤더의 `oauth_token` 부분으로도 전달되지만, 이는 서명 프로세스에 의해 추가됩니다.
+요청 토큰을 사용 가능한 액세스 토큰으로 변환하려면, 애플리케이션은 2단계에서 얻은 `oauth_verifier` 값을 포함하여 [POST oauth/access&#95;token](/ko/resources/fundamentals/authentication/api-reference#post-oauth-access-token) 엔드포인트에 요청을 보내야 합니다. 요청 토큰은 헤더의 `oauth_token` 부분으로도 전달되지만, 이는 서명 과정에서 추가됩니다.
  
 
 **요청에 포함되는 항목:**
@@ -120,7 +120,7 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 `oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
 
-성공한 응답에는 `oauth_token`, `oauth_token_secret` 매개변수가 포함됩니다. 토큰과 토큰 시크릿은 저장해 두고, 향후 X API로 인증된 요청을 보낼 때 사용해야 합니다. 사용자의 신원을 확인하려면 [GET account/verify&#95;credentials](/ko/resources/fundamentals/authentication/api-reference)를 사용하세요.
+성공한 응답에는 `oauth_token`, `oauth_token_secret` 파라미터가 포함됩니다. 토큰과 토큰 시크릿은 저장해 두었다가 이후 X API에 인증된 요청을 보낼 때 사용해야 합니다. 사용자의 신원을 확인하려면 [GET account/verify&#95;credentials](/ko/resources/fundamentals/authentication/api-reference)를 사용합니다.
  
 
 **응답에 포함되는 항목:**
@@ -129,9 +129,9 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 `oauth_token_secret=PbKfYqSryyeKDWz4ebtY3o5ogNLG11WJuZBc9fQrQo`
 
-**이 자격 증명을 OAuth 1.0a(애플리케이션-사용자) 방식이 필요한 요청에 사용하기**
+**이 자격 증명을 OAuth 1.0a(애플리케이션-사용자) 기반이 요구되는 요청에 사용하는 방법**
 
-이제 사용자 액세스 토큰을 발급받았으므로, 이를 사용해 사용자를 대신하여 포스트를 생성하기 위해 [POST statuses/update](/ko/x-api/posts/manage-tweets/introduction) 와 같은 특정 API를 호출할 수 있습니다.
+이제 사용자 액세스 토큰을 얻었으므로, 이를 사용해 사용자를 대신해 트윗을 생성하는 [POST statuses/update](/ko/x-api/posts/manage-tweets/introduction) 와 같은 특정 API에 접근할 수 있습니다.
  
 
 **요청에는 다음이 포함됩니다:**
@@ -148,19 +148,19 @@ X에서는 3-legged OAuth 플로우를 통해 사용자 액세스 토큰을 얻�
 
 표준 플로우는 웹 기반이며 3-legged OAuth 권한 부여 플로우를 사용합니다. 여기 나와 있는 스크린샷은 [https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web)에서 소스를 확인할 수 있는 샘플의 일부입니다.
 
-애플리케이션의 특정 시점에서 애플리케이션을 승인받기 위해 X로 리디렉션해야 합니다.
+애플리케이션의 특정 시점에 애플리케이션에 권한을 부여받기 위해 X로 리디렉션해야 합니다.
 
 <Frame>
   <img src="/images/twauth-web-2.png" alt="" />
 </Frame>
 
-요청 토큰과 함께 X로 리디렉션되면, 사용자에게 애플리케이션을 승인하라는 메시지가 표시됩니다.
+요청 토큰과 함께 X로 리디렉션하면, 사용자에게 애플리케이션을 승인하라는 메시지가 표시됩니다.
 
 <Frame>
   <img src="/images/twauth-web-3.png" alt="" />
 </Frame>
 
-사용자가 애플리케이션을 승인하면, 요청 토큰을 생성할 때 제공한 콜백 URL로 리디렉션됩니다. 이 콜백 URL을 사용해 해당 사용자의 영구 액세스 토큰을 발급받고, 이를 로컬에 저장합니다.
+사용자가 애플리케이션을 승인하면, 요청 토큰을 생성할 때 제공했던 콜백 URL로 리디렉션됩니다. 이 정보를 사용해 해당 사용자의 영구 액세스 토큰을 얻어 로컬에 저장합니다.
 
 <Frame>
   <img src="/images/twauth-web-4.png" alt="" />

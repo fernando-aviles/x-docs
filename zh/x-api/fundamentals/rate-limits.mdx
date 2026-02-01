@@ -1,11 +1,11 @@
 ---
 title: X API 速率限制
 sidebarTitle: 速率限制
-description: X API v2 各端点的速率限制
-keywords: ["速率限制", "API 速率限制", "请求限制", "速率限制机制", "限流", "15 分钟窗口"]
+description: X API v2 的按端点速率限制
+keywords: ["速率限制", "API 速率限制", "请求上限", "速率限制机制", "请求节流", "15 分钟时间窗口"]
 ---
 
-速率限制控制你对每个端点可发起的请求次数。超出限制会返回 429 错误，直到时间窗口重置为止。
+速率限制用于控制你对每个端点可以发起的请求数量。超过限制会返回 429 错误，直到当前时间窗口重置为止。
 
 ***
 
@@ -16,9 +16,9 @@ keywords: ["速率限制", "API 速率限制", "请求限制", "速率限制机�
 | 概念 | 描述 |
 |:--------|:------------|
 | **时间窗口** | 通常为 15 分钟或 24 小时 |
-| **按用户限制** | 适用于 OAuth 1.0a 或 OAuth 2.0 用户令牌 |
-| **按应用限制** | 适用于 Bearer Token（仅应用） |
-| **按端点限制** | 每个端点都有自己的限制 |
+| **每用户限制** | 适用于 OAuth 1.0a 或 OAuth 2.0 用户令牌 |
+| **每应用限制** | 适用于 Bearer Token（仅限应用） |
+| **每端点限制** | 每个端点都有各自的限制 |
 
 ***
 
@@ -26,7 +26,7 @@ keywords: ["速率限制", "API 速率限制", "请求限制", "速率限制机�
   ## 检查你的速率限制
 </div>
 
-响应头会显示你当前的速率限制情况：
+响应头会显示你当前的速率限制状态：
 
 ```
 x-rate-limit-limit: 900
@@ -34,11 +34,11 @@ x-rate-limit-remaining: 847
 x-rate-limit-reset: 1705420800
 ```
 
-| Header                   | Description       |
-| :----------------------- | :---------------- |
-| `x-rate-limit-limit`     | 允许的最大请求数          |
-| `x-rate-limit-remaining` | 当前时间窗口内剩余的请求数     |
-| `x-rate-limit-reset`     | 时间窗口重置时的 Unix 时间戳 |
+| 标头                       | 说明               |
+| :----------------------- | :--------------- |
+| `x-rate-limit-limit`     | 允许的最大请求数         |
+| `x-rate-limit-remaining` | 当前窗口内剩余的请求数      |
+| `x-rate-limit-reset`     | 窗口重置时间的 Unix 时间戳 |
 
 ***
 
@@ -46,10 +46,10 @@ x-rate-limit-reset: 1705420800
   ## 速率限制表
 </div>
 
-在下方查看每个端点的速率限制。你也可以在 [Developer Console](https://console.x.com) 中查看这些限制。
+在下方查看每个端点的速率限制。你也可以在 [开发者控制台](https://console.x.com) 中查看这些限制。
 
 <Note>
-  除非另有说明（例如“/24hrs”或“/sec”），否则所有限制均表示每 15 分钟的配额。
+  除非另有说明（例如 &quot;/24hrs&quot; 或 &quot;/sec&quot;），否则这些限制均以每 15 分钟为单位显示。
 </Note>
 
 <div id="posts-25-endpoints">
@@ -69,23 +69,23 @@ x-rate-limit-reset: 1705420800
   #### 最近搜索
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 | 说明 |
+| 方法 | 端点 | 每个应用 | 每个用户 | 备注 |
 |:-------|:---------|:--------|:---------|:------|
-| GET | `/2/tweets/search/recent` | 450/15 分钟 | 300/15 分钟 | 默认返回 10 条结果，最多 100 条；最大查询长度为 512 个字符 |
+| GET | `/2/tweets/search/recent` | 450/15min | 300/15min | 默认 10 条，最多 100 条结果；查询长度上限 512 个字符 |
 
 <div id="full-archive-search">
-  #### 全量存档搜索
+  #### 完整归档搜索
 </div>
 
-| Method | Endpoint | Per App | Per User | Notes |
+| Method | Endpoint | 每个应用 | 每个用户 | 说明 |
 |:-------|:---------|:--------|:---------|:------|
-| GET | `/2/tweets/search/all` | 1/sec, 300/15min | 1/sec | 默认返回 10 条，最多 500 条结果；查询字符串长度上限为 1024 个字符 |
+| GET | `/2/tweets/search/all` | 1/sec, 300/15min | 1/sec | 默认 10 条，最多 500 条结果；查询长度上限 1024 个字符 |
 
 <div id="post-counts">
-  #### 帖子数量
+  #### 帖子数量统计
 </div>
 
-| Method | Endpoint | Per App | Per User | 说明 |
+| Method | Endpoint | 每个应用 | 每个用户 | 备注 |
 |:-------|:---------|:--------|:---------|:------|
 | GET | `/2/tweets/counts/recent` | 300/15min | — | 查询长度上限 512 |
 | GET | `/2/tweets/counts/all` | 300/15min | — | 查询长度上限 1024 |
@@ -94,11 +94,11 @@ x-rate-limit-reset: 1705420800
   #### 过滤流
 </div>
 
-| Method | Endpoint | Per App | Per User | Notes |
+| Method | Endpoint | 每个应用 | 每个用户 | 说明 |
 |:-------|:---------|:--------|:---------|:------|
-| GET | `/2/tweets/search/stream` | 50/15min | — | 1 个连接；1000 条规则；规则长度为 1024；每秒 250 条帖子 |
-| GET | `/2/tweets/search/stream/rules` | 450/15min | — | 1 个连接；1000 条规则；规则长度为 1024 |
-| POST | `/2/tweets/search/stream/rules` | 100/15min | — | 1 个连接；1000 条规则；规则长度为 1024 |
+| GET | `/2/tweets/search/stream` | 50/15min | — | 1 个连接；1000 条规则；规则长度 1024；250 条帖子/秒 |
+| GET | `/2/tweets/search/stream/rules` | 450/15min | — | 1 个连接；1000 条规则；规则长度 1024 |
+| POST | `/2/tweets/search/stream/rules` | 100/15min | — | 1 个连接；1000 条规则；规则长度 1024 |
 
 <div id="manage-posts">
   #### 管理帖子
@@ -113,17 +113,17 @@ x-rate-limit-reset: 1705420800
   #### 时间线
 </div>
 
-| 方法 | 端点 | 每个应用程序 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| GET | `/2/users/:id/tweets` | 10,000/15 分钟 | 900/15 分钟 |
-| GET | `/2/users/:id/mentions` | 450/15 分钟 | 300/15 分钟 |
-| GET | `/2/users/:id/timelines/reverse_chronological` | — | 180/15 分钟 |
+| GET | `/2/users/:id/tweets` | 10,000/15min | 900/15min |
+| GET | `/2/users/:id/mentions` | 450/15min | 300/15min |
+| GET | `/2/users/:id/timelines/reverse_chronological` | — | 180/15min |
 
 <div id="likes-lookup">
   #### 点赞查询
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/tweets/:id/liking_users` | 75/15min | 75/15min |
 | GET | `/2/users/:id/liked_tweets` | 75/15min | 75/15min |
@@ -134,24 +134,24 @@ x-rate-limit-reset: 1705420800
 
 | 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| POST | `/2/users/:id/likes` | — | 50/15 分钟，1,000/24 小时 |
-| DELETE | `/2/users/:id/likes/:tweet_id` | — | 50/15 分钟，1,000/24 小时 |
+| POST | `/2/users/:id/likes` | — | 50/15min, 1,000/24hrs |
+| DELETE | `/2/users/:id/likes/:tweet_id` | — | 50/15min, 1,000/24hrs |
 
 <div id="retweets-lookup">
   #### 转发查询
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 | 备注 |
+| 方法 | 端点 | 每个应用 | 每个用户 | 说明 |
 |:-------|:---------|:--------|:---------|:------|
 | GET | `/2/tweets/:id/retweeted_by` | 75/15min | 75/15min | — |
 | GET | `/2/tweets/:id/quote_tweets` | 75/15min | 75/15min | — |
-| GET | `/2/users/reposts_of_me` | — | 75/15min | 最多返回 100 条结果 |
+| GET | `/2/users/reposts_of_me` | — | 75/15min | 最多 100 个结果 |
 
 <div id="manage-retweets">
-  #### 管理转发
+  #### 管理转推
 </div>
 
-| 请求方法 | 端点 | 每个应用 | 每个用户 |
+| 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | POST | `/2/users/:id/retweets` | — | 50/15min |
 | DELETE | `/2/users/:id/retweets/:tweet_id` | — | 50/15min |
@@ -160,7 +160,7 @@ x-rate-limit-reset: 1705420800
   #### 隐藏回复
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | PUT | `/2/tweets/:tweet_id/hidden` | — | 50/15min |
 
@@ -171,27 +171,27 @@ x-rate-limit-reset: 1705420800
 </div>
 
 <div id="users-lookup">
-  #### 用户查找
+  #### 用户查询
 </div>
 
-| 方法 | Endpoint | 每个应用 | 每位用户 |
+| 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| GET | `/2/users` | 300/15min | 900/15min |
-| GET | `/2/users/:id` | 300/15min | 900/15min |
-| GET | `/2/users/by` | 300/15min | 900/15min |
-| GET | `/2/users/by/username/:username` | 300/15min | 900/15min |
-| GET | `/2/users/me` | — | 75/15min |
+| GET | `/2/users` | 300/15分钟 | 900/15分钟 |
+| GET | `/2/users/:id` | 300/15分钟 | 900/15分钟 |
+| GET | `/2/users/by` | 300/15分钟 | 900/15分钟 |
+| GET | `/2/users/by/username/:username` | 300/15分钟 | 900/15分钟 |
+| GET | `/2/users/me` | — | 75/15分钟 |
 
 <div id="search-users">
   #### 搜索用户
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 |
+| 方法 | 端点 | 每个应用 | 每位用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/users/search` | 300/15min | 900/15min |
 
 <div id="follows-lookup">
-  #### 关注关系查询
+  #### 关注关系查找
 </div>
 
 | Method | Endpoint | 每个应用 | 每个用户 |
@@ -205,14 +205,14 @@ x-rate-limit-reset: 1705420800
 
 | 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| POST | `/2/users/:id/following` | — | 50/15 分钟 |
-| DELETE | `/2/users/:source_user_id/following/:target_user_id` | — | 50/15 分钟 |
+| POST | `/2/users/:id/following` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/following/:target_user_id` | — | 50/15min |
 
 <div id="blocks-lookup">
   #### 屏蔽查询
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/users/:id/blocking` | — | 15/15min |
 
@@ -220,7 +220,7 @@ x-rate-limit-reset: 1705420800
   #### 静音查询
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/users/:id/muting` | — | 15/15min |
 
@@ -243,7 +243,7 @@ x-rate-limit-reset: 1705420800
   #### Spaces 查询
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 |
+| 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/spaces/:id` | 300/15min | 300/15min |
 | GET | `/2/spaces` | 300/15min | 300/15min |
@@ -252,17 +252,17 @@ x-rate-limit-reset: 1705420800
 | GET | `/2/spaces/:id/buyers` | 300/15min | 300/15min |
 
 <div id="search-spaces">
-  #### 搜索 Space
+  #### 搜索 Spaces
 </div>
 
-| Method | Endpoint | Per App | Per User |
+| 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/spaces/search` | 300/15min | 300/15min |
 
 ***
 
 <div id="direct-messages-8-endpoints">
-  ### 私信（8 个接口）
+  ### 私信（8 个端点）
 </div>
 
 <div id="direct-messages-lookup">
@@ -280,24 +280,24 @@ x-rate-limit-reset: 1705420800
   #### 管理私信
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| POST | `/2/dm_conversations` | 1,440/24hrs | 15/15min, 1,440/24hrs |
-| POST | `/2/dm_conversations/with/:participant_id/messages` | 1,440/24hrs | 15/15min, 1,440/24hrs |
-| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 1,440/24hrs | 15/15min, 1,440/24hrs |
-| DELETE | `/2/dm_events/:id` | 4,000/24hrs | 300/15min, 1,500/24hrs |
+| POST | `/2/dm_conversations` | 1,440/24 小时 | 15/15 分钟, 1,440/24 小时 |
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 1,440/24 小时 | 15/15 分钟, 1,440/24 小时 |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 1,440/24 小时 | 15/15 分钟, 1,440/24 小时 |
+| DELETE | `/2/dm_events/:id` | 4,000/24 小时 | 300/15 分钟, 1,500/24 小时 |
 
 ***
 
 <div id="lists-14-endpoints">
-  ### 列表（14 个端点）
+  ### 列表（14 个接口）
 </div>
 
 <div id="lists-lookup">
   #### 列表查询
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/lists/:id` | 75/15min | 75/15min |
 | GET | `/2/users/:id/owned_lists` | 15/15min | 15/15min |
@@ -311,10 +311,10 @@ x-rate-limit-reset: 1705420800
 | GET | `/2/lists/:id/tweets` | 900/15min | 900/15min |
 
 <div id="list-member-lookup">
-  #### 列表成员查询
+  #### 列表成员查找
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/lists/:id/members` | 900/15min | 900/15min |
 | GET | `/2/users/:id/list_memberships` | 75/15min | 75/15min |
@@ -323,7 +323,7 @@ x-rate-limit-reset: 1705420800
   #### 管理列表
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 |
+| 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | POST | `/2/lists` | — | 300/15 分钟 |
 | DELETE | `/2/lists/:id` | — | 300/15 分钟 |
@@ -333,17 +333,17 @@ x-rate-limit-reset: 1705420800
   #### 管理列表成员
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | Per App | Per User |
 |:-------|:---------|:--------|:---------|
 | POST | `/2/lists/:id/members` | — | 300/15min |
 | DELETE | `/2/lists/:id/members/:user_id` | — | 300/15min |
 
 <div id="manage-list-follows">
-  #### 管理关注的列表
+  #### 管理对列表的关注
 </div>
 
-| Method | Endpoint | Per App（每个应用） | Per User（每个用户） |
-|:-------|:---------|:--------------------|:---------------------|
+| Method | Endpoint | 每个应用 | 每个用户 |
+|:-------|:---------|:--------|:---------|
 | POST | `/2/users/:id/followed_lists` | — | 50/15min |
 | DELETE | `/2/users/:id/followed_lists/:list_id` | — | 50/15min |
 
@@ -351,7 +351,7 @@ x-rate-limit-reset: 1705420800
   #### 置顶列表
 </div>
 
-| 方法 | 端点 | 每个应用 | 每位用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/users/:id/pinned_lists` | 15/15min | 15/15min |
 | POST | `/2/users/:id/pinned_lists` | — | 50/15min |
@@ -385,14 +385,14 @@ x-rate-limit-reset: 1705420800
 ***
 
 <div id="compliance-3-endpoints">
-  ### 合规性（3 个端点）
+  ### 合规（3 个接口）
 </div>
 
 <div id="batch-compliance">
   #### 批量合规
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 |
+| 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
 | POST | `/2/compliance/jobs` | 150/15min | — |
 | GET | `/2/compliance/jobs/:job_id` | 150/15min | — |
@@ -404,7 +404,7 @@ x-rate-limit-reset: 1705420800
   ### 使用量（1 个端点）
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 |
+| Method | Endpoint | Per App | Per User |
 |:-------|:---------|:--------|:---------|
 | GET | `/2/usage/tweets` | 50/15 分钟 | — |
 
@@ -420,7 +420,7 @@ x-rate-limit-reset: 1705420800
 
 | Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| GET | `/2/users/personalized_trends` | 200/24 小时, 200/15 分钟 | 100/24 小时, 10/15 分钟 |
+| GET | `/2/users/personalized_trends` | 200/24小时，200/15分钟 | 100/24小时，10/15分钟 |
 
 <div id="trends-by-woeid">
   #### 按 WOEID 划分的趋势
@@ -428,28 +428,28 @@ x-rate-limit-reset: 1705420800
 
 | 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| GET | `/2/trends/by/woeid/:id` | 75/15min | — |
+| GET | `/2/trends/by/woeid/:id` | 75/15 分钟 | — |
 
 ***
 
 <div id="communities-2-endpoints">
-  ### 社区（2 个端点）
+  ### 社群（2 个端点）
 </div>
 
 | Method | Endpoint | 每个应用 | 每个用户 | 说明 |
 |:-------|:---------|:--------|:---------|:------|
 | GET | `/2/communities/:id` | 300/15min | 300/15min | — |
-| GET | `/2/communities/search` | 300/15min | 300/15min | 最多 100 个结果 |
+| GET | `/2/communities/search` | 300/15min | 300/15min | 最多返回 100 个结果 |
 
 ***
 
 <div id="analytics-1-endpoint">
-  ### 分析（1 个端点）
+  ### 分析（1 个 endpoint）
 </div>
 
-| 方法 | 端点 | 每个应用 | 每个用户 |
+| Method | Endpoint | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| GET | `/2/tweets/analytics` | 300/15min | 300/15min |
+| GET | `/2/tweets/analytics` | 300/15 分钟 | 300/15 分钟 |
 
 ***
 
@@ -474,9 +474,9 @@ x-rate-limit-reset: 1705420800
   ### 活动与 Webhooks
 </div>
 
-| Method | Endpoint | 每个应用 | 每个用户 | 备注 |
+| HTTP 方法 | 端点 | 每个应用 | 每个用户 | 说明 |
 |:-------|:---------|:--------|:---------|:------|
-| GET | `/2/activity/stream` | 450/15min | — | 2 个连接；每秒 250 条帖子 |
+| GET | `/2/activity/stream` | 450/15min | — | 2 个连接；250 帖子/秒 |
 | POST | `/2/activity/subscriptions` | 500/15min | — | — |
 | GET | `/2/activity/subscriptions` | 500/15min | — | — |
 | PUT | `/2/activity/subscriptions/:subscription_id` | 500/15min | — | — |
@@ -495,16 +495,16 @@ x-rate-limit-reset: 1705420800
 
 | 方法 | 端点 | 每个应用 | 每个用户 |
 |:-------|:---------|:--------|:---------|
-| GET | `/2/tweets/sample10/stream` | 100/15 分钟 | — |
-| GET | `/2/news/:id` | 200/15 分钟 | — |
-| GET | `/2/news/search` | 200/15 分钟 | 200/15 分钟 |
-| POST | `/2/users/:id/dm/block` | 25/15 分钟，1,000/24 小时 | 10/15 分钟，400/24 小时 |
-| POST | `/2/users/:id/dm/unblock` | 25/15 分钟，1,000/24 小时 | 10/15 分钟，400/24 小时 |
-| GET | `/2/users/by/username/:username/tweets` | 1,500/15 分钟 | 900/15 分钟 |
-| GET | `/2/users/by/username/:username/mentions` | 450/15 分钟 | 180/15 分钟 |
-| GET | `/2/users/:id/following/spaces` | 300/15 分钟 | 300/15 分钟 |
-| GET | `/2/tweets/:id/retweets` | 75/15 分钟 | 75/15 分钟 |
-| DELETE | `/2/connections/all` | 25/15 分钟 | 25/15 分钟 |
+| GET | `/2/tweets/sample10/stream` | 100/15min | — |
+| GET | `/2/news/:id` | 200/15min | — |
+| GET | `/2/news/search` | 200/15min | 200/15min |
+| POST | `/2/users/:id/dm/block` | 25/15min, 1,000/24hrs | 10/15min, 400/24hrs |
+| POST | `/2/users/:id/dm/unblock` | 25/15min, 1,000/24hrs | 10/15min, 400/24hrs |
+| GET | `/2/users/by/username/:username/tweets` | 1,500/15min | 900/15min |
+| GET | `/2/users/by/username/:username/mentions` | 450/15min | 180/15min |
+| GET | `/2/users/:id/following/spaces` | 300/15min | 300/15min |
+| GET | `/2/tweets/:id/retweets` | 75/15min | 75/15min |
+| DELETE | `/2/connections/all` | 25/15min | 25/15min |
 
 ***
 
@@ -512,7 +512,7 @@ x-rate-limit-reset: 1705420800
   ## 处理速率限制
 </div>
 
-当你达到速率限制时，会收到一个 429 响应：
+当你达到速率限制时，你会收到一个 429 响应：
 
 ```json
 {
@@ -528,7 +528,7 @@ x-rate-limit-reset: 1705420800
 </div>
 
 1. 检查 `x-rate-limit-reset` 以确定窗口何时重置
-2. 等待到该时间点后再重试
+2. 等到该时间点再重试
 3. 如有需要，使用指数退避策略
 
 ```python
@@ -562,11 +562,11 @@ def make_request_with_backoff(url, headers):
   </Card>
 
   <Card title="监控响应头" icon="gauge-high">
-    跟踪剩余请求数，以避免触及速率限制。
+    跟踪剩余请求数，以避免达到限制。
   </Card>
 
   <Card title="分散请求" icon="clock">
-    在时间窗口内均匀分布请求。
+    尽量将请求分散到整个时间窗口内。
   </Card>
 </CardGroup>
 
@@ -581,17 +581,17 @@ def make_request_with_backoff(url, headers):
 | 概念 | 目的 |
 |:--------|:--------|
 | **速率限制** | 控制请求频率以保障系统稳定性 |
-| **用量计费** | 按检索到的 data 收费（按使用量付费） |
+| **用量计费** | 根据检索到的 data 收费（按使用量付费） |
 
-你可以在速率限制范围内但仍产生用量费用，也可能达到速率限制但不产生额外费用。
+即使仍在速率限制范围内，你也可能产生用量费用；或者在不产生额外费用的情况下触及速率限制。
 
 ***
 
 <div id="enterprise-rate-limits">
-  ## 企业级速率限制
+  ## 企业版速率限制
 </div>
 
-企业客户适用自定义的速率限制。请联系您的客户经理，或[申请企业级访问权限](/zh/enterprise/forms/enterprise-api-interest)。
+企业客户享有自定义的速率限制。请联系您的客户经理，或[申请企业版访问权限](/zh/enterprise/forms/enterprise-api-interest)。
 
 ***
 
@@ -601,10 +601,10 @@ def make_request_with_backoff(url, headers):
 
 <CardGroup cols={2}>
   <Card title="错误处理" icon="triangle-exclamation" href="/zh/x-api/fundamentals/response-codes-and-errors">
-    处理 429 和其他错误。
+    处理 429 及其他错误。
   </Card>
 
-  <Card title="快速开始" icon="rocket" href="/zh/x-api/getting-started/about-x-api">
-    了解访问级别和可用功能。
+  <Card title="入门" icon="rocket" href="/zh/x-api/getting-started/about-x-api">
+    了解访问权限级别和功能。
   </Card>
 </CardGroup>

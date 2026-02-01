@@ -4,24 +4,24 @@ sidebarTitle: 最佳实践
 keywords: ["媒体上传最佳实践", "上传媒体", "媒体最佳实践", "图片上传", "视频上传", "媒体上传指南"]
 ---
 
-在使用 [`POST /2/media/upload`](/zh/x-api/media/media-upload) 端点时，有几项重要概念需要先行了解。使用 OAuth 上传媒体可能会有些棘手，因此我们在此列出了一些需要注意的事项，并提供了一个演示如何使用该端点的可运行示例。
+在使用 [`POST /2/media/upload`](/zh/x-api/media/media-upload) 端点时，有几个关键概念需要理解。使用 OAuth 上传媒体可能会有些棘手，因此我们在此列出了一些需要注意的事项，并提供了一个可运行示例来演示如何使用该端点。
 
 <div id="keep-in-mind">
   ## 请注意
 </div>
 
-* 你可以在一条帖子中最多附加 4 张照片、1 个动态 GIF 或 1 个视频。
-* 提交的图片应为图片的原始二进制数据或 base64 二进制编码的数据，只要正确设置 Content-Type，就不需要额外对内容进行编码或转义（如有疑问，请使用：`application/octet-stream`）。
-* 在发布 base64 编码的图片时，请务必在消息的图片部分设置 `Content-Transfer-Encoding: base64`。
-* 多部分消息（multipart message）的边界必须单独占一行，并以 CRLF 结尾。
-* 要查看如何使用此端点进行 POST 的可运行示例，我们建议使用 [xurl](https://github.com/xdevplatform/xurl) 进行测试。同时，也可以查看可用的 [X Libraries](/zh/resources/tools-and-libraries)。
-* 对于 JavaScript 和其他无法精确表示长整数的语言，请使用 API 响应中提供的 `media_id_string`。
+* 你在一条帖子中最多可以附加 4 张照片、1 个动态 GIF 或 1 个视频。
+* 传入的图像应为图像的原始二进制数据或 base64 编码的二进制数据，只要正确设置 Content-Type（如果不确定：`application/octet-stream`），无需对内容进行其他编码或转义。
+* 在发布 base64 编码图像时，请确保在消息中图像部分设置 &quot;Content-Transfer-Encoding: base64&quot;。
+* 多部分消息的边界必须单独占一行，并以 CRLF 结束。
+* 若要查看使用此端点进行 POST 的可运行示例，我们建议使用 [xurl](https://github.com/xdevplatform/xurl) 进行测试。同时，也可以查看可用的 [X Libraries](/zh/resources/tools-and-libraries)。
+* 在 JavaScript 以及任何无法精确表示长整数的语言中，请使用 API 响应中提供的 `media_id_string`。
 
 <div id="media-categories">
   ## 媒体类别
 </div>
 
-Media Category 参数用于定义要上传的媒体文件的使用场景，并且可能会影响媒体上传时适用的文件大小限制或其他约束条件。上传媒体时使用正确的媒体类别非常重要，否则在后续使用该媒体时可能会遇到问题。该参数是在上传流程中 INIT 请求里传递的一个可选值。如果未指定媒体类别，则会根据内容类型，将上传的媒体视为用于帖子的媒体（`tweet_image`、`tweet_video` 或 `tweet_gif`）。
+Media Category 参数定义了将要上传的媒体文件的使用场景，并且可能会影响媒体上传时适用的文件大小限制或其他约束。在上传媒体时使用正确的媒体类别非常重要，以避免在尝试使用该媒体时出现问题。它是在上传流程中通过 INIT 请求传递的一个可选值。如果未指定媒体类别，则会根据内容类型，假定上传的媒体是用于帖子（`tweet_image`、`tweet_video` 或 `tweet_gif`）的媒体。
 
 最常见的媒体类别如下：
 
@@ -33,7 +33,7 @@ Media Category 参数用于定义要上传的媒体文件的使用场景，并�
 * `dm_gif`
 * `subtitles`
 
-如果你是 Ads API 合作伙伴，请参阅[这些文档](/zh/x-ads-api/creatives#promoted-video)，了解有关推广视频推荐媒体类别的更多信息。
+如果你是 Ads API 合作伙伴，请参阅[这些文档](/zh/x-ads-api/creatives#promoted-video)，以了解关于推广视频推荐媒体类别的更多信息。
 
 <div id="image-specifications-and-recommendations">
   ## 图像规范和建议
@@ -43,71 +43,71 @@ Media Category 参数用于定义要上传的媒体文件的使用场景，并�
 
 * **支持的图像媒体类型**：`JPG`、`PNG`、`GIF`、`WEBP`
 * **图像大小**：`<= 5 MB`
-* **动画 GIF 大小**：`<= 15 MB`
+* **动态图像 GIF 大小**：`<= 15 MB`
 
-上述文件大小限制由媒体上传端点强制执行。除此之外，在调用带有 `media_id` 的帖子创建（或类似）端点时，还会应用一个特定于产品实体的单独文件大小限制。文件大小限制和其他约束可能会因 `media_category` 参数而有所不同。
+上述文件大小限制由媒体上传端点强制执行。此外，当使用 `media_id` 调用帖子创建（或类似）端点时，还会应用一个针对产品实体的单独文件大小限制。文件大小限制和其他约束可能会因 `media_category` 参数而有所不同。
 
 <div id="animated-gif-recommendations">
-  ## 动态 GIF 建议
+  ## 动图 GIF 建议
 </div>
 
-即使 GIF 在文件大小限制内，在创建帖子时仍可能处理失败。遵循以下限制可以提高成功率。
+即使 GIF 文件大小在限制范围内，仍可能在创建帖子时处理失败。请遵循以下约束条件以提高成功率。
 
 * **分辨率**：`<= 1280x1080`（`width` x `height`）
 * **帧数**：`<= 350`
-* **像素数量**：`<= 3 亿`（`width` * `height` * `num_frames`）
-* **文件大小**：`<= 15Mb`
+* **像素总数**：`<= 3 亿`（`width` * `height` * `num_frames`）
+* **文件大小**：`<= 15MB`
 
-若要处理更大的 GIF，请使用带有 `media_category` 参数的 [分块上传](/zh/x-api/media/quickstart/media-upload-chunked) 端点。这样可以让服务器异步处理 GIF 文件，这是处理较大文件的必要条件。传入 `media_category=tweet_gif` 以启用对包含动态 GIF 的帖子的异步上传行为。
+若要处理更大的 GIF，请使用带有 `media_category` 参数的[分块上传](/zh/x-api/media/quickstart/media-upload-chunked)端点。这样可以让服务器异步处理 GIF 文件，这是处理大文件的必要条件。传入 `media_category=tweet_gif`，为包含动图 GIF 的帖子启用异步上传行为。
 
 <div id="video-specifications-and-recommendations">
-  ## 视频规范和建议
+  ## 视频规格和建议
 </div>
 
-进行媒体上传时请使用 Async Path。
+进行媒体上传时，请使用异步路径（Async Path）。
 
 <div id="recommended">
-  ### 推荐参数
+  ### 推荐设置
 </div>
 
-* **视频编码格式**: `H264 High Profile`
-* **帧率**: `30 FPS`、`60 FPS`
-* **视频分辨率**: `1280x720`（横屏）、`720x1280`（竖屏）、`720x720`（正方形）。已订阅用户可上传 1080p 视频并获得 1080p 播放效果，未订阅用户可上传 720p 视频并获得 720p 播放效果。
+* **视频编解码器**: `H264 High Profile`
+* **帧率**: `30 FPS`，`60 FPS`
+* **视频分辨率**: `1280x720`（横屏）、`720x1280`（竖屏）、`720x720`（正方形）。已订阅用户可以上传 1080p 视频并以 1080p 播放。未订阅用户可以上传 720p 视频并以 720p 播放。
 * **最低视频码率**: `5,000 kbps`
 * **最低音频码率**: `128 kbps`
-* **音频编码格式**: `AAC LC`
-* **画面纵横比**: `16:9`（横屏或竖屏）、`1:1`（正方形）
+* **音频编解码器**: `AAC LC`
+* **纵横比**: `16:9`（横屏或竖屏）、`1:1`（正方形）
 
 <div id="advanced">
-  ### 高级要求
+  ### 高级
 </div>
 
-* **帧率**：必须小于或等于 `60 FPS`
-* **分辨率**：必须介于 `32x32` 和 `1280x1024` 之间
-* **文件大小**：不得超过 `512 MB`
-* **时长**：必须介于 `0.5 秒` 和 `140 秒` 之间
-* **宽高比**：必须介于 `1:3` 和 `3:1` 之间
-* **[像素宽高比](https://en.wikipedia.org/wiki/Pixel_aspect_ratio)**：必须为 `1:1`
-* **像素格式**：仅支持 [YUV](https://en.wikipedia.org/wiki/YUV) 4:2:0
-* 音频必须为 [`AAC` 低复杂度（Low Complexity）配置](https://en.wikipedia.org/wiki/Advanced_Audio_Coding#Modular_encoding)。（不支持高效 `AAC`）
-* 音频必须为 `mono`（单声道）或 `stereo`（立体声），不得为 5.1 声道或更多
+* **帧率（Frame rate）**：必须不超过 `60 FPS`
+* **分辨率（Dimensions）**：必须在 `32x32` 和 `1280x1024` 之间
+* **文件大小（File size）**：不得超过 `512 MB`
+* **时长（Duration）**：必须在 `0.5 秒` 和 `140 秒` 之间
+* **纵横比（Aspect ratio）**：必须在 `1:3` 和 `3:1` 之间
+* **[像素纵横比（Pixel aspect ratio）](https://en.wikipedia.org/wiki/Pixel_aspect_ratio)**：必须为 `1:1`
+* **像素格式（Pixel format）**：仅支持 [YUV](https://en.wikipedia.org/wiki/YUV) 4:2:0
+* 音频必须为 [`AAC` 低复杂度（Low Complexity）配置](https://en.wikipedia.org/wiki/Advanced_Audio_Coding#Modular_encoding)。（不支持高效率 `AAC`）
+* 音频必须为单声道（`mono`）或立体声（`stereo`），不支持 5.1 或更多声道
 * 不得使用 [`open GOP`](https://en.wikipedia.org/wiki/Group_of_pictures)
-* 必须使用 [`progressive scan`（逐行扫描）](https://en.wikipedia.org/wiki/Progressive_scan)
+* 必须使用 [`progressive scan`](https://en.wikipedia.org/wiki/Progressive_scan)（逐行扫描）
 
 <div id="additional-information">
   ### 其他信息
 </div>
 
-在下表中，每一行都表示一个上传推荐配置，但并非硬性要求。所有上传的媒体都会经过处理，以便在多个平台上优化呈现。
+在下表中，每一行表示一个上传建议，但并非强制要求。所有上传的媒体都会经过处理，以便在多个平台上进行优化。
 
-| 方向 | 宽度 | 高度 | 视频码率 | 音频码率 |
+| 方向 | 宽度 | 高度 | 视频比特率 | 音频比特率 |
 | :--- | :--- | :--- | :--- | :--- |
-| 横向 | 1280 | 720 | 2048K | 128K |
-| 横向 | 640 | 360 | 768K | 64K |
-| 横向 | 320 | 180 | 256K | 64K |
-| 纵向 | 720 | 1280 | 2048K | 128K |
-| 纵向 | 360 | 640 | 768K | 64K |
-| 纵向 | 180 | 320 | 256K | 64K |
+| 横屏 | 1280 | 720 | 2048K | 128K |
+| 横屏 | 640 | 360 | 768K | 64K |
+| 横屏 | 320 | 180 | 256K | 64K |
+| 竖屏 | 720 | 1280 | 2048K | 128K |
+| 竖屏 | 360 | 640 | 768K | 64K |
+| 竖屏 | 180 | 320 | 256K | 64K |
 | 方形 | 720 | 720 | 2048K | 128K |
 | 方形 | 480 | 480 | 768K | 64K |
 | 方形 | 240 | 240 | 256K | 32K |
@@ -115,7 +115,7 @@ Media Category 参数用于定义要上传的媒体文件的使用场景，并�
 有关如何上传媒体的示例，请参阅[分块媒体上传文档](/zh/x-api/media/quickstart/media-upload-chunked)。
 
 <div id="troubleshooting">
-  ### 故障排查
+  ### 疑难解答
 </div>
 
-如果在使用 Media API 时遇到问题，请前往开发者论坛浏览 [Media API 分类](https://devcommunity.x.com/c/x-api/media-apis) 以查找答案。
+如果在使用 Media API 时遇到问题，请前往开发者论坛中的 [Media API 分类](https://devcommunity.x.com/c/x-api/media-apis) 查找解决方案。
