@@ -1,0 +1,114 @@
+---
+title: Editar Tweets
+keywords: ["edit tweets enterprise", "enterprise edit tweets", "edit posts enterprise", "tweet edits enterprise", "edit metadata enterprise"]
+---
+
+Los endpoints de Enterprise se han actualizado para proporcionar metadatos de publicaciones editadas. La función &#95;Edit Posts&#95; se introdujo por primera vez para pruebas entre empleados de X el 1 de septiembre de 2022. A partir de esa fecha, las publicaciones aptas podían editarse durante 30 minutos y hasta 5 veces. *Todos los objetos de publicaciones creadas desde el 29 de septiembre de 2022* incluyen metadatos de edición de la publicación, incluso si la publicación nunca se editó. Cada vez que se edita una publicación, se crea un nuevo ID de la publicación. El historial de edición de una publicación puede describirse encadenando estos ID, comenzando por el ID original. Además, si cualquier publicación de la cadena de edición se elimina, todas las publicaciones de esa cadena también se eliminan.
+
+Estos metadatos se incluyen automáticamente. No se necesitan parámetros de solicitud para incluir el historial de edición disponible como parte del objeto de la publicación.
+
+Con estos nuevos metadatos, un desarrollador puede averiguar:
+
+* Si una publicación era apta para edición en el momento de su creación. Algunas publicaciones, como las que tienen encuestas o publicaciones programadas, no se pueden editar.
+* Las publicaciones son editables durante 30 minutos y se pueden editar hasta 5 veces. Para las publicaciones editables, puedes ver si todavía queda tiempo para editar y cuántas ediciones más son posibles.
+* Si estás viendo una versión editada de una publicación. En la mayoría de los casos, la API devolverá la versión más reciente de una publicación, salvo que se solicite una versión anterior específica mediante el ID de la publicación.
+
+Se han agregado tres nuevos atributos de publicación en el nivel raíz:
+
+* **edit&#95;history** - Proporciona todos los ID de publicación asociados con el historial de edición de la publicación. El atributo &quot;initial&#95;tweet&#95;id&quot; indica la publicación original y el atributo &quot;edit&#95;tweet&#95;ids&quot; es un array que proporciona todos los ID asociados con su historial de edición. Si la publicación no se ha editado, este array contendrá un solo ID.
+
+```
+"edit_history": {
+    "initial\_tweet\_id": "1283764123"
+    "edit\_tweet\_ids": \["1283764123"\]
+  }
+```
+
+* **edit&#95;controls** - Proporciona atributos que indican cuándo termina la ventana de edición de 30 minutos y cuántas ediciones potenciales quedan disponibles.
+
+```
+"edit_controls": {  
+     "editable\_until\_ms": 1660155761384
+     "edits_remaining": 3   
+  }
+```
+
+* **editable** - Indica si una Publicación era apta para ser editada cuando se creó. 
+
+&quot;editable&quot;: true
+
+La mayoría de las Publicaciones son aptas. Sin embargo, los siguientes tipos de Publicaciones no lo son: 
+
+* La Publicación es promocionada
+* La Publicación tiene una encuesta
+* La Publicación es una respuesta en un hilo de otro usuario
+* La Publicación es un Retweet (ten en cuenta que los Quote Tweets sí son aptos para edición)
+* La Publicación es nullcast
+* Publicación de comunidad
+* Publicación de Superfollow
+* Publicación colaborativa
+
+**Atributos de ejemplo para una Publicación no editada**
+
+El JSON siguiente resalta los metadatos de edición que se incluyen para una Publicación creada después de que se agregara la función de edición de Publicaciones. Este ejemplo es para una Publicación que no tiene historial de ediciones. 
+
+Ten en cuenta que el arreglo `"edit_tweet_ids"` tiene un único identificador.
+
+```
+{
+  "created_at": "Wed Aug 16 18:29:02 +0000 2022",
+  "id": 1557433858676740098,
+  "id_str": "1557433858676740098",
+  "text": "I wonder if I will every use teh edit button",
+  "edit_history": {
+    "initial_tweet_id": "1557433858676740098",
+    "edit_tweet_ids": ["1557433858676740098"]
+  },
+  "edit_controls": {
+    "editable_until_ms": 1660155761384,
+    "edits_remaining": 5
+  },
+  "editable": true
+}
+```
+
+**Ejemplo de atributos para una Publicación editada**
+
+El JSON a continuación resalta los metadatos de edición que se incluyen para una Publicación realizada después de que se incorporó la función de editar Publicación. Este ejemplo es de una Publicación que ha tenido una única edición. 
+
+Ten en cuenta que el array `"edit_tweet_ids"` tiene dos identificadores, uno para la Publicación original y otro para la actualización editada.
+
+```
+{
+  "created_at": "Wed Aug 16 18:35:42 +0000 2022",
+  "id": 1557445923210514432,
+  "id_str": "1557445923210514432",
+  "text": "I wonder if I will ever use the edit button",
+  "edit_history": {
+    "initial_tweet_id": "1557433858676740098",
+    "edit_tweet_ids": ["1557433858676740098", "1557445923210514432"]
+  },
+  "edit_controls": {
+    "editable_until_ms": 1660155761384,
+    "edits_remaining": 4
+  },
+  "editable": true
+}
+```
+
+**Compatibilidad con cumplimiento normativo**
+
+El [Compliance Firehose](/es/x-api/enterprise-gnip-2.0/fundamentals/firehouse) y el [endpoint de cumplimiento por lotes v2](/es/x-api/compliance/batch-compliance/introduction) se han actualizado para ofrecer compatibilidad con la edición de Publicaciones: 
+
+Se ha añadido un nuevo tipo de evento &quot;tweet&#95;edit&quot; a Compliance Firehose.
+
+```
+{
+  "tweet_edit": {
+    "id": <tweetId>,
+    "initial_tweet_id": <tweetId>,
+    "edit_tweet_ids": [<tweetId1>, <tweetId2>, <tweetId3> ...],
+    "timestamp_ms": "<timestampMsStr>"
+  }
+}
+```

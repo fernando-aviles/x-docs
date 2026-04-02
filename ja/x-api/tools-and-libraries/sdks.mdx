@@ -1,0 +1,241 @@
+---
+title: 公式 SDK
+sidebarTitle: SDK
+description: TypeScript と Python 向けの公式 X API SDK
+keywords: ["SDK", "ソフトウェア開発キット", "クライアント SDK", "API SDK", "公式 SDK"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+X は TypeScript と Python 向けの公式 SDK を提供しています。これらのライブラリは認証やページネーションを処理し、完全な型安全性を提供します。
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python" href="/ja/xdks/python/overview">
+    非同期処理対応、型ヒント、v2 を包括的にサポート。
+  </Card>
+
+  <Card title="TypeScript SDK" icon="js" href="/ja/xdks/typescript/overview">
+    完全な TypeScript 型定義、ESM 対応、Node.js で動作。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="why-use-the-official-sdks">
+  ## なぜ公式 SDK を利用するのか？
+</div>
+
+| 利点 | 説明 |
+|:--------|:------------|
+| **常に最新** | X によって管理され、新しいエンドポイントに合わせて随時更新 |
+| **型安全性** | すべてのオブジェクトとメソッドに対する完全な type 定義 |
+| **認証機能を内蔵** | OAuth 2.0 と OAuth 1.0a をサポート |
+| **自動ページネーション** | トークンを手動で扱うことなく結果を順番に取得可能 |
+
+***
+
+<div id="quick-start">
+  ## クイックスタート
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ### インストール
+
+    ```bash
+    pip install xdk
+    ```
+
+    ### 基本的な使い方
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+    # ポストを検索します（イテレータを返します）
+    for page in client.posts.search_recent(query="api", max_results=10):
+        if page.data and len(page.data) > 0:
+            first_post = page.data[0]
+            print(first_post.text)
+            break
+    ```
+
+    <Button href="/ja/xdks/python/overview">Python の詳細ガイド</Button>
+  </Tab>
+
+  <Tab title="TypeScript">
+    ### インストール
+
+    ```bash
+    npm install @xdevplatform/xdk
+    ```
+
+    ### 基本的な使い方
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+
+    // ユーザーを取得します
+    const userResponse = await client.users.getByUsername('XDevelopers');
+    console.log(userResponse.data?.username);
+    ```
+
+    <Button href="/ja/xdks/typescript/overview">TypeScript の詳細ガイド</Button>
+  </Tab>
+</Tabs>
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+両方の SDK で複数の認証方法をサポートしています：
+
+<Tabs>
+  <Tab title="ベアラートークン (App-only)">
+    公開データを読み取るための最も簡単な方法です。
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0 (ユーザーコンテキスト)">
+    ユーザーに代わって操作を行う場合 (ポストの作成、フォローなど) に使用します。
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth2_auth import OAuth2PKCEAuth
+
+    auth = OAuth2PKCEAuth(
+        client_id="YOUR_CLIENT_ID",
+        redirect_uri="YOUR_CALLBACK_URL",
+        scope="tweet.read users.read offline.access"
+    )
+
+    # 認可 URL を取得します
+    auth_url = auth.get_authorization_url()
+
+    # ユーザーの認可後にコードをトークンと交換します
+    tokens = auth.fetch_token(authorization_response=callback_url)
+    client = Client(bearer_token=tokens["access_token"])
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth2, generateCodeVerifier, generateCodeChallenge } from '@xdevplatform/xdk';
+
+    const oauth2 = new OAuth2({
+      clientId: 'YOUR_CLIENT_ID',
+      clientSecret: 'YOUR_CLIENT_SECRET',
+      redirectUri: 'https://your-app.com/callback',
+      scope: ['tweet.read', 'users.read', 'offline.access'],
+    });
+
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    oauth2.setPkceParameters(codeVerifier, codeChallenge);
+    const authUrl = await oauth2.getAuthorizationUrl('state');
+
+    // 認可後にコードをトークンと交換します
+    const tokens = await oauth2.exchangeCode(authCode, codeVerifier);
+    const client = new Client({ accessToken: tokens.access_token });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 1.0a (ユーザーコンテキスト)">
+    レガシーアプリケーションや特定のユースケース向けです。
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth1_auth import OAuth1
+
+    oauth1 = OAuth1(
+        api_key="YOUR_API_KEY",
+        api_secret="YOUR_API_SECRET",
+        access_token="YOUR_ACCESS_TOKEN",
+        access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+    )
+
+    client = Client(auth=oauth1)
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth1 } from '@xdevplatform/xdk';
+
+    const oauth1 = new OAuth1({
+      apiKey: 'YOUR_API_KEY',
+      apiSecret: 'YOUR_API_SECRET',
+      accessToken: 'YOUR_ACCESS_TOKEN',
+      accessTokenSecret: 'YOUR_ACCESS_TOKEN_SECRET'
+    });
+
+    const client = new Client({ oauth1: oauth1 });
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="available-methods">
+  ## 利用可能なメソッド
+</div>
+
+SDK では、X API v2 のすべてのエンドポイントに対応するメソッドを提供しています。
+
+| カテゴリ | Python | TypeScript |
+|:---------|:-------|:-----------|
+| **投稿** | `client.posts.search_recent()` | `client.posts.search()` |
+| **ユーザー** | `client.users.get_me()` | `client.users.getMe()` |
+| **Spaces** | `client.spaces.get()` | `client.spaces.findSpaceById()` |
+| **リスト** | `client.lists.get()` | `client.lists.getList()` |
+| **DM** | `client.direct_messages.get()` | `client.directMessages.lookup()` |
+
+メソッドの詳細な一覧については、SDK の完全なドキュメントを参照してください。
+
+***
+
+<div id="resources">
+  ## リソース
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Python SDK ドキュメント" icon="book" href="/ja/xdks/python/overview">
+    Python の包括的なドキュメントです。
+  </Card>
+
+  <Card title="TypeScript SDK ドキュメント" icon="book" href="/ja/xdks/typescript/overview">
+    TypeScript の包括的なドキュメントです。
+  </Card>
+
+  <Card title="Python GitHub" icon="github" href="https://github.com/xdevplatform/xdk-py">
+    ソースコードおよび issue。
+  </Card>
+
+  <Card title="TypeScript GitHub" icon="github" href="https://github.com/xdevplatform/twitter-api-typescript-sdk">
+    ソースコードおよび issue。
+  </Card>
+</CardGroup>

@@ -1,0 +1,336 @@
+---
+title: एक नियम बनाएं
+sidebarTitle: एक नियम बनाएं
+description: ऑपरेटर्स का उपयोग करके फ़िल्टर की गई स्ट्रीम के नियम बनाना सीखें
+keywords: ["नियम बनाएं", "फ़िल्टर नियम", "स्ट्रीम नियम", "नियम बिल्डर", "फ़िल्टर की गई स्ट्रीम के नियम", "नियम बनाएं", "नियम मार्गदर्शिका"]
+---
+
+फ़िल्टर की गई स्ट्रीम एंडपॉइंट्स उन पोस्ट्स को डिलीवर करते हैं जो स्ट्रीम पर लागू किए गए नियमों के किसी सेट से मेल खाते हैं। नियम ऑपरेटर्स से मिलकर बनते हैं, जो पोस्ट की विभिन्न विशेषताओं के आधार पर मिलान करते हैं।
+
+[POST /tweets/search/stream/rules](/hi/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) एंडपॉइंट का उपयोग करके कई नियम लागू किए जा सकते हैं। नियम जोड़ने और [GET /tweets/search/stream](/hi/x-api/posts/filtered-stream#get-2-tweets-search-stream) का उपयोग करके कनेक्ट होने के बाद, केवल वे पोस्ट्स डिलीवर किए जाएंगे जो आपके नियमों से मेल खाते हैं। नियम जोड़ने या हटाने के लिए आपको डिस्कनेक्ट करने की ज़रूरत नहीं है।
+
+***
+
+<div id="rule-limitations">
+  ## नियमों की सीमाएँ
+</div>
+
+नियमों की संख्या की सीमाएँ आपके [एक्सेस स्तर](/hi/x-api/getting-started/about-x-api) पर निर्भर करती हैं। विशिष्ट सीमाओं के लिए [filtered stream introduction](/hi/x-api/posts/filtered-stream/introduction) देखें।
+
+***
+
+<div id="operator-types-standalone-and-conjunction-required">
+  ## ऑपरेटर के प्रकार: स्टैंडअलोन और संयोजन-आवश्यक
+</div>
+
+**स्टैंडअलोन ऑपरेटर** का उपयोग अकेले या किसी भी अन्य ऑपरेटर के साथ किया जा सकता है (उन ऑपरेटरों सहित, जिनके लिए संयोजन आवश्यक होता है)।
+
+उदाहरण के लिए, यह नियम काम करता है क्योंकि `#hashtag` एक स्टैंडअलोन ऑपरेटर है:
+
+```
+#xapiv2
+```
+
+**संयोजन-आवश्यक ऑपरेटरों** का किसी नियम में अकेले उपयोग नहीं किया जा सकता; इनका उपयोग केवल तभी किया जा सकता है जब उसमें कम से कम एक स्टैंडअलोन ऑपरेटर शामिल हो। ऐसा इसलिए है, क्योंकि केवल इन ऑपरेटरों का उपयोग करने पर बहुत बड़ी संख्या में पोस्ट्स का मिलान हो जाएगा।
+
+उदाहरण के लिए, नीचे दिए गए नियम **समर्थित नहीं हैं**, क्योंकि इनमें केवल संयोजन-आवश्यक ऑपरेटर शामिल हैं:
+
+```
+has:media
+```
+
+```
+has:links OR is:retweet
+```
+
+अगर हम `"X data"` जैसे वाक्यांश के रूप में एक स्टैंडअलोन ऑपरेटर जोड़ें, तो नियम सही तरीके से काम करता है:
+
+```
+"X data" has:mentions (has:media OR has:links)
+```
+
+***
+
+<div id="boolean-operators-and-grouping">
+  ## बूलियन ऑपरेटर और समूहीकरण
+</div>
+
+इन उपकरणों का उपयोग करके कई ऑपरेटरों को एक साथ जोड़ें:
+
+| Operator              | Description                                   | Example                                                                                                         |
+| :-------------------- | :-------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| **AND** (स्पेस)       | पोस्ट्स को दोनों शर्तों से मेल खाना चाहिए     | `snow day #NoSchool` उन पोस्ट्स से मेल खाता है जिनमें &quot;snow&quot; AND &quot;day&quot; AND #NoSchool हो     |
+| **OR**                | पोस्ट्स को किसी एक शर्त से मेल खाना चाहिए     | `grumpy OR cat OR #meme` उन पोस्ट्स से मेल खाता है जिनमें &quot;grumpy&quot; OR &quot;cat&quot; OR #meme हो     |
+| **NOT** (डैश)         | इस शर्त से मेल खाने वाले पोस्ट्स को बाहर रखें | `cat #meme -grumpy` उन पोस्ट्स से मेल खाता है जिनमें &quot;cat&quot; और #meme हो, लेकिन &quot;grumpy&quot; नहीं |
+| **Grouping** (कोष्ठक) | ऑपरेटरों को एक साथ समूहित करें                | `(grumpy cat) OR (#meme has:images)` दोनों में से किसी एक समूह से मेल खाता है                                   |
+
+<Note>
+  **नकार के बारे में एक नोट**
+
+  * `sample:` को छोड़कर सभी ऑपरेटरों को नकारा जा सकता है
+  * `-is:nullcast` ऑपरेटर का उपयोग हमेशा नकार के साथ किया जाना चाहिए
+  * नकारे गए ऑपरेटरों का अकेले उपयोग नहीं किया जा सकता
+  * समूहित ऑपरेटरों को नकारें नहीं। `skiing -(snow OR day OR noschool)` के बजाय `skiing -snow -day -noschool` का उपयोग करें
+</Note>
+
+***
+
+<div id="order-of-operations">
+  ## संचालन का क्रम
+</div>
+
+जब AND और OR को एक साथ मिलाया जाता है:
+
+1. AND लॉजिक से जुड़े ऑपरेटर पहले संयोजित किए जाते हैं
+2. उसके बाद, OR लॉजिक से जुड़े ऑपरेटर लागू किए जाते हैं
+
+**उदाहरण:**
+
+| Query                    | इस प्रकार मूल्यांकित किया जाता है |
+| :----------------------- | :-------------------------------- |
+| `apple OR iphone ipad`   | `apple OR (iphone ipad)`          |
+| `ipad iphone OR android` | `(iphone ipad) OR android`        |
+
+अस्पष्टता से बचने के लिए, कोष्ठकों का उपयोग करें:
+
+```
+(apple OR iphone) ipad
+```
+
+```
+iphone (ipad OR android)
+```
+
+***
+
+<div id="punctuation-diacritics-and-case-sensitivity">
+  ## विराम चिह्न, उच्चारण चिह्न, और केस संवेदनशीलता
+</div>
+
+**उच्चारण चिह्न:** उच्चारण चिह्नों वाले फ़िल्टर की गई स्ट्रीम नियम केवल उन पोस्ट्स से मेल खाते हैं जिनमें वही उच्चारण चिह्न शामिल हों। उदाहरण के लिए, `diacrítica` *diacrítica* से मेल खाता है, लेकिन ***diacritica*** से नहीं।
+
+**केस संवेदनशीलता:** सभी ऑपरेटर केस-असंवेदनशील हैं। नियम `cat` *cat*, *CAT*, और *Cat* से मेल खाता है।
+
+<Note>
+  **पोस्ट्स खोजें का व्यवहार अलग है**
+
+  जब [खोज क्वेरी बनाई जाती हैं](/hi/x-api/posts/search/integrate/build-a-query), तो उच्चारण चिह्न वाले कीवर्ड उन पोस्ट्स से मेल खाते हैं जिनमें उच्चारण चिह्न हों भी या न हों। उदाहरण के लिए, `Diacrítica` *Diacrítica* और *Diacritica* दोनों से मेल खाता है।
+</Note>
+
+***
+
+<div id="quote-tweet-matching">
+  ## Quote Tweet मिलान
+</div>
+
+फ़िल्टर की गई स्ट्रीम का उपयोग करते समय, ऑपरेटर Quote Tweet की सामग्री **और** उद्धृत मूल पोस्ट की सामग्री—दोनों पर मैच करते हैं।
+
+<Note>
+  [पोस्ट्स खोजें](/hi/x-api/posts/search/introduction) अलग तरीके से काम करता है—यह सिर्फ़ Quote Tweet की सामग्री से मैच करता है, मूल पोस्ट से नहीं।
+</Note>
+
+***
+
+<div id="specificity-and-efficiency">
+  ## विशिष्टता और दक्षता
+</div>
+
+<Warning>
+  किसी एक कीवर्ड या हैशटैग जैसे व्यापक ऑपरेटरों का उपयोग करने की अनुशंसा नहीं की जाती—यह बहुत बड़ी संख्या में पोस्ट्स से मेल खाएगा और आपके कनेक्शन की क्षमता को जल्दी खपा देगा।
+</Warning>
+
+**प्रभावी नियम बनाने के लिए सुझाव:**
+
+1. **विशिष्ट रूप से शुरू करें, फिर दायरा बढ़ाएँ** — ऐसे लक्षित नियम बनाएँ जो प्रासंगिक परिणाम लौटाएँ
+2. **एकाधिक ऑपरेटरों का उपयोग करें** — परिणामों को सीमित करने के लिए ऑपरेटरों को मिलाएँ
+3. **अपने कैरेक्टर काउंट पर नज़र रखें** — पूरी rule string सीमा में गिनी जाती है
+
+**उदाहरण के तौर पर प्रगति:**
+
+```
+# बहुत व्यापक - प्रतिदिन 200,000+ पोस्ट्स
+happy
+
+# बेहतर - भाषा फ़िल्टर और बहिष्करण जोड़ता है
+(happy OR happiness) lang:en -birthday -is:retweet
+
+# और भी बेहतर - 59 अक्षर, अधिक विशिष्ट
+(happy OR happiness) place_country:GB -birthday -is:retweet
+```
+
+***
+
+<div id="iteratively-building-a-rule">
+  ## चरणबद्ध तरीके से नियम बनाना
+</div>
+
+<div id="step-1-start-with-a-basic-rule">
+  ### चरण 1: एक बुनियादी नियम से शुरू करें
+</div>
+
+```
+happy OR happiness
+```
+
+<div id="step-2-test-and-narrow-based-on-results">
+  ### चरण 2: परिणामों के आधार पर जाँचें और दायरा सीमित करें
+</div>
+
+हमें कई भाषाओं में पोस्ट्स दिखाई दिए। एक भाषा फ़िल्टर जोड़ें:
+
+```
+(happy OR happiness) lang:en
+```
+
+हमें जन्मदिन की शुभकामनाएँ मिल रही हैं। इन्हें और Retweets को बाहर रखें:
+
+```
+(happy OR happiness) lang:en -birthday -is:retweet
+```
+
+<div id="step-3-broaden-for-better-coverage">
+  ### चरण 3: बेहतर कवरेज के लिए दायरा बढ़ाएँ
+</div>
+
+हम अधिक भावनात्मक संकेतों को शामिल करना चाहते हैं। संबंधित कीवर्ड जोड़ें:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
+```
+
+<div id="step-4-adjust-for-trends">
+  ### चरण 4: रुझानों के अनुसार समायोजन करें
+</div>
+
+छुट्टियों से जुड़ी पोस्ट्स दिखाई दे रही हैं। इन्हें बाहर रखें:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
+```
+
+***
+
+<div id="adding-and-removing-rules">
+  ## नियम जोड़ना और हटाना
+</div>
+
+नियम जोड़ने या हटाने के लिए [POST /2/tweets/search/stream/rules](/hi/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) का इस्तेमाल करें।
+
+<div id="adding-rules">
+  ### नियम जोड़ना
+</div>
+
+`value` (नियम) और वैकल्पिक `tag` (मिलान करने वाले पोस्ट्स की पहचान के लिए) के साथ `add` JSON बॉडी सबमिट करें:
+
+```bash
+curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "add": [
+      {"value": "cat has:media", "tag": "cats with media"},
+      {"value": "cat has:media -grumpy", "tag": "happy cats with media"},
+      {"value": "meme", "tag": "funny things"},
+      {"value": "meme has:images"}
+    ]
+  }'
+```
+
+<div id="removing-rules">
+  ### नियम हटाना
+</div>
+
+हटाने के लिए नियमों की ID के साथ `delete` JSON body सबमिट करें:
+
+```bash
+curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "delete": {
+      "ids": [
+        "1165037377523306498",
+        "1165037377523306499"
+      ]
+    }
+  }'
+```
+
+***
+
+<div id="rule-examples">
+  ## नियमों के उदाहरण
+</div>
+
+<div id="tracking-a-natural-disaster">
+  ### प्राकृतिक आपदा को ट्रैक करना
+</div>
+
+ह्यूरिकेन हार्वी से संबंधित मौसम एजेंसियों की पोस्ट्स का मिलान करें:
+
+```json
+{
+  "value": "-is:retweet has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1)",
+  "tag": "Hurricane Harvey - weather agencies with geo"
+}
+```
+
+<div id="sentiment-analysis-for-nowplaying">
+  ### #nowplaying के लिए भाव विश्लेषण
+</div>
+
+**सकारात्मक भाव:**
+
+```json
+{
+  "value": "#nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing",
+  "tag": "#nowplaying positive"
+}
+```
+
+**नकारात्मक भावना:**
+
+```json
+{
+  "value": "#nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible",
+  "tag": "#nowplaying negative"
+}
+```
+
+<div id="using-post-annotations">
+  ### पोस्ट एनोटेशन का उपयोग
+</div>
+
+`context:` ऑपरेटर का उपयोग करके चित्रों सहित पालतू जानवरों (बिल्लियों को छोड़कर) के बारे में जापानी पोस्ट्स खोजें:
+
+पहले, `domain.entity` IDs की पहचान करने के लिए `tweet.fields=context_annotations` के साथ [पोस्ट लुकअप](/hi/x-api/posts/lookup/introduction) का उपयोग करें:
+
+* बिल्लियाँ: `domain` 66, `entity` 852262932607926273
+* पालतू जानवर: `domain` 65, `entity` 852262932607926273
+
+```json
+{
+  "value": "context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:images lang:ja",
+  "tag": "Japanese pets with images - no cats"
+}
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ऑपरेटर संदर्भ" icon="list" href="/hi/x-api/posts/filtered-stream/integrate/operators">
+    उपलब्ध ऑपरेटरों की संपूर्ण सूची
+  </Card>
+
+  <Card title="फ़िल्टर की गई स्ट्रीम त्वरित शुरुआत" icon="rocket" href="/hi/x-api/posts/filtered-stream/quickstart">
+    अपनी स्ट्रीम से कनेक्ट करें
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code/tree/master/Filtered-Stream">
+    कई भाषाओं में कोड के उदाहरण
+  </Card>
+</CardGroup>

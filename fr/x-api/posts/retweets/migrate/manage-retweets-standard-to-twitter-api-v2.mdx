@@ -1,0 +1,191 @@
+---
+title: Gérer les Retweets
+sidebarTitle: Gérer les Retweets
+keywords: ["migration de la gestion des Retweets", "gestion des Retweets de v1.1 à v2", "migration de la fonctionnalité Gérer les Retweets", "Retweets standard vers v2", "migration des Retweets"]
+---
+
+<div id="manage-retweets-standard-v11-compared-to-x-api-v2">
+  ### Gérer les Retweets : Standard v1.1 par rapport à X API v2
+</div>
+
+Si vous avez travaillé avec les endpoints standard v1.1 [POST statuses/retweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-retweet-id) et [POST statuses/unretweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-unretweet-id), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints de Retweets standard et ceux de X API v2.
+
+* **Similarités**
+  * Authentification
+* **Différences**
+  * URL des endpoints et méthodes HTTP
+  * Limitations des requêtes
+  * Exigences relatives aux Apps et Projects
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarities
+</div>
+
+**Authentification**
+
+Les endpoints standard v1.1 et X API v2 de gestion des Retweets ([POST statuses/retweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-retweet-id) et [POST statuses/unretweet/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-unretweet-id)) utilisent tous deux le [contexte utilisateur OAuth 1.0a](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication). Par conséquent, si vous utilisiez auparavant l&#39;un des endpoints standard v1.1 de recherche de Retweets, vous pouvez continuer à utiliser la même méthode d&#39;authentification lors de votre migration vers la version X API v2 correspondante. 
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URLs d’endpoint et méthodes HTTP**
+
+* Endpoints standard v1.1 :
+  * https://api.x.com/1.1/statuses/retweet/:id.json
+    (Retweete une Publication. Retourne la Publication d’origine avec les détails du Retweet intégrés)
+  * https://api.x.com/1.1/statuses/unretweet/:id.json
+    (Annule un Retweet. Retourne la Publication d’origine avec les détails du Retweet intégrés)
+* Endpoint X API v2 :
+  * https://api.x.com/2/tweets/:id/retweets
+    (Retweete une Publication donnée)
+  * https://api.x.com/2/users/:id/retweets/:source&#95;tweet&#95;id
+    (Annule un Retweet d’une Publication donnée) 
+
+**Exigences relatives à l’App et au Project**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants provenant d’une [developer App](/fr/resources/fundamentals/developer-apps) associée à un [Project](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps, qu’elles soient autonomes ou associées à une App.
+
+**Paramètres de requête**
+
+Les endpoints standard v1.1 suivants acceptaient deux paramètres de requête (user&#95;id ou screen&#95;name). La X API v2 n’accepte que l’identifiant utilisateur numérique, qui doit être transmis dans le chemin de l’endpoint.
+
+| Standard v1.1 | X API v2 |
+| :--- | :--- |
+| **id** | **id** |
+| **includes&#95;entities** | Aucun équivalent |
+
+Veuillez noter que les paramètres standard v1.1 sont transmis en tant que paramètres de requête, tandis que les paramètres X API v2 sont transmis en tant que paramètres dans le corps pour l’endpoint POST ou en tant que paramètres de chemin pour l’endpoint DELETE.
+
+De plus, l’id de l’utilisateur qui retweete une Publication n’est pas requis lors de l’utilisation des endpoints standard v1.1, puisque les [Access Tokens](/fr/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) transmis avec le [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication) permettent de déterminer quel utilisateur initie le Retweet ou annule un Retweet.
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="retweet-a-post-v2">
+  ### Retweeter une publication (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/retweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a en contexte utilisateur
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/retweets"
+  response = requests.post(url, auth=auth, json={"tweet_id": "1234567890"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Retweeter une publication
+  response = client.posts.retweet(user_id="123456789", tweet_id="1234567890")
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Retweeter une publication
+  const response = await client.posts.retweet("123456789", { tweetId: "1234567890" });
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>
+
+<div id="undo-a-retweet-v2">
+  ### Annuler un Retweet (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/retweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a avec un contexte utilisateur
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/retweets/1234567890"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Annuler un Retweet
+  response = client.posts.unretweet(user_id="123456789", tweet_id="1234567890")
+  print(f"Retweeté : {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Annuler un Retweet
+  const response = await client.posts.unretweet("123456789", "1234567890");
+  console.log(`Retweeté : ${response.data?.retweeted}`);
+  ```
+</CodeGroup>

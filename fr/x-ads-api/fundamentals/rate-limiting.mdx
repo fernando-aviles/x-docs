@@ -1,0 +1,81 @@
+---
+title: Limitation de taux
+keywords: ["Limites de taux de l'API Ads", "limitation de taux", "throttling de l'API Ads", "limites de taux", "limites de requêtes", "limites de l'API Ads"]
+---
+
+L&#39;API Ads est soumise à des limites de taux similaires à celles de l&#39;API REST v1.1, comme indiqué ici : [REST API Rate Limiting in v1.1](https://developer.x.com/content/developer-twitter/en/docs/basics/rate-limits). Contrairement à l&#39;API REST v1.1, il n&#39;existe pas d&#39;index programmatique des limites par endpoint. Les limites de taux par endpoint et leurs fenêtres de réinitialisation sont communiquées via les en-têtes de réponse HTTP. Tous les mécanismes de limitation de taux de l&#39;API Ads utilisent OAuth 1.0a.
+
+<div id="user-level-and-ad-account-level-limits">
+  ## Limites au niveau de l’utilisateur et au niveau du compte publicitaire
+</div>
+
+Il existe deux types de limites de taux : au niveau du jeton utilisateur et au niveau du compte publicitaire. Un sous-ensemble d’endpoints prend en charge les limites de taux au niveau du compte publicitaire. Un jeton utilisateur est le [jeton d’accès OAuth](/fr/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) que vous utilisez pour vous authentifier et appeler l’Ads API. Chaque jeton utilisateur peut avoir accès à un ou plusieurs comptes publicitaires.
+
+Les développeurs doivent utiliser la limite de taux au niveau du compte publicitaire lorsqu’elle est renvoyée dans les en-têtes de réponse, et n’utiliser la limite au niveau de l’utilisateur que lorsque la limite du compte publicitaire n’est pas disponible.
+
+Les limites de taux au niveau de l’utilisateur sont exprimées via ces en-têtes : **x-rate-limit-limit**, **x-rate-limit-remaining** et **x-rate-limit-reset**.
+
+Pour les endpoints avec limites de taux au niveau du compte publicitaire activées, les limites de taux sont exprimées via ces en-têtes : **x-account-rate-limit-limit**, **x-account-rate-limit-remaining** et **x-account-rate-limit-reset**.
+
+Les limites de taux au niveau du compte publicitaire sont fournies uniquement pour les endpoints GET afin de permettre aux applications de synchroniser les données d’entités (telles que les objets de campagne ou d’élément de campagne) à partir d’un seul jeton utilisateur accédant à plusieurs comptes publicitaires. Les actions d’écriture ne sont pas garanties d’utiliser les mêmes limites de taux au niveau du compte publicitaire.
+
+Pour les endpoints soumis à des limites de taux au niveau du compte publicitaire, la limite de taux au niveau de l’utilisateur est définie à une valeur élevée représentant un quota global pour l’ensemble de votre application. Lorsqu’elle est disponible, la limite de taux au niveau du compte publicitaire doit prévaloir pour contrôler votre volume de requêtes.
+
+<div id="best-practices">
+  ## Bonnes pratiques
+</div>
+
+1. Enregistrez dans votre base de données un horodatage correspondant à la dernière synchronisation et, lors de la récupération des données, lorsque c’est possible, récupérez-les avec l’option `sort_by=updated_at-desc` afin de pouvoir arrêter votre processus de synchronisation dès que vous atteignez des données plus anciennes que votre dernier horodatage de synchronisation. Cela évitera de synchroniser plusieurs fois les mêmes données.
+
+2. Récupérez plusieurs entités dans une seule requête : certains endpoints vous permettent de spécifier une liste de valeurs séparées par des virgules pour récupérer plusieurs éléments de données similaires. Cela peut réduire le nombre total d’appels que vous effectuez et vous permettre d’exploiter plus efficacement la limite de requêtes.
+
+3. Utilisez la valeur maximale de « count » dans vos requêtes : certains endpoints, comme [GET accounts/:account&#95;id/targeting&#95;criteria](/fr/x-ads-api/campaign-management#targeting-criteria), sont fortement recommandés avec la valeur maximale de count afin de renvoyer 1000 objets au lieu de la valeur par défaut de 200.
+
+<div id="analytics-syncing">
+  ## Synchronisation d’Analytics
+</div>
+
+Consultez le [guide sur les limites de taux pour Analytics](/fr/x-ads-api/analytics#best-practices) pour plus d’informations sur les limites de taux des endpoints Analytics.
+
+<div id="faqs">
+  ## FAQ
+</div>
+
+*Est-il possible d’augmenter les limites de taux pour un compte publicitaire particulier ou pour notre application ?*
+
+Nous ne pouvons en général pas augmenter les limites de taux, qui sont définies de manière à prendre en charge les plus grands comptes publicitaires. Veuillez commencer par mettre en œuvre les bonnes pratiques décrites dans ce document et, si les limites de taux continuent d’affecter votre capacité à passer à l’échelle ou à atteindre vos objectifs commerciaux, contactez vos interlocuteurs X Ads API en leur fournissant tous les détails sur le cas d’utilisation et les requêtes concernées.
+
+<div id="scopes-of-rate-limiting">
+  ## Portées de la limitation de débit
+</div>
+
+<div id="scopes-for-this-doc">
+  ### Portées pour ce document
+</div>
+
+* Catégorie : tous les endpoints qui relèvent de la catégorie donnée partagent une seule limite de débit allouée par fenêtre.
+* Endpoint : chaque endpoint dispose de sa propre limite de débit allouée par fenêtre.
+
+<div id="ads-api-rate-limit-chart">
+  ## Tableau des limites de débit de l’API Ads
+</div>
+
+<div id="ads-api-rate-limits">
+  ### Limites de taux de l’API Ads
+</div>
+
+| Type d’endpoint | Portée par endpoint ou catégorie | Limite de taux par fenêtre de 1 minute |
+| :--- | :--- | :--- |
+| Écritures (POST, PUT, DELETE) | Catégorie | 450 |
+| Audience | Endpoint | 1500 |
+
+| Type d’endpoint | Portée par endpoint ou catégorie | Limite de taux par fenêtre de 15 minutes |
+| :--- | :--- | :--- |
+| Analytics (synchrones) | Catégorie | 250 |
+| Lectures d’entités principales (Line Items, Campaigns, etc.)<br /><br />Autres lectures de compte (autres endpoints GET avec :account&#95;id) | Endpoint (niveau du compte publicitaire)<br /><br />Endpoint (niveau partiel du compte publicitaire) | 10,000<br /><br />2000 |
+| Critères de ciblage (autres que ci‑dessous) | Catégorie | 400 |
+| Critères de ciblage (tv&#95;markets, tv&#95;shows) | Endpoint | 2000 |
+| Audience Insights | Catégorie | 400 |
+| Keyword Insights | Catégorie | 500 |
+| Lectures globales (endpoints GET sans :account&#95;id) | Endpoint | 5   |
+| Conversions | Endpoint | 60,000 |

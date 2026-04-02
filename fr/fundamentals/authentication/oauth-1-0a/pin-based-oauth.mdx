@@ -1,0 +1,37 @@
+---
+title: Autorisation par code PIN
+sidebarTitle: OAuth par code PIN
+keywords: ["OAuth par code PIN", "PIN OAuth", "OAuth PIN", "Autorisation par code PIN", "OAuth 1.0a PIN", "OAuth pour ordinateur de bureau"]
+---
+
+import { Button } from "/snippets/fr/button.mdx";
+
+<div id="pin-based-authorization">
+  ### Autorisation basée sur un code PIN
+</div>
+
+Le flux OAuth basé sur un code PIN est une variante du processus [OAuth à 3 volets](/fr/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) et est destiné aux applications qui ne peuvent pas accéder à un navigateur web ou l’intégrer pour rediriger l’utilisateur après l’autorisation. Parmi ces applications, on peut citer les applications en ligne de commande, les systèmes embarqués, les consoles de jeux et certains types d’applications mobiles.
+
+Le flux OAuth basé sur un code PIN est initié par une application via une requête `request_token` avec `oauth_callback` défini à `oob`. Le terme `oob` signifie OAuth hors bande (out-of-band OAuth). L’utilisateur se rend toujours sur X pour se connecter ou autoriser l’application, mais il ne sera pas automatiquement redirigé vers celle‑ci après avoir approuvé l’accès. À la place, il verra un code PIN composé de chiffres, ainsi que des instructions lui indiquant de revenir à l’application et de saisir cette valeur.
+
+<Note>
+  **Remarque :** Le paramètre `callback_url` dans les paramètres de l’application X reste obligatoire, même lorsque vous utilisez l’authentification basée sur un code PIN.
+</Note>
+
+ 
+
+<div id="implementing-the-pin-based-oauth-flow">
+  #### Implémentation du flux OAuth basé sur un code PIN
+</div>
+
+Le flux basé sur un code PIN est implémenté de la même manière que l’[autorisation en 3 étapes](/fr/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) (et [Se connecter avec X](/fr/resources/fundamentals/authentication#log-in-with-x)), avec les différences suivantes :
+
+1. La valeur de `oauth_callback` doit être définie sur `oob` lors de l’appel [POST oauth/request&#95;token](/fr/resources/fundamentals/authentication/api-reference#post-oauth-request-token).
+
+2. Après que l’utilisateur a été redirigé vers X pour autoriser votre application à l’aide d’un [GET oauth/authenticate](/fr/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) ou d’une [URL GET oauth/authorize](/fr/resources/fundamentals/authentication/api-reference#get-oauth-authorize), il ne sera pas redirigé vers votre `callback_url`. À la place, il verra un écran affichant un code PIN d’environ 7 chiffres généré par X, avec des instructions lui demandant de saisir ce code PIN dans votre application.
+
+3. L’utilisateur saisit ce code PIN dans votre application, et votre application utilise ce code PIN comme `oauth_verifier` dans l’appel [POST oauth/access&#95;token](/fr/resources/fundamentals/authentication/api-reference#post-oauth-access-token) pour obtenir un `access_token`.
+
+<Note>
+  **Remarque :** les codes PIN ne sont pas réutilisables, et le `access_token` obtenu doit être utilisé pour les requêtes effectuées par l’application pour le compte de l’utilisateur.
+</Note>

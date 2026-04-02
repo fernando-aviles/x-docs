@@ -1,0 +1,610 @@
+---
+title: X API 요청 한도
+sidebarTitle: 요청 한도
+description: X API v2의 엔드포인트별 요청 한도
+keywords: ["요청 한도", "API 요청 한도", "요청 제한", "요청 속도 제한", "스로틀링", "15분 시간 윈도우"]
+---
+
+요청 한도는 각 엔드포인트에 대해 허용되는 요청 수를 제한합니다. 한도를 초과하면 시간 윈도우가 재설정될 때까지 429 오류가 발생합니다.
+
+***
+
+<div id="how-rate-limits-work">
+  ## 요청 한도 작동 방식
+</div>
+
+| 개념 | 설명 |
+|:--------|:------------|
+| **시간 창** | 보통 15분 또는 24시간 |
+| **사용자별 한도** | OAuth 1.0a 또는 OAuth 2.0 사용자 토큰 사용 시 적용 |
+| **App별 한도** | Bearer 토큰(App 전용) 사용 시 적용 |
+| **엔드포인트별 한도** | 각 엔드포인트마다 자체 한도가 있음 |
+
+***
+
+<div id="checking-your-limits">
+  ## 요청 한도 확인
+</div>
+
+응답 헤더에 현재 요청 한도 상태가 표시됩니다.
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Header                   | Description                |
+| :----------------------- | :------------------------- |
+| `x-rate-limit-limit`     | 허용되는 최대 요청 수               |
+| `x-rate-limit-remaining` | 제한 기간 내 남은 요청 수            |
+| `x-rate-limit-reset`     | 제한 기간이 재설정되는 시점의 유닉스 타임스탬프 |
+
+***
+
+<div id="rate-limit-tables">
+  ## 요청 한도 표
+</div>
+
+각 엔드포인트별 요청 한도는 아래 표에서 확인할 수 있습니다. 이러한 한도는 [개발자 콘솔](https://console.x.com)에서도 확인할 수 있습니다.
+
+<Note>
+  별도 표기가 없는 한, 한도는 15분 단위로 표시됩니다(예: &quot;/24hrs&quot; 또는 &quot;/sec&quot;).
+</Note>
+
+<div id="posts-25-endpoints">
+  ### 포스트(엔드포인트 25개)
+</div>
+
+<div id="tweets-lookup">
+  #### Tweet 조회
+</div>
+
+| 메서드 | 엔드포인트 | App 기준 | 사용자 기준 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets` | 3,500/15min | 5,000/15min |
+| GET | `/2/tweets/:id` | 450/15min | 900/15min |
+
+<div id="recent-search">
+  #### 최근 검색
+</div>
+
+| Method | Endpoint | Per App | Per User | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/recent` | 450/15min | 300/15min | 기본 10개, 최대 100개 결과; 쿼리 길이 최대 512자 |
+
+<div id="full-archive-search">
+  #### 전체 아카이브 검색
+</div>
+
+| Method | Endpoint | Per App | Per User | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/all` | 1/sec, 300/15min | 1/sec | 기본 10개, 최대 500개 결과; 쿼리 길이 최대 1024자 |
+
+<div id="post-counts">
+  #### 게시물 수
+</div>
+
+| 메서드 | 엔드포인트 | App별 | 사용자당 | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/counts/recent` | 300/15분 | — | 쿼리 길이 512자 |
+| GET | `/2/tweets/counts/all` | 300/15분 | — | 쿼리 길이 1024자 |
+
+<div id="filtered-stream">
+  #### 필터링된 스트림
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/stream` | 50/15min | — | 연결 1개; 규칙 1000개; 규칙 길이 1024자; 초당 250 포스트 |
+| GET | `/2/tweets/search/stream/rules` | 450/15min | — | 연결 1개; 규칙 1000개; 규칙 길이 1024자 |
+| POST | `/2/tweets/search/stream/rules` | 100/15min | — | 연결 1개; 규칙 1000개; 규칙 길이 1024자 |
+
+<div id="manage-posts">
+  #### 포스트 관리
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/tweets` | 10,000/24시간 | 100/15분 |
+| DELETE | `/2/tweets/:id` | — | 50/15분 |
+
+<div id="timelines">
+  #### 타임라인
+</div>
+
+| Method | Endpoint | 앱당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/tweets` | 10,000/15min | 900/15min |
+| GET | `/2/users/:id/mentions` | 450/15min | 300/15min |
+| GET | `/2/users/:id/timelines/reverse_chronological` | — | 180/15min |
+
+<div id="likes-lookup">
+  #### 좋아요 조회
+</div>
+
+| Method | Endpoint | 앱당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/:id/liking_users` | 75/15min | 75/15min |
+| GET | `/2/users/:id/liked_tweets` | 75/15min | 75/15min |
+
+<div id="manage-likes">
+  #### 좋아요 관리
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/likes` | — | 50/15min, 1,000/24hrs |
+| DELETE | `/2/users/:id/likes/:tweet_id` | — | 50/15min, 1,000/24hrs |
+
+<div id="retweets-lookup">
+  #### 리포스트 조회
+</div>
+
+| Method | Endpoint | App당 | 사용자당 | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/:id/retweeted_by` | 75/15min | 75/15min | — |
+| GET | `/2/tweets/:id/quote_tweets` | 75/15min | 75/15min | — |
+| GET | `/2/users/reposts_of_me` | — | 75/15min | 최대 100개 결과 |
+
+<div id="manage-retweets">
+  #### 리트윗 관리
+</div>
+
+| 메서드 | 엔드포인트 | App 기준 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/retweets` | — | 50/15분 |
+| DELETE | `/2/users/:id/retweets/:tweet_id` | — | 50/15분 |
+
+<div id="hide-replies">
+  #### 답글 숨기기
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| PUT | `/2/tweets/:tweet_id/hidden` | — | 50/15min |
+
+***
+
+<div id="users-14-endpoints">
+  ### 사용자 (엔드포인트 14개)
+</div>
+
+<div id="users-lookup">
+  #### 사용자 조회
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users` | 300/15min | 900/15min |
+| GET | `/2/users/:id` | 300/15min | 900/15min |
+| GET | `/2/users/by` | 300/15min | 900/15min |
+| GET | `/2/users/by/username/:username` | 300/15min | 900/15min |
+| GET | `/2/users/me` | — | 75/15min |
+
+<div id="search-users">
+  #### 사용자 검색
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/search` | 300/15min | 900/15min |
+
+<div id="follows-lookup">
+  #### 팔로우 조회
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/following` | 300/15min | 300/15min |
+| GET | `/2/users/:id/followers` | 300/15min | 300/15min |
+
+<div id="manage-follows">
+  #### 팔로우 관리
+</div>
+
+| Method | Endpoint | App별 | 사용자별 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/following` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/following/:target_user_id` | — | 50/15min |
+
+<div id="blocks-lookup">
+  #### 차단 조회
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/blocking` | — | 15/15min |
+
+<div id="mutes-lookup">
+  #### 뮤트 조회
+</div>
+
+| Method | Endpoint | 앱당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/muting` | — | 15/15min |
+
+<div id="manage-mutes">
+  #### 뮤트 관리
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/muting` | — | 50/15분 |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | — | 50/15분 |
+
+***
+
+<div id="spaces-6-endpoints">
+  ### Spaces (엔드포인트 6개)
+</div>
+
+<div id="spaces-lookup">
+  #### Spaces 조회
+</div>
+
+| Method | Endpoint | App 기준 | 사용자 기준 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/:id` | 300/15min | 300/15min |
+| GET | `/2/spaces` | 300/15min | 300/15min |
+| GET | `/2/spaces/:id/tweets` | 300/15min | 300/15min |
+| GET | `/2/spaces/by/creator_ids` | 300/15min, 1/sec | 300/15min, 1/sec |
+| GET | `/2/spaces/:id/buyers` | 300/15min | 300/15min |
+
+<div id="search-spaces">
+  #### Spaces 검색
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/search` | 300/15min | 300/15min |
+
+***
+
+<div id="direct-messages-8-endpoints">
+  ### 다이렉트 메시지 (8개 엔드포인트)
+</div>
+
+<div id="direct-messages-lookup">
+  #### 다이렉트 메시지 조회
+</div>
+
+| Method | Endpoint | 앱당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/dm_events` | — | 15/15min |
+| GET | `/2/dm_events/:id` | — | 15/15min |
+| GET | `/2/dm_conversations/:dm_conversation_id/dm_events` | — | 15/15min |
+| GET | `/2/dm_conversations/with/:participant_id/dm_events` | — | 15/15min |
+
+<div id="manage-direct-messages">
+  #### 다이렉트 메시지 관리
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/dm_conversations` | 1,440/24시간 | 15/15분, 1,440/24시간 |
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 1,440/24시간 | 15/15분, 1,440/24시간 |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 1,440/24시간 | 15/15분, 1,440/24시간 |
+| DELETE | `/2/dm_events/:id` | 4,000/24시간 | 300/15분, 1,500/24시간 |
+
+***
+
+<div id="lists-14-endpoints">
+  ### 리스트 (엔드포인트 14개)
+</div>
+
+<div id="lists-lookup">
+  #### 리스트 조회
+</div>
+
+| Method | Endpoint | 앱당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id` | 75/15min | 75/15min |
+| GET | `/2/users/:id/owned_lists` | 15/15min | 15/15min |
+
+<div id="list-tweets-lookup">
+  #### 리스트 Tweet 조회
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/tweets` | 900/15min | 900/15min |
+
+<div id="list-member-lookup">
+  #### 리스트 구성원 조회
+</div>
+
+| 메서드 | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/members` | 900/15min | 900/15min |
+| GET | `/2/users/:id/list_memberships` | 75/15min | 75/15min |
+
+<div id="manage-lists">
+  #### 리스트 관리
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists` | — | 300/15분 |
+| DELETE | `/2/lists/:id` | — | 300/15분 |
+| PUT | `/2/lists/:id` | — | 300/15분 |
+
+<div id="manage-list-members">
+  #### 리스트 구성원 관리
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists/:id/members` | — | 300/15min |
+| DELETE | `/2/lists/:id/members/:user_id` | — | 300/15min |
+
+<div id="manage-list-follows">
+  #### 리스트 팔로우 관리
+</div>
+
+| Method | Endpoint | App 기준 | 사용자 기준 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/followed_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/followed_lists/:list_id` | — | 50/15min |
+
+<div id="pinned-lists">
+  #### 고정된 리스트
+</div>
+
+| Method | Endpoint | App별 | 사용자별 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/pinned_lists` | 15/15min | 15/15min |
+| POST | `/2/users/:id/pinned_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/pinned_lists/:list_id` | — | 50/15min |
+
+***
+
+<div id="bookmarks-5-endpoints">
+  ### 북마크 (5개 엔드포인트)
+</div>
+
+<div id="bookmarks-lookup">
+  #### 북마크 조회
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/bookmarks` | — | 180/15min |
+| GET | `/2/users/:id/bookmarks/folders` | 50/15min | 50/15min |
+| GET | `/2/users/:id/bookmarks/folders/:folder_id` | 50/15min | 50/15min |
+
+<div id="manage-bookmarks">
+  #### 북마크 관리
+</div>
+
+| 메서드 | 엔드포인트 | App별 | 사용자별 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/bookmarks` | — | 50/15min |
+| DELETE | `/2/users/:id/bookmarks/:tweet_id` | — | 50/15min |
+
+***
+
+<div id="compliance-3-endpoints">
+  ### 컴플라이언스 (엔드포인트 3개)
+</div>
+
+<div id="batch-compliance">
+  #### 배치 컴플라이언스
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/compliance/jobs` | 150/15분 | — |
+| GET | `/2/compliance/jobs/:job_id` | 150/15분 | — |
+| GET | `/2/compliance/jobs` | 150/15분 | — |
+
+***
+
+<div id="usage-1-endpoint">
+  ### 사용량 (엔드포인트 1개)
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/usage/tweets` | 50/15분 | — |
+
+***
+
+<div id="trends-2-endpoints">
+  ### 트렌드 (엔드포인트 2개)
+</div>
+
+<div id="personalized-trends">
+  #### 맞춤형 트렌드
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/personalized_trends` | 200/24hrs, 200/15min | 100/24hrs, 10/15min |
+
+<div id="trends-by-woeid">
+  #### WOEID별 트렌드
+</div>
+
+| 메서드 | 엔드포인트 | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/trends/by/woeid/:id` | 75/15min | — |
+
+***
+
+<div id="communities-2-endpoints">
+  ### 커뮤니티 (엔드포인트 2개)
+</div>
+
+| Method | Endpoint | Per App | Per User | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/communities/:id` | 300/15min | 300/15min | — |
+| GET | `/2/communities/search` | 300/15min | 300/15min | 최대 100개 결과 |
+
+***
+
+<div id="analytics-1-endpoint">
+  ### Analytics (엔드포인트 1개)
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/analytics` | 300/15분 | 300/15분 |
+
+***
+
+<div id="media-8-endpoints">
+  ### 미디어 (엔드포인트 8개)
+</div>
+
+| Method | Endpoint | App당 | 사용자당 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/media/upload` | 50,000/24hrs | 500/15min |
+| GET | `/2/media/upload` | 100,000/24hrs | 1,000/15min |
+| POST | `/2/media/upload/initialize` | 180,000/24hrs | 1,875/15min |
+| POST | `/2/media/upload/:id/append` | 180,000/24hrs | 1,875/15min |
+| POST | `/2/media/upload/:id/finalize` | 180,000/24hrs | 1,875/15min |
+| POST | `/2/media/metadata` | 50,000/24hrs | 500/15min |
+| POST | `/2/media/subtitles` | 10,000/24hrs | 100/15min |
+| DELETE | `/2/media/subtitles` | 10,000/24hrs | 100/15min |
+
+***
+
+<div id="activity-webhooks">
+  ### Activity 및 웹훅
+</div>
+
+| Method | Endpoint | App당 | 사용자당 | 비고 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/activity/stream` | 450/15분 | — | 연결 최대 2개; 초당 250 포스트 |
+| POST | `/2/activity/subscriptions` | 500/15분 | — | — |
+| GET | `/2/activity/subscriptions` | 500/15분 | — | — |
+| PUT | `/2/activity/subscriptions/:subscription_id` | 500/15분 | — | — |
+| DELETE | `/2/activity/subscriptions/:subscription_id` | 500/15분 | — | — |
+| POST | `/2/webhooks` | 450/15분 | — | — |
+| GET | `/2/webhooks` | 450/15분 | — | — |
+| PUT | `/2/webhooks/:webhook_id` | 450/15분 | — | — |
+| DELETE | `/2/webhooks/:webhook_id` | 450/15분 | — | — |
+| POST | `/2/webhooks/replay` | 100/15분 | — | — |
+
+***
+
+<div id="other-endpoints">
+  ### 기타 엔드포인트
+</div>
+
+| Method | Endpoint | App 기준 | 사용자 기준 |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/sample10/stream` | 100/15min | — |
+| GET | `/2/news/:id` | 200/15min | — |
+| GET | `/2/news/search` | 200/15min | 200/15min |
+| POST | `/2/users/:id/dm/block` | 25/15min, 1,000/24hrs | 10/15min, 400/24hrs |
+| POST | `/2/users/:id/dm/unblock` | 25/15min, 1,000/24hrs | 10/15min, 400/24hrs |
+| GET | `/2/users/by/username/:username/tweets` | 1,500/15min | 900/15min |
+| GET | `/2/users/by/username/:username/mentions` | 450/15min | 180/15min |
+| GET | `/2/users/:id/following/spaces` | 300/15min | 300/15min |
+| GET | `/2/tweets/:id/retweets` | 75/15min | 75/15min |
+| DELETE | `/2/connections/all` | 25/15min | 25/15min |
+
+***
+
+<div id="handling-rate-limits">
+  ## 요청 한도 처리
+</div>
+
+요청 한도를 초과하면 429 응답을 받게 됩니다.
+
+```json
+{
+  "errors": [{
+    "code": 88,
+    "message": "Rate limit exceeded"
+  }]
+}
+```
+
+<div id="recovery-strategy">
+  ### 복구 전략
+</div>
+
+1. 제한 윈도우가 언제 재설정되는지 확인하기 위해 `x-rate-limit-reset` 값을 확인합니다.
+2. 재시도하기 전에 해당 시점까지 대기합니다.
+3. 필요하다면 지수 백오프를 사용합니다.
+
+```python
+import time
+
+def make_request_with_backoff(url, headers):
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 429:
+        reset_time = int(response.headers.get('x-rate-limit-reset', 0))
+        wait_time = max(reset_time - time.time(), 60)
+        time.sleep(wait_time)
+        return make_request_with_backoff(url, headers)
+    
+    return response
+```
+
+***
+
+<div id="best-practices">
+  ## 모범 사례
+</div>
+
+<CardGroup cols={2}>
+  <Card title="응답 캐시" icon="database">
+    반복 요청을 줄이기 위해 결과를 로컬에 캐시합니다.
+  </Card>
+
+  <Card title="스트리밍 사용" icon="signal-stream">
+    실시간 데이터의 경우 폴링 대신 필터링된 스트림을 사용합니다.
+  </Card>
+
+  <Card title="헤더 모니터링" icon="gauge-high">
+    남은 요청 수를 추적해 요청 한도에 도달하지 않도록 합니다.
+  </Card>
+
+  <Card title="요청 분산" icon="clock">
+    요청을 전체 시간 구간에 고르게 분산합니다.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="rate-limits-vs-billing">
+  ## 요청 한도 vs. 과금
+</div>
+
+요청 한도와 과금은 서로 별개입니다:
+
+| 개념 | 목적 |
+|:--------|:--------|
+| **요청 한도** | 시스템 안정성을 위해 요청 빈도를 제어 |
+| **사용량 과금** | 조회한 데이터에 대해 요금을 부과 (사용량 기반 과금) |
+
+요청 한도 내에 있으면서도 사용량 요금이 청구될 수 있으며, 추가 비용 없이 요청 한도에 도달할 수도 있습니다.
+
+***
+
+<div id="enterprise-rate-limits">
+  ## Enterprise용 요청 한도
+</div>
+
+Enterprise 고객에게는 전용 요청 한도가 적용됩니다. 계정 담당자에게 문의하거나 [Enterprise 액세스를 신청](/ko/enterprise/forms/enterprise-api-interest)하세요.
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="오류 처리" icon="triangle-exclamation" href="/ko/x-api/fundamentals/response-codes-and-errors">
+    429 및 기타 errors를 적절히 처리하세요.
+  </Card>
+
+  <Card title="시작하기" icon="rocket" href="/ko/x-api/getting-started/about-x-api">
+    액세스 수준과 기능에 대해 알아보세요.
+  </Card>
+</CardGroup>

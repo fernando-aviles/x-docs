@@ -1,0 +1,315 @@
+---
+title: 連携ガイド
+sidebarTitle: 連携ガイド
+description: ダイレクトメッセージ送信のための基本概念とベストプラクティス
+keywords: ["ダイレクトメッセージ連携の管理", "DM 管理連携", "DM 送信連携"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、アプリケーションに Direct Messages を管理するエンドポイントを統合するために必要な主要な概念を説明します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+DM エンドポイントではユーザー認証が必要です。
+
+| Method | Description |
+|:-------|:------------|
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | 推奨 |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシーサポート |
+
+<Warning>
+  App-only 認証はサポートされていません。すべてのダイレクトメッセージは非公開です。
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### 必要なスコープ (OAuth 2.0)
+</div>
+
+| Scope | 必要な操作 |
+|:------|:-------------|
+| `dm.write` | メッセージの送信と削除 |
+| `dm.read` | `dm.write` と併せて必須 |
+| `tweet.read` | DM 関連スコープで必須 |
+| `users.read` | DM 関連スコープで必須 |
+
+***
+
+<div id="endpoints-overview">
+  ## エンドポイントの概要
+</div>
+
+| Method | Endpoint | 説明 |
+|:-------|:---------|:------------|
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 1対1のメッセージを送信 |
+| POST | `/2/dm_conversations` | グループ会話を作成 |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 会話にメッセージを追加 |
+| DELETE | `/2/dm_events/:event_id` | メッセージを削除 |
+
+***
+
+<div id="sending-messages">
+  ## メッセージを送信する
+</div>
+
+<div id="one-to-one-message">
+  ### 1 対 1 メッセージ
+</div>
+
+特定のユーザーにメッセージを送信します。既存の会話がない場合は、新しい会話を作成します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 1 対 1 の DM を送信
+  response = client.dm_conversations.create_message(
+      participant_id="9876543210",
+      text="Hello!"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 1 対 1 の DM を送信
+  const response = await client.dmConversations.createMessage({
+    participantId: "9876543210",
+    text: "Hello!",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="group-conversation">
+  ### グループ会話
+</div>
+
+新しいグループ会話を作成し、最初のメッセージを送信します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "conversation_type": "Group",
+      "participant_ids": ["944480690", "906948460078698496"],
+      "message": {"text": "Welcome to our group!"}
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # グループ会話を作成
+  response = client.dm_conversations.create(
+      conversation_type="Group",
+      participant_ids=["944480690", "906948460078698496"],
+      message={"text": "Welcome to our group!"}
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // グループ会話を作成
+  const response = await client.dmConversations.create({
+    conversationType: "Group",
+    participantIds: ["944480690", "906948460078698496"],
+    message: { text: "Welcome to our group!" },
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Note>
+  `conversation_type` フィールドは大文字小文字を区別するため、値を必ず `"Group"` に設定する必要があります。
+</Note>
+
+<div id="add-to-existing-conversation">
+  ### 既存の会話に追加する
+</div>
+
+参加しているいずれの会話にもメッセージを送信できます:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Another message"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 既存の会話にメッセージを追加
+  response = client.dm_conversations.add_message(
+      dm_conversation_id="1582103724607971328",
+      text="Another message"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 既存の会話にメッセージを追加
+  const response = await client.dmConversations.addMessage({
+    dmConversationId: "1582103724607971328",
+    text: "Another message",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-attachments">
+  ## メディアの添付
+</div>
+
+各メッセージにつきメディアは 1 つだけ添付できます (写真、動画、または GIF) 。
+
+<Steps>
+  <Step title="メディアをアップロードする">
+    [Media Upload エンドポイント](/ja/x-api/media/quickstart/media-upload-chunked) を使用してファイルをアップロードし、`media_id` を取得します。
+  </Step>
+
+  <Step title="メッセージに含める">
+    ```json
+    {
+      "text": "この画像を見てください！",
+      "attachments": [{"media_id": "1583157113245011970"}]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  * メディアは認証済みユーザー自身がアップロードしたものである必要があります
+  * メディアはアップロードから 24 時間利用可能です
+  * 各メッセージで添付できるメディアは 1 つだけです
+</Note>
+
+***
+
+<div id="sharing-posts">
+  ## 投稿を共有する
+</div>
+
+メッセージ本文にポストのURLを追加して、ポストを含めます。
+
+```json
+{
+  "text": "Have you seen this? https://x.com/XDevelopers/status/1580559079470145536"
+}
+```
+
+レスポンスには、ポストのIDを格納した `referenced_tweets` フィールドが含まれます。
+
+***
+
+<div id="message-requirements">
+  ## メッセージ要件
+</div>
+
+| フィールド | 必須 | 注記 |
+|:------|:---------|:------|
+| `text` | はい* | 添付ファイルがない場合は必須 |
+| `attachments` | はい* | `text` がない場合は必須 |
+
+*`text` と `attachments` の少なくとも一方は指定する必要があります。
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## v1.1 との ID 互換性
+</div>
+
+会話 ID とイベント ID は、v1.1 と v2 のエンドポイント間で共通です。これにより、次のようなハイブリッドなワークフローが可能になります。
+
+* v2 でメッセージを作成する
+* v1.1 でメッセージを削除する (v2 ではまだ利用できません) 
+* x.com の URL に含まれる会話 ID を参照する
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+| ステータス | エラー | 解決策 |
+|:-------|:------|:---------|
+| 400 | 無効なリクエスト | リクエストボディの形式を確認してください |
+| 401 | 認証されていません | アクセストークンを確認してください |
+| 403 | アクセスが拒否されました | スコープとユーザー権限を確認してください |
+| 429 | リクエストが多すぎます | しばらく待ってから再試行してください |
+
+<div id="common-issues">
+  ### よくある問題
+</div>
+
+<AccordionGroup>
+  <Accordion title="ユーザーに送信できない">
+    受信者が、知らないユーザーからのメッセージを受け取らないDM設定にしているか、あなたをブロックしている可能性があります。
+  </Accordion>
+
+  <Accordion title="メディアの添付に失敗した">
+    メディアが同じ認証済みユーザーのアカウントからアップロードされており、かつアップロードから24時間以内のものであることを確認してください。
+  </Accordion>
+
+  <Accordion title="グループの作成に失敗した">
+    すべての参加者idが有効であり、ユーザーがグループDMへの招待を許可していることを確認してください。
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/direct-messages/manage/quickstart">
+    最初のダイレクトメッセージを送信する
+  </Card>
+
+  <Card title="DMルックアップ" icon="inbox" href="/ja/x-api/direct-messages/lookup/introduction">
+    DM会話を取得する
+  </Card>
+
+  <Card title="メディアアップロード" icon="image" href="/ja/x-api/media/quickstart/media-upload-chunked">
+    添付メディアをアップロードする
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/direct-messages/create-dm-message-by-participant-id">
+    エンドポイントの詳細なドキュメント
+  </Card>
+</CardGroup>

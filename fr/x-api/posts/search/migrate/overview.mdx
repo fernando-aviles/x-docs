@@ -1,0 +1,169 @@
+---
+title: Vue d’ensemble
+sidebarTitle: Vue d’ensemble
+keywords: ["search migration", "search migrate", "v1.1 to v2 search", "search migration guide", "migrate search", "enterprise to v2"]
+---
+
+<div id="comparing-x-apis-search-posts-endpoints">
+  ## Comparaison des endpoints de recherche de Publications de X API
+</div>
+
+L&#39;endpoint v2 Search Tweets remplacera à terme l&#39;endpoint [standard v1.1 search/posts](/fr/x-api/posts/search/introduction) et l&#39;[enterprise Search API](/fr/x-api/enterprise-gnip-2.0/fundamentals/search-api). Si vous avez du code, des Apps ou des outils qui utilisent une version plus ancienne d&#39;un endpoint de recherche X et que vous envisagez de migrer vers les endpoints plus récents de X API v2, ce guide vous est destiné.
+
+***
+
+<div id="recent-search-comparison">
+  ## Comparaison de la recherche récente
+</div>
+
+Le tableau suivant compare les différents types d&#39;endpoints de recherche récente :
+
+| **Description** | **Standard v1.1** | **X API v2** |
+| :--- | :--- | :--- |
+| Domaine hôte | https://api.x.com | https://api.x.com |
+| Chemin de l&#39;endpoint | /1.1/search/tweets.json | /2/tweets/search/recent |
+| [Authentification](/fr/resources/fundamentals/authentication) | Contexte utilisateur OAuth 1.0a  <br />OAuth 2.0 App-Only | Contexte utilisateur OAuth 1.0a<br /><br />OAuth 2.0 Authorization Code avec PKCE<br /><br />OAuth 2.0 App-Only |
+| Format d’horodatage | YYYYMMDD | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| Renvoie des Publications âgées d’au plus | 7 jours | 7 jours |
+| Méthodes HTTP prises en charge | GET | GET |
+| Limites de taux de requête par défaut | 180 requêtes par 15 min avec contexte utilisateur OAuth 1.0a<br /><br />450 requêtes par 15 min avec OAuth 2.0 App-Only | **Libre-service :**<br /><br />60 requêtes par 15 min avec OAuth 2.0 App-Only<br /><br />60 requêtes par 15 min avec contexte utilisateur OAuth 1.0a<br /><br />60 requêtes par 15 min avec OAuth 2.0 Authorization Code avec PKCE |
+| Propose des URL entièrement déroulées |     | ✔   |
+| Nombre maximal de Publications par réponse (valeur par défaut) | 100 (15) | 100 (10) |
+| Format JSON de la Publication | Format Standard v1.1 | [Format X API v2](/fr/x-api/fundamentals/data-dictionary) (déterminé par les paramètres de requête fields et expansions, non rétrocompatible avec les formats v1.1)<br /><br />Pour en savoir plus sur la migration du format Standard v1.1 vers le format X API v2, consultez notre [guide de migration des formats de données](/fr/x-api/migrate/data-format-migration). |
+| Permet de sélectionner quels [champs](/fr/x-api/fundamentals/fields) sont renvoyés dans la charge utile |     | ✔   |
+| Permet de demander et de recevoir des [annotations](/fr/x-api/fundamentals/post-annotations) |     | ✔   |
+| Permet de demander des [métriques](/fr/x-api/fundamentals/metrics) spécifiques au sein de l’objet Publication |     | ✔   |
+| Prend en charge l’opérateur et le champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id) |     | ✔   |
+| Fournit l’historique d’édition de la Publication | ✔   | ✔   |
+| Nom de la clé JSON pour le tableau de données de Publications | statuses | data |
+| Nom de la clé JSON pour la pagination | search&#95;metadata.next&#95;results | meta.next&#95;token |
+| Permet de parcourir l’archive par plage temporelle | ✔   | ✔   |
+| Résolution temporelle des requêtes basées sur le temps | jour | seconde |
+| Fuseau horaire | UTC | UTC |
+| Paramètres de requête pour la navigation par temps | until | start&#95;time  <br />end&#95;time |
+| Paramètres de requête pour la navigation par ID de Publication | since&#95;id   <br />max&#95;id | since&#95;id   <br />until&#95;id |
+| Paramètre de requête pour la pagination | Fournit la requête encodée en URL | next&#95;token |
+| Nécessite l’utilisation d’informations d’identification provenant d’une [App développeur](/fr/resources/fundamentals/developer-apps) associée à un [Project](/fr/resources/fundamentals/developer-apps) |     | ✔   |
+
+<div id="full-archive-search-comparison">
+  ### Comparaison de la recherche dans l’archive complète
+</div>
+
+Le tableau suivant compare les différents types de endpoints de recherche dans l’archive complète :
+
+| **Description** | **Enterprise** | **X API v2** |
+| :--- | :--- | :--- |
+| Domaine d’hébergement | https://gnip-api.x.com | https://api.x.com |
+| Chemin du endpoint | /search/fullarchive/accounts/:account&#95;name/:label | /2/tweets/search/all |
+| [Authentication](/fr/resources/fundamentals/authentication) | Authentification Basic | OAuth 2.0 App-Only |
+| Format d’horodatage | YYYYMMDDHHMM | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| Renvoie des Publications qui ne sont pas plus anciennes que | L’archive complète depuis mars 2006 | L’archive complète depuis mars 2006 |
+| Méthodes HTTP prises en charge | GET  <br />POST | GET |
+| Limites de taux des requêtes par défaut | La limite de taux par minute varie selon le partenaire, comme spécifié dans votre contrat. <br /><br />20 requêtes par seconde avec authentification Basic | 300 requêtes par 15 min avec OAuth 2.0 App-Only<br /><br />1 requête par seconde avec OAuth 2.0 App-Only |
+| Propose des URL entièrement déroulées | ✔   | ✔   |
+| Publications par réponse | Maximum : 500  <br />Par défaut : 100 | Maximum : 500  <br />Par défaut : 10 |
+| Format JSON de la Publication | Format [Native Enriched ou Activity Streams](/fr/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) | Format [X API v2](/fr/x-api/fundamentals/data-dictionary) (déterminé par les paramètres de requête fields et expansions) |
+| Permet de sélectionner quels [fields](/fr/x-api/fundamentals/fields) sont renvoyés dans le payload |     | ✔   |
+| Permet de demander et de recevoir des [annotations](/fr/x-api/fundamentals/post-annotations) |     | ✔   |
+| Permet de demander des [metrics](/fr/x-api/fundamentals/metrics) spécifiques dans l’objet Publication |     | ✔   |
+| Prend en charge l’opérateur et le champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id) |     | ✔   |
+| Fournit l’historique des modifications de la Publication | ✔   | ✔   |
+| Nom de la clé JSON pour le tableau de données de Publication | results | data |
+| Nom de la clé JSON pour la pagination | **next** | meta.next&#95;token |
+| Résolution temporelle des requêtes basées sur le temps | seconde | seconde |
+| Fuseau horaire | UTC | UTC |
+| Permet de naviguer dans l’archive par ID de Publication |     | ✔   |
+| Paramètres de requête pour la navigation en fonction du temps | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| Paramètres de requête pour la navigation par ID de Publication |     | since&#95;id   <br />until&#95;id |
+| Paramètre de requête pour la pagination | next&#95;token | next&#95;token |
+| Nécessite l’utilisation d’identifiants provenant d’une [developer App](/fr/resources/fundamentals/developer-apps) associée à un [Project](/fr/resources/fundamentals/developer-apps) disposant de l’accès Academic Research |     | ✔   |
+
+**Comparaison des opérateurs de filtrage**
+
+Les quatre différentes versions (standard, enterprise et v2) de recherche de Publications diffèrent par les opérateurs disponibles et présentent également des niveaux variables de disponibilité des opérateurs au sein de chaque version, expliqués ci-dessous.
+
+Enterprise
+
+* Il n’existe pas de sous-niveaux d’opérateurs Enterprise
+
+X API v2
+
+* **Self-serve :** Disponible avec n’importe quel Project
+* **Enterprise :** Disponible avec un Project
+
+Vous pouvez en savoir plus sur chacun de ces ensembles d’opérateurs dans leurs guides respectifs :
+
+* [Enterprise operators](/fr/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators)
+* [X API v2 operators](/fr/x-api/posts/search/integrate/build-a-query#operators)
+
+Maintenant que nous comprenons les différents niveaux d’opérateurs au sein de X API v2, voici le tableau qui présente la disponibilité des opérateurs pour la recherche de Publications (notez que si la cellule est laissée vide, l’opérateur n’est pas disponible) :
+
+| Opérateur de recherche | Standard | Enterprise | v2  |
+| :--- | :--- | :--- | :--- |
+| keyword | Disponible  <br />q:keyword | Disponible | Disponible |
+| emoji | Disponible  <br />q:😄 | Disponible | Disponible |
+| &quot;exact phrase&quot; | Disponible | Disponible | Disponible |
+| #   | Disponible | Disponible | Disponible |
+| $   | Disponible | Disponible | Disponible |
+| @   | Disponible | Disponible | Disponible |
+| from: | Disponible | Disponible | Disponible |
+| to: | Disponible | Disponible | Disponible |
+| url: | Disponible | Disponible | Disponible |
+| retweets&#95;of: |     | Disponible | Disponible |
+| context: |     |     | Disponible |
+| entity: |     |     | En libre-service – uniquement disponible avec la recherche récente |
+| conversation&#95;id: |     |     | Disponible |
+| place: |     | Disponible | Disponible |
+| place&#95;country: |     | Disponible | Disponible |
+| point&#95;radius: | paramètre geocode | Disponible | Disponible |
+| bounding&#95;box: |     | Disponible | Disponible |
+| is:retweet | filter:retweets | Disponible | Disponible |
+| is:reply |     | Disponible | Disponible |
+| is:quote |     | Disponible | Disponible |
+| is:verified |     | Disponible | Disponible |
+| -is:nullcast |     | Disponible | Disponible |
+| has:hashtags |     | Disponible | Disponible |
+| has:cashtags |     | Disponible | Disponible |
+| has:links | filter:links | Disponible | Disponible |
+| has:mentions |     | Disponible | Disponible |
+| has:media | filter:media | Disponible | Disponible |
+| has:images | filter:images, filter:twimg | Disponible | Disponible |
+| has:videos | filter:videos  <br />filter:native&#95;video | Disponible | Disponible |
+| has:geo |     | Disponible | Disponible |
+| lang: | lang - peut être utilisé comme opérateur ou comme paramètre | Disponible | Disponible |
+| has:profile&#95;geo |     | Disponible |     |
+| profile&#95;country |     | Disponible |     |
+| profile&#95;locality |     | Disponible |     |
+| profile&#95;region |     | Disponible |     |
+| proximity |     | Disponible |     |
+| :(  | Disponible |     |     |
+| :)  | Disponible |     |     |
+| ?   | Disponible |     |     |
+| filter:periscope | Disponible |     |     |
+| list: | Disponible |     | Disponible |
+| filter:replies | Disponible |     |     |
+| filter:pro&#95;video | Disponible |     |     |
+| filter:social | Disponible |     |     |
+| filter:trusted | Disponible |     |     |
+| filter:follows | Disponible |     |     |
+| filter:has&#95;engagement | Disponible |     |     |
+| include:antisocial | Disponible |     |     |
+| include:offensive&#95;user | Disponible |     |     |
+| include:antisocial&#95;offensive&#95;user | Disponible |     |     |
+| include:sensitive&#95;content | Disponible |     |     |
+| source: | Disponible |     |     |
+| min&#95;replies: | Disponible |     |     |
+| min&#95;retweets: | Disponible |     |     |
+| min&#95;faves: | Disponible |     |     |
+| card&#95;name: | Disponible |     |     |
+| card&#95;domain: | Disponible |     |     |
+
+**Autres ressources de migration**
+
+[Hub de migration X API](/fr/x-api/migrate/overview)
+
+[Découvrez quelques exemples de code pour ces points de terminaison](https://github.com/xdevplatform/Twitter-API-v2-sample-code "Découvrez quelques exemples de code pour ces points de terminaison")
+
+[Recherche de publications : Standard v1.1 vers X API v2](/fr/x-api/posts/search/migrate/standard-to-twitter-api-v2)
+
+[Recherche de publications : Enterprise vers X API v2](/fr/x-api/posts/search/migrate/enterprise-to-twitter-api-v2)

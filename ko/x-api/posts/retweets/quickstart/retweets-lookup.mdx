@@ -1,0 +1,206 @@
+---
+title: 리트윗 조회
+sidebarTitle: 리트윗 조회
+description: 게시물을 리트윗한 사용자 조회하기
+keywords: ["리트윗 조회", "리트윗 빠른 시작", "리트윗 가져오기", "리트윗 튜토리얼", "리트윗 가이드", "리트윗 예시"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 특정 게시물을 리포스트한 사용자들을 조회하는 방법을 안내합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * 승인이 완료된 App이 연결된 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App의 Bearer 토큰(공개 데이터용) 또는 User Access Token(비공개 지표용)
+</Note>
+
+***
+
+<div id="get-users-who-retweeted-a-post">
+  ## 게시물을 리트윗한 사용자 조회하기
+</div>
+
+<Steps>
+  <Step title="게시물 ID 찾기">
+    리트윗한 사용자를 조회하려는 게시물의 ID를 확인합니다:
+
+    ```
+    https://x.com/XDevelopers/status/1354143047324299264
+                                    └── 이 값이 게시물 ID입니다
+    ```
+  </Step>
+
+  <Step title="요청 보내기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+      user.fields=created_at,username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 페이지네이션을 사용해 게시물을 리트윗한 사용자 조회하기
+      for page in client.posts.get_retweeted_by(
+          "1354143047324299264",
+          user_fields=["created_at", "username", "verified"]
+      ):
+          for user in page.data:
+              print(f"{user.username} - Joined: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 페이지네이션을 사용해 게시물을 리트윗한 사용자 조회하기
+      const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+        userFields: ["created_at", "username", "verified"],
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Joined: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답 검토하기">
+    ```json
+    {
+      "data": [
+        {
+          "created_at": "2008-12-04T18:51:57.000Z",
+          "id": "17874544",
+          "username": "TwitterSupport",
+          "name": "Twitter Support",
+          "verified": true
+        },
+        {
+          "created_at": "2007-02-20T14:35:54.000Z",
+          "id": "783214",
+          "username": "Twitter",
+          "name": "Twitter",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 추가 데이터 포함
+</div>
+
+expansions를 사용해 고정된 포스트와 같은 연관 데이터를 가져올 수 있습니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # expansions를 사용해 리트윗한 사용자 가져오기
+  for page in client.posts.get_retweeted_by(
+      "1354143047324299264",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # 고정된 포스트는 page.includes.tweets에 있습니다
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // expansions를 사용해 리트윗한 사용자 가져오기
+  const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // 고정된 포스트는 page.includes?.tweets에 있습니다
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 확장이 포함된 응답
+</div>
+
+```json
+{
+  "data": [
+    {
+      "pinned_tweet_id": "1389270063807598594",
+      "created_at": "2018-11-21T14:24:58.000Z",
+      "id": "1065249714214457345",
+      "username": "TwitterSpaces",
+      "name": "Spaces"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-05-03T17:26:09.000Z",
+        "id": "1389270063807598594",
+        "text": "now, everyone with 600 or more followers can host a Space..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="리트윗 관리" icon="retweet" href="/ko/x-api/posts/retweets/quickstart/manage-retweets">
+    리트윗 및 리트윗 취소
+  </Card>
+
+  <Card title="인용 게시물" icon="quote-left" href="/ko/x-api/posts/quote-tweets/quickstart">
+    인용 게시물 조회
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/get-retweeted-by">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

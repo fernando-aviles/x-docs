@@ -1,0 +1,200 @@
+---
+title: 포스트 수
+sidebarTitle: 소개
+description: 포스트 자체를 조회하지 않고 쿼리에 대한 포스트 볼륨 데이터를 조회합니다
+keywords: ["Tweet 수", "포스트 수", "count 엔드포인트", "볼륨 카운트", "검색 볼륨", "Tweet 볼륨", "count API"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+Post 개수 엔드포인트는 포스트 자체를 반환하지 않고, 쿼리와 일치하는 포스트 수가 시간 경과에 따라 어떻게 변하는지를 반환합니다. 이 엔드포인트를 사용하면 트렌드를 분석하고, 대화 규모를 파악하며, 검색하기 전에 쿼리를 더 정교하게 다듬을 수 있습니다.
+
+<div id="overview">
+  ## 개요
+</div>
+
+<CardGroup cols={2}>
+  <Card title="볼륨 분석" icon="chart-line">
+    시간 경과에 따른 게시물 수를 보여주는 추세선과 시각화를 생성합니다
+  </Card>
+
+  <Card title="쿼리 정교화" icon="filter">
+    전체 검색 쿼리를 실행하기 전에 결과 크기를 추정합니다
+  </Card>
+
+  <Card title="이벤트 감지" icon="calendar">
+    이벤트와 관련된 대화가 언제 정점을 찍었는지 파악합니다
+  </Card>
+
+  <Card title="효율적인 조사" icon="gauge-high">
+    모든 포스트를 조회하지 않고도 대화 규모를 파악합니다
+  </Card>
+</CardGroup>
+
+***
+
+<div id="endpoints">
+  ## 엔드포인트
+</div>
+
+| Endpoint | 설명 | 액세스 |
+|:---------|:------------|:-------|
+| GET [`/2/tweets/counts/recent`](/ko/x-api/posts/get-count-of-recent-posts) | 최근 7일간 포스트 수 집계 | 모든 개발자 |
+| GET [`/2/tweets/counts/all`](/ko/x-api/posts/get-count-of-all-posts) | 전체 아카이브의 포스트 수 집계 | 종량제, Enterprise |
+
+***
+
+<div id="granularity-options">
+  ## 세분화 옵션
+</div>
+
+`granularity` 매개변수로 카운트의 집계 단위를 지정합니다.
+
+| Granularity | 설명 | 사용 사례 |
+|:------------|:------------|:---------|
+| `minute` | 분 단위 카운트 | 실시간 모니터링 |
+| `hour` | 시간 단위 카운트 (기본값) | 일별 분석 |
+| `day` | 일 단위 카운트 | 장기 추세 분석 |
+
+***
+
+<div id="recent-counts">
+  ## 최근 집계
+</div>
+
+**최근 7일** 동안의 포스트 수를 집계합니다. 모든 개발자가 사용할 수 있습니다.
+
+<div id="features">
+  ### 기능
+</div>
+
+* 분, 시간, 또는 일 단위로 집계된 카운트
+* 최근 검색과 동일한 쿼리 연산자
+* 최대 512자의 쿼리 길이
+
+<div id="example-response">
+  ### 응답 예시
+</div>
+
+```json
+{
+  "data": [
+    { "start": "2024-01-15T00:00:00.000Z", "end": "2024-01-15T01:00:00.000Z", "tweet_count": 1523 },
+    { "start": "2024-01-15T01:00:00.000Z", "end": "2024-01-15T02:00:00.000Z", "tweet_count": 1247 },
+    { "start": "2024-01-15T02:00:00.000Z", "end": "2024-01-15T03:00:00.000Z", "tweet_count": 892 }
+  ],
+  "meta": {
+    "total_tweet_count": 3662
+  }
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="빠른 시작" icon="rocket" href="/ko/x-api/posts/counts/quickstart/recent-tweet-counts">
+    처음으로 최근 집계 요청 보내기
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/recent-post-counts">
+    엔드포인트 전체 문서
+  </Card>
+</CardGroup>
+
+***
+
+<div id="full-archive-counts">
+  ## 전체 아카이브 카운트
+</div>
+
+2006년까지 소급하여 **전체 아카이브**에서 포스트 개수를 집계합니다.
+
+<Note>
+  Full-archive counts 기능은 사용량 기반 과금제 및 Enterprise 고객에게 제공됩니다.
+</Note>
+
+<div id="features">
+  ### 기능
+</div>
+
+* 임의의 기간에 대해 과거 포스트 수를 집계
+* 모든 쿼리 연산자 사용 가능
+* 쿼리 길이 1,024자(Enterprise의 경우 4,096자)
+
+<div id="pagination">
+  ### 페이지네이션
+</div>
+
+결과는 응답당 31일 단위로 페이징됩니다:
+
+* **일 단위 기준**: 페이지당 31일
+* **시간 단위 기준**: 페이지당 744시간(31일)
+* **분 단위 기준**: 페이지당 44,640분(31일)
+
+<CardGroup cols={2}>
+  <Card title="빠른 시작" icon="rocket" href="/ko/x-api/posts/counts/quickstart/full-archive-tweet-counts">
+    처음으로 전체 아카이브 카운트 요청을 보내 보세요
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/full-archive-post-counts">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>
+
+***
+
+<div id="query-operators">
+  ## 쿼리 연산자
+</div>
+
+게시물 수는 검색 엔드포인트와 동일한 쿼리 구문을 사용합니다:
+
+```
+python lang:en -is:retweet
+```
+
+<Card title="쿼리 만들기" icon="magnifying-glass" href="/ko/x-api/posts/counts/integrate/build-a-query">
+  쿼리 구문 및 연산자를 알아보세요
+</Card>
+
+***
+
+<div id="important-notes">
+  ## 중요한 참고 사항
+</div>
+
+<Note>
+  **카운트와 검색 결과**
+
+  카운트가 검색 결과와 정확히 일치하지 않을 수 있습니다. 검색 엔드포인트는 카운트 엔드포인트에서는 수행하지 않는 추가적인 컴플라이언스 필터링을 적용합니다.
+</Note>
+
+***
+
+<div id="getting-started">
+  ## 시작하기
+</div>
+
+<Note>
+  **사전 준비 사항**
+
+  * 승인된 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 개발자 콘솔의 [프로젝트와 App](/ko/resources/fundamentals/developer-apps)
+  * App의 [Bearer 토큰](/ko/resources/fundamentals/authentication)
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="최근 집계 빠른 시작" icon="clock" href="/ko/x-api/posts/counts/quickstart/recent-tweet-counts">
+    지난 7일 동안의 포스트 수 집계
+  </Card>
+
+  <Card title="전체 아카이브 빠른 시작" icon="vault" href="/ko/x-api/posts/counts/quickstart/full-archive-tweet-counts">
+    과거 포스트 수 집계
+  </Card>
+
+  <Card title="통합 가이드" icon="book" href="/ko/x-api/posts/counts/integrate/overview">
+    핵심 개념과 모범 사례
+  </Card>
+
+  <Card title="샘플 코드" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    실행 가능한 코드 예시
+  </Card>
+</CardGroup>

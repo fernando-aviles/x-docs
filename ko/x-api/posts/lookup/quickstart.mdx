@@ -1,0 +1,216 @@
+---
+title: 빠른 시작
+sidebarTitle: 빠른 시작
+description: 몇 분 안에 첫 게시물 조회 요청을 만들어 보세요
+keywords: ["게시물 조회 빠른 시작", "Tweet 조회 빠른 시작", "조회 튜토리얼", "조회 가이드", "Tweet GET 빠른 시작", "조회 예제"]
+---
+
+import { Button } from "/snippets/ko/button.mdx"
+
+이 가이드는 X API v2를 사용하여 처음으로 게시물 조회 요청을 보내는 방법을 단계별로 안내합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * 승인된 App이 있는 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 개발자 콘솔의 &quot;Keys and tokens&quot;에서 확인할 수 있는 App의 Bearer 토큰
+</Note>
+
+***
+
+<Steps>
+  <Step title="게시물 ID 찾기">
+    모든 게시물에는 고유한 식별자(id)가 있습니다. 이 식별자는 게시물의 URL에서 확인할 수 있습니다:
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── 이것이 게시물 ID입니다
+    ```
+  </Step>
+
+  <Step title="요청하기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ID로 단일 게시물 조회
+      response = client.posts.get("1228393702244134912")
+      print(response.data)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912");
+      console.log(response.data);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답을 검토하세요">
+    기본 응답에는 해당 게시물의 `id`, `text`, `edit_history_tweet_ids`가 포함됩니다:
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?\n\nwhile(true) {\n    I = Love(You);\n}",
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="추가 필드 요청하기">
+    더 많은 데이터를 조회하려면 쿼리 매개변수를 사용하세요:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 추가 필드와 expansions를 포함한 게시물을 조회합니다
+      response = client.posts.get(
+          "1228393702244134912",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"]
+      )
+
+      print(response.data)
+      print(response.includes)  # 작성자 user 객체를 포함합니다
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+      });
+
+      console.log(response.data);
+      console.log(response.includes); // 작성자 user 객체를 포함합니다
+      ```
+    </CodeGroup>
+
+    **응답:**
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?...",
+        "created_at": "2020-02-14T19:00:55.000Z",
+        "author_id": "2244994945",
+        "public_metrics": {
+          "retweet_count": 156,
+          "reply_count": 23,
+          "like_count": 892,
+          "quote_count": 12
+        },
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "verified": true
+          }
+        ]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="여러 포스트 조회">
+    한 번의 요청으로 최대 100개의 포스트를 조회합니다:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets?\
+      ids=1228393702244134912,1227640996038684673,1199786642791452673&\
+      tweet.fields=created_at,author_id" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 여러 포스트를 ID로 조회
+      response = client.posts.get_posts(
+          ids=["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+          tweet_fields=["created_at", "author_id"]
+      )
+
+      for post in response.data:
+          print(f"{post.id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.getPosts({
+        ids: ["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+        tweetFields: ["created_at", "author_id"],
+      });
+
+      response.data?.forEach((post) => {
+        console.log(`${post.id}: ${post.text?.slice(0, 50)}...`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="연동 가이드" icon="book" href="/ko/x-api/posts/lookup/integrate">
+    인증, 요청 한도 및 모범 사례를 익히세요
+  </Card>
+
+  <Card title="필드 및 expansions" icon="sliders" href="/ko/x-api/fundamentals/fields">
+    필드 및 expansions 시스템을 마스터하세요
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/get-post-by-id">
+    사용 가능한 모든 매개변수를 확인하세요
+  </Card>
+
+  <Card title="샘플 코드" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    더 많은 예제를 살펴보세요
+  </Card>
+</CardGroup>

@@ -1,0 +1,37 @@
+---
+title: PIN-आधारित प्राधिकरण
+sidebarTitle: PIN-आधारित OAuth
+keywords: ["PIN-आधारित OAuth", "PIN OAuth", "OAuth PIN", "PIN-आधारित प्राधिकरण", "OAuth 1.0a PIN", "डेस्कटॉप OAuth"]
+---
+
+import { Button } from "/snippets/hi/button.mdx";
+
+<div id="pin-based-authorization">
+  ### PIN-आधारित प्राधिकरण
+</div>
+
+PIN-आधारित OAuth फ़्लो, [3-legged OAuth](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) प्रक्रिया का एक संस्करण है। यह उन अनुप्रयोगों के लिए बनाया गया है जो प्राधिकरण के बाद उपयोगकर्ता को रीडायरेक्ट करने के लिए वेब ब्राउज़र तक पहुँच नहीं सकते या उसमें वेब ब्राउज़र एम्बेड नहीं कर सकते। ऐसे अनुप्रयोगों के उदाहरण हैं command-line अनुप्रयोग, embedded systems, game consoles, और कुछ प्रकार के mobile apps।
+
+PIN-आधारित OAuth फ़्लो, `request_token` में `oauth_callback` को `oob` पर सेट करके किसी ऐप द्वारा शुरू किया जाता है। `oob` का अर्थ out-of-band OAuth है। उपयोगकर्ता अब भी लॉग इन करने या ऐप को अधिकृत करने के लिए X पर जाता है, लेकिन एक्सेस स्वीकृत करने के बाद उसे अपने-आप अनुप्रयोग पर रीडायरेक्ट नहीं किया जाता। इसके बजाय, उसे एक संख्यात्मक PIN code दिखाया जाता है, साथ ही यह निर्देश भी दिए जाते हैं कि वह अनुप्रयोग पर वापस जाकर यह मान दर्ज करे।
+
+<Note>
+  **नोट:** PIN-आधारित auth का उपयोग करते समय भी, X ऐप settings में `callback_url` आवश्यक है।
+</Note>
+
+ 
+
+<div id="implementing-the-pin-based-oauth-flow">
+  #### PIN-आधारित OAuth फ़्लो को लागू करना
+</div>
+
+PIN-आधारित फ़्लो को [3-legged authorization](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) (और [Sign in with X](/hi/resources/fundamentals/authentication#log-in-with-x)) की तरह ही लागू किया जाता है, बस निम्नलिखित अंतर होते हैं:
+
+1. [POST oauth/request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token) कॉल के दौरान `oauth_callback` का मान `oob` पर सेट होना चाहिए।
+
+2. [GET oauth/authenticate](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) या [GET oauth/authorize URL](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authorize) में से किसी एक का उपयोग करके उपयोगकर्ता को आपके ऐप को अधिकृत करने के लिए X पर भेजे जाने के बाद, उन्हें आपके `callback_url` पर रीडायरेक्ट नहीं किया जाएगा। इसके बजाय, उन्हें X द्वारा जनरेट किया गया लगभग 7 अंकों का PIN दिखाने वाली एक स्क्रीन दिखाई देगी, साथ ही यह PIN आपके ऐप में दर्ज करने के निर्देश भी दिए जाएंगे।
+
+3. उपयोगकर्ता इस PIN को आपके ऐप में दर्ज करता है, और आपका ऐप `access_token` प्राप्त करने के लिए [POST oauth/access&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-access-token) में इस PIN का उपयोग `oauth_verifier` के रूप में करता है।
+
+<Note>
+  **नोट:** PIN नंबर दोबारा उपयोग नहीं किए जा सकते, और प्राप्त `access_token` का उपयोग ऐप-उपयोगकर्ता अनुरोधों के लिए किया जाना चाहिए।
+</Note>

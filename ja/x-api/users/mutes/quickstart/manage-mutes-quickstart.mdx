@@ -1,0 +1,197 @@
+---
+title: ミュートの管理
+sidebarTitle: ミュートの管理
+description: X API を使用してユーザーをミュートおよびミュート解除する
+keywords: ["ミュートの管理 クイックスタート", "ユーザーのミュート クイックスタート", "ミュート管理 チュートリアル", "ミュート ガイド", "ミュート クイックスタート"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、X API を使用してユーザーをミュートおよびミュート解除する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  始める前に、次のものが必要です。
+
+  * 承認済みの App を持つ [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * ユーザーアクセス・トークン (OAuth 1.0a または OAuth 2.0 PKCE) 
+</Note>
+
+***
+
+<div id="mute-a-user">
+  ## ユーザーをミュートする
+</div>
+
+<Steps>
+  <Step title="自分のユーザーIDを取得する">
+    認証済みユーザーのIDが必要です。[ユーザー参照エンドポイント](/ja/x-api/users/lookup/introduction)を使うか、Access Token から取得できます (数値部分があなたのユーザーIDです) 。
+  </Step>
+
+  <Step title="対象ユーザーIDを取得する">
+    ミュートしたいアカウントのユーザーIDを、[ユーザー参照エンドポイント](/ja/x-api/users/lookup/introduction)を使って取得します。
+  </Step>
+
+  <Step title="ミュートリクエストを送信する">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/muting" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"target_user_id": "9876543210"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # ユーザーをミュートする
+      response = client.users.mute(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+
+      print(f"Muting: {response.data.muting}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // ユーザーをミュートする
+      const response = await client.users.mute("123456789", {
+        targetUserId: "9876543210",
+      });
+
+      console.log(`Muting: ${response.data?.muting}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": {
+        "muting": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unmute-a-user">
+  ## ユーザーのミュートを解除する
+</div>
+
+ユーザーのミュートを解除するには、次のようにします。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/muting/9876543210" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # ユーザーのミュートを解除する
+  response = client.users.unmute(
+      source_user_id="123456789",
+      target_user_id="9876543210"
+  )
+
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // ユーザーのミュートを解除する
+  const response = await client.users.unmute("123456789", "9876543210");
+
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>
+
+**レスポンス:**
+
+```json
+{
+  "data": {
+    "muting": false
+  }
+}
+```
+
+***
+
+<div id="mute-vs-block">
+  ## ミュートとブロックの違い
+</div>
+
+| 機能 | ミュート | ブロック |
+|:--------|:-----|:------|
+| 相手の投稿が見える | いいえ | いいえ |
+| 相手があなたの投稿を見られる | はい | いいえ |
+| 相手があなたをフォローできる | はい | いいえ |
+| 相手があなたにDMを送れる | はい | いいえ |
+| 相手に知られる | いいえ | はい |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ミュートの取得" icon="volume-xmark" href="/ja/x-api/users/mutes/quickstart/mutes-lookup">
+    ミュートしているユーザーを取得
+  </Card>
+
+  <Card title="ブロック" icon="ban" href="/ja/x-api/users/blocks/quickstart">
+    代わりにユーザーをブロック
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/users/mute-user-by-user-id">
+    エンドポイントの詳細なドキュメント
+  </Card>
+</CardGroup>

@@ -1,0 +1,167 @@
+---
+title: 3-legged OAuth फ्लो का उपयोग करके एक्सेस टोकन प्राप्त करना
+sidebarTitle: उपयोगकर्ता एक्सेस टोकन (3-legged OAuth फ्लो)
+keywords: ["3-legged OAuth", "उपयोगकर्ता एक्सेस टोकन", "OAuth फ्लो", "एक्सेस टोकन प्राप्त करना", "OAuth 1.0a फ्लो", "एक्सेस टोकन बनाना"]
+---
+
+import { Button } from "/snippets/hi/button.mdx";
+
+<div id="obtaining-access-tokens-using-3-legged-oauth-flow">
+  ### 3-legged OAuth फ्लो का उपयोग करके एक्सेस टोकन प्राप्त करना
+</div>
+
+किसी अन्य उपयोगकर्ता की ओर से कार्रवाई करने के लिए, आपको उनके एक्सेस टोकन प्राप्त करने होंगे। एक्सेस टोकन यह निर्धारित करते हैं कि अनुरोध किस X खाते की ओर से किया जा रहा है, इसलिए इन्हें प्राप्त करने के लिए उपयोगकर्ता को पहले आपको एक्सेस देना होगा। ये टोकन एक्सपायर नहीं होते, लेकिन उपयोगकर्ता इन्हें किसी भी समय रद्द कर सकता है।
+
+X आपको 3-legged OAuth फ्लो के माध्यम से उपयोगकर्ता एक्सेस टोकन प्राप्त करने की सुविधा देता है। इस flow में, उपयोगकर्ता को X पर रीडायरेक्ट करके और उनसे आपके ऐप को अधिकृत करवाकर, आपका ऐप एक **access token** और access token secret प्राप्त कर सकता है। यह flow, [implementing Log in with X](/hi/resources/fundamentals/authentication/guides/log-in-with-x) में बताए गए flow से लगभग समान है, लेकिन इसमें दो अपवाद हैं:
+
+* [GET oauth/authorize](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authorize) endpoint का उपयोग [GET oauth/authenticate](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) के बजाय किया जाता है।
+* उपयोगकर्ता से आपके ऐप को एक्सेस अधिकृत करने के लिए **हमेशा** कहा जाएगा, भले ही पहले एक्सेस दिया जा चुका हो।
+   
+
+शुरू करने से पहले, आपको अपने [application&#39;s](/hi/resources/fundamentals/developer-apps) permissions की जांच करनी होगी और consumer keys तथा callback URL की जानकारी होनी चाहिए। अगर आपके पास callback URL या सार्वजनिक रूप से उपलब्ध UI नहीं है, तो [PIN-based authorization](/hi/resources/fundamentals/authentication/oauth-1-0a/pin-based-oauth) का उपयोग करने पर विचार करें। यह उन ऐप्स के लिए है जो प्राधिकरण के बाद उपयोगकर्ता को रीडायरेक्ट करने हेतु web browser का उपयोग या उसे embed नहीं कर सकते। 
+
+3-legged sign in interaction की संभावित अवस्थाएँ नीचे दिए गए flowchart में दिखाई गई हैं:
+
+![](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/obtaining-access-tokens.png.twimg.1920.png)
+
+<div id="overview-of-the-process">
+  #### प्रक्रिया का अवलोकन
+</div>
+
+संक्षेप में, 3-Legged OAuth प्रक्रिया में यह होगा:
+
+1. किसी कंज़्यूमर ऐप्लिकेशन के लिए request token प्राप्त करने का अनुरोध बनाया जाएगा।
+2. उपयोगकर्ता का प्रमाणीकरण कराया जाएगा, और कंज़्यूमर ऐप्लिकेशन को एक request token भेजा जाएगा।
+3. request token को उपयोग योग्य user access token में बदला जाएगा।
+
+**शब्दावली संबंधी स्पष्टीकरण**
+
+नीचे दी गई गाइड में, एक ही चीज़ के लिए अलग-अलग शब्द इस्तेमाल किए गए दिखाई दे सकते हैं।
+
+**Client credentials:**
+
+* ऐप Key === API Key === Consumer API Key === Consumer Key === Customer Key === `oauth_consumer_key`
+* ऐप Key Secret === API Secret Key === Consumer Secret === Consumer Key === Customer Key === `oauth_consumer_secret`
+* Callback URL === `oauth_callback`
+   
+
+**Temporary credentials:**
+
+* Request Token === `oauth_token`
+* Request Token Secret === `oauth_token_secret`
+* oauth&#95;verifier
+   
+
+**Token credentials:**
+
+* Access token === Token === परिणामी `oauth_token`
+* Access token secret === Token Secret === परिणामी `oauth_token_secret`
+
+<div id="walkthrough-steps">
+  #### वॉकथ्रू चरण
+</div>
+
+**चरण 1: [POST oauth/request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token)**
+
+किसी कंज़्यूमर ऐप्लिकेशन के लिए request token प्राप्त करने हेतु एक अनुरोध बनाएँ।
+
+इस अनुरोध में एकमात्र विशिष्ट पैरामीटर oauth&#95;callback है, जो उस URL का [URL encoded](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) संस्करण होना चाहिए, जिस पर चरण 2 पूरा होने के बाद आप अपने उपयोगकर्ता को पुनर्निर्देशित करना चाहते हैं। बाकी पैरामीटर OAuth signing process द्वारा जोड़े जाते हैं।
+
+कृपया ध्यान दें - आप [POST oauth/request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token) endpoint के साथ जिस भी callback URL का उपयोग करते हैं, उसे डेवलपर कंसोल में app details page पर आपकी [developer ऐप की](/hi/resources/fundamentals/developer-apps) settings में कॉन्फ़िगर करना होगा।
+ 
+
+**अनुरोध में शामिल हैं:**
+
+`oauth_callback="https%3A%2F%2FyourCallbackUrl.com"`
+
+`oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w" `
+
+आपकी ऐप को response के HTTP status की जाँच करनी चाहिए। 200 के अलावा कोई भी मान विफलता दर्शाता है। response के body में `oauth_token`, `oauth_token_secret`, और `oauth_callback_confirmed` पैरामीटर होंगे। आपकी ऐप को यह सत्यापित करना चाहिए कि `oauth_callback_confirmed` true है और अगले चरणों के लिए बाकी दो मानों को संग्रहीत करना चाहिए।
+ 
+
+**Response में शामिल हैं**
+
+`oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
+
+`oauth_token_secret=veNRnAWe6inFuo8o2u8SLLZLjolYDmDP7SzL0YfYI`
+
+`oauth_callback_confirmed=true`
+
+**चरण 2: [GET oauth/authorize](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authorize)**
+
+उपयोगकर्ता से प्रमाणीकरण कराएँ, और कंज़्यूमर ऐप्लिकेशन को एक request token भेजें।
+ 
+
+**उपयोगकर्ता को पुनर्निर्देशित करने के लिए उदाहरण URL:**
+
+`https://api.x.com/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
+
+सफल प्रमाणीकरण के बाद, आपका `callback_url` एक ऐसा अनुरोध प्राप्त करेगा जिसमें `oauth_token` और `oauth_verifier` पैरामीटर होंगे। आपके ऐप्लिकेशन को यह सत्यापित करना चाहिए कि token, चरण 1 में प्राप्त request token से मेल खाता है।
+ 
+
+**क्लाइंट के redirect से अनुरोध:**
+
+`https://yourCallbackUrl.com?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
+
+**चरण 3: [POST oauth/access&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-access-token)**
+
+request token को उपयोग योग्य access token में बदलें।
+
+request token को उपयोग योग्य access token में बदलने के लिए, आपके ऐप्लिकेशन को [POST oauth/access&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-access-token) endpoint पर एक अनुरोध करना होगा, जिसमें चरण 2 में प्राप्त `oauth_verifier` मान शामिल हो। request token को header के `oauth_token` भाग में भी भेजा जाता है, लेकिन यह signing process द्वारा जोड़ा गया होगा।
+ 
+
+**अनुरोध में शामिल हैं:**
+
+`POST /oauth/access_token`
+
+`oauth_consumer_key=cChZNFj6T5R0TigYB9yd1w`
+
+`oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0`
+
+`oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY`
+
+सफल response में `oauth_token`, `oauth_token_secret` पैरामीटर शामिल होते हैं। token और token secret को संग्रहीत किया जाना चाहिए और X API के लिए भविष्य के प्रमाणित अनुरोधों में उपयोग किया जाना चाहिए। उपयोगकर्ता की पहचान निर्धारित करने के लिए, [GET account/verify&#95;credentials](/hi/resources/fundamentals/authentication/api-reference) का उपयोग करें।
+ 
+
+**Response में शामिल हैं:**
+
+`oauth_token=7588892-kagSNqWge8gB1WwE3plnFsJHAZVfxWD7Vb57p0b4`
+
+`oauth_token_secret=PbKfYqSryyeKDWz4ebtY3o5ogNLG11WJuZBc9fQrQo`
+
+**OAuth 1.0a (application-user) required requests के लिए इन credentials का उपयोग करना**
+
+अब आपने उपयोगकर्ता एक्सेस टोकन प्राप्त कर लिए हैं; आप उनका उपयोग कुछ API, जैसे [POST statuses/update](/hi/x-api/posts/manage-tweets/introduction) का इस्तेमाल करके, उपयोगकर्ताओं की ओर से Tweet बनाने के लिए कर सकते हैं.
+ 
+
+**अनुरोध में शामिल हैं:**
+
+`POST statuses/update.json`
+
+`oauth_consumer_key=cChZNFj6T5R0TigYB9yd1w`
+
+`oauth_token=7588892-kagSNqWge8gB1WwE3plnFsJHAZVfxWD7Vb57p0b4`
+
+<div id="sample-use-case">
+  #### उदाहरण उपयोग परिदृश्य
+</div>
+
+मानक फ़्लो वेब-आधारित होता है और 3-legged authorization OAuth फ़्लो का उपयोग करता है। यहाँ दिखाई गई स्क्रीनशॉट एक नमूना ऐप का हिस्सा हैं, जिसका सोर्स आप [https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web) पर देख सकते हैं।
+
+आपके ऐप में किसी चरण पर, अपने ऐप को अधिकृत करने के लिए आपको X पर रीडायरेक्ट करना होगा।
+
+<Frame>
+  <img src="/images/twauth-web-2.png" alt="" />
+</Frame>
+
+जब आप request token के साथ X पर रीडायरेक्ट करते हैं, तो उपयोगकर्ता को आपके ऐप को अधिकृत करने के लिए कहा जाएगा।
+
+<Frame>
+  <img src="/images/twauth-web-3.png" alt="" />
+</Frame>
+
+आपके ऐप को अधिकृत करने के बाद, उपयोगकर्ता को उस callback URL पर रीडायरेक्ट कर दिया जाएगा जो आपने request token जनरेट करते समय दिया था। आप इसका उपयोग इस उपयोगकर्ता के लिए स्थायी access token प्राप्त करने और उसे स्थानीय रूप से संग्रहीत करने के लिए करेंगे।
+
+<Frame>
+  <img src="/images/twauth-web-4.png" alt="" />
+</Frame>

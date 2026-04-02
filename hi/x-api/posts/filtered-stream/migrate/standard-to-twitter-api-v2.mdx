@@ -1,0 +1,246 @@
+---
+title: v1 से v2
+sidebarTitle: v1 से v2
+keywords: ["v1.1 से v2 माइग्रेशन", "फ़िल्टर्ड स्ट्रीम माइग्रेशन", "फ़िल्टर्ड स्ट्रीम माइग्रेट करें", "स्टैंडर्ड से v2 फ़िल्टर्ड स्ट्रीम", "v1 से v2 फ़िल्टर्ड स्ट्रीम", "माइग्रेशन गाइड"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### X API v2 की तुलना में Standard v1.1
+</div>
+
+यदि आप v1.1 [statuses/filter](https://developer.x.com/en/docs/x-api/v1/tweets/filter-realtime/api-reference/post-statuses-filter) एंडपॉइंट के साथ काम कर रहे हैं, तो यह गाइड आपको Standard v1.1 और X API v2 के फ़िल्टर्ड स्ट्रीम एंडपॉइंट्स के बीच की समानताओं और भिन्नताओं को समझने में मदद कर सकती है।
+
+* **समानताएँ**
+  * अनुरोध पैरामीटर और ऑपरेटर
+  * पोस्ट edit history और metadata के लिए समर्थन
+* **भिन्नताएँ**
+  * एंडपॉइंट URL
+  * ऐप और प्रोजेक्ट की आवश्यकता
+  * प्रमाणीकरण विधि
+  * नियमों की संख्या और persistent stream
+  * प्रतिक्रिया डेटा का प्रारूप
+  * अनुरोध पैरामीटर
+  * recovery और redundancy सुविधाओं की उपलब्धता
+  * Query operators
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**अनुरोध पैरामीटर और ऑपरेटर**
+
+मानक v1.1 `statuses/filter` एंडपॉइंट में कुछ पैरामीटर होते हैं, जिन्हें स्ट्रीम को फ़िल्टर करने के लिए अनुरोध के साथ भेजा जा सकता है। इसके विपरीत, v2 फ़िल्टर्ड स्ट्रीम में आप [ऑपरेटरों](/hi/x-api/posts/filtered-stream#building-rules-for-filtered-stream) के एक सेट का उपयोग करते हैं, जिन्हें बूलियन लॉजिक के ज़रिए आपस में जोड़कर मनचाहे पोस्ट्स को फ़िल्टर किया जा सकता है। उपलब्ध ऑपरेटरों में कुछ ऐसे भी हैं जो मौजूदा मानक v1.1 पैरामीटरों के सीधे समकक्ष हैं। 
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटरों के X API v2 में समकक्ष ऑपरेटर मौजूद हैं:
+ 
+
+| **Standard**                                                                                                                       | **X API v2**                                                                                                                                                    |
+| :--------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| follow - उपयोगकर्ता id की अल्पविराम-से-अलग सूची, जो बताती है कि किन उपयोगकर्ताओं के पोस्ट्स स्ट्रीम में भेजे जाने चाहिए।           | कई ऑपरेटर, जो आपको विशिष्ट उपयोगकर्ताओं से संबंधित पोस्ट्स ढूँढने में मदद कर सकते हैं:<br /><br />* @<br />* from:<br />* to:<br />* आदि                        |
+| track - वाक्यांशों की अल्पविराम-से-अलग सूची, जिसका उपयोग यह तय करने के लिए किया जाता है कि स्ट्रीम में कौन-से पोस्ट्स भेजे जाएँगे। | कई ऑपरेटर, जो आपको विशिष्ट कीवर्ड से संबंधित पोस्ट्स ढूँढने में मदद कर सकते हैं:<br /><br />* keyword<br />* &quot;exact phrase match&quot;<br />* #<br />* आदि |
+
+**पोस्ट संपादन इतिहास और मेटाडेटा के लिए समर्थन**
+
+दोनों संस्करण ऐसा मेटाडेटा प्रदान करते हैं, जो किसी भी संपादन इतिहास का वर्णन करता है। अधिक जानकारी के लिए [फ़िल्टर्ड स्ट्रीम API संदर्भ](/hi/x-api/posts/filtered-stream#api-reference-index) और [पोस्ट संपादन की बुनियादी जानकारी](/hi/x-api/fundamentals/edit-posts) देखें। 
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URLs**
+
+* Standard v1.1 एंडपॉइंट्स:
+  * https://stream.x.com/1.1/statuses/filter.json
+* X API v2 एंडपॉइंट:
+  * https://api.x.com/2/tweets/search/stream
+  * https://api.x.com/2/tweets/search/stream/rule
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 एंडपॉइंट्स के लिए यह आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [डेवलपर ऐप](/hi/resources/fundamentals/developer-apps) के क्रेडेंशियल्स का उपयोग करें, जो किसी [Project](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट्स ऐप्स या किसी ऐप से संबद्ध ऐप्स के क्रेडेंशियल्स का उपयोग कर सकते हैं।
+
+**प्रमाणीकरण विधि**
+
+स्टैंडर्ड एंडपॉइंट [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication) को सपोर्ट करता है, जबकि X API v2 filtered stream एंडपॉइंट्स [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#oauth-2-0) को सपोर्ट करते हैं (इसे Application-only authentication भी कहा जाता है)। X API v2 वर्शन पर अनुरोध करने के लिए, आपको अपने अनुरोधों को प्रमाणित करने हेतु ऐप Access Token का उपयोग करना होगा।
+
+यदि आपके पास वह ऐप Access Token अब नहीं है जो आपको Developer Console में अपना ऐप और app बनाते समय दिया गया था, तो आप Developer Console में अपने app के “Keys and tokens” पेज पर जाकर नया टोकन जनरेट कर सकते हैं। यदि आप ऐप Access Token को प्रोग्रामेटिक तरीके से जनरेट करना चाहते हैं, तो यह [OAuth 2.0 App-Only guide](/hi/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token) देखें। 
+
+**रूल वॉल्यूम और persistent stream**
+
+स्टैंडर्ड v1.1 एंडपॉइंट स्ट्रीमिंग कनेक्शन को फ़िल्टर करने के लिए केवल एक नियम को सपोर्ट करता है। नियम बदलने के लिए, आपको स्ट्रीम को डिस्कनेक्ट करना होगा और पैरामीटर के रूप में संशोधित फ़िल्टरिंग नियमों के साथ एक नया अनुरोध सबमिट करना होगा। 
+
+X API v2 filtered stream एंडपॉइंट आपको एक ही स्ट्रीम पर कई नियमों लागू करने और स्ट्रीम कनेक्शन बनाए रखते हुए अपनी स्ट्रीम में नियमों जोड़ने और हटाने की अनुमति देता है। 
+
+**प्रतिक्रिया डेटा फ़ॉर्मैट**
+
+स्टैंडर्ड v1.1 और X API v2 एंडपॉइंट वर्शन के बीच सबसे बड़े अंतरों में से एक यह है कि आप यह कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें।
+
+स्टैंडर्ड एंडपॉइंट्स में, आपको डिफ़ॉल्ट रूप से कई रिस्पॉन्स फ़ील्ड्स मिलते हैं, और फिर आपके पास पैरामीटर का उपयोग करके यह तय करने का विकल्प होता है कि payload में कौन-से फ़ील्ड्स या फ़ील्ड्स के कौन-से सेट लौटें।
+
+X API v2 वर्शन डिफ़ॉल्ट रूप से केवल पोस्ट id और text फ़ील्ड्स ही देता है। किसी भी अतिरिक्त फ़ील्ड्स या ऑब्जेक्ट्स का अनुरोध करने के लिए, आपको [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) पैरामीटर का उपयोग करना होगा। इन एंडपॉइंट्स से आपके द्वारा अनुरोध किए गए सभी पोस्ट फ़ील्ड्स प्राथमिक पोस्ट ऑब्जेक्ट में लौटेंगे। किसी भी expanded user, media, poll, या place ऑब्जेक्ट्स और फ़ील्ड्स आपके रिस्पॉन्स के भीतर includes ऑब्जेक्ट में लौटेंगे। इसके बाद आप पोस्ट और expanded ऑब्जेक्ट, दोनों में मौजूद IDs का मिलान करके किसी भी expanded ऑब्जेक्ट को पोस्ट ऑब्जेक्ट से मैप कर सकते हैं। 
+
+हम आपको प्रोत्साहित करते हैं कि आप इन नए पैरामीटरों के बारे में उनकी संबंधित guides में और पढ़ें, या [how to use fields and expansions](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) पर हमारी guide पढ़ें। 
+
+हमने एक [data format migration guide](/hi/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) भी तैयार की है, जो स्टैंडर्ड v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में आपकी मदद कर सकती है। यह guide आपको वह specific expansion और field पैरामीटर भी बताएगी, जिन्हें आपको specific फ़ील्ड्स लौटाने के लिए अपने v2 अनुरोध के साथ पास करना होगा। 
+ 
+
+कुछ फ़ील्ड्स का अनुरोध करने के तरीके में हुए बदलावों के अलावा, X API v2 APIs द्वारा लौटाए गए ऑब्जेक्ट्स, जिनमें पोस्ट और [user](/hi/x-api/fundamentals/data-dictionary#user) ऑब्जेक्ट्स शामिल हैं, के लिए नए JSON डिज़ाइन भी पेश कर रहा है।
+
+* JSON root level पर, स्टैंडर्ड एंडपॉइंट्स पोस्ट ऑब्जेक्ट्स को statuses array में लौटाते हैं, जबकि X API v2 data array लौटाता है। 
+* Retweeted और Quoted &quot;statuses&quot; कहने के बजाय, X API v2 JSON में Retweeted और Quoted Tweets का उल्लेख किया जाता है। कई legacy और deprecated फ़ील्ड्स, जैसे contributors और user.translator&#95;type, हटाई जा रही हैं। 
+* पोस्ट ऑब्जेक्ट में favorites और user ऑब्जेक्ट में favourites दोनों का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है। 
+* X इस परंपरा को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, null), उन्हें payload में नहीं लिखा जाता। पोस्ट और user attributes केवल तभी शामिल किए जाते हैं, जब उनके values non-null हों। 
+   
+
+हमने [Post object](/hi/x-api/fundamentals/data-dictionary#tweet) में फ़ील्ड्स का एक नया सेट भी जोड़ा है, जिसमें निम्नलिखित शामिल हैं:
+
+* एक [conversation&#95;id](/hi/x-api/fundamentals/conversation-id) फ़ील्ड
+* दो नए [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स, जिनमें context और entities शामिल हैं
+* कई नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स 
+* एक नया reply&#95;setting फ़ील्ड, जो यह दिखाता है कि किसी दिए गए पोस्ट का जवाब कौन दे सकता है
+
+**अनुरोध पैरामीटर**
+
+मानक फ़िल्टर्ड स्ट्रीम अनुरोध पैरामीटरों का एक सेट भी है, जो X API v2 में **समर्थित नहीं** है:
+
+| Standard v1.1 parameter                                                                                                                        | विवरण                                                                                                                                                                                                                                                    |
+| :--------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| locations - longitude,latitude युग्मों की अल्पविराम-से-अलग सूची, जो पोस्ट्स को फ़िल्टर करने के लिए bounding boxes का एक सेट निर्दिष्ट करती है। | हमने अभी तक X API v2 के लिए स्थान-आधारित operators जारी नहीं किए हैं।                                                                                                                                                                                    |
+| Delimited                                                                                                                                      | v1.1 endpoint के साथ, इसे string length पर सेट करने का मतलब है कि statuses को stream में delimited किया जाए, ताकि clients यह जान सकें कि status संदेश के अंत तक पहुँचने से पहले कितने bytes पढ़ने हैं।<br /><br />यह सुविधा X API v2 में उपलब्ध नहीं है। |
+| Stall&#95;warnings                                                                                                                             | v1.1 endpoint के साथ, इस parameter को true पर सेट करने से समय-समय पर संदेश भेजे जाते हैं, यदि client के disconnected होने का खतरा हो। <br /><br />X API v2 में, stall warnings डिफ़ॉल्ट रूप से भेजी जाती हैं और समय-समय पर नई line भेजी जाती है।         |
+
+**रिकवरी और रिडंडेंसी सुविधाओं की उपलब्धता**
+
+फ़िल्टर्ड स्ट्रीम का X API v2 संस्करण रिकवरी और रिडंडेंसी सुविधाएँ पेश करता है, जो आपको streaming up-time को अधिकतम करने में मदद कर सकती हैं, साथ ही ऐसे किसी भी पोस्ट्स को पुनर्प्राप्त करने में भी जो पाँच मिनट या उससे कम समय के disconnection के कारण छूट गए हों।
+
+Redundant connections आपको किसी दिए गए stream से अधिकतम दो बार connect करने की अनुमति देता है, जिससे यह सुनिश्चित करने में मदद मिल सकती है कि आप हर समय stream से जुड़े रहें, भले ही आपके connections में से कोई एक विफल हो जाए। 
+
+छूटा हुआ अधिकतम पाँच मिनट का डेटा पुनर्प्राप्त करने के लिए backfill&#95;minutes parameter का उपयोग किया जा सकता है। 
+
+ये दोनों सुविधाएँ केवल [Academic Research access](/hi/x-api/getting-started/about-x-api) के माध्यम से उपलब्ध हैं। इस कार्यक्षमता के बारे में आप हमारे [recovery and redundancy features](/hi/x-api/posts/filtered-stream#filtered-stream-recovery-and-redundancy-features) integration guide में और जान सकते हैं। 
+
+**नए query operators**
+
+X API v2 दो नई सुविधाओं के समर्थन में नए operators प्रस्तुत करता है: 
+
+* **[Conversation IDs](/hi/x-api/fundamentals/conversation-id)** - जैसे-जैसे X पर बातचीत आगे बढ़ती है, बातचीत का हिस्सा होने वाले पोस्ट्स को चिह्नित करने के लिए एक conversation ID उपलब्ध होती है। बातचीत के सभी पोस्ट्स में उनका conversation&#95;id उस पोस्ट ID पर सेट होगा, जिससे वह बातचीत शुरू हुई थी। 
+  * conversation&#95;id:
+* **[X Annotations](/hi/x-api/fundamentals/post-annotations)** पोस्ट्स के बारे में संदर्भात्मक जानकारी प्रदान करते हैं, और इनमें entity और context annotations शामिल होते हैं। Entities में लोग, स्थान, उत्पाद और संगठन शामिल होते हैं। Contexts वे domains, या topics, हैं जिनसे surfaced entities संबंधित होते हैं। उदाहरण के लिए, किसी पोस्ट में उल्लिखित लोगों के साथ ऐसा context हो सकता है, जो यह बताए कि वे खिलाड़ी, अभिनेता या राजनेता हैं।
+  * context: - उन पोस्ट्स से मेल खाता है, जिन्हें रुचि के किसी context के साथ annotate किया गया है।
+  * entity: - उन पोस्ट्स से मेल खाता है, जिन्हें रुचि की किसी entity के साथ annotate किया गया है।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="add-a-rule-to-filtered-stream-v2">
+  ### फ़िल्टर्ड स्ट्रीम (v2) में एक नियम जोड़ें
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+    -H "Authorization: Bearer $BEARER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"add": [{"value": "cat has:images", "tag": "cats with images"}]}'
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream/rules"
+
+  headers = {
+      "Authorization": f"Bearer {bearer_token}",
+      "Content-Type": "application/json"
+  }
+
+  data = {
+      "add": [{"value": "cat has:images", "tag": "cats with images"}]
+  }
+
+  response = requests.post(url, headers=headers, json=data)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # फ़िल्टर्ड स्ट्रीम में एक नियम जोड़ें
+  response = client.posts.add_stream_rules(
+      add=[{"value": "cat has:images", "tag": "cats with images"}]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // फ़िल्टर्ड स्ट्रीम में एक नियम जोड़ें
+  const response = await client.posts.addStreamRules({
+    add: [{ value: "cat has:images", tag: "cats with images" }],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="connect-to-filtered-stream-v2">
+  ### फ़िल्टर्ड स्ट्रीम से कनेक्ट करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/stream?tweet.fields=created_at,author_id" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream"
+
+  params = {"tweet.fields": "created_at,author_id"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  # पोस्ट्स को रीयल टाइम में स्ट्रीम करें
+  response = requests.get(url, headers=headers, params=params, stream=True)
+  for line in response.iter_lines():
+      if line:
+          print(line.decode("utf-8"))
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # फ़िल्टर्ड स्ट्रीम से कनेक्ट करें
+  for post in client.posts.stream(
+      tweet_fields=["created_at", "author_id"]
+  ):
+      print(f"{post.data.created_at}: {post.data.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // फ़िल्टर्ड स्ट्रीम से कनेक्ट करें
+  const stream = client.posts.stream({
+    tweetFields: ["created_at", "author_id"],
+  });
+
+  for await (const post of stream) {
+    console.log(`${post.data?.created_at}: ${post.data?.text?.slice(0, 50)}...`);
+  }
+  ```
+</CodeGroup>

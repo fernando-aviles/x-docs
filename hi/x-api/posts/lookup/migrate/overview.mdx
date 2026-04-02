@@ -1,0 +1,180 @@
+---
+title: अवलोकन
+sidebarTitle: अवलोकन
+keywords: ["पोस्ट लुकअप माइग्रेशन", "लुकअप माइग्रेट", "v1.1 से v2 लुकअप", "लुकअप माइग्रेशन गाइड", "लुकअप माइग्रेट"]
+---
+
+<div id="comparing-x-apis-posts-lookup-endpoints">
+  ## X API के पोस्ट्स लुकअप एंडपॉइंट्स की तुलना
+</div>
+
+v2 पोस्ट्स लुकअप एंडपॉइंट्स, standard v1.1 [GET statuses/lookup](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-lookup) और [GET statuses/show](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-show-id) एंडपॉइंट्स की जगह लेते हैं। यह गाइड उन डेवलपर्स के लिए है जो इन पुराने वर्शन से X API v2 पर माइग्रेट कर रहे हैं।
+
+***
+
+<div id="endpoint-comparison-table">
+  ## एंडपॉइंट तुलना तालिका
+</div>
+
+| विवरण                                                                                                                                            | मानक v1.1                                              | X API v2                                                                                                                                    |
+| :----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| **समर्थित HTTP मेथड**                                                                                                                            | `GET`                                                  | `GET`                                                                                                                                       |
+| **होस्ट डोमेन**                                                                                                                                  | `https://api.x.com`                                    | `https://api.x.com`                                                                                                                         |
+| **एंडपॉइंट पाथ**                                                                                                                                 | `/1.1/statuses/show.json`, `/1.1/statuses/lookup.json` | `/2/tweets`                                                                                                                                 |
+| **[प्रमाणीकरण](resources/fundamentals/authentication)**                                                                                          | OAuth 1.0a उपयोगकर्ता कॉन्टेक्स्ट                      | OAuth 1.0a उपयोगकर्ता कॉन्टेक्स्ट, OAuth 2.0 ऐप-ओनली, PKCE के साथ OAuth 2.0 ऑथराइज़ेशन कोड                                                  |
+| **पोस्ट [JSON प्रारूप](/hi/x-api/fundamentals/data-dictionary)**                                                                                    | मानक v1.1 प्रारूप                                      | [`fields` और `expansions` पैरामीटर से निर्धारित X API v2 प्रारूप](/hi/x-api/fundamentals/data-dictionary) (v1.1 के साथ बैकवर्ड-कम्पैटिबल नहीं) |
+| **विशिष्ट [फ़ील्ड्स](/hi/x-api/fundamentals/data-dictionary) चुनने का समर्थन**                                                                      |                                                        | ✔                                                                                                                                           |
+| **[annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स का समर्थन**                                                                       |                                                        | ✔                                                                                                                                           |
+| **नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स का समर्थन**                                                                                 |                                                        | ✔                                                                                                                                           |
+| **`conversation_id` फ़ील्ड का समर्थन**                                                                                                           |                                                        | ✔                                                                                                                                           |
+| **पोस्ट का संपादन इतिहास उपलब्ध कराता है**                                                                                                       | ✔                                                      | ✔                                                                                                                                           |
+| **[प्रोजेक्ट](resources/fundamentals/projects) से जुड़े [डेवलपर ऐप](/hi/resources/fundamentals/developer-apps) से क्रेडेंशियल की आवश्यकता होती है** |                                                        | ✔                                                                                                                                           |
+
+***
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ## मानक v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप मानक v1.1 GET statuses/show और GET statuses/लुकअप के साथ काम कर चुके हैं, तो यह गाइड आपको मानक और X API v2 पोस्ट्स लुकअप एंडपॉइंट्स के बीच समानताओं और अंतरों को समझने में मदद करेगी।
+
+आपको हमारा [विज़ुअल डेटा फ़ॉर्मैट माइग्रेशन टूल](/hi/x-api/migrate/data-format-migration) भी उपयोगी लग सकता है, जो आपको [X API v1.1 data format](/hi/x-api/fundamentals/data-dictionary) और [X API v2 format](/hi/x-api/fundamentals/data-dictionary) के बीच के अंतर जल्दी से देखने में मदद करता है।
+
+* **समानताएँ**
+  * OAuth 1.0a उपयोगकर्ता कॉन्टेक्स्ट
+  * प्रति अनुरोध पोस्ट्स की सीमा
+  * पोस्ट संपादन इतिहास और मेटाडेटा के लिए समर्थन
+
+* **अंतर**
+  * एंडपॉइंट URL
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+  * प्रतिक्रिया डेटा फ़ॉर्मैट
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  ### समानताएँ
+</div>
+
+<div id="oauth-10a-user-context-authentication-method">
+  #### OAuth 1.0a उपयोगकर्ता कॉन्टेक्स्ट प्रमाणीकरण विधि
+</div>
+
+मानक endpoint [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication) का समर्थन करता है, जबकि नया X API v2 पोस्ट लुकअप endpoint, OAuth 1.0a User Context और [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication) दोनों का समर्थन करता है। इसलिए, यदि आप पहले मानक v1.1 पोस्ट लुकअप endpoints में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर migrate करने के after भी आप वही प्रमाणीकरण विधि इस्तेमाल करना जारी रख सकते हैं।
+
+शुरुआत करने के लिए App-Only प्रमाणीकरण संभवतः सबसे आसान तरीका है। App Access Token कैसे generate करें, यह जानने के लिए [यह OAuth 2.0 App-only guide](/hi/resources/fundamentals/authentication) देखें।
+
+<div id="posts-per-request-limits">
+  #### प्रति अनुरोध पोस्ट्स की सीमा
+</div>
+
+v1.1 का [GET statuses/lookup](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/get-statuses-lookup) एंडपॉइंट आपको प्रति अनुरोध अधिकतम 100 पोस्ट्स निर्दिष्ट करने की अनुमति देता है। यह GET /tweets एंडपॉइंट पर भी लागू होता है। पूरे 100 पोस्ट्स निर्दिष्ट करने के लिए, `ids` पैरामीटर को क्वेरी पैरामीटर के रूप में [पोस्ट IDs](/hi/resources/fundamentals/x-ids) की कॉमा-सेपरेटेड सूची के साथ उपयोग करें।
+
+**पोस्ट संपादन इतिहास और मेटाडेटा के लिए समर्थन**
+
+दोनों वर्शन ऐसा मेटाडेटा प्रदान करते हैं, जो किसी भी संपादन इतिहास का विवरण देता है। अधिक जानकारी के लिए Post lookup API संदर्भ और [Edit Posts के मूल सिद्धांत पेज](/hi/x-api/fundamentals/edit-posts) देखें।
+
+<div id="differences">
+  ### अंतर
+</div>
+
+<div id="endpoint-urls">
+  #### एंडपॉइंट यूआरएल
+</div>
+
+* **स्टैंडर्ड v1.1 एंडपॉइंट:**
+  * `https://api.x.com/1.1/statuses/show`
+  * `https://api.x.com/1.1/statuses/lookup`
+
+* **X API v2 एंडपॉइंट:**
+  * `https://api.x.com/2/tweets`
+  * `https://api.x.com/2/tweets/:id`
+
+<div id="app-and-project-requirements">
+  #### ऐप और प्रोजेक्ट आवश्यकताएँ
+</div>
+
+प्रमाणीकरण के लिए X API v2 एंडपॉइंट्स को ऐसे [डेवलपर ऐप](/hi/resources/fundamentals/developer-apps) के credentials की आवश्यकता होती है, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। X API v1.1 एंडपॉइंट्स ऐप्स से या किसी ऐप से संबद्ध ऐप्स से credentials का उपयोग कर सकते हैं।
+
+<div id="response-data-format">
+  #### प्रतिक्रिया डेटा प्रारूप
+</div>
+
+मानक v1.1 और X API v2 एंडपॉइंट संस्करणों के बीच एक महत्वपूर्ण अंतर यह है कि payload में फ़ील्ड्स कैसे चुने जाते हैं।
+
+मानक एंडपॉइंट्स में, कई रिस्पॉन्स फ़ील्ड्स डिफ़ॉल्ट रूप से शामिल होते हैं, और अतिरिक्त फ़ील्ड्स निर्दिष्ट करने के लिए पैरामीटर का उपयोग किया जा सकता है।
+
+हालाँकि, X API v2 डिफ़ॉल्ट रूप से केवल पोस्ट `id` और `text` फ़ील्ड्स देता है। अतिरिक्त फ़ील्ड्स और ऑब्जेक्ट्स पाने के लिए [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) पैरामीटर का उपयोग करना पड़ता है। विस्तारित फ़ील्ड्स रिस्पॉन्स के भीतर `includes` ऑब्जेक्ट में लौटते हैं, जिन्हें IDs का मिलान करके मुख्य पोस्ट ऑब्जेक्ट से जोड़ा जा सकता है।
+
+fields और expansions के उपयोग के बारे में अधिक जानकारी के लिए, [fields और expansions का उपयोग कैसे करें](/hi/x-api/fundamentals/data-dictionary) गाइड देखें। एक [डेटा फ़ॉर्मैट माइग्रेशन गाइड](/hi/x-api/fundamentals/fields) भी मानक v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करती है।
+
+इसके अलावा, X API v2 ऑब्जेक्ट्स के लिए नए JSON डिज़ाइन भी पेश करता है, जिनमें पोस्ट और [user](/hi/x-api/fundamentals/fields) ऑब्जेक्ट्स शामिल हैं:
+
+* मानक एंडपॉइंट्स पोस्ट ऑब्जेक्ट्स को `statuses` array में लौटाते हैं, जबकि X API v2 `data` array का उपयोग करता है।
+* X API v2 में Retweeted और Quoted Tweets, &quot;statuses&quot; शब्दावली की जगह लेते हैं।
+* `like` जैसी नई शब्दावली, `favorites` और `favourites` जैसे शब्दों की जगह लेती है।
+* जिन attributes का कोई मान नहीं होता (उदाहरण के लिए, `null`), उन्हें X API v2 payloads में शामिल नहीं किया जाता।
+
+X API v2 में पोस्ट ऑब्जेक्ट में कुछ नए फ़ील्ड्स शामिल हैं, जैसे:
+
+* `conversation_id`
+* दो नए [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स (`context` और `entities`)
+* नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स
+* `reply_setting` फ़ील्ड, जो दिखाती है कि किसी दिए गए पोस्ट का जवाब कौन दे सकता है
+
+<div id="request-parameters">
+  #### अनुरोध पैरामीटर
+</div>
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटरों के समकक्ष X API v2 में उपलब्ध हैं:
+
+| Standard | X API v2 |
+| :------- | :------- |
+| `id`     | `ids`    |
+
+कुछ मानक v1.1 पैरामीटर X API v2 में **समर्थित नहीं** हैं:
+
+| Standard               | Comment                                                                                                                |
+| :--------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| `tweet_mode`           | `fields` और `expansions` की कार्यक्षमता से प्रतिस्थापित।                                                               |
+| `trim_user`            | `fields` और `expansions` से प्रतिस्थापित। उपयोगकर्ता डेटा के लिए `author_id` expansion और `user.fields` का उपयोग करें। |
+| `include_my_retweet`   | प्रमाणीकरण किए गए उपयोगकर्ता द्वारा रीपोस्ट की गई पोस्ट्स के लिए स्रोत पोस्ट का ID देता है।                            |
+| `include_entities`     | payload में entities को नियंत्रित करने के लिए `fields` और `expansions` का उपयोग करें।                                  |
+| `include_ext_alt_text` | अगर alt text मौजूद है, तो media entity में `ext_alt_text` फ़ील्ड जोड़ता है।                                            |
+| `include_card_uri`     | ads card संलग्न होने पर `card_uri` जोड़ता है।                                                                          |
+| `map`                  | v1.1 में null किए गए फ़ील्ड्स के बजाय, X API v2 अनुपलब्ध पोस्ट्स के लिए पोस्ट ID और error message लौटाता है।           |
+
+<div id="curl-requests">
+  ### cURL अनुरोध
+</div>
+
+निम्नलिखित cURL अनुरोध standard v1.1 endpoints और उनके v2 समकक्ष दिखाते हैं। हेडर में `ACCESS_TOKEN` को अपने ऐप access token से बदलें। v2 endpoints के लिए, यह token किसी [डेवलपर ऐप](/hi/resources/fundamentals/developer-apps/overview) का होना चाहिए, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) के भीतर हो।
+
+v1.1 के रिस्पॉन्स payloads, v2 से अलग होंगे। v2 में, आप [फ़ील्ड्स](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) पैरामीटर का उपयोग करके अलग-अलग फ़ील्ड्स का अनुरोध कर सकते हैं।
+
+**Standard v1.1 `GET statuses/lookup` और v2 `GET /tweets` endpoints**
+
+```bash
+curl --request GET \
+  --url 'https://api.x.com/1.1/statuses/lookup.json?id=1460323737035677698%2C1460323743339741184' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```
+
+```
+  curl --request GET \
+  --url 'https://api.x.com/2/tweets?ids=1460323737035677698%2C1460323743339741184&tweet.fields=created_at&expansions=author_id&user.fields=created_at' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```
+
+**मानक v1.1 `GET statuses/show/:id` और v2 `GET /tweets/:id` एंडपॉइंट्स**
+
+```
+curl --request GET \
+  --url 'https://api.x.com/1.1/statuses/show.json?id=1460323737035677698' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```
+
+```
+curl --request GET \
+  --url 'https://api.x.com/2/tweets/1460323737035677698?tweet.fields=created_at&expansions=author_id&user.fields=created_at' \
+  --header 'Authorization: Bearer $ACCESS_TOKEN'
+```

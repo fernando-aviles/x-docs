@@ -1,0 +1,247 @@
+---
+title: Xでログイン
+keywords: ["Xでログイン", "Xでサインイン", "X ログイン", "OAuth ログイン", "ソーシャルログイン", "X 認証", "ログイン連携"]
+---
+
+import { Button } from "/snippets/ja/button.mdx";
+
+Log in with X (Sign in with X とも呼ばれます) を使用すると、サイトやアプリケーションにボタンを設置し、X ユーザーが1 回のクリックで登録ユーザーアカウントとしての利便性を利用できるようにできます。この機能は Web サイト、iOS、モバイル、デスクトップアプリケーションで利用できます。
+
+<div id="features">
+  ## 機能
+</div>
+
+* 使いやすさ - サイトへの新規訪問者は、初回ログインのためにボタンを 2 回クリックするだけでログインできます。
+* X との連携 - Log in with X フローにより、ユーザーに代わって X API を使用するための認可を付与できます。
+* OAuth ベース - 多くのクライアントライブラリとサンプルコードが Log in with X API と互換性があります。
+
+<div id="available-for">
+  ## 利用可能な環境
+</div>
+
+* ブラウザ - ユーザーがブラウザを利用できる場合、Log in with X をアプリケーションに組み込めます。ブラウザでのサインインフローについて確認してください。
+* モバイルデバイス - インターネットに接続されたあらゆるモバイルデバイスで Log in with X を利用できます。モバイルでのサインインフローについて確認してください。
+
+<div id="implementing-log-in-with-x">
+  ## Xでログインを実装する
+</div>
+
+ブラウザおよびモバイルWebにおける Log in with X の実装は OAuth に基づいています。このページでは、サインインフローでアクセストークンを取得するために必要なリクエストを示します。
+
+「Log in with X」フローを使用するには、[X App 設定](/ja/resources/fundamentals/developer-apps) に移動し、*&quot;Allow this app to be used to Sign in with X?*&quot; オプションが有効になっていることを確認してください。
+
+このページでは、読者が OAuth 1.0a プロトコルを使用してリクエストに署名する方法を理解していることを前提としています。リクエストへの署名方法を知りたい場合は、[Authorizing a request](/ja/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) ページを参照してください。
+
+このページで示しているリクエストの署名を検証したい場合、使用している consumer secret は次のとおりです: L8qq9PZyRg6ieKGEKhZolGC0vJWLw8iEJ88DRdyOg。この値はテスト目的のものであり、実際のリクエストでは使用できません。
+
+Log in with X を実装するための 3 つのステップ (リクエストトークンの取得、ユーザーのリダイレクト、リクエストトークンをアクセストークンに変換する手順) は以下のとおりです。
+
+<Tabs>
+  <Tab title="手順 1">
+    ### ステップ 1: リクエストトークンの取得
+
+    サインイン フローを開始するには、[X app](/ja/resources/fundamentals/developer-apps) が署名付きメッセージを [POST oauth/request&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-request-token) に送信して、リクエストトークンを取得する必要があります。このリクエストで一意のパラメータは oauth&#95;callback だけであり、ステップ 2 が完了したときにユーザーをリダイレクトしたい URL を URL エンコードしたものにする必要があります。残りのパラメータは OAuth の署名プロセスによって追加されます。
+
+    <Note>
+      **注記:** [POST oauth/request&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-request-token) エンドポイントで使用するいずれの [callback URL](/ja/resources/fundamentals/developer-apps#callback-urls) も、[開発者コンソール](/ja/resources/fundamentals/developer-portal) 内の [X app 設定](/ja/resources/fundamentals/developer-apps) に登録しておく必要があります。
+    </Note>
+
+    <Frame>
+      <img src="/images/auth-4.png.twimg.1920.png" alt="" />
+    </Frame>
+
+    **リクエスト例 (Authorization ヘッダーは途中で改行しています) :**
+
+    ```
+    POST /oauth/request_token HTTP/1.1
+    User-Agent: themattharris' HTTP Client
+    Host: api.x.com
+    Accept: */*
+    Authorization:
+            OAuth oauth_callback="http%3A%2F%2Flocalhost%2Fsign-in-with-twitter%2F",
+                  oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w",
+                  oauth_nonce="ea9ec8429b68d6b77cd5600adbbb0456",
+                  oauth_signature="F1Li3tvehgcraF8DMJ7OyxO4w9Y%3D",
+                  oauth_signature_method="HMAC-SHA1",
+                  oauth_timestamp="1318467427",
+                  oauth_version="1.0"
+    ```
+
+    App はレスポンスの HTTP ステータスを確認する必要があります。200 以外の値は失敗を示します。レスポンスボディには、`oauth&#95;token`、`oauth&#95;token&#95;secret`、`oauth&#95;callback&#95;confirmed` パラメータが含まれます。App は、`oauth&#95;callback&#95;confirmed` が `true` であることを検証し、残り 2 つの値を次の手順のために保存する必要があります。
+
+    **レスポンス例 (レスポンスボディは一部折り返しています) ：**
+
+    ```
+    HTTP/1.1 200 OK
+    Date: Thu, 13 Oct 2011 00:57:06 GMT
+    Status: 200 OK
+    Content-Type: text/html; charset=utf-8
+    Content-Length: 146
+    Pragma: no-cache
+    Expires: Tue, 31 Mar 1981 05:00:00 GMT
+    Cache-Control: no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+    Vary: Accept-Encoding
+    Server: tfe
+
+    oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&
+    oauth_token_secret=veNRnAWe6inFuo8o2u8SLLZLjolYDmDP7SzL0YfYI&
+    oauth_callback_confirmed=true
+
+    ```
+  </Tab>
+
+  <Tab title="手順 2">
+    ### ステップ 2: ユーザーのリダイレクト
+
+    次のステップは、ユーザーを X に誘導し、後述の「ブラウザーでのサインインフロー」で説明する適切なフローを完了してもらうことです。ユーザーを [GET oauth/authenticate](/ja/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) にリダイレクトし、ステップ 1 で取得したリクエストトークンを oauth&#95;token パラメーターとして渡します。
+
+    Web サイトでこれをもっともシームレスに実装する方法は、元の「サインイン」リクエストへのレスポンスとして HTTP 302 リダイレクトを返すことです。モバイル App およびデスクトップ App は、新しいブラウザーウィンドウを開くか、埋め込み Web ビュー経由でその URL に遷移させてください。
+
+    **リダイレクト先 URL の例:**
+
+    https://api.x.com/oauth/authenticate?oauth&#95;token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0
+
+    サインインエンドポイントは、ユーザーのステータスに応じて、次の 3 通りのいずれかの挙動を取ります。
+
+    1. **サインイン済みかつ承認済み**: ユーザーが x.com にサインイン済みで、すでに呼び出し元アプリケーションを承認している場合、ユーザーは直ちに認証され、有効な OAuth リクエストトークンとともにコールバック URL に戻されます。x.com へのリダイレクトはユーザーからはほとんど分かりません。
+    2. **サインイン済みだが未承認**: ユーザーが x.com にサインインしているものの、呼び出し元アプリケーションを承認していない場合は、呼び出し元アプリケーションとのアクセス共有を求めるリクエストが表示されます。ユーザーが認可リクエストを承諾すると、有効な OAuth リクエストトークンとともにコールバック URL にリダイレクトされます。
+    3. **サインインしていない**: ユーザーが x.com にサインインしていない場合、その画面上で、認証情報の入力と、アプリケーションがユーザーの情報へアクセスするための許可が求められます。サインインが完了すると、有効な OAuth リクエストトークンとともにユーザーはコールバック URL に戻されます。
+
+    認証が成功すると、callback&#95;url は oauth&#95;token と oauth&#95;verifier パラメーターを含むリクエストを受け取ります。アプリケーションは、このトークンがステップ 1 で受け取ったリクエストトークンと一致することを検証する必要があります。
+
+    **クライアントからのリダイレクトリクエスト (クエリストリングパラメーターを折り返し表示) :**
+
+    ```
+    GET /sign-in-with-twitter/?
+            oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&
+            oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY HTTP/1.1
+    Host: localhost
+    User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/535.5 (KHTML, like Gecko) Chrome/16.0.891.1 Safari/535.5
+    Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    Referer: http://localhost/sign-in-with-twitter/
+    Accept-Encoding: gzip,deflate,sdch
+    Accept-Language: en-US,en;q=0.8
+    Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+    ```
+  </Tab>
+
+  <Tab title="手順 3">
+    ### ステップ 3: リクエストトークンをアクセストークンに変換する
+
+    リクエストトークンを使用可能なアクセストークンに変換するには、アプリケーションで [POST oauth/access&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth-access-token) エンドポイントに、ステップ 2 で取得した oauth&#95;verifier の値を含めてリクエストを送信する必要があります。リクエストトークンはヘッダー内の oauth&#95;token 部分にも渡されますが、これは署名処理によって自動的に追加されます。
+
+    **リクエスト例 (Authorization ヘッダーを折り返し表示) ：**
+
+    ```
+    POST /oauth/access_token HTTP/1.1
+    User-Agent: themattharris' HTTP Client
+    Host: api.x.com
+    Accept: */*
+    Authorization: OAuth oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w",
+                          oauth_nonce="a9900fe68e2573b27a37f10fbad6a755",
+                          oauth_signature="39cipBtIOHEEnybAR4sATQTpl2I%3D",
+                          oauth_signature_method="HMAC-SHA1",
+                          oauth_timestamp="1318467427",
+                          oauth_token="NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0",
+                          oauth_version="1.0"
+    Content-Length: 57
+    Content-Type: application/x-www-form-urlencoded
+
+    oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY
+    ```
+
+    成功したレスポンスには、oauth&#95;token、oauth&#95;token&#95;secret パラメータが含まれます。トークンとトークンシークレットは保存しておき、今後の X API への認証付きリクエストに使用する必要があります。ユーザーを特定するには、[GET account/verify&#95;credentials](https://dev.x.com/rest/reference/get/account/verify_credentials) を使用します。
+
+    **レスポンス例 (レスポンスボディは折り返して記載しています) ：**
+
+    ```
+    HTTP/1.1 200 OK
+    Date: Thu, 13 Oct 2011 00:57:08 GMT
+    Status: 200 OK
+    Content-Type: text/html; charset=utf-8
+    Content-Length: 157
+    Pragma: no-cache
+    Expires: Tue, 31 Mar 1981 05:00:00 GMT
+    Cache-Control: no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+    Vary: Accept-Encoding
+    Server: tfe
+
+    oauth_token=7588892-kagSNqWge8gB1WwE3plnFsJHAZVfxWD7Vb57p0b4&
+    oauth_token_secret=PbKfYqSryyeKDWz4ebtY3o5ogNLG11WJuZBc9fQrQo
+    ```
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="その他のリソース">
+    ### 「Log in with X」に関するリソース
+
+    #### クライアントライブラリ
+
+    [X libraries](/ja/resources/tools-and-libraries) に掲載されているクライアントライブラリは、Log in with X の実装に役立ちます。前のステップで説明したとおり、`/oauth/authenticate` エンドポイントを使用してください。
+
+    #### Brand Toolkit
+
+    一貫したブランディングのため、アプリケーションでは公式の [X Brand Toolkit](https://about.x.com/en/who-we-are/brand-toolkit) を使用することが推奨されています。これらのアセットを保存し、「Login with X」ボタンを作成する際に使用してください。
+  </Tab>
+
+  <Tab title="ブラウザーでのサインインフロー">
+    ブラウザーでのログインフローは、ウェブブラウザーを開く、または埋め込むことができるウェブサイトやアプリケーションに適しています。大まかな流れは次のとおりです。
+
+    * アプリケーションが「Sign in with X」のリンクまたはボタンを表示します。
+    * ユーザーがサインインボタンをクリックします。
+    * 現在のウェブブラウザーが X にリダイレクトされるか、新しいブラウザーが開き X に遷移します。
+    * 必要に応じて、ユーザーは X 上でログインと認可のステップを完了します。
+    * X はユーザーの認可情報を付与して、アプリケーションが制御する URL にリダイレクトします。
+
+    X は認可の状態を保持しているため、すでに X.com にサインインしていてアプリケーションを認可済みのユーザーには画面は表示されず、自動的にアプリケーションへリダイレクトされます。
+
+    ### デスクトップフロー
+
+    <Frame>
+      <img src="/images/browser_111.png" alt="" />
+    </Frame>
+
+    フローを説明するため、上図のウェブサイト (「The greatest website ever created」) が、この API を実装していると仮定します。ランディングページに「Sign in with X」ボタンが表示されていることでそれが分かります。
+
+    ユーザーが「Sign in」ボタンをクリックしたときに表示されるページは、ユーザーがサインインしているかどうか、またアプリケーションにアカウントへのアクセスを許可済みかどうかによって変わります。
+
+    ユーザーが x.com にサインインしているがアクセスを許可していない場合は、要求されている権限のリストとともに、「Sign In」ボタンと「Cancel」ボタンが表示されます。
+
+    ユーザーが x.com にサインインしていない場合は、ユーザー名とパスワードの入力フィールドが表示されます。ユーザーがすでにアプリケーションへのアクセスを許可している場合でも、権限のリストは引き続き表示される点に注意してください。
+
+    <Frame>
+      <img src="/images/browser_2.png" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/browser_3.png" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/browser_4.png" alt="" />
+    </Frame>
+
+    ユーザーが有効な認証情報を入力 (必要な場合) し「Sign In」をクリックすると、X はサインインフローを開始したウェブサイトへユーザーをリダイレクトします。
+
+    ユーザーがすでに x.com にサインインしており、そのウェブサイトへのアクセスを許可している場合は、このリダイレクトは即座に行われます。
+  </Tab>
+
+  <Tab title="モバイルでのサインインフロー">
+    モバイルウェブブラウザー向けの UI フローは、基本的な流れは「ブラウザーでのサインインフロー」と同じですが、モバイルブラウザー向けに最適化されています。
+
+    以下は、サインイン済み、サインアウト状態、およびリダイレクト画面のスクリーンショットです。
+
+    <Frame>
+      <img src="/images/authorize-login-screenshot.png" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/authorize-logged-in" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/redirect-application.png" alt="" />
+    </Frame>
+  </Tab>
+</Tabs>

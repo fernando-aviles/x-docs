@@ -1,0 +1,308 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: फ़िल्टर की गई स्ट्रीम से जुड़ें और रीयल-टाइम पोस्ट्स प्राप्त करें
+keywords: ["फ़िल्टर की गई स्ट्रीम त्वरित शुरुआत", "स्ट्रीमिंग त्वरित शुरुआत", "फ़िल्टर की गई स्ट्रीम ट्यूटोरियल", "स्ट्रीम गाइड", "स्ट्रीमिंग उदाहरण"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको फ़िल्टर की गई स्ट्रीम से जुड़कर अपने फ़िल्टर नियमों से मेल खाने वाली रीयल-टाइम पोस्ट्स प्राप्त करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन (जो डेवलपर कंसोल में &quot;Keys and tokens&quot; के अंतर्गत मिलता है)
+</Note>
+
+***
+
+<Steps>
+  <Step title="फ़िल्टर नियम बनाएँ" icon="filter">
+    नियम यह निर्धारित करते हैं कि कौन-से पोस्ट्स प्राप्त किए जाएँ। कीवर्ड, हैशटैग, उपयोगकर्ताओं आदि के आधार पर मिलान करने के लिए ऑपरेटर्स का उपयोग करें।
+
+    **उदाहरण नियम:** images वाले &quot;cat&quot; युक्त पोस्ट्स का मिलान करें:
+
+    ```
+    cat has:images
+    ```
+
+    <Card title="एक नियम बनाएँ" icon="filter" href="/hi/x-api/posts/filtered-stream/integrate/build-a-rule">
+      नियमों के सिंटैक्स और ऑपरेटरों के बारे में जानें
+    </Card>
+  </Step>
+
+  <Step title="अपनी स्ट्रीम में नियम जोड़ें" icon="plus">
+    rules एंडपॉइंट का उपयोग करके अपना नियम जोड़ें। यह पहचानने के लिए `tag` शामिल करें कि प्रत्येक पोस्ट किस नियम से मेल खाती है:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "add": [
+            {"value": "cat has:images", "tag": "cats with images"}
+          ]
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # फ़िल्टर की गई स्ट्रीम में एक नियम जोड़ें
+      response = client.filtered_stream.add_rules(
+          add=[{"value": "cat has:images", "tag": "cats with images"}]
+      )
+
+      for rule in response.data:
+          print(f"Rule added: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // फ़िल्टर की गई स्ट्रीम में एक नियम जोड़ें
+      const response = await client.filteredStream.addRules({
+        add: [{ value: "cat has:images", tag: "cats with images" }],
+      });
+
+      response.data?.forEach((rule) => {
+        console.log(`Rule added: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+
+    **रिस्पॉन्स:**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1273026480692322304",
+          "value": "cat has:images",
+          "tag": "cats with images"
+        }
+      ],
+      "meta": {
+        "sent": "2024-01-15T10:30:00.000Z",
+        "summary": {
+          "created": 1,
+          "not_created": 0,
+          "valid": 1,
+          "invalid": 0
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="अपने नियम सत्यापित करें" icon="check">
+    यह पुष्टि करने के लिए कि आपका नियम जोड़ा गया है, सभी सक्रिय नियमों की सूची देखें:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # सभी सक्रिय नियम प्राप्त करें
+      response = client.filtered_stream.get_rules()
+
+      for rule in response.data:
+          print(f"Active rule: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // सभी सक्रिय नियम प्राप्त करें
+      const response = await client.filteredStream.getRules();
+
+      response.data?.forEach((rule) => {
+        console.log(`Active rule: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="स्ट्रीम से जुड़ें" icon="plug">
+    मेल खाने वाले पोस्ट्स प्राप्त करने के लिए एक स्थायी कनेक्शन खोलें:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream?\
+      tweet.fields=created_at,author_id&\
+      expansions=author_id&\
+      user.fields=username" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # फ़िल्टर की गई स्ट्रीम से कनेक्ट करें
+      for post in client.filtered_stream.stream(
+          tweet_fields=["created_at", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username"]
+      ):
+          print(f"New post: {post.data.text}")
+          print(f"Matching rules: {post.matching_rules}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // फ़िल्टर की गई स्ट्रीम से कनेक्ट करें
+      const stream = client.filteredStream.stream({
+        tweetFields: ["created_at", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username"],
+      });
+
+      for await (const post of stream) {
+        console.log(`New post: ${post.data?.text}`);
+        console.log(`Matching rules: ${post.matching_rules}`);
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="आने वाली पोस्ट्स को प्रोसेस करें" icon="message">
+    मेल खाने वाले पोस्ट्स, JSON ऑब्जेक्ट्स के रूप में स्ट्रीम किए जाते हैं:
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "text": "Look at this cute cat! 🐱",
+        "author_id": "9876543210",
+        "created_at": "2024-01-15T10:35:00.000Z",
+        "edit_history_tweet_ids": ["1234567890"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "catperson"
+          }
+        ]
+      },
+      "matching_rules": [
+        {
+          "id": "1273026480692322304",
+          "tag": "cats with images"
+        }
+      ]
+    }
+    ```
+
+    <Tip>
+      `matching_rules` array यह दिखाती है कि आपके द्वारा परिभाषित टै्स का उपयोग करके कौन-से नियम पोस्ट से मेल खाते हैं।
+    </Tip>
+  </Step>
+
+  <Step title="नियम हटाएँ (वैकल्पिक)" icon="trash">
+    ID के आधार पर नियम हटाएँ:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "delete": {
+            "ids": ["1273026480692322304"]
+          }
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ID के आधार पर नियम हटाएँ
+      response = client.filtered_stream.delete_rules(
+          delete={"ids": ["1273026480692322304"]}
+      )
+      print(f"Deleted: {response.meta.summary.deleted}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // ID के आधार पर नियम हटाएँ
+      const response = await client.filteredStream.deleteRules({
+        delete: { ids: ["1273026480692322304"] },
+      });
+      console.log(`Deleted: ${response.meta?.summary?.deleted}`);
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="managing-your-connection">
+  ## अपने कनेक्शन को प्रबंधित करना
+</div>
+
+<AccordionGroup>
+  <Accordion title="कीप-अलाइव सिग्नल">
+    स्ट्रीम हर 20 सेकंड में खाली पंक्तियाँ (`\r\n`) भेजती है। अगर आपको 20 सेकंड तक न डेटा मिले और न ही कोई कीप-अलाइव, तो फिर से कनेक्ट करें।
+  </Accordion>
+
+  <Accordion title="डिस्कनेक्ट करना">
+    कनेक्शन बंद करने के लिए `Ctrl+C` दबाएँ या अपनी टर्मिनल विंडो बंद करें।
+  </Accordion>
+
+  <Accordion title="कनेक्शन सीमाएँ">
+    प्रति ऐप केवल एक कनेक्शन की अनुमति है। नया कनेक्शन खोलने पर कोई भी मौजूदा कनेक्शन बंद हो जाएगा।
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="एक नियम बनाएँ" icon="filter" href="/hi/x-api/posts/filtered-stream/integrate/build-a-rule">
+    नियम का सिंटैक्स जानें
+  </Card>
+
+  <Card title="ऑपरेटर संदर्भ" icon="list-check" href="/hi/x-api/posts/filtered-stream/integrate/operators">
+    सभी उपलब्ध ऑपरेटर
+  </Card>
+
+  <Card title="डिस्कनेक्शन को संभालना" icon="plug" href="/hi/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    सहज रूप से फिर से कनेक्ट करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/filtered-stream">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

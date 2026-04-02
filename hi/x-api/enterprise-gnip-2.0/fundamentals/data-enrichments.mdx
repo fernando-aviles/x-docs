@@ -1,0 +1,303 @@
+---
+title: "डेटा एनरिचमेंट: एंटरप्राइज़"
+keywords: ["डेटा एनरिचमेंट", "एंटरप्राइज़ एनरिचमेंट", "GNIP एनरिचमेंट", "डेटा एनरिचमेंट", "एनरिच्ड डेटा", "एंटरप्राइज़ डेटा एनरिचमेंट"]
+---
+
+## परिचय
+
+`Enterprise`
+
+Enterprise एनरिचमेंट्स कुछ data APIs के रिस्पॉन्स पेलोड में शामिल अतिरिक्त मेटाडेटा हैं। ये केवल सशुल्क subscription plans में उपलब्ध हैं।
+
+नीचे दी गई तालिका प्रत्येक एनरिचमेंट का संक्षिप्त विवरण देती है:
+
+| Enrichment:             | Description:                                                                                                                                                 |
+| :---------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| विस्तारित और उन्नत URLs | पोस्ट के मुख्य भाग में शामिल छोटे किए गए URLs (जैसे, bitly) को अपने-आप विस्तारित करता है और गंतव्य पेज से HTML Title और Description मेटाडेटा प्रदान करता है। |
+| मिलान नियम ऑब्जेक्ट     | यह बताता है कि प्राप्त पोस्ट्स से कौन-सा नियम या कौन-से नियम मेल खाए। यह ऑब्जेक्ट रिस्पॉन्स ऑब्जेक्ट में rule tag और rule ID लौटाता है।                      |
+| पोल मेटाडेटा            | यह पोस्ट में poll की मौजूदगी को दर्शाता है, poll विकल्पों की सूची शामिल करता है, और poll की अवधि तथा समाप्ति समय—दोनों को शामिल करता है।                     |
+| प्रोफ़ाइल geo           | user profile के location data से निकाला गया डेटा, जिसमें [longitude, latitude] निर्देशांक (जहाँ संभव हो) और संबंधित place मेटाडेटा शामिल होता है।            |
+
+<div id="expanded-and-enhanced-urls">
+  ### विस्तारित और उन्नत URLs
+</div>
+
+Expanded and Enhanced URL एनरिचमेंट अपने-आप उन संक्षिप्त URLs का विस्तार करता है जो किसी पोस्ट के मुख्य भाग में शामिल होते हैं, और परिणामी URL को payload के भीतर metadata के रूप में शामिल करता है। इसके अलावा, यह एनरिचमेंट गंतव्य पेज के `title` और `description` से HTML पेज metadata भी उपलब्ध कराता है।
+
+**महत्वपूर्ण विवरण:**
+
+* किसी संक्षिप्त लिंक को resolve करने के लिए, हमारा सिस्टम दिए गए URL पर HTTP HEAD requests भेजता है और किसी भी redirects का अनुसरण करते हुए अंतिम URL तक पहुंचता है। इसके बाद इस अंतिम URL को (पेज की वास्तविक सामग्री को नहीं) रिस्पॉन्स payload में शामिल किया जाता है।
+
+* URL एनरिचमेंट के कारण realtime streams में 5-10 सेकंड की latency बढ़ जाती है
+
+* Full Archive Search API को किए गए requests में, expanded URL एनरिचमेंट data केवल 13 महीने पुराने या उससे नए पोस्ट्स के लिए उपलब्ध होता है।
+
+* किसी पोस्ट में शामिल Post links (quote Tweets सहित), Moments links, और profile links के लिए URL एनरिचमेंट उपलब्ध नहीं है। 
+   
+
+<div id="post-payload">
+  #### पोस्ट पेलोड
+</div>
+
+Expanded और Enhanced URL एनरिचमेंट, पोस्ट पेलोड के `entities` ऑब्जेक्ट के भीतर पाया जा सकता है — खास तौर पर `entitites.urls.unwound` ऑब्जेक्ट में। यह मेटाडेटा के लिए निम्नलिखित फ़ील्ड्स प्रदान करता है:
+
+* Expanded URL - `unwound.url`
+* Expanded HTTP स्टेटस - `unwound.status`
+* Expanded URL HTML शीर्षक - 300 वर्ण की सीमा - `unwound.title`
+* Expanded URL HTML विवरण - 1000 वर्ण की सीमा - `unwound.description`
+
+**यह URL एनरिचमेंट के साथ एक [entities object](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#x-entities) का उदाहरण है:**
+
+```
+"entities": {
+    "hashtags": [
+
+    ],
+    "urls": [
+      {
+        "url": "https:\/\/t.co\/HkTkwFq8UT",
+        "expanded_url": "http:\/\/bit.ly\/2wYTb9y",
+        "display_url": "bit.ly\/2wYTb9y",
+        "unwound": {
+          "url": "https:\/\/www.forbes.com\/sites\/laurencebradford\/2016\/12\/08\/11-websites-to-learn-to-code-for-free-in-2017\/",
+          "status": 200,
+          "title": "11 Websites To Learn To Code For Free In 2017",
+          "description": "It\u2019s totally possible to learn to code for free...but what are the best resources to achieve that? Here are 11 websites where you can get started."
+        },
+        "indices": [
+          10,
+          33
+        ]
+      }
+    ],
+    "user_mentions": [
+
+    ],
+    "symbols": [
+
+    ]
+  },
+```
+
+**यह एक entities ऑब्जेक्ट का उदाहरण है, जिसमें एक ऐसा पोस्ट लिंक शामिल है जो enriched नहीं है:
+**
+
+```
+"entities": {
+  "urls": [{
+    "url": "https://t.co/SywNbZdDmb",
+    "expanded_url": "https://x.com/XDevelopers/status/1050118621198921728",
+    "display_url": "x.com/XDevelopers/s…",
+     "indices": [
+        142,
+        165
+     ]
+   }
+  ]
+}
+```
+
+<div id="filtering-operators">
+  #### फ़िल्टरिंग ऑपरेटर
+</div>
+
+निम्नलिखित ऑपरेटर URL मेटाडेटा के संबंधित फ़ील्ड्स पर फ़िल्टर लागू करेंगे और टोकनाइज़्ड मिलान देंगे:
+
+**url:**
+
+* उदाहरण: “url:tennis”
+* ऐसे किसी भी Expanded URL पर टोकनाइज़्ड मिलान, जिसमें tennis शब्द शामिल हो
+* “url:npr.org” जैसे मान का उपयोग करके किसी विशेष वेबसाइट के लिंक शामिल या बहिष्कृत करने के लिए इसे फ़िल्टर के रूप में भी इस्तेमाल किया जा सकता है
+
+**url&#95;title:**
+
+* उदाहरण: “url&#95;title:tennis”
+* ऐसे किसी भी Expanded URL HTML title पर टोकनाइज़्ड मिलान, जिसमें tennis शब्द शामिल हो
+* payload में शामिल HTML title डेटा पर मिलान करता है, जो 300 वर्णों तक सीमित है।
+
+**url&#95;description:**
+
+* उदाहरण: “url&#95;description:tennis”
+* ऐसे किसी भी Expanded URL HTML description पर टोकनाइज़्ड मिलान, जिसमें tennis शब्द शामिल हो
+* payload में शामिल HTML description पर मिलान करता है, जो 1000 वर्णों तक सीमित है।
+   
+
+<div id="http-status-codes">
+  #### HTTP स्टेटस कोड
+</div>
+
+विस्तारित URL एनरिचमेंट उस अंतिम URL के लिए HTTP स्टेटस कोड भी प्रदान करता है, जिसे हम अनवाइंड करने का प्रयास कर रहे हैं। सामान्य स्थितियों में, यह 200 होगा। 400-श्रेणी के अन्य मान URL को रेज़ॉल्व करने में समस्याओं का संकेत देते हैं।
+
+किसी URL को अनवाइंड करने का प्रयास करते समय अलग-अलग स्टेटस कोड रिटर्न हो सकते हैं। URL को अनवाइंड करने की प्रक्रिया के दौरान, यदि हमें कोई रीडायरेक्ट मिलता है, तो हम उसका अनिश्चितकाल तक अनुसरण करेंगे, जब तक कि इनमें से कोई एक स्थिति न आ जाए:
+
+* 200-श्रेणी का कोड मिलता है (सफलता)
+* non-redirect-श्रेणी का कोड मिलता है (विफलता)
+* टाइमआउट हो जाता है क्योंकि अंतिम URL को उचित समय के भीतर रेज़ॉल्व नहीं किया जा सका (408 - timeout रिटर्न करता है)
+* किसी प्रकार का एक्सेप्शन मिलता है
+   
+
+यदि कोई एक्सेप्शन मिलता है, तो हम कारणों और रिटर्न किए गए स्टेटस कोड के बीच निम्नलिखित मैपिंग का उपयोग करते हैं:
+
+| कारण                                 | रिटर्न किया गया स्टेटस कोड |
+| :----------------------------------- | :------------------------- |
+| SSL एक्सेप्शन                        | 403 (Forbidden)            |
+| URL द्वारा अनवाइंडिंग की अनुमति नहीं | 405                        |
+| Socket Timeout                       | 408 (Timeout)              |
+| Unknown Host Exception               | 404 (Not Found)            |
+| Unsupported Operation                | 404 (Not Found)            |
+| Connect Exception                    | 404 (Not Found)            |
+| Illegal Argument                     | 400 (Bad Request)          |
+| अन्य सभी                             | 400 (Bad Request)          |
+
+<div id="matching-rules">
+  ### मिलान नियम
+</div>
+
+मिलान नियम एनरिचमेंट मेटाडेटा का एक ऑब्जेक्ट है, जो यह बताता है कि प्राप्त पोस्ट्स से कौन-सा नियम या कौन-से नियम मेल खाते हैं। इसका सबसे अधिक उपयोग PowerTrack स्ट्रीम के साथ किया जाता है।
+
+मिलान, नियम में शामिल शब्दों के सटीक मिलान के आधार पर किया जाएगा, जिसमें एक्टिविटी की सामग्री को विराम-चिह्नों के साथ और बिना विराम-चिह्नों के स्कैन किया जाएगा। मिलान अक्षरों के बड़े या छोटे रूप के प्रति संवेदनशील नहीं है। जब सामग्री में नियम में परिभाषित सभी शब्द मौजूद पाए जाते हैं, तो रूट-लेवल पर एक matching&#95;rules ऑब्जेक्ट होगा, जो उन नियमों को दर्शाएगा जिनकी वजह से मिलान हुआ।
+
+**PowerTrack**
+
+PowerTrack (रीयलटाइम, Replay, और Historical) के माध्यम से डिलीवर की गई पोस्ट्स में matching&#95;rules ऑब्जेक्ट इस प्रकार होगा:
+
+```
+"matching_rules": [{
+        "tag": null,
+        "id": 907728589029646336,
+        "id_str": "907728589029646336"
+    }]
+```
+
+PowerTrack में, `matching_rules` ऑब्जेक्ट दिए गए परिणाम से मेल खाने वाले *सभी* नियमों को दर्शाता है। दूसरे शब्दों में, यदि किसी विशिष्ट पोस्ट से एक से अधिक नियम मेल खाते हैं, तो उसे केवल एक बार ही डिलीवर किया जाएगा, लेकिन `matching_rules` एलिमेंट में मेल खाने वाले सभी नियम शामिल होंगे।
+
+<div id="poll-metadata">
+  ### पोल मेटाडेटा
+</div>
+
+पोल मेटाडेटा, enriched native format payloads में सभी उत्पादों (Realtime &amp; Historical APIs) में उपलब्ध एक निःशुल्क एनरिचमेंट है। यह मेटाडेटा किसी पोस्ट में पोल की मौजूदगी को दर्शाता है, पोल विकल्पों की सूची देता है, और पोल की अवधि तथा उसकी समाप्ति का समय—दोनों शामिल करता है। यह एनरिचमेंट पोल की मौजूदगी को पहचानना आसान बनाता है और प्रदर्शन के लिए पोल पोस्ट को सही ढंग से रेंडर करने में मदद करता है।
+
+<div id="important-details">
+  ##### महत्वपूर्ण विवरण:
+</div>
+
+* सभी enterprise APIs (PowerTrack, Replay, Search, Historical PowerTrack) में उपलब्ध
+  * *नोट:* Replay और Historical PowerTrack के लिए, यह metadata पहली बार 02/22/17 को उपलब्ध हुआ था।
+* इसमें वोट की जानकारी या poll के परिणाम शामिल नहीं हैं
+* वर्तमान में filter/operator के लिए समर्थन उपलब्ध नहीं है
+* केवल **enriched native format** में उपलब्ध
+  * Enriched native format एक उपयोगकर्ता-नियंत्रित सेटिंग है, जिसे Console के माध्यम से किसी भी समय बदला जा सकता है: *कोई Product चुनें (PowerTrack, Replay, Search) &gt; Settings टैब &gt; Output Format (डेटा को उसके मूल format में रहने दें)*
+
+<div id="post-payload">
+  #### पोस्ट पेलोड
+</div>
+
+पोल पोस्ट के पेलोड में “entities.polls” ऑब्जेक्ट के भीतर निम्नलिखित मेटाडेटा शामिल होगा:
+
+* एक “options” ऐरे, जिसमें अधिकतम चार विकल्प होंगे; इनमें स्थिति (1-4) और विकल्प का टेक्स्ट शामिल होगा
+* पोल की समाप्ति तिथि
+* पोल की अवधि
+
+अधिक जानकारी के लिए नीचे दिया गया नमूना पेलोड देखें।
+
+#### नमूना पेलोड
+
+नीचे समृद्ध नेटिव फ़ॉर्मैट पेलोड का एक स्निपेट दिया गया है, जिसमें जोड़ा गया पोल मेटाडेटा हाइलाइट किया गया है:
+
+```json
+"entities":{
+          "hashtags":[],
+          "urls":[],
+          "user_mentions":[],
+          "symbols":[],
+          "polls":[
+             {
+                "options":[
+                   {
+                      "position":1,
+                      "text":"The better answer"
+                   },
+                   {
+                      "position":2,
+                      "text":"The best answer"
+                   }
+                ],
+                "end_datetime":"Sat Feb 04 15:33:11 +0000 2017",
+                "duration_minutes":1440
+             }
+          ]
+       },
+```
+
+<div id="profile-geo">
+  ### Profile Geo
+</div>
+
+<div id="introduction">
+  #### परिचय
+</div>
+
+कई X उपयोगकर्ता प्रोफ़ाइलों में उपयोगकर्ता द्वारा दी गई सार्वजनिक स्थान जानकारी शामिल होती है। यह डेटा user.location में एक सामान्य स्ट्रिंग के रूप में लौटाया जाता है (देखें [User object data dictionary](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#native-enriched-user-object))। Profile Geo एनरिचमेंट, जहाँ संभव हो, स्थान स्ट्रिंग का geocoding और normalization करके user.location मान से संबंधित संरचित geodata जोड़ता है। अक्षांश/देशांतर निर्देशांक और संबंधित स्थान metadata दोनों user.derived.locations में *only* तभी जोड़े जाते हैं, जब वे enterprise API products में पोस्ट payload के हिस्से के रूप में शामिल हों। यह डेटा [the enriched native format](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) का उपयोग करते समय उपलब्ध होता है और इसे [PowerTrack rules](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#enterprise-operators) के संयोजन से फ़िल्टर किया जा सकता है।
+
+<Note>
+  **नोट:** Profile Geo एनरिचमेंट बनाने में उपयोग किया जाने वाला कुछ सहायक geodata, GeoNames.org से आता है और X द्वारा [Creative Commons Attribution 3.0 License](https://creativecommons.org/licenses/by/3.0/us/legalcode) के अंतर्गत उपयोग किया जाता है।
+</Note>
+
+Profile Geo डेटा, X के PowerTrack, Replay, Volume Stream, Search, और Historical PowerTrack APIs में शामिल किया जाएगा।
+
+<div id="profile-geo-data">
+  #### Profile Geo डेटा
+</div>
+
+| Enriched native field name              | Example value                      | Description                                                                                                                                                                   |
+| :-------------------------------------- | :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| user.derived.locations.country          | United States                      | वह देश, जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है।                                                                                                                               |
+| user.derived.locations.country&#95;code | US                                 | दो-अक्षरों वाला ISO-3166 देश कोड, जो उस देश से मेल खाता है जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है।                                                                            |
+| user.derived.locations.locality         | Birmingham                         | वह स्थानीय स्थान (आमतौर पर शहर), जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है।                                                                                                      |
+| user.derived.locations.region           | Alabama                            | वह क्षेत्रीय स्थान (आमतौर पर राज्य/प्रांत), जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है।                                                                                           |
+| user.derived.locations.sub&#95;region   | Jefferson County                   | वह उप-क्षेत्रीय स्थान (आमतौर पर काउंटी), जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है।                                                                                              |
+| user.derived.locations.full&#95;name    | Birmingham, Alabama, United States | उस स्थान का पूरा नाम (उप-क्षेत्र को छोड़कर), जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है।                                                                                          |
+| User.derived.locations.geo              | नीचे देखें                         | एक ऐरे, जिसमें किसी ऐसे निर्देशांक के लिए lat/long मान शामिल होता है, जो उस स्थान के सबसे कम ग्रैन्युलैरिटी वाले स्थान से मेल खाता है जहाँ से पोस्ट बनाने वाला उपयोगकर्ता है। |
+
+Historical PowerTrack, Search, और PowerTrack APIs, Profile Geo डेटा के आधार पर फ़िल्टरिंग का समर्थन करते हैं। Profile Geo डेटा पर फ़िल्टरिंग के लिए कौन-से operators उपलब्ध हैं, इस बारे में अधिक जानकारी के लिए संबंधित product documentation देखें।
+
+<div id="sample-payload">
+  #### उदाहरण पेलोड
+</div>
+
+```
+{
+    "user": {
+        "derived": {
+            "locations": \[
+                {
+                    "country": "United States",
+                    "country_code": "US",
+                    "locality": "Birmingham",
+                    "region": "Alabama",
+                    "sub_region": "Jefferson County",
+                    "full_name": "Birmingham, Alabama, United States",
+                    "geo": {
+                        "coordinates": \[
+                            -86.80249,
+                            33.52066
+                        \],
+                        "type": "point"
+                    }
+                }
+            \]
+        }
+    }
+}
+```
+
+<div id="limitations">
+  #### सीमाएँ
+</div>
+
+* Profile Geo एनरिचमेंट प्रोफ़ाइल लोकेशन स्ट्रिंग में बताए गए भौगोलिक स्थान के लिए सबसे उपयुक्त विकल्प निर्धारित करने का प्रयास करता है। हालांकि, समान नाम वाले कई स्थानों या अस्पष्ट नामों जैसे कारणों से, हर मामले में परिणाम सटीक हों यह आवश्यक नहीं है।
+* अगर किसी उपयोगकर्ता के प्रोफ़ाइल लोकेशन फ़ील्ड (actor.location) में कोई मान उपलब्ध नहीं है, तो हम उसका वर्गीकरण करने का प्रयास नहीं करेंगे।
+* Precision Level: अगर किसी Profile Geo Enrichment को केवल देश या क्षेत्र स्तर तक ही विश्वसनीय रूप से निर्धारित किया जा सकता है, तो subRegion और locality जैसे अधिक निचले स्तर के भौगोलिक मान payload में शामिल नहीं किए जाएँगे।
+* Profile Geo एनरिचमेंट lat/long निर्देशांक (एकल बिंदु) प्रदान करता है, जो एनरिचमेंट परिणामों के Precision Level के अनुरूप होता है। ये निर्देशांक एनरिचमेंट लोकेशन परिणामों के भौगोलिक केंद्र को दर्शाते हैं। उदाहरण के लिए, अगर Precision Level Country स्तर का है, तो ये निर्देशांक उस Country के भौगोलिक केंद्र पर सेट किए जाते हैं।
+* address गुणों (locality/region/country/country code) के लिए दिए गए PowerTrack operators को जानबूझकर granular रखा गया है, ताकि नियमों के कई संयोजन बनाए जा सकें। जब आप ऐसे किसी विशिष्ट स्थान को target करना चाहें जिसका नाम किसी दूसरे स्थान से मेल खाता हो, तो address rules को मिलाकर उपयोग करने पर विचार करें। उदाहरण के लिए, नीचे दिया गया संयोजन “San Francisco, Philippines” के मैच से बचाएगा: profile&#95;locality:”San Francisco” profile&#95;region:California जब आप ऐसे नियम बना रहे हों जो अलग-अलग Profile Geo फ़ील्ड्स को target करते हैं, तो ध्यान रखें कि granularity का हर अतिरिक्त स्तर आपके दिखने वाले परिणामों को सीमित करेगा। कुछ स्थितियों में, जब आप किसी शहर का डेटा देखना चाहें, तो केवल region rule पर निर्भर रहना बेहतर हो सकता है, यदि वह region शहर के साथ पर्याप्त ओवरलैप रखता हो; उदाहरण के लिए, Zurich, Switzerland शहर को उसके आसपास के क्षेत्रों सहित profile&#95;region:”Zurich” के माध्यम से प्रभावी रूप से target किया जा सकता है।
+* Native Geo पोस्ट्स के साथ उपयोग: Profile Geo एनरिचमेंट किसी पोस्ट के लिए भूगोल का एक वैकल्पिक प्रकार प्रदान करता है, जो payload में मौजूद native geo value से अलग है। किसी निर्दिष्ट क्षेत्र से संबंधित सभी संभावित पोस्ट्स को कैप्चर करने के लिए (उपलब्ध geodata के आधार पर) इन दोनों प्रकार के भूगोल को साथ में उपयोग किया जा सकता है, हालांकि अवधारणात्मक रूप से ये समतुल्य नहीं हैं।

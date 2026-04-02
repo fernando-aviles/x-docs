@@ -1,0 +1,327 @@
+---
+title: क्वेरी बनाएं
+sidebarTitle: क्वेरी बनाएं
+description: जानें कि ऑपरेटरों का उपयोग करके खोज क्वेरी कैसे बनाई जाती है
+keywords: ["क्वेरी बनाएं", "खोज क्वेरी", "क्वेरी बिल्डर", "खोज ऑपरेटर", "क्वेरी सिंटैक्स", "खोज क्वेरी बनाएं", "क्वेरी गाइड"]
+---
+
+खोज एंडपॉइंट्स GET अनुरोध के साथ एक क्वेरी स्वीकार करते हैं और उससे मेल खाने वाली ऐतिहासिक पोस्ट्स का एक सेट लौटाते हैं। क्वेरी ऐसे ऑपरेटरों से मिलकर बनती है, जो पोस्ट के विभिन्न गुणों पर मिलान करते हैं।
+
+***
+
+<div id="query-limitations">
+  ## क्वेरी सीमाएँ
+</div>
+
+आप किस [एक्सेस स्तर](/hi/x-api/getting-started/about-x-api) का उपयोग कर रहे हैं, इसके आधार पर आपकी क्वेरियों पर निम्न सीमाएँ लागू होंगी:
+
+| एक्सेस स्तर | हालिया खोज | पूर्ण-आर्काइव खोज |
+| :---------- | :--------- | :---------------- |
+| सेल्फ-सर्व  | 512 वर्ण   | 1,024 वर्ण        |
+| Enterprise  | 4,096 वर्ण | 4,096 वर्ण        |
+
+***
+
+<div id="operator-availability">
+  ## ऑपरेटर की उपलब्धता
+</div>
+
+हालाँकि अधिकांश ऑपरेटर किसी भी डेवलपर के लिए उपलब्ध हैं, कुछ केवल खास एक्सेस स्तरों के लिए आरक्षित हैं:
+
+* **कोर ऑपरेटर:** किसी भी [Project](/hi/resources/fundamentals/developer-apps) का उपयोग करते समय उपलब्ध
+* **उन्नत ऑपरेटर:** कुछ खास एक्सेस स्तरों वाले Project का उपयोग करते समय उपलब्ध
+
+उपलब्धता की पूरी जानकारी के लिए [ऑपरेटरों की पूरी सूची](/hi/x-api/posts/search/integrate/operators) देखें।
+
+***
+
+<div id="operator-types-standalone-and-conjunction-required">
+  ## ऑपरेटर के प्रकार: स्वतंत्र और संयोजन-आवश्यक
+</div>
+
+**स्वतंत्र ऑपरेटरों** का उपयोग अकेले या किसी भी अन्य ऑपरेटर के साथ किया जा सकता है (उन ऑपरेटरों सहित जिनके लिए संयोजन आवश्यक होता है)।
+
+उदाहरण के लिए, यह क्वेरी काम करती है क्योंकि `#hashtag` एक स्वतंत्र ऑपरेटर है:
+
+```
+#xapiv2
+```
+
+**संयोजन-आवश्यक ऑपरेटरों** का किसी क्वेरी में अकेले उपयोग नहीं किया जा सकता; इनका उपयोग तभी किया जा सकता है, जब उसमें कम से कम एक स्वतंत्र ऑपरेटर शामिल हो। ऐसा इसलिए है क्योंकि केवल इन ऑपरेटरों का उपयोग करने पर बहुत बड़ी संख्या में पोस्ट्स मैच हो जाएँगे।
+
+उदाहरण के लिए, नीचे दी गई क्वेरियाँ **समर्थित नहीं हैं**, क्योंकि उनमें केवल संयोजन-आवश्यक ऑपरेटर शामिल हैं:
+
+```
+has:media
+```
+
+```
+has:links OR is:retweet
+```
+
+यदि हम `"X data"` वाक्यांश जैसे किसी स्वतंत्र ऑपरेटर को जोड़ते हैं, तो क्वेरी सही तरीके से काम करती है:
+
+```
+"X data" has:mentions (has:media OR has:links)
+```
+
+***
+
+<div id="boolean-operators-and-grouping">
+  ## बूलियन ऑपरेटर और ग्रुपिंग
+</div>
+
+इन टूल्स का उपयोग करके कई ऑपरेटरों को एक साथ जोड़ें:
+
+| Operator                   | Description                                   | Example                                                                                                         |
+| :------------------------- | :-------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| **AND** (space)            | पोस्ट्स को दोनों शर्तों से मेल खाना चाहिए     | `snow day #NoSchool` उन पोस्ट्स से मेल खाता है जिनमें &quot;snow&quot; AND &quot;day&quot; AND #NoSchool हो     |
+| **OR**                     | पोस्ट्स को किसी एक शर्त से मेल खाना चाहिए     | `grumpy OR cat OR #meme` उन पोस्ट्स से मेल खाता है जिनमें &quot;grumpy&quot; OR &quot;cat&quot; OR #meme हो     |
+| **NOT** (dash)             | इस शर्त से मेल खाने वाले पोस्ट्स को बाहर रखें | `cat #meme -grumpy` उन पोस्ट्स से मेल खाता है जिनमें &quot;cat&quot; और #meme हो, लेकिन &quot;grumpy&quot; न हो |
+| **Grouping** (parentheses) | ऑपरेटरों को एक साथ समूहित करें                | `(grumpy cat) OR (#meme has:images)` किसी एक समूह से मेल खाता है                                                |
+
+<Note>
+  **नेगेशन के बारे में एक नोट**
+
+  * ऑपरेटर `-is:nullcast` का उपयोग हमेशा नकारात्मक रूप में ही किया जाना चाहिए
+  * नकारात्मक ऑपरेटरों का अकेले उपयोग नहीं किया जा सकता
+  * समूहित ऑपरेटरों को नकारें नहीं। `skiing -(snow OR day OR noschool)` के बजाय `skiing -snow -day -noschool` का उपयोग करें
+</Note>
+
+***
+
+<div id="order-of-operations">
+  ## संचालन का क्रम
+</div>
+
+AND और OR को साथ में इस्तेमाल करते समय:
+
+1. AND लॉजिक से जुड़े ऑपरेटर पहले जोड़े जाते हैं
+2. इसके बाद, OR लॉजिक से जुड़े ऑपरेटर लागू किए जाते हैं
+
+**उदाहरण:**
+
+| Query                    | इस रूप में मूल्यांकित किया जाता है |
+| :----------------------- | :--------------------------------- |
+| `apple OR iphone ipad`   | `apple OR (iphone ipad)`           |
+| `ipad iphone OR android` | `(iphone ipad) OR android`         |
+
+अस्पष्टता से बचने के लिए, कोष्ठकों का उपयोग करें:
+
+```
+(apple OR iphone) ipad
+```
+
+```
+iphone (ipad OR android)
+```
+
+***
+
+<div id="punctuation-diacritics-and-case-sensitivity">
+  ## विराम चिह्न, डायक्रिटिक्स, और केस सेंसिटिविटी
+</div>
+
+**डायक्रिटिक्स:** एक्सेंट या डायक्रिटिक्स वाली खोज क्वेरी, एक्सेंट के साथ और बिना एक्सेंट वाले दोनों तरह के पोस्ट्स से मेल खाती हैं। उदाहरण के लिए, `Diacrítica` *Diacrítica* और *Diacritica* दोनों से मेल खाता है।
+
+**केस सेंसिटिविटी:** सभी ऑपरेटर बड़े और छोटे अक्षरों के प्रति असंवेदनशील हैं। क्वेरी `cat` *cat*, *CAT*, और *Cat* से मेल खाती है।
+
+<Note>
+  **फ़िल्टर्ड स्ट्रीम अलग तरह से काम करता है**
+
+  जब [फ़िल्टर्ड स्ट्रीम नियम बनाए जाते हैं](/hi/x-api/posts/filtered-stream/integrate/build-a-rule), तो एक्सेंट वाले कीवर्ड केवल उन्हीं पोस्ट्स से मेल खाते हैं जिनमें वही एक्सेंट भी शामिल हो। उदाहरण के लिए, `Diacrítica` केवल *Diacrítica* से मेल खाता है, *Diacritica* से नहीं।
+</Note>
+
+***
+
+<div id="quote-tweet-matching">
+  ## Quote Tweet मिलान
+</div>
+
+Search Posts का उपयोग करते समय, ऑपरेटर Quote Tweet की सामग्री से मेल खाते हैं, लेकिन उद्धृत की गई मूल पोस्ट की सामग्री से **नहीं**।
+
+<Note>
+  [फ़िल्टर्ड स्ट्रीम](/hi/x-api/posts/filtered-stream/introduction) का व्यवहार अलग है—यह Quote Tweet और मूल पोस्ट, दोनों की सामग्री से मेल खाता है।
+</Note>
+
+***
+
+<div id="specificity-and-efficiency">
+  ## विशिष्टता और दक्षता
+</div>
+
+<Warning>
+  किसी एक कीवर्ड या हैशटैग जैसे व्यापक ऑपरेटरों का उपयोग करने की अनुशंसा नहीं की जाती—ये बहुत बड़ी संख्या में पोस्ट्स से मेल खाएँगे और आपकी उपयोग सीमाएँ जल्दी खत्म कर देंगे।
+</Warning>
+
+**प्रभावी क्वेरी बनाने के सुझाव:**
+
+1. **शुरुआत में विशिष्ट रहें, फिर दायरा बढ़ाएँ** — ऐसी लक्षित क्वेरियाँ बनाएँ जो प्रासंगिक परिणाम लौटाएँ
+2. **एकाधिक ऑपरेटरों का उपयोग करें** — परिणामों को सीमित करने के लिए ऑपरेटरों को मिलाकर इस्तेमाल करें
+3. **अपने वर्णों की संख्या पर नज़र रखें** — पूरी क्वेरी स्ट्रिंग सीमा में गिनी जाती है
+
+**उदाहरण के तौर पर प्रगति:**
+
+```
+# बहुत व्यापक - प्रति दिन 200,000+ पोस्ट्स
+happy
+
+# बेहतर - भाषा फ़िल्टर और बहिष्करण जोड़ता है
+(happy OR happiness) lang:en -birthday -is:retweet
+
+# और भी बेहतर - 59 अक्षर, अधिक विशिष्ट
+(happy OR happiness) place_country:GB -birthday -is:retweet
+```
+
+***
+
+<div id="iteratively-building-a-query">
+  ## चरण-दर-चरण क्वेरी बनाना
+</div>
+
+<div id="step-1-start-with-a-basic-query">
+  ### चरण 1: एक बुनियादी क्वेरी से शुरू करें
+</div>
+
+```
+happy OR happiness
+```
+
+<div id="step-2-test-and-narrow-based-on-results">
+  ### चरण 2: परिणामों के आधार पर जाँचें और दायरा सीमित करें
+</div>
+
+हमें कई भाषाओं में पोस्ट्स मिलीं। भाषा फ़िल्टर जोड़ें:
+
+```
+(happy OR happiness) lang:en
+```
+
+हमें जन्मदिन की शुभकामनाओं वाले पोस्ट मिल रहे हैं। उन्हें और Retweets को बाहर रखें:
+
+```
+(happy OR happiness) lang:en -birthday -is:retweet
+```
+
+<div id="step-3-broaden-for-better-coverage">
+  ### चरण 3: बेहतर कवरेज के लिए दायरा बढ़ाएँ
+</div>
+
+हम और अधिक भावना कैप्चर करना चाहते हैं। संबंधित कीवर्ड जोड़ें:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
+```
+
+<div id="step-4-adjust-for-trends">
+  ### चरण 4: रुझानों के अनुसार समायोजित करें
+</div>
+
+हॉलिडे पोस्ट्स दिखाई दे रही हैं। इन्हें शामिल न करें:
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
+```
+
+***
+
+<div id="adding-a-query-to-your-request">
+  ## अपने अनुरोध में क्वेरी जोड़ना
+</div>
+
+`query` पैरामीटर का उपयोग करें और अपनी क्वेरी को HTTP-एन्कोड करें:
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=cat%20has%3Amedia%20-grumpy&\
+tweet.fields=created_at&\
+max_results=100" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+***
+
+<div id="query-examples">
+  ## क्वेरी के उदाहरण
+</div>
+
+<div id="tracking-a-natural-disaster">
+  ### किसी प्राकृतिक आपदा को ट्रैक करना
+</div>
+
+हरिकेन हार्वी के बारे में मौसम एजेंसियों की पोस्ट्स का मिलान करें:
+
+**क्वेरी:**
+
+```
+has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1) -is:retweet
+```
+
+**पूर्ण अनुरोध URL:**
+
+```
+https://api.x.com/2/tweets/search/recent?query=has%3Ageo%20(from%3ANWSNHC%20OR%20from%3ANHC_Atlantic%20OR%20from%3ANWSHouston%20OR%20from%3ANWSSanAntonio%20OR%20from%3AUSGS_TexasRain%20OR%20from%3AUSGS_TexasFlood%20OR%20from%3AJeffLindner1)%20-is%3Aretweet
+```
+
+<div id="sentiment-analysis-for-nowplaying">
+  ### #nowplaying के लिए भावना विश्लेषण
+</div>
+
+**सकारात्मक भावना:**
+
+```
+#nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing
+```
+
+**नकारात्मक भावना:**
+
+```
+#nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible
+```
+
+<div id="using-post-annotations">
+  ### पोस्ट एनोटेशन का उपयोग
+</div>
+
+`context:` ऑपरेटर का उपयोग करके छवियों सहित पालतू जानवरों (बिल्लियाँ नहीं) के बारे में जापानी पोस्ट्स खोजें:
+
+सबसे पहले, `domain.entity` IDs की पहचान करने के लिए `tweet.fields=context_annotations` के साथ [पोस्ट लुकअप](/hi/x-api/posts/lookup/introduction) का उपयोग करें:
+
+* बिल्लियाँ: `domain` 66, `entity` 852262932607926273
+* पालतू जानवर: `domain` 65, `entity` 852262932607926273
+
+**क्वेरी:**
+
+```
+context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:images lang:ja
+```
+
+***
+
+<div id="tools">
+  ## टूल्स
+</div>
+
+<Card title="क्वेरी बिल्डर टूल" icon="wrench" href="https://developer.x.com/apitools/query?query=">
+  अपनी क्वेरी इंटरैक्टिव तरीके से बनाएँ और टेस्ट करें
+</Card>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ऑपरेटर संदर्भ" icon="list" href="/hi/x-api/posts/search/integrate/operators">
+    उपलब्ध ऑपरेटरों की पूरी सूची
+  </Card>
+
+  <Card title="खोज की त्वरित शुरुआत" icon="rocket" href="/hi/x-api/posts/search/quickstart/recent-search">
+    अपना पहला खोज अनुरोध करें
+  </Card>
+
+  <Card title="इंटीग्रेशन गाइड" icon="book" href="/hi/x-api/posts/search/integrate/overview">
+    पूर्ण इंटीग्रेशन दस्तावेज़
+  </Card>
+</CardGroup>

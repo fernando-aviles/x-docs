@@ -1,0 +1,255 @@
+---
+title: Codes de réponse et erreurs
+sidebarTitle: Codes de réponse
+description: Codes d'état HTTP et gestion des erreurs pour X API
+keywords: ["codes de réponse", "codes d’erreur", "codes d’état HTTP", "erreurs d’API", "gestion des erreurs", "débogage"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+L’API X utilise les codes d’état HTTP standards. Les requêtes réussies renvoient un code 2xx ; les erreurs renvoient un code 4xx ou 5xx avec des détails dans le corps de la réponse.
+
+***
+
+<div id="http-status-codes">
+  ## Codes d&#39;état HTTP
+</div>
+
+<div id="success-codes">
+  ### Codes de succès
+</div>
+
+| Code | Signification | Description |
+|:-----|:--------------|:------------|
+| **200** | OK | Requête réussie |
+| **201** | Créé | Ressource créée (requêtes POST) |
+| **204** | Aucun contenu | Succès sans corps de réponse (requêtes DELETE) |
+
+<div id="client-error-codes">
+  ### Codes d’erreur client
+</div>
+
+| Code | Signification | Causes courantes |
+|:-----|:--------|:--------------|
+| **400** | Requête incorrecte | JSON non valide, requête mal formée, paramètres obligatoires manquants |
+| **401** | Non autorisé | Identifiants d’authentification non valides ou manquants |
+| **403** | Interdit | Authentification valide mais aucun droit pour cette ressource ou action |
+| **404** | Introuvable | La ressource n’existe pas ou a été supprimée |
+| **409** | Conflit | Le flux ne contient aucune règle (flux filtré uniquement) |
+| **429** | Trop de requêtes | Limite de débit ou plafond d’utilisation dépassé |
+
+<div id="server-error-codes">
+  ### Codes d’erreur du serveur
+</div>
+
+| Code | Signification | Que faire |
+|:-----|:--------------|:----------|
+| **500** | Erreur interne du serveur | Patientez puis réessayez ; vérifiez la [page d’état](/fr/status) |
+| **502** | Mauvaise passerelle | Patientez puis réessayez |
+| **503** | Service indisponible | X est surchargé ; patientez puis réessayez |
+| **504** | Temps d’attente de la passerelle écoulé | Patientez puis réessayez |
+
+***
+
+<div id="error-response-format">
+  ## Format de la réponse d&#39;erreur
+</div>
+
+Les réponses d&#39;erreur incluent des détails structurés :
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The 'query' parameter is required.",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+| Champ    | Description                                    |
+| :------- | :--------------------------------------------- |
+| `type`   | URI qui identifie le type d’erreur             |
+| `title`  | Brève description de l’erreur                  |
+| `detail` | Explication spécifique concernant cette erreur |
+
+Des champs supplémentaires peuvent être présents en fonction du type d’erreur.
+
+***
+
+<div id="error-types">
+  ## Types d’erreur
+</div>
+
+| Type | Description |
+|:-----|:------------|
+| `about:blank` | Erreur générique (voir le code d’état HTTP correspondant) |
+| `.../invalid-request` | Requête mal formée ou paramètres invalides |
+| `.../resource-not-found` | Publication, utilisateur ou autre ressource inexistante |
+| `.../not-authorized-for-resource` | Aucun accès au contenu privé/protégé |
+| `.../client-forbidden` | App non enregistrée ou ne disposant pas des droits d’accès requis |
+| `.../usage-capped` | Plafond d’utilisation atteint |
+| `.../rate-limit-exceeded` | Limite de débit dépassée |
+| `.../streaming-connection` | Problème de connexion au flux |
+| `.../rule-cap` | Nombre maximal de règles de flux filtré atteint |
+| `.../invalid-rules` | Erreur de syntaxe dans les règles |
+| `.../duplicate-rules` | La règle existe déjà |
+
+***
+
+<div id="partial-errors">
+  ## Erreurs partielles
+</div>
+
+Certaines requêtes peuvent réussir partiellement. Une réponse avec un statut 200 peut inclure à la fois `data` et `errors` :
+
+```json
+{
+  "data": [
+    {"id": "123", "text": "Hello"}
+  ],
+  "errors": [
+    {
+      "resource_id": "456",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [456].",
+      "type": "https://api.x.com/2/problems/resource-not-found"
+    }
+  ]
+}
+```
+
+Cela se produit lorsque vous demandez plusieurs ressources et que certaines d’entre elles sont indisponibles.
+
+***
+
+<div id="troubleshooting-common-errors">
+  ## Résolution des erreurs courantes
+</div>
+
+<Accordion title="401 Unauthorized">
+  **Vérifiez votre authentification :**
+
+  * Vérifiez que vous utilisez la bonne méthode d’authentification pour l’endpoint
+  * Assurez-vous que les identifiants n’ont pas été régénérés entre-temps
+  * Vérifiez le format de l’en-tête `Authorization`
+  * Pour OAuth 1.0a, vérifiez le calcul de la signature
+
+  [Guide d’authentification →](/fr/resources/fundamentals/authentication/overview)
+</Accordion>
+
+<Accordion title="403 Forbidden">
+  **Vérifiez vos droits d’accès :**
+
+  * Vérifiez que votre application a accès à cet endpoint
+  * Certains endpoints nécessitent une inscription ou une approbation spécifique
+  * Les endpoints en contexte utilisateur nécessitent des scopes OAuth appropriés
+  * La ressource peut être privée ou protégée
+</Accordion>
+
+<Accordion title="429 Too Many Requests">
+  **Soumis à des limites de taux :**
+
+  * Vérifiez l’en-tête `x-rate-limit-reset` pour savoir quand réessayer
+  * Mettez en œuvre un backoff exponentiel
+  * Envisagez de mettre en cache les réponses
+  * Répartissez les requêtes sur la fenêtre temporelle
+
+  [Guide sur les limites de taux →](/fr/x-api/fundamentals/rate-limits)
+</Accordion>
+
+<Accordion title="400 Bad Request">
+  **Corrigez votre requête :**
+
+  * Validez la syntaxe JSON
+  * Vérifiez qu’aucun paramètre requis ne manque
+  * Vérifiez les types de paramètres (chaînes vs nombres)
+  * Échappez les caractères spéciaux dans les requêtes
+</Accordion>
+
+<Accordion title="Missing expected posts">
+  **Vérifiez ces éléments :**
+
+  * Les publications des comptes protégés ne sont visibles qu’avec une autorisation
+  * Les publications supprimées renvoient un code 404
+  * Certaines publications sont restreintes dans certaines régions
+  * Vérifiez que la syntaxe de la requête de recherche est correcte
+</Accordion>
+
+<Accordion title="Stream disconnections">
+  **Gérez la reconnexion :**
+
+  * Mettez en œuvre une reconnexion automatique avec backoff
+  * Utilisez les fonctionnalités de récupération pour les données manquées
+  * Vérifiez les déconnexions dues à un buffer plein (client ne consommant pas assez rapidement)
+  * Vérifiez qu’au moins une règle de flux existe
+
+  [Guide sur le streaming →](/fr/x-api/posts/filtered-stream/integrate/handling-disconnections)
+</Accordion>
+
+***
+
+<div id="rate-limit-headers">
+  ## En-têtes de limitation de débit
+</div>
+
+Chaque réponse comprend des informations de limitation de débit :
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| En-tête                  | Description                                                         |
+| :----------------------- | :------------------------------------------------------------------ |
+| `x-rate-limit-limit`     | Nombre maximal de requêtes dans la fenêtre actuelle                 |
+| `x-rate-limit-remaining` | Nombre de requêtes restantes                                        |
+| `x-rate-limit-reset`     | Horodatage Unix indiquant le moment où la fenêtre est réinitialisée |
+
+***
+
+<div id="best-practices">
+  ## Bonnes pratiques
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Vérifiez les codes d’état HTTP" icon="square-check">
+    Vérifiez toujours le statut HTTP avant d’analyser le corps de la réponse.
+  </Card>
+
+  <Card title="Gérez les erreurs partielles" icon="triangle-exclamation">
+    Vérifiez le tableau `errors` même lorsque le code de réponse est 200.
+  </Card>
+
+  <Card title="Implémentez une logique de nouvelle tentative" icon="arrows-rotate">
+    Utilisez un backoff exponentiel pour les erreurs 429 et 5xx.
+  </Card>
+
+  <Card title="Consignez les détails de la requête" icon="file-lines">
+    Incluez l’ID de requête et l’horodatage pour faciliter le débogage.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="getting-help">
+  ## Obtenir de l&#39;aide
+</div>
+
+Lorsque vous publiez des questions sur des erreurs, incluez :
+
+* l&#39;URL de l&#39;endpoint d&#39;API
+* les en-têtes de la requête (en masquant les identifiants)
+* la réponse d&#39;erreur complète
+* ce que vous attendiez comme résultat
+* les étapes que vous avez déjà suivies
+
+<CardGroup cols={2}>
+  <Card title="Developer Forum" icon="comments" href="https://devcommunity.x.com">
+    Posez vos questions et recherchez des solutions.
+  </Card>
+
+  <Card title="API Status" icon="signal" href="/fr/status">
+    Vérifiez s&#39;il existe des problèmes connus.
+  </Card>
+</CardGroup>

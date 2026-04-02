@@ -1,0 +1,142 @@
+---
+title: v1 à v2 (Enterprise)
+sidebarTitle: v1 à v2 (Enterprise)
+keywords: ["compteurs Enterprise vers v2", "migration des compteurs Enterprise", "compteurs GNIP vers v2", "migration des compteurs Enterprise", "migration des compteurs Enterprise"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Comparaison entre Enterprise et X API v2
+</div>
+
+**Points communs**
+
+* Granularité
+* Pagination
+* Fuseau horaire
+
+**Différences**
+
+* URL des endpoints
+* Nécessité d’une App et d’un projet
+* Plages temporelles disponibles
+* Format des données de réponse
+* Méthodes HTTP
+* Formats de date/heure des requêtes
+* Paramètres de requête
+* Opérateurs de filtrage
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Granularité**
+
+Bien que le paramètre permettant de sélectionner la granularité des données renvoyées soit différent (`bucket` pour la version Enterprise, `granularity` pour la version v2), les valeurs que vous pouvez passer à ce paramètre sont les mêmes, tout comme le comportement par défaut :
+
+* `day`
+* `hour` (par défaut)
+* `minute`
+
+**Pagination**
+
+Même si la v2 dispose de fonctionnalités de pagination supplémentaires (de nouveaux paramètres de pagination qui vous permettent de naviguer en utilisant des ID de Publication avec `since_id` et `until_id`), Enterprise et v2 vous permettent tous deux de paginer dans le temps (`fromDate` et `toDate` avec Enterprise, et `start_time` et `end_time` pour v2).
+
+Si vous utilisez la version Enterprise, vous utiliserez le paramètre `next` pour paginer ; le champ de jeton suivant s’appellera `next` et il se trouvera à la racine de la réponse.
+
+Si vous utilisez v2, vous pouvez utiliser soit le paramètre `next_token`, soit `pagination_token` pour paginer, et votre jeton suivant se trouvera à l’emplacement `meta.next_token` dans la réponse.
+ 
+
+**Fuseau horaire**
+
+Comme indiqué dans la section sur la pagination, vous pouvez parcourir différentes pages de données en utilisant le temps, à la fois pour Enterprise et pour v2. Dans les deux cas, vous utiliserez l’UTC comme fuseau horaire lorsque vous utiliserez ces paramètres.
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URL des endpoints**
+
+* Endpoints Enterprise :
+  * 30 jours - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label/counts.json`
+  * Archive complète - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label/counts.json`
+* Endpoints X API v2
+  * Récent (7 jours) - `https://api.x.com/2/tweets/counts/recent`
+  * Archive complète - `https://api.x.com/2/tweets/counts/all`
+
+**Exigences relatives à l’App et au Project**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants provenant d’une [developer App](/fr/resources/fundamentals/developer-apps) qui est associée à un [Project](/fr/resources/fundamentals/developer-apps) lors de l’authentification de vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à une App.
+ 
+
+**Périodes temporelles disponibles**
+
+L’API Enterprise et X API v2 proposent toutes deux des endpoints qui vous permettent de récupérer les données de volume de Publications pour l’archive complète des Publications.
+
+Cependant, X API v2 ne propose pas d’endpoint pour une période de 30 jours comme le fait l’API Enterprise. À la place, elle propose l’archive complète mentionnée ci‑dessus, ou une période de 7 jours, qui sont alignées avec les [endpoints v2 Search Posts](/fr/x-api/posts/search/introduction).
+ 
+
+**Format des données de réponse**
+
+Il existe quelques légères différences dans le format des données que vous recevrez via Enterprise et X API v2 :
+
+* Les données de comptage Enterprise se trouvent dans un objet `results`, tandis que les données de comptage v2 se trouvent dans un objet `data`.
+* Les champs de comptage Enterprise sont nommés `timePeriod` (heure de début) et `count`, tandis que v2 sépare la période temporelle en deux champs `start` et `end` (qui utilisent un format de date/heure différent de celui d’Enterprise, expliqué dans les formats temporels des requêtes) et renomme le champ de comptage en `tweet_count`.
+* Les métadonnées Enterprise incluent `totalCount`, `next` et l’objet `requestParameters` au niveau racine. En revanche, v2 n’inclut pas l’objet `requestParameters` et déplace/renomme les éléments suivants dans un objet `meta` situé au niveau racine : `total_tweet_count` et `next_token`.
+   
+
+**Méthodes HTTP**
+
+La version Enterprise de l’API vous permet d’envoyer la requête soit avec la méthode HTTP POST et un corps JSON, soit avec la méthode HTTP GET et une chaîne de requête.
+
+V2 vous permet uniquement d’utiliser la méthode HTTP GET avec une chaîne de requête.
+ 
+
+**Formats temporels des requêtes**
+
+La version Enterprise de cet endpoint utilise le format de date/heure suivant, à la fois dans les paramètres de pagination et dans le champ de réponse `timePeriod` : `YYYYMMDDHHmm`
+
+L’endpoint v2 utilise le format de date/heure ISO 8601/RFC 3339, à la fois dans les paramètres de pagination et dans les champs de réponse `start` et `end` : `YYYY-MM-DDTHH:mm:ssZ`
+
+**Paramètres de requête**
+
+Voici un tableau des paramètres de requête pour Enterprise et X API v2 :
+
+| Enterprise | Search Posts v2 |
+| :--- | :--- |
+| query | query |
+| bucket | granularity |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+| toDate (YYMMDDHHmm) | end&#95;time (YYYY-MM-DDTHH:mm:ssZ) |
+|     | since&#95;id |
+|     | until&#95;id |
+| next | next&#95;token et pagination&#95;token |
+
+**Opérateurs de filtrage**
+
+Même si les opérateurs entre Enterprise et X API v2 sont en grande partie les mêmes, il existe quelques différences en termes de disponibilité des opérateurs, ainsi que de nouveaux opérateurs qui ont été introduits uniquement dans la version X API v2.
+
+Pour consulter un tableau complet des opérateurs disponibles pour X API v2, Enterprise et même Premium, veuillez consulter la [page de destination de migration des décomptes de Publications](/fr/x-api/posts/counts/migrate/overview).
+
+<div id="api-reference-index">
+  ## Index de la référence de l’API
+</div>
+
+Pour consulter la référence complète de l’API, sélectionnez un endpoint ci-dessous.
+
+<div id="recent-post-counts">
+  ### Nombre de Publications récentes
+</div>
+
+|     |     |
+| :--- | :--- |
+| **Obtenir le nombre de Publications correspondant à une requête sur les 7 derniers jours** | `[GET /2/tweets/counts/recent](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-recent)` |
+
+<div id="full-archive-post-counts">
+  ### Décomptes de Publications sur l’archive complète
+</div>
+
+Uniquement disponible pour les utilisateurs disposant de l’[accès Self-serve et Enterprise](/fr/x-api/getting-started/about-x-api)
+
+|     |     |
+| :--- | :--- |
+| **Obtenir un décompte des Publications correspondant à une requête** | `[GET /2/tweets/counts/all](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-all)` |

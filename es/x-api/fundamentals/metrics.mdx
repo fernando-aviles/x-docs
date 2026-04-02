@@ -1,0 +1,246 @@
+---
+title: Métricas
+sidebarTitle: Métricas
+description: Accede a las métricas de interacción de las publicaciones y el contenido multimedia
+keywords: ["métricas", "métricas de interacción", "métricas de Tweet", "impresiones", "me gusta", "retweets", "reproducciones de vídeo", "analítica"]
+---
+
+La X API proporciona métricas de interacción para publicaciones y contenido multimedia. Accede a métricas públicas con cualquier tipo de autenticación o a métricas privadas de tu propio contenido con autenticación de usuario.
+
+***
+
+<div id="metric-types">
+  ## Tipos de métricas
+</div>
+
+| Tipo | Autenticación | Descripción |
+|:-----|:---------------|:------------|
+| **Público** | Bearer Token | Visible para todos (me gusta, reposts, respuestas) |
+| **No público** | Contexto de usuario | Métricas privadas (impresiones, clics) |
+| **Orgánico** | Contexto de usuario | Métricas de visualizaciones no promocionadas |
+| **Promocionado** | Contexto de usuario | Métricas de visualizaciones de anuncios |
+
+<Note>
+  **Límite de 30 días**: Las métricas no públicas, orgánicas y promocionadas solo están disponibles para Publicaciones creadas durante los últimos 30 días.
+</Note>
+
+***
+
+<div id="available-metrics">
+  ## Métricas disponibles
+</div>
+
+<div id="post-metrics">
+  ### Métricas de la publicación
+</div>
+
+| Métrica | Tipo | Ruta de campo |
+|:-------|:-----|:-----------|
+| Reposts | Pública | `public_metrics.retweet_count` |
+| Citas | Pública | `public_metrics.quote_count` |
+| Me gusta | Pública | `public_metrics.like_count` |
+| Respuestas | Pública | `public_metrics.reply_count` |
+| Impresiones | No pública | `non_public_metrics.impression_count` |
+| Clics en URL | No pública | `non_public_metrics.url_link_clicks` |
+| Clics en el perfil | No pública | `non_public_metrics.user_profile_clicks` |
+
+<div id="media-metrics-videos">
+  ### Métricas de medios (videos)
+</div>
+
+| Métrica | Tipo | Ruta del campo |
+|:-------|:-----|:-----------|
+| Vistas | Público | `public_metrics.view_count` |
+| Reproducción 0 % | No público | `non_public_metrics.playback_0_count` |
+| Reproducción 25 % | No público | `non_public_metrics.playback_25_count` |
+| Reproducción 50 % | No público | `non_public_metrics.playback_50_count` |
+| Reproducción 75 % | No público | `non_public_metrics.playback_75_count` |
+| Reproducción 100 % | No público | `non_public_metrics.playback_100_count` |
+
+***
+
+<div id="requesting-metrics">
+  ## Solicitud de métricas
+</div>
+
+<div id="public-metrics-any-auth">
+  ### Métricas públicas (cualquier tipo de autenticación)
+</div>
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=public_metrics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Respuesta:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "public_metrics": {
+      "retweet_count": 50,
+      "reply_count": 12,
+      "like_count": 234,
+      "quote_count": 5
+    }
+  }
+}
+```
+
+<div id="private-metrics-user-context">
+  ### Métricas privadas (contexto de usuario)
+</div>
+
+Requiere OAuth 1.0a u OAuth 2.0 con contexto de usuario para las publicaciones que te pertenecen:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?tweet.fields=non_public_metrics,organic_metrics" \
+  -H "Authorization: OAuth oauth_consumer_key=...,oauth_token=..."
+```
+
+Respuesta:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "non_public_metrics": {
+      "impression_count": 5432,
+      "url_link_clicks": 89,
+      "user_profile_clicks": 156
+    },
+    "organic_metrics": {
+      "impression_count": 5432,
+      "like_count": 234,
+      "reply_count": 12,
+      "retweet_count": 50,
+      "url_link_clicks": 89,
+      "user_profile_clicks": 156
+    }
+  }
+}
+```
+
+***
+
+<div id="video-metrics">
+  ## Métricas de vídeo
+</div>
+
+Para las métricas de reproducción de vídeo, utiliza la expansión de medios:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?\
+tweet.fields=attachments&\
+expansions=attachments.media_keys&\
+media.fields=public_metrics,non_public_metrics" \
+  -H "Authorization: OAuth ..."
+```
+
+Respuesta:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Check out this video!",
+    "attachments": {
+      "media_keys": ["13_9876543210"]
+    }
+  },
+  "includes": {
+    "media": [{
+      "media_key": "13_9876543210",
+      "type": "video",
+      "public_metrics": {
+        "view_count": 12543
+      },
+      "non_public_metrics": {
+        "playback_0_count": 12543,
+        "playback_25_count": 9876,
+        "playback_50_count": 7654,
+        "playback_75_count": 5432,
+        "playback_100_count": 3210
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="organic-vs-promoted-metrics">
+  ## Métricas orgánicas vs. promocionadas
+</div>
+
+Si una publicación se promocionó como un anuncio, las métricas se dividen entre vistas orgánicas y promocionadas:
+
+| Contexto         | Descripción                                           |
+| :--------------- | :---------------------------------------------------- |
+| **Orgánico**     | Métricas de visualizaciones normales en la cronología |
+| **Promocionado** | Métricas de impresiones de anuncios pagados           |
+| **Público**      | Total combinado (orgánico + promocionado)             |
+
+Solicita ambas para ver el desglose:
+
+```bash
+tweet.fields=public_metrics,organic_metrics,promoted_metrics
+```
+
+***
+
+<div id="metric-definitions">
+  ## Definiciones de métricas
+</div>
+
+<Accordion title="Impressions">
+  Número de veces que la Publicación apareció en la pantalla de un usuario. No es un recuento único: si el mismo usuario la ve dos veces, cuenta como dos impresiones.
+</Accordion>
+
+<Accordion title="Repost count">
+  Número de republicaciones (retweets). No incluye Publicaciones citadas.
+</Accordion>
+
+<Accordion title="Quote count">
+  Número de Publicaciones citadas (republicaciones con comentario). Estas siempre son orgánicas.
+</Accordion>
+
+<Accordion title="Video views">
+  Agregado en todas las Publicaciones que contienen el video. Un video republicado en varias Publicaciones tiene un único recuento total de vistas.
+</Accordion>
+
+<Accordion title="Playback quartiles">
+  Número de usuarios únicos que reprodujeron cada porcentaje del video. Útil para entender las tasas de abandono.
+</Accordion>
+
+***
+
+<div id="requirements-summary">
+  ## Resumen de requisitos
+</div>
+
+| Campo de métrica | Autenticación requerida |
+|:-------------|:-----------------------|
+| `public_metrics` | Bearer Token (cualquiera) |
+| `non_public_metrics` | Contexto de usuario (solo publicaciones propias) |
+| `organic_metrics` | Contexto de usuario (solo publicaciones propias) |
+| `promoted_metrics` | Contexto de usuario (solo publicaciones promocionadas) |
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Diccionario de datos" icon="book" href="/es/x-api/fundamentals/data-dictionary">
+    Referencia completa de campos.
+  </Card>
+
+  <Card title="Autenticación" icon="key" href="/es/resources/fundamentals/authentication/overview">
+    Configura la autenticación con contexto de usuario.
+  </Card>
+</CardGroup>

@@ -1,0 +1,184 @@
+---
+title: लाइक्स प्रबंधित करें
+sidebarTitle: लाइक्स प्रबंधित करें
+description: X API का उपयोग करके पोस्ट्स को लाइक और अनलाइक करें
+keywords: ["लाइक्स प्रबंधित करें", "पोस्ट्स लाइक करें", "अनलाइक", "लाइक्स की त्वरित शुरुआत", "लाइक्स ट्यूटोरियल", "लाइक्स गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको X API का उपयोग करके पोस्ट्स को लाइक और अनलाइक करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * उपयोगकर्ता एक्सेस टोकन (OAuth 1.0a या OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="like-a-post">
+  ## किसी पोस्ट को लाइक करें
+</div>
+
+<Steps>
+  <Step title="अपनी उपयोगकर्ता ID प्राप्त करें">
+    आपको अपने प्रमाणित उपयोगकर्ता की ID चाहिए। आप इसे [user lookup endpoint](/hi/x-api/users/lookup/introduction) का उपयोग करके या अपने एक्सेस टोकन से प्राप्त कर सकते हैं (संख्यात्मक भाग आपकी उपयोगकर्ता ID है)।
+  </Step>
+
+  <Step title="पोस्ट ID प्राप्त करें">
+    किसी पोस्ट को देखते समय URL में पोस्ट ID देखें:
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── यह पोस्ट ID है
+    ```
+  </Step>
+
+  <Step title="लाइक अनुरोध भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/likes" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"tweet_id": "1228393702244134912"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # किसी पोस्ट को लाइक करें
+      response = client.posts.like(
+          user_id="123456789",
+          tweet_id="1228393702244134912"
+      )
+
+      print(f"Liked: {response.data.liked}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // किसी पोस्ट को लाइक करें
+      const response = await client.posts.like("123456789", {
+        tweetId: "1228393702244134912",
+      });
+
+      console.log(`Liked: ${response.data?.liked}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": {
+        "liked": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unlike-a-post">
+  ## किसी पोस्ट से लाइक हटाना
+</div>
+
+किसी पोस्ट से लाइक हटाने के लिए:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/likes/1228393702244134912" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी पोस्ट से लाइक हटाना
+  response = client.posts.unlike(
+      user_id="123456789",
+      tweet_id="1228393702244134912"
+  )
+
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी पोस्ट से लाइक हटाना
+  const response = await client.posts.unlike("123456789", "1228393702244134912");
+
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>
+
+**प्रतिक्रिया:**
+
+```json
+{
+  "data": {
+    "liked": false
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="लाइक्स लुकअप" icon="heart" href="/hi/x-api/posts/likes/quickstart/likes-lookup">
+    उन उपयोगकर्ताओं को प्राप्त करें जिन्होंने पोस्ट को लाइक किया
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/like-a-post">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+</CardGroup>

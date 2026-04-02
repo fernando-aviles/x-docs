@@ -1,0 +1,246 @@
+---
+title: v1 から v2 へ
+sidebarTitle: v1 から v2 へ
+keywords: ["v1.1 から v2 への移行", "フィルタ済みストリームの移行", "フィルタ済みストリームの移行", "Standard v1.1 から v2 フィルタ済みストリームへの移行", "v1 から v2 フィルタ済みストリームへの移行", "移行ガイド"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### Standard v1.1 と X API v2 の比較
+</div>
+
+v1.1 の [statuses/filter](https://developer.x.com/en/docs/x-api/v1/tweets/filter-realtime/api-reference/post-statuses-filter) エンドポイントを利用している場合、このガイドは、Standard v1.1 と X API v2 のフィルタ済みストリーム エンドポイントの共通点と相違点を理解するのに役立ちます。
+
+* **共通点**
+  * リクエストパラメータとオペレーター
+  * ポスト編集履歴とメタデータのサポート
+* **相違点**
+  * エンドポイント URL
+  * App と Project の要件
+  * 認証方式
+  * ルール数とストリームの永続性
+  * レスポンスデータ形式
+  * リクエストパラメータ
+  * リカバリーおよび冗長性機能の有無
+  * クエリオペレーター
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**リクエストパラメータとオペレーター**
+
+Standard v1.1 の `statuses/filter` エンドポイントには、ストリームをフィルタリングするためにリクエストと一緒に渡せるパラメータがいくつか用意されています。v2 の filtered stream では代わりに、ブールロジックを使って組み合わせることができる一連の[オペレーター](/ja/x-api/posts/filtered-stream#building-rules-for-filtered-stream)を使用して、目的の投稿をフィルタリングします。利用可能なオペレーターの中には、既存の Standard v1.1 パラメータをそのまま置き換えられるものもあります。 
+
+次の Standard v1.1 リクエストパラメータには、X API v2 における同等のオペレーターがあります。
+ 
+
+| **Standard** | **X API v2** |
+| :--- | :--- |
+| follow - カンマ区切りのユーザーIDのリスト。どのユーザーの投稿をストリームに配信するかを指定します。 | 特定ユーザーに関連する投稿を見つけるのに役立つ複数のオペレーター:<br /><br />* @<br />* from:<br />* to:<br />* など |
+| track - カンマ区切りのフレーズのリスト。どの投稿をストリームに配信するかを決定するために使用されます。 | 特定のキーワードに関連する投稿を見つけるのに役立つ複数のオペレーター:<br /><br />* keyword<br />* &quot;exact phrase match&quot;<br />* #<br />* など |
+
+**ポスト編集履歴とメタデータのサポート**
+
+どちらのバージョンも、編集履歴を表すメタデータを提供します。詳細については、[filtered stream APIリファレンス](/ja/x-api/posts/filtered-stream#api-reference-index)および[ポスト編集の基本事項ページ](/ja/x-api/fundamentals/edit-posts)を確認してください。 
+
+<div id="differences">
+  #### 違い
+</div>
+
+**エンドポイント URL**
+
+* Standard v1.1 エンドポイント:
+  * https://stream.x.com/1.1/statuses/filter.json
+* X API v2 エンドポイント:
+  * https://api.x.com/2/tweets/search/stream
+  * https://api.x.com/2/tweets/search/stream/rule
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストを認証する際に、[Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の資格情報を使用する必要があります。すべての X API v1.1 エンドポイントでは、単体の App、または Project に関連付けられた App いずれの資格情報も使用できます。
+
+**認証方法**
+
+Standard エンドポイントは [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) をサポートしますが、X API v2 の filtered stream エンドポイントは [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) (Application-only authentication とも呼ばれます) をサポートします。X API v2 バージョンにリクエストを送信するには、App Access Token を使用してリクエストを認証する必要があります。
+
+Developer Console で App を作成した際に提示された App Access Token をすでにお持ちでない場合は、Developer Console で対象の App の “Keys and tokens” ページに移動することで、新しいトークンを生成できます。App Access Token をプログラムから生成したい場合は、この [OAuth 2.0 App-Only ガイド](/ja/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token) を参照してください。 
+
+**ルール数と永続ストリーム**
+
+Standard v1.1 エンドポイントは、ストリーミング接続をフィルタリングするルールを 1 つのみサポートします。ルールを変更するには、ストリームを切断し、パラメータとして送信するフィルタリングルールを更新した新しいリクエストを送信する必要があります。 
+
+X API v2 の filtered stream エンドポイントでは、1 つのストリームに複数のルールを適用でき、ストリーム接続を維持したまま、ルールの追加や削除を行うことができます。 
+
+**レスポンスデータ形式**
+
+Standard v1.1 と X API v2 のエンドポイントバージョンの最大の違いの 1 つは、ペイロードにどのフィールドを含めるかの選択方法です。
+
+Standard エンドポイントでは、多くのレスポンスフィールドがデフォルトで返され、さらにパラメータを使用して、ペイロードに含めるフィールドやフィールドセットを指定できます。
+
+X API v2 バージョンでは、デフォルトで返されるのはポストの id と text フィールドのみです。追加のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) と [expansions](/ja/x-api/fundamentals/expansions) パラメータを使用する必要があります。これらのエンドポイントからリクエストしたポストのフィールドは、すべてメインのポストオブジェクト内で返されます。展開された user、media、poll、place の各オブジェクトおよびフィールドは、レスポンス内の includes オブジェクトとして返されます。その後、ポストと展開されたオブジェクトの両方に含まれる ID を照合することで、展開されたオブジェクトをポストオブジェクトに対応付けることができます。 
+
+これらの新しいパラメータについてさらに理解を深めるために、それぞれのガイド、または [fields と expansions の使用方法](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドをお読みになることをお勧めします。 
+
+また、Standard v1.1 のフィールドを新しい v2 のフィールドにマッピングするのに役立つ [データ形式マイグレーションガイド](/ja/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) も用意しています。このガイドでは、特定のフィールドを返すために v2 リクエストに指定する必要がある、具体的な expansion および field パラメータも確認できます。 
+ 
+
+特定のフィールドのリクエスト方法の変更に加えて、X API v2 では API が返すオブジェクト (ポストや [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトを含む) に対して新しい JSON 設計も導入しています。
+
+* JSON のルートレベルでは、Standard エンドポイントはポストオブジェクトを statuses 配列で返す一方、X API v2 は data 配列で返します。 
+* Retweeted および Quoted の &quot;statuses&quot; を参照する代わりに、X API v2 の JSON では Retweeted および Quoted ツイートを参照します。contributors や user.translator&#95;type などの多くのレガシーかつ非推奨フィールドは削除されます。 
+* ポストオブジェクトの favorites と user オブジェクトの favourites の両方を使用する代わりに、X API v2 では like という用語を使用します。 
+* X では、値を持たない JSON の値 (たとえば null) はペイロードに書き込まないという規約を採用しています。ポストおよび user の属性は、値が null でない場合にのみ含まれます。 
+   
+
+また、[ポストオブジェクト](/ja/x-api/fundamentals/data-dictionary#tweet) に、次のような新しいフィールドセットも追加しました。
+
+* [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) フィールド
+* context と entities を含む、2 つの新しい [annotations](/ja/x-api/fundamentals/post-annotations) フィールド
+* いくつかの新しい [metrics](/ja/x-api/fundamentals/metrics) フィールド
+* 特定のポストに対して誰が返信できるかを示す、新しい reply&#95;setting フィールド
+
+**リクエストパラメータ**
+
+また、X API v2 ではサポート **されていない** 標準の filtered stream 用リクエストパラメータのセットも存在します:
+
+| 標準 v1.1 パラメータ | 詳細 |
+| :--- | :--- |
+| locations - カンマ区切りの経度と緯度のペアのリストで、投稿をフィルタリングするための境界ボックスの集合を指定します。 | X API v2 では、位置情報ベースのオペレーターはまだ提供していません。 |
+| Delimited | v1.1 エンドポイントでは、これを文字列長に設定すると、ストリーム内のステータスが区切られることを示し、クライアントはステータスメッセージの終わりまでに何バイト読み取ればよいかを把握できます。<br /><br />この機能は X API v2 では利用できません。 |
+| Stall&#95;warnings | v1.1 エンドポイントでは、このパラメータを true に設定すると、クライアントが切断される危険がある場合に、定期的なメッセージが配信されます。<br /><br />X API v2 では、stall warning はデフォルトで送信され、一定間隔で新しい行が送られます。 |
+
+**リカバリと冗長性機能の提供状況**
+
+X API v2 の filtered stream では、ストリーミングの稼働時間を最大化し、5 分以下の切断によって取り逃した可能性のある投稿を復旧するのに役立つリカバリおよび冗長性機能が導入されています。
+
+冗長接続機能により、特定のストリームに対して最大 2 回まで接続することができ、一方の接続が失敗した場合でも、常にストリームへの接続を維持するのに役立ちます。 
+
+backfill&#95;minutes パラメータを使用して、最大 5 分分の取り逃したデータを復旧できます。 
+
+これら 2 つの機能はどちらも、[Academic Research access](/ja/x-api/getting-started/about-x-api) を通じてのみ利用できます。この機能の詳細については、[recovery and redundancy features](/ja/x-api/posts/filtered-stream#filtered-stream-recovery-and-redundancy-features) インテグレーションガイドを参照してください。 
+
+**新しいクエリオペレーター**
+
+X API v2 では、次の 2 つの新機能をサポートするための新しいオペレーターが導入されています: 
+
+* **[Conversation IDs](/ja/x-api/fundamentals/conversation-id)** - X 上で会話が展開されると、その会話に含まれる投稿を示す conversation ID が利用可能になります。会話内のすべての投稿は、その会話を開始したポストの ID を conversation&#95;id として持ちます。 
+  * conversation&#95;id:
+* **[X Annotations](/ja/x-api/fundamentals/post-annotations)** は、投稿に関するコンテキスト情報を提供し、entity と context のアノテーションを含みます。Entities は、人、場所、製品、組織で構成されます。Contexts は、エンティティが属するドメインやトピックです。例えば、ポスト内で言及されている人物には、その人物がアスリート、俳優、政治家のいずれであるかを示すコンテキストが付与される場合があります。
+  * context: - 関心のあるコンテキストでアノテーションされた投稿にマッチします。
+  * entity: - 関心のあるエンティティでアノテーションされた投稿にマッチします。
+
+***
+
+<div id="code-examples">
+  ## コードサンプル
+</div>
+
+<div id="add-a-rule-to-filtered-stream-v2">
+  ### フィルター済みストリーム (v2) にルールを追加する
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+    -H "Authorization: Bearer $BEARER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"add": [{"value": "cat has:images", "tag": "cats with images"}]}'
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream/rules"
+
+  headers = {
+      "Authorization": f"Bearer {bearer_token}",
+      "Content-Type": "application/json"
+  }
+
+  data = {
+      "add": [{"value": "cat has:images", "tag": "cats with images"}]
+  }
+
+  response = requests.post(url, headers=headers, json=data)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # フィルター済みストリームにルールを追加する
+  response = client.posts.add_stream_rules(
+      add=[{"value": "cat has:images", "tag": "cats with images"}]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // フィルター済みストリームにルールを追加する
+  const response = await client.posts.addStreamRules({
+    add: [{ value: "cat has:images", tag: "cats with images" }],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="connect-to-filtered-stream-v2">
+  ### フィルター済みストリームに接続する (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/stream?tweet.fields=created_at,author_id" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/tweets/search/stream"
+
+  params = {"tweet.fields": "created_at,author_id"}
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+
+  # 投稿をリアルタイムでストリーミングする
+  response = requests.get(url, headers=headers, params=params, stream=True)
+  for line in response.iter_lines():
+      if line:
+          print(line.decode("utf-8"))
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # フィルター済みストリームに接続する
+  for post in client.posts.stream(
+      tweet_fields=["created_at", "author_id"]
+  ):
+      print(f"{post.data.created_at}: {post.data.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // フィルター済みストリームに接続する
+  const stream = client.posts.stream({
+    tweetFields: ["created_at", "author_id"],
+  });
+
+  for await (const post of stream) {
+    console.log(`${post.data?.created_at}: ${post.data?.text?.slice(0, 50)}...`);
+  }
+  ```
+</CodeGroup>

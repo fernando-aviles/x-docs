@@ -1,0 +1,53 @@
+---
+title: फ़िल्टर्ड स्ट्रीम वेबहुक्स API
+sidebarTitle: परिचय
+keywords: ["फ़िल्टर्ड स्ट्रीम वेबहुक्स", "स्ट्रीम वेबहुक्स", "वेबहुक स्ट्रीम", "फ़िल्टर्ड स्ट्रीम वेबहुक", "स्ट्रीमिंग वेबहुक्स", "वेबहुक डिलीवरी"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="overview">
+  ## अवलोकन
+</div>
+
+फ़िल्टर्ड स्ट्रीम endpoint समूह डेवलपर्स को सार्वजनिक पोस्ट्स की स्ट्रीम को फ़िल्टर करने की सुविधा देता है। इस endpoint समूह में कई endpoints शामिल हैं, जिनकी मदद से आप नियम बना और प्रबंधित कर सकते हैं, और उन नियमों को लागू करके पोस्ट्स की ऐसी स्ट्रीम फ़िल्टर कर सकते हैं जो मेल खाने वाली सार्वजनिक पोस्ट्स लौटाती है। यह endpoint समूह उपयोगकर्ताओं को खास विषयों और घटनाओं पर नज़र रखने, प्रतियोगिताओं के आसपास की बातचीत की निगरानी करने, रुझानों के विकसित होने का तरीका समझने, और बहुत कुछ करने की सुविधा देता है।
+
+डेवलपर्स, तय किए गए मानदंडों से मेल खाने वाली पोस्ट्स को फ़िल्टर करने के लिए, नियम जोड़ने और हटाने हेतु REST [rules endpoint](/hi/x-api/posts/filtered-stream#post-2-tweets-search-stream-rules) का उपयोग कर सकते हैं। इन [rules](/hi/x-api/posts/filtered-stream#building-rules-for-filtered-stream) को ऐसे operators के साथ बनाया जा सकता है जो पोस्ट की विशेषताओं, जैसे message keywords, hashtags, और URLs, पर मेल खाते हैं। फ़िल्टर के matching behavior को और सटीक बनाने के लिए operators और rule clauses को boolean logic और parentheses के साथ जोड़ा जा सकता है। 
+
+जब आप नियमों का एक सेट जोड़ लेते हैं, तो आप अपना webhook रजिस्टर कर सकते हैं, जिसके बाद X JSON format में [Post objects](/hi/x-api/fundamentals/data-dictionary#tweet) डिलीवर करना शुरू कर देगा। आपके webhook पर केवल वही सामग्री भेजी जाएगी जो आपके नियमों से मेल खाती है।
+
+यह endpoint संपादित पोस्ट्स को support करता है। आपके webhook को वे संपादित पोस्ट्स मिलेंगी जो आपके एक या अधिक फ़िल्टर्स से मेल खाती हैं, साथ ही उनकी edit history भी मिलेगी, जिसमें Post IDs की एक array शामिल होगी। जिन पोस्ट्स की कोई edit history नहीं है, उनके लिए इस array में केवल एक ID होगी। जिन पोस्ट्स को संपादित किया गया है, उनके लिए इस array में कई IDs होंगी, जो edits के क्रम को दर्शाते हुए ascending order में व्यवस्थित होंगी, और सबसे नया version array की अंतिम position में होगा। Post edits कैसे काम करते हैं, इसके बारे में अधिक जानने के लिए [Posts edits fundamentals](/hi/x-api/fundamentals/edit-posts) पेज देखें। 
+
+**ध्यान दें:** यह endpoint समूह आपके नियम सेट अप करने के लिए [v2 फ़िल्टर्ड स्ट्रीम endpoint](/hi/x-api/posts/filtered-stream/introduction) के समान है। केवल अंतर उन पोस्ट्स के delivery mechanism में है जो आपके नियमों से मेल खाती हैं।
+
+* v2 फ़िल्टर्ड स्ट्रीम endpoint के मामले में, आपको एक persistent connection स्थापित करना होता है और अपने नियमों से मेल खाने वाली पोस्ट्स के लिए listen करना होता है।
+* इस फ़िल्टर्ड स्ट्रीम webhook endpoint के मामले में, आप अपना webhook रजिस्टर करते हैं, और X आपके नियमों से मेल खाने वाली पोस्ट्स आपके webhook पर डिलीवर करता है।
+
+इससे client drops या हमारी सेवा के सामान्य restarts के दौरान होने वाले server-side drops से उत्पन्न disconnects को संभालने की ज़रूरत समाप्त हो जाती है। चूँकि हम संभवतः प्रति सेकंड सैकड़ों events डिलीवर करेंगे, इसलिए यह आवश्यक है कि आपका
+webhook server इन simultaneous connection attempts को संभालने में सक्षम हो।
+
+यह endpoint फिलहाल Enterprise डेवलपर्स के लिए उपलब्ध है और निम्न configuration को support करता है:
+
+* प्रति project 25,000+ rules
+* अपना rule बनाते समय सभी operators का उपयोग कर सकते हैं
+* 2048 characters तक लंबे rules बना सकते हैं
+* Enterprise access के लिए [यहाँ apply करें](https://developer.x.com/en/products/x-api/enterprise/enterprise-api-interest-form)
+
+फ़िल्टर्ड स्ट्रीम से लौटाई गई पोस्ट्स मासिक [Post cap](/hi/x-api/fundamentals/post-cap) में गिनी जाती हैं।
+
+<Note>
+  **खाता सेटअप**
+
+  इन endpoints तक पहुँचने के लिए, आपको इनकी आवश्यकता होगी:
+
+  * एक स्वीकृत [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)।
+  * एक [डेवलपर ऐप](/hi/resources/fundamentals/developer-apps) की keys और tokens का उपयोग करके authenticate करना, जो एक [Project](/hi/resources/fundamentals/developer-apps) के भीतर स्थित हो। 
+
+  हमारी [getting started guide](/hi/x-api/getting-started/getting-access) में X API v2 endpoints तक पहुँच प्राप्त करने के बारे में और जानें।
+</Note>
+
+<div className="flex">
+  <Button href="/hi/x-api/posts/filtered-stream/quickstart">
+    त्वरित शुरुआत
+  </Button>
+</div>

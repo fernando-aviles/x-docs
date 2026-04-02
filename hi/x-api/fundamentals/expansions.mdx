@@ -1,0 +1,251 @@
+---
+title: Expansions
+sidebarTitle: Expansions
+description: API रिस्पॉन्स में संबंधित ऑब्जेक्ट शामिल करें
+keywords: ["expansions", "ऑब्जेक्ट्स का विस्तार", "ऑब्जेक्ट विस्तार", "नेस्टेड ऑब्जेक्ट्स", "संबंधित ऑब्जेक्ट्स"]
+---
+
+Expansions की मदद से आप एक ही API रिस्पॉन्स में संबंधित ऑब्जेक्ट्स शामिल कर सकते हैं। कई रिक्वेस्ट करने के बजाय, एक ही कॉल में पोस्ट, उसका लेखक, मीडिया या संदर्भित पोस्ट्स प्राप्त करें।
+
+***
+
+<div id="how-expansions-work">
+  ## expansions कैसे काम करते हैं
+</div>
+
+जब आप किसी expansion का अनुरोध करते हैं, तो API पूरे ऑब्जेक्ट को रिस्पॉन्स के `includes` सेक्शन में शामिल करता है:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+रिस्पॉन्स:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Hello world!",
+    "author_id": "2244994945"
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers"
+    }]
+  }
+}
+```
+
+`data` में `author_id`, `includes` में मौजूद उपयोगकर्ता ऑब्जेक्ट से लिंक होता है।
+
+***
+
+<div id="post-expansions">
+  ## पोस्ट expansions
+</div>
+
+| Expansion                          | रिटर्न              | उपयोग का मामला                                     |
+| :------------------------------- | :------------------ | :------------------------------------------------- |
+| `author_id`                      | उपयोगकर्ता ऑब्जेक्ट | पोस्ट के लेखक का विवरण पाएं                        |
+| `referenced_tweets.id`           | पोस्ट ऑब्जेक्ट      | उद्धृत/जिन्हें जवाब दिया गया है उन पोस्ट्स को पाएं |
+| `referenced_tweets.id.author_id` | उपयोगकर्ता ऑब्जेक्ट | संदर्भित पोस्ट्स के लेखकों को पाएं                 |
+| `in_reply_to_user_id`            | उपयोगकर्ता ऑब्जेक्ट | उस उपयोगकर्ता को पाएं जिसे जवाब दिया जा रहा है     |
+| `attachments.media_keys`         | मीडिया ऑब्जेक्ट     | इमेज, वीडियो, GIF पाएं                             |
+| `attachments.poll_ids`           | पोल ऑब्जेक्ट        | पोल विकल्प और वोट पाएं                             |
+| `geo.place_id`                   | स्थान ऑब्जेक्ट      | स्थान का विवरण पाएं                                |
+| `entities.mentions.username`     | उपयोगकर्ता ऑब्जेक्ट | उल्लिखित उपयोगकर्ताओं को पाएं                      |
+| `edit_history_tweet_ids`         | पोस्ट ऑब्जेक्ट      | संपादित पोस्ट्स के पिछले वर्शन पाएं                |
+
+***
+
+<div id="user-expansions">
+  ## उपयोगकर्ता expansions
+</div>
+
+| Expansion           | लौटाता है      | उपयोग का उद्देश्य                          |
+| :---------------- | :------------- | :----------------------------------------- |
+| `pinned_tweet_id` | पोस्ट ऑब्जेक्ट | उपयोगकर्ता की पिन की गई पोस्ट प्राप्त करना |
+
+***
+
+<div id="space-expansions">
+  ## Space expansions
+</div>
+
+| Expansion          | रिटर्न              | उपयोग                                 |
+| :----------------- | :------------------ | :------------------------------------ |
+| `creator_id`       | उपयोगकर्ता ऑब्जेक्ट | Space के निर्माता को प्राप्त करें     |
+| `host_ids`         | उपयोगकर्ता ऑब्जेक्ट | Space के होस्ट प्राप्त करें           |
+| `speaker_ids`      | उपयोगकर्ता ऑब्जेक्ट | Space के वक्ता प्राप्त करें           |
+| `invited_user_ids` | उपयोगकर्ता ऑब्जेक्ट | आमंत्रित उपयोगकर्ताओं को प्राप्त करें |
+
+***
+
+<div id="dm-expansions">
+  ## DM expansions
+</div>
+
+| Expansion                | Returns               | Use case                               |
+| :----------------------- | :-------------------- | :------------------------------------- |
+| `sender_id`              | उपयोगकर्ता ऑब्जेक्ट   | संदेश भेजने वाले को प्राप्त करें       |
+| `participant_ids`        | उपयोगकर्ता ऑब्जेक्ट्स | बातचीत के प्रतिभागियों को प्राप्त करें |
+| `attachments.media_keys` | मीडिया ऑब्जेक्ट       | संलग्न मीडिया प्राप्त करें             |
+| `referenced_tweets.id`   | पोस्ट ऑब्जेक्ट        | संदर्भित पोस्ट प्राप्त करें            |
+
+***
+
+<div id="list-expansions">
+  ## सूची expansions
+</div>
+
+| Expansion  | रिटर्न        | उपयोग                          |
+| :--------- | :------------ | :----------------------------- |
+| `owner_id` | User ऑब्जेक्ट | सूची के स्वामी को प्राप्त करें |
+
+***
+
+<div id="combining-with-fields">
+  ## फ़ील्ड्स के साथ संयोजन
+</div>
+
+Expansions हर ऑब्जेक्ट के लिए डिफ़ॉल्ट फ़ील्ड्स लौटाता है। अतिरिक्त फ़ील्ड्स पाने के लिए, expansions को फ़ील्ड पैरामीटर्स के साथ संयोजित करें:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567890?\
+expansions=author_id,attachments.media_keys&\
+user.fields=description,public_metrics&\
+media.fields=url,alt_text" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+रिस्पॉन्स:
+
+```json
+{
+  "data": {
+    "id": "1234567890",
+    "text": "Check out this image!",
+    "author_id": "2244994945",
+    "attachments": {
+      "media_keys": ["3_1234567890"]
+    }
+  },
+  "includes": {
+    "users": [{
+      "id": "2244994945",
+      "name": "X Developers",
+      "username": "xdevelopers",
+      "description": "The voice of the X Developer Platform",
+      "public_metrics": {
+        "followers_count": 570842
+      }
+    }],
+    "media": [{
+      "media_key": "3_1234567890",
+      "type": "photo",
+      "url": "https://pbs.twimg.com/media/example.jpg",
+      "alt_text": "Example image"
+    }]
+  }
+}
+```
+
+***
+
+<div id="multiple-expansions">
+  ## एक से अधिक expansions
+</div>
+
+एक से अधिक expansions को अल्पविराम से अलग की गई सूची के रूप में अनुरोध करें:
+
+```bash
+expansions=author_id,referenced_tweets.id,attachments.media_keys
+```
+
+***
+
+<div id="common-patterns">
+  ## सामान्य पैटर्न
+</div>
+
+<Tabs>
+  <Tab title="पोस्ट का पूरा संदर्भ">
+    लेखक, मीडिया और संदर्भित पोस्ट्स सहित एक पोस्ट प्राप्त करें:
+
+    ```bash
+    expansions=author_id,attachments.media_keys,referenced_tweets.id
+    tweet.fields=created_at,public_metrics,conversation_id
+    user.fields=username,name,profile_image_url
+    media.fields=url,preview_image_url,type
+    ```
+  </Tab>
+
+  <Tab title="बातचीत थ्रेड">
+    लेखकों सहित जवाब प्राप्त करें:
+
+    ```bash
+    expansions=author_id,in_reply_to_user_id,referenced_tweets.id
+    tweet.fields=conversation_id,in_reply_to_user_id,created_at
+    user.fields=username,name
+    ```
+  </Tab>
+
+  <Tab title="पिन की गई पोस्ट वाला उपयोगकर्ता">
+    किसी उपयोगकर्ता की प्रोफ़ाइल उसकी पिन की गई पोस्ट सहित प्राप्त करें:
+
+    ```bash
+    expansions=pinned_tweet_id
+    user.fields=description,public_metrics,verified
+    tweet.fields=created_at,public_metrics
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="linking-data-and-includes">
+  ## डेटा और `includes` को लिंक करना
+</div>
+
+`includes` में मौजूद ऑब्जेक्ट्स में स्थिति संबंधी जानकारी नहीं होती। उन्हें ID के ज़रिए लिंक करें:
+
+```python
+# Python उदाहरण
+response = api_call()
+post = response["data"]
+users = {u["id"]: u for u in response["includes"]["users"]}
+
+# लेखक प्राप्त करें
+author = users.get(post["author_id"])
+print(f"{author['name']} said: {post['text']}")
+```
+
+```javascript
+// JavaScript उदाहरण
+const { data: post, includes } = response;
+const users = Object.fromEntries(
+  includes.users.map(u => [u.id, u])
+);
+
+const author = users[post.author_id];
+console.log(`${author.name} said: ${post.text}`);
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="फ़ील्ड्स" icon="list" href="/hi/x-api/fundamentals/fields">
+    हर ऑब्जेक्ट के लिए खास फ़ील्ड्स का अनुरोध करें।
+  </Card>
+
+  <Card title="डेटा शब्दकोश" icon="book" href="/hi/x-api/fundamentals/data-dictionary">
+    ऑब्जेक्ट के संपूर्ण स्कीमा।
+  </Card>
+</CardGroup>

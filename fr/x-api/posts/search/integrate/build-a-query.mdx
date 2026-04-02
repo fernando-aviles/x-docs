@@ -1,0 +1,327 @@
+---
+title: Créer une requête
+sidebarTitle: Créer une requête
+description: Découvrez comment créer des requêtes de recherche à l'aide d'opérateurs
+keywords: ["build query", "search query", "query builder", "search operators", "query syntax", "build search query", "query guide"]
+---
+
+Les points de terminaison de recherche acceptent une requête unique via une requête GET et renvoient un ensemble de Publications historiques correspondant à cette requête. Les requêtes sont constituées d&#39;opérateurs qui ciblent différents attributs de Publication.
+
+***
+
+<div id="query-limitations">
+  ## Limites des requêtes
+</div>
+
+Vos requêtes seront limitées en fonction du [niveau d&#39;accès](/fr/x-api/getting-started/about-x-api) que vous utilisez :
+
+| Niveau d&#39;accès | Recherche récente | Recherche dans l&#39;intégralité des archives |
+| :--- | :--- | :--- |
+| En libre-service | 512 caractères | 1 024 caractères |
+| Enterprise | 4 096 caractères | 4 096 caractères |
+
+***
+
+<div id="operator-availability">
+  ## Disponibilité des opérateurs
+</div>
+
+Bien que la plupart des opérateurs soient disponibles pour l’ensemble des développeurs, certains sont réservés à certains niveaux d’accès :
+
+* **Opérateurs de base :** Disponibles avec n’importe quel [Project](/fr/resources/fundamentals/developer-apps)
+* **Opérateurs avancés :** Disponibles avec un Project disposant de certains niveaux d’accès
+
+Consultez la [liste complète des opérateurs](/fr/x-api/posts/search/integrate/operators) pour plus de détails sur leur disponibilité.
+
+***
+
+<div id="operator-types-standalone-and-conjunction-required">
+  ## Types d’opérateurs : autonomes et nécessitant une conjonction
+</div>
+
+Les **opérateurs autonomes** peuvent être utilisés seuls ou avec n’importe quel autre opérateur (y compris ceux qui nécessitent une conjonction).
+
+Par exemple, cette requête fonctionne parce que `#hashtag` est un opérateur autonome :
+
+```
+#xapiv2
+```
+
+Les **opérateurs nécessitant une conjonction** ne peuvent pas être utilisés seuls dans une requête ; ils ne peuvent l’être que si au moins un opérateur autonome est inclus. En effet, n’utiliser que ces opérateurs ferait correspondre un volume extrêmement élevé de Publications.
+
+Par exemple, les requêtes suivantes ne sont **pas prises en charge** car elles ne comportent que des opérateurs nécessitant une conjonction :
+
+```
+has:media
+```
+
+```
+has:links OR is:retweet
+```
+
+Si nous ajoutons un opérateur isolé, comme l’expression `"X data"`, la requête fonctionne correctement :
+
+```
+"X data" has:mentions (has:media OR has:links)
+```
+
+***
+
+<div id="boolean-operators-and-grouping">
+  ## Opérateurs booléens et regroupement
+</div>
+
+Enchaînez plusieurs opérateurs à l’aide des outils suivants :
+
+| Opérateur | Description | Exemple |
+| :--- | :--- | :--- |
+| **AND** (espace) | Les Publications doivent satisfaire les deux conditions | `snow day #NoSchool` correspond aux Publications contenant &quot;snow&quot; ET &quot;day&quot; ET #NoSchool |
+| **OR** | Les Publications doivent satisfaire l’une ou l’autre des conditions | `grumpy OR cat OR #meme` correspond aux Publications contenant &quot;grumpy&quot; OU &quot;cat&quot; OU #meme |
+| **NOT** (tiret) | Exclure les Publications correspondant à cette condition | `cat #meme -grumpy` correspond aux Publications contenant &quot;cat&quot; et #meme mais PAS &quot;grumpy&quot; |
+| **Regroupement** (parenthèses) | Regrouper des opérateurs | `(grumpy cat) OR (#meme has:images)` correspond à l’un ou l’autre des groupes |
+
+<Note>
+  **Remarque sur les négations**
+
+  * L’opérateur `-is:nullcast` doit toujours être utilisé sous forme négative
+  * Les opérateurs négatifs ne peuvent pas être utilisés seuls
+  * Ne regroupez pas les opérateurs négatifs. Au lieu de `skiing -(snow OR day OR noschool)`, utilisez `skiing -snow -day -noschool`
+</Note>
+
+***
+
+<div id="order-of-operations">
+  ## Ordre des opérations
+</div>
+
+Lorsque vous combinez AND et OR :
+
+1. Les opérateurs reliés par l&#39;opérateur logique AND sont d&#39;abord combinés
+2. Ensuite, les opérateurs reliés par l&#39;opérateur logique OR sont appliqués
+
+**Exemples :**
+
+| Requête                  | Interprétée comme          |
+| :----------------------- | :------------------------- |
+| `apple OR iphone ipad`   | `apple OR (iphone ipad)`   |
+| `ipad iphone OR android` | `(iphone ipad) OR android` |
+
+Pour éliminer toute ambiguïté, utilisez des parenthèses :
+
+```
+(apple OR iphone) ipad
+```
+
+```
+iphone (ipad OR android)
+```
+
+***
+
+<div id="punctuation-diacritics-and-case-sensitivity">
+  ## Ponctuation, signes diacritiques et sensibilité à la casse
+</div>
+
+**Signes diacritiques :** Les requêtes de recherche avec accents ou signes diacritiques renvoient des Publications avec et sans accents. Par exemple, `Diacrítica` correspond à la fois à *Diacrítica* et *Diacritica*.
+
+**Sensibilité à la casse :** Tous les opérateurs sont insensibles à la casse. La requête `cat` correspond à *cat*, *CAT* et *Cat*.
+
+<Note>
+  **Le flux filtré se comporte différemment**
+
+  Lors de la [création de règles de flux filtré](/fr/x-api/posts/filtered-stream/integrate/build-a-rule), les mots-clés avec accents ne correspondent qu’aux Publications qui incluent également l’accent. Par exemple, `Diacrítica` correspond uniquement à *Diacrítica*, et pas à *Diacritica*.
+</Note>
+
+***
+
+<div id="quote-tweet-matching">
+  ## Correspondance pour les Quote Tweets
+</div>
+
+Lors de l&#39;utilisation de Search Posts, les opérateurs effectuent la correspondance sur le contenu du Quote Tweet, mais **pas** sur le contenu de la Publication d’origine citée.
+
+<Note>
+  [Filtered stream](/fr/x-api/posts/filtered-stream/introduction) se comporte différemment — il effectue la correspondance à la fois sur le Quote Tweet et sur le contenu de la Publication originale.
+</Note>
+
+***
+
+<div id="specificity-and-efficiency">
+  ## Spécificité et efficacité
+</div>
+
+<Warning>
+  L&#39;utilisation d&#39;opérateurs génériques, comme un simple mot-clé ou un hashtag, n&#39;est pas recommandée — cela renverra un volume massif de Publications et épuisera rapidement votre quota d&#39;utilisation.
+</Warning>
+
+**Conseils pour formuler des requêtes efficaces :**
+
+1. **Commencez de manière spécifique, puis élargissez** — Créez des requêtes ciblées qui renvoient des résultats pertinents
+2. **Utilisez plusieurs opérateurs** — Combinez les opérateurs pour restreindre les résultats
+3. **Surveillez le nombre de caractères** — Toute la chaîne de requête est comptabilisée dans la limite
+
+**Exemple de progression :**
+
+```
+# Too broad - 200,000+ Posts per day
+happy
+
+# Mieux - ajoute un filtre de langue et des exclusions
+(happy OR happiness) lang:en -birthday -is:retweet
+
+# Even better - 59 characters, more specific
+(happy OR happiness) place_country:GB -birthday -is:retweet
+```
+
+***
+
+<div id="iteratively-building-a-query">
+  ## Construire progressivement une requête
+</div>
+
+<div id="step-1-start-with-a-basic-query">
+  ### Étape 1 : Commencez par une requête simple
+</div>
+
+```
+happy OR happiness
+```
+
+<div id="step-2-test-and-narrow-based-on-results">
+  ### Étape 2 : Tester et affiner en fonction des résultats
+</div>
+
+Nous avons trouvé des Publications dans de nombreuses langues. Appliquez un filtre de langue :
+
+```
+(happy OR happiness) lang:en
+```
+
+Nous recevons des vœux d&#39;anniversaire. Excluez-les ainsi que les Retweets :
+
+```
+(happy OR happiness) lang:en -birthday -is:retweet
+```
+
+<div id="step-3-broaden-for-better-coverage">
+  ### Étape 3 : Élargir pour améliorer la couverture
+</div>
+
+Nous voulons capter davantage de signaux de sentiment. Ajoutez des mots-clés connexes :
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet
+```
+
+<div id="step-4-adjust-for-trends">
+  ### Étape 4 : Ajuster en fonction des tendances
+</div>
+
+Des Publications liées aux fêtes apparaissent. Excluez-les :
+
+```
+(happy OR happiness OR excited OR elated) lang:en -birthday -is:retweet -holidays
+```
+
+***
+
+<div id="adding-a-query-to-your-request">
+  ## Ajouter une requête à votre appel
+</div>
+
+Utilisez le paramètre `query` et appliquez un encodage HTTP à votre requête :
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=cat%20has%3Amedia%20-grumpy&\
+tweet.fields=created_at&\
+max_results=100" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+***
+
+<div id="query-examples">
+  ## Exemples de requêtes
+</div>
+
+<div id="tracking-a-natural-disaster">
+  ### Suivi d&#39;une catastrophe naturelle
+</div>
+
+Faire correspondre des Publications provenant d&#39;agences météorologiques concernant l&#39;ouragan Harvey :
+
+**Requête :**
+
+```
+has:geo (from:NWSNHC OR from:NHC_Atlantic OR from:NWSHouston OR from:NWSSanAntonio OR from:USGS_TexasRain OR from:USGS_TexasFlood OR from:JeffLindner1) -is:retweet
+```
+
+**URL complète de la requête :**
+
+```
+https://api.x.com/2/tweets/search/recent?query=has%3Ageo%20(from%3ANWSNHC%20OR%20from%3ANHC_Atlantic%20OR%20from%3ANWSHouston%20OR%20from%3ANWSSanAntonio%20OR%20from%3AUSGS_TexasRain%20OR%20from%3AUSGS_TexasFlood%20OR%20from%3AJeffLindner1)%20-is%3Aretweet
+```
+
+<div id="sentiment-analysis-for-nowplaying">
+  ### Analyse des sentiments pour #nowplaying
+</div>
+
+**Sentiment positif :**
+
+```
+#nowplaying (happy OR exciting OR excited OR favorite OR fav OR amazing OR lovely OR incredible) (place_country:US OR place_country:MX OR place_country:CA) -horrible -worst -sucks -bad -disappointing
+```
+
+**Sentiment négatif :**
+
+```
+#nowplaying (horrible OR worst OR sucks OR bad OR disappointing) (place_country:US OR place_country:MX OR place_country:CA) -happy -exciting -excited -favorite -fav -amazing -lovely -incredible
+```
+
+<div id="using-post-annotations">
+  ### Utiliser les annotations de Publication
+</div>
+
+Recherchez des Publications en japonais sur les animaux de compagnie (sauf les chats) avec des images en utilisant l’opérateur `context:` :
+
+Commencez par utiliser [Recherche de Publications](/fr/x-api/posts/lookup/introduction) avec `tweet.fields=context_annotations` pour identifier les ID domain.entity :
+
+* Chats : `domain` 66, `entity` 852262932607926273
+* Animaux de compagnie : `domain` 65, `entity` 852262932607926273
+
+**Requête :**
+
+```
+context:65.852262932607926273 -context:66.852262932607926273 -is:retweet has:images lang:ja
+```
+
+***
+
+<div id="tools">
+  ## Outils
+</div>
+
+<Card title="Générateur de requêtes" icon="wrench" href="https://developer.x.com/apitools/query?query=">
+  Créez et testez vos requêtes de manière interactive
+</Card>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Référence des opérateurs" icon="list" href="/fr/x-api/posts/search/integrate/operators">
+    Liste complète des opérateurs disponibles
+  </Card>
+
+  <Card title="Démarrage rapide de la recherche" icon="rocket" href="/fr/x-api/posts/search/quickstart/recent-search">
+    Effectuez votre première requête de recherche
+  </Card>
+
+  <Card title="Guide d'intégration" icon="book" href="/fr/x-api/posts/search/integrate/overview">
+    Documentation complète d&#39;intégration
+  </Card>
+</CardGroup>

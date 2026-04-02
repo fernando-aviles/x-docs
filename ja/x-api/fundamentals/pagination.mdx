@@ -1,0 +1,220 @@
+---
+title: ページネーション
+sidebarTitle: ページネーション
+description: 大量の結果セットをページングして取得する
+keywords: ["pagination", "pagination tokens", "next token", "page through results", "cursor pagination"]
+---
+
+API レスポンスに一度に返せる数より多くの結果が含まれている場合は、ページネーションを使用してすべてのページのデータを取得します。
+
+***
+
+<div id="how-pagination-works">
+  ## ページネーションの仕組み
+</div>
+
+1. 最初のリクエストでは `max_results` を指定します
+2. レスポンス内の `meta` オブジェクトに `next_token` が含まれているか確認します
+3. 含まれている場合、そのトークンを `pagination_token` として指定して次のリクエストを送信します
+4. `next_token` が返されなくなるまで繰り返します
+
+```bash
+# Initial request
+curl "https://api.x.com/2/users/12345/tweets?max_results=100" \
+  -H "Authorization: Bearer $TOKEN"
+
+# レスポンスにnext_tokenが含まれます
+# {"data": [...], "meta": {"next_token": "abc123", ...}}
+
+# Next page
+curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=abc123" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="pagination-tokens">
+  ## ページネーショントークン
+</div>
+
+| トークン | 説明 |
+|:------|:------------|
+| `next_token` | レスポンスの `meta` に含まれます。次のページを取得するために使用します。 |
+| `previous_token` | レスポンスの `meta` に含まれます。前のページに戻るために使用します。 |
+| `pagination_token` | リクエストパラメータ。`next_token` または `previous_token` の値を指定します。 |
+
+***
+
+<div id="response-structure">
+  ## レスポンスの構造
+</div>
+
+```json
+{
+  "data": [
+    {"id": "1234", "text": "..."},
+    {"id": "1235", "text": "..."}
+  ],
+  "meta": {
+    "result_count": 100,
+    "next_token": "7140w9gefhslx3",
+    "previous_token": "77qp89slxjd"
+  }
+}
+```
+
+これ以上取得できる結果がない場合、`next_token` は返されません。
+
+```json
+{
+  "data": [...],
+  "meta": {
+    "result_count": 42,
+    "previous_token": "77qp89abc"
+  }
+}
+```
+
+***
+
+<div id="pagination-parameters">
+  ## ページネーションパラメータ
+</div>
+
+| パラメータ | 説明 | デフォルト値 |
+|:----------|:------------|:--------|
+| `max_results` | 1ページあたりの結果数 | エンドポイントごとに異なる |
+| `pagination_token` | 前のレスポンスで返されたトークン | なし |
+
+各エンドポイントの APIリファレンスで、そのエンドポイントにおける `max_results` の上限値を確認してください。
+
+***
+
+<div id="example-paginating-through-all-results">
+  ## 例: ページネーションを使ってすべての結果を取得する
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    def get_all_tweets(user_id, bearer_token):
+        url = f"https://api.x.com/2/users/{user_id}/tweets"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        params = {"max_results": 100}
+        
+        all_tweets = []
+        
+        while True:
+            response = requests.get(url, headers=headers, params=params)
+            data = response.json()
+            
+            if "data" in data:
+                all_tweets.extend(data["data"])
+            
+            # 次のページがあるか確認
+            next_token = data.get("meta", {}).get("next_token")
+            if not next_token:
+                break
+                
+            params["pagination_token"] = next_token
+        
+        return all_tweets
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllTweets(userId, bearerToken) {
+      const url = `https://api.x.com/2/users/${userId}/tweets`;
+      const headers = { Authorization: `Bearer ${bearerToken}` };
+      
+      let allTweets = [];
+      let paginationToken = null;
+      
+      do {
+        const params = new URLSearchParams({ max_results: 100 });
+        if (paginationToken) {
+          params.set("pagination_token", paginationToken);
+        }
+        
+        const response = await fetch(`${url}?${params}`, { headers });
+        const data = await response.json();
+        
+        if (data.data) {
+          allTweets.push(...data.data);
+        }
+        
+        paginationToken = data.meta?.next_token;
+      } while (paginationToken);
+      
+      return allTweets;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="max_results を活用する" icon="arrow-up-1-9">
+    API 呼び出し回数を最小化するため、許可されている最大値の `max_results` を指定してください。
+  </Card>
+
+  <Card title="部分ページを処理する" icon="square-check">
+    最後のページでは、`max_results` より少ない件数しか返されない場合があります。
+  </Card>
+
+  <Card title="トークンを保存する" icon="database">
+    後でページネーションを再開する必要がある場合に備えて、`next_token` を保存しておいてください。
+  </Card>
+
+  <Card title="ページネーションでポーリングしない" icon="clock">
+    新しいデータを取得する場合は、繰り返しページネーションする代わりに `since_id` を使用してください。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="result-ordering">
+  ## 結果の並び順
+</div>
+
+結果は**新しいものから (逆時系列) **で返されます。
+
+* 1ページ目の最初の結果 = 最も新しい結果
+* 最後のページの最後の結果 = 最も古い結果
+
+この並び順は、ページ内およびページ間にわたって適用されます。
+
+***
+
+<div id="notes">
+  ## 補足
+</div>
+
+* ページネーション用トークンは不透明な文字列です — 解析したり変更したりしないでください
+* トークンは一定時間が経過すると期限切れになることがあります
+* `max_results` より少ない件数しか返ってこなくても、まだ結果が残っている可能性があります (`next_token` がなくなるまで続行してください) 
+* ページネーション処理を自動化するには [SDK](/ja/x-api/tools-and-libraries/sdks) を利用してください
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="レート制限" icon="gauge-high" href="/ja/x-api/fundamentals/rate-limits">
+    ページネーション時のレート制限について理解する。
+  </Card>
+
+  <Card title="SDKs" icon="cube" href="/ja/x-api/tools-and-libraries/sdks">
+    ページネーション機能が組み込まれているライブラリ。
+  </Card>
+</CardGroup>

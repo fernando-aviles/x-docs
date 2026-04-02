@@ -1,0 +1,141 @@
+---
+title: वर्णों की गिनती
+sidebarTitle: वर्णों की गिनती
+icon: text-size
+description: X पर पोस्ट्स में वर्ण कैसे गिने जाते हैं
+keywords: ["वर्ण गिनती", "Tweet की लंबाई", "280 वर्ण", "वर्ण सीमा", "Unicode", "इमोजी वर्ण", "URL लंबाई", "Tweet लेखन"]
+---
+
+X पर पोस्ट्स में अधिकतम **280 वर्ण** हो सकते हैं। हालांकि, सभी वर्ण समान रूप से नहीं गिने जाते—इमोजी, URL और कुछ Unicode श्रेणियों के लिए विशेष गिनती नियम हैं।
+
+***
+
+<div id="character-weights">
+  ## वर्ण भार
+</div>
+
+X भारित वर्ण-गणना प्रणाली का उपयोग करता है। अधिकांश वर्ण 1 गिने जाते हैं, लेकिन कुछ 2 गिने जाते हैं:
+
+| वर्ण प्रकार                        | भार          | अधिकतम वर्ण     |
+| :--------------------------------- | :----------- | :-------------- |
+| Latin, विराम चिह्न, सामान्य प्रतीक | 1            | 280             |
+| इमोजी                              | 2            | 140 इमोजी       |
+| CJK (Chinese, Japanese, Korean)    | 2            | 140 वर्ण        |
+| अन्य Unicode                       | 2 (डिफ़ॉल्ट) | अलग-अलग होता है |
+
+<Tip>
+  अपने ऐप में वर्णों की सटीक गिनती के लिए ओपन-सोर्स [twitter-text](https://github.com/twitter/twitter-text) लाइब्रेरी का उपयोग करें।
+</Tip>
+
+***
+
+<div id="emoji-counting">
+  ## इमोजी की गिनती
+</div>
+
+जटिलता चाहे जो भी हो, सभी इमोजी **2 वर्ण** माने जाते हैं:
+
+| Emoji       | Display            | Character count | Unicode          |
+| :---------- | :----------------- | :-------------- | :--------------- |
+| 👾          | एकल इमोजी          | 2               | U+1F47E          |
+| 🙋🏽        | त्वचा रंग के साथ   | 2               | 🙋 + 🏽 संशोधक   |
+| 👨‍🎤       | ZWJ के साथ संयोजित | 2               | 👨 + ZWJ + 🎤    |
+| 👨‍👩‍👧‍👦 | परिवार अनुक्रम     | 2               | 4 इमोजी + 3 ZWJs |
+
+शून्य-चौड़ाई संयोजक (ZWJ) इमोजी को दृश्य रूप से जोड़ते हैं, लेकिन गिनती में नहीं जुड़ते।
+
+***
+
+<div id="url-handling">
+  ## URL प्रबंधन
+</div>
+
+सभी URL को `t.co` shortener से लपेटा जाता है और मूल लंबाई चाहे कुछ भी हो, उन्हें **23 वर्णों** के रूप में गिना जाता है:
+
+```
+https://example.com                    → 23 characters
+https://example.com/very/long/path     → 23 characters
+```
+
+<Note>
+  यह पोस्ट के टेक्स्ट में पहचाने गए किसी भी मान्य URL पर लागू होता है।
+</Note>
+
+***
+
+
+<div id="special-cases">
+  ## विशेष मामले
+</div>
+
+| सामग्री                  | गिनती का नियम                                                                     |
+| :----------------------- | :-------------------------------------------------------------------------------- |
+| **जवाबों में @mentions** | जवाब की शुरुआत में अपने-आप जोड़े गए @mentions की गिनती नहीं होती                  |
+| **नए @mentions**         | आपके द्वारा मैन्युअली जोड़े गए @mentions की गिनती सामान्य रूप से होती है          |
+| **मीडिया**               | संलग्न मीडिया (आधिकारिक क्लाइंट्स के माध्यम से) 0 अक्षरों के रूप में गिना जाता है |
+| **हैशटैग**               | सामान्य रूप से गिने जाते हैं (# + टैग टेक्स्ट)                                    |
+
+***
+
+<div id="text-encoding">
+  ## पाठ एन्कोडिंग
+</div>
+
+X API में **UTF-8** एन्कोडिंग आवश्यक है। वर्णों की लंबाई की गणना Unicode Normalization Form C (NFC) के आधार पर की जाती है।
+
+`café` के साथ उदाहरण:
+
+| रूप           | बाइट्स      | वर्ण |
+| :------------ | :---------- | :--- |
+| NFC (संयोजित) | `c a f é`   | 4    |
+| NFD (विघटित)  | `c a f e ́` | 5    |
+
+X, NFC में सामान्यीकृत करता है, इसलिए दोनों 4 वर्णों के रूप में एन्कोड होते हैं।
+
+***
+
+<div id="implementation">
+  ## कार्यान्वयन
+</div>
+
+सटीक वर्ण-गणना के लिए आधिकारिक [twitter-text](https://github.com/twitter/twitter-text) लाइब्रेरी का उपयोग करें:
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    import { parseTweet } from 'twitter-text';
+
+    const result = parseTweet('Hello, world! 👋');
+    console.log(result.weightedLength); // 16
+    console.log(result.valid);          // true
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    from twitter_text import parse_tweet
+
+    result = parse_tweet('Hello, world! 👋')
+    print(result.weightedLength)  # 16
+    print(result.valid)           # True
+    ```
+  </Tab>
+</Tabs>
+
+यह लाइब्रेरी इमोजी क्रम, URL पहचान, और Unicode normalization सहित सभी edge cases को संभालती है।
+
+***
+
+<div id="resources">
+  ## संसाधन
+</div>
+
+<CardGroup cols={2}>
+  <Card title="twitter-text लाइब्रेरी" icon="github" href="https://github.com/twitter/twitter-text">
+    टेक्स्ट पार्सिंग के लिए आधिकारिक ओपन-सोर्स लाइब्रेरी।
+  </Card>
+
+  <Card title="कॉन्फ़िगरेशन फ़ाइल" icon="file-code" href="https://github.com/twitter/twitter-text/tree/master/config">
+    कैरेक्टर वेट की परिभाषाएँ और Unicode रेंज।
+  </Card>
+</CardGroup>

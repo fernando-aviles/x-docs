@@ -1,0 +1,421 @@
+---
+title: Decahose API
+keywords: ["Decahose", "10% stream", "decahose API", "enterprise decahose", "10% sampled stream", "enterprise streaming"]
+---
+
+<Note>
+  このエンドポイントは、ポストの編集メタデータを含むように更新されました。これらのメタデータの詳細については、「ポストを編集する」の[基本事項ページ](/ja/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets)を参照してください。 
+</Note>
+
+### Decahose ストリーム
+
+[Enterprise](https://developer.x.com/en/products/x-api/enterprise)
+
+*これは、マネージドアクセスレベルでのみ利用可能な Enterprise API です。この API を利用するには、まず Enterprise セールスチームを通じてアカウントを開設する必要があります。 [詳細はこちら](https://developer.x.com/en/products/x-api/enterprise)*
+
+Decahose は、ストリーミング接続を通じて、リアルタイムの X Firehose の全体の 10% にあたるランダムサンプルを提供します。これは、リアルタイムサンプリングアルゴリズムによってデータをランダムに選択しつつ、X から Firehose 経由で送信されるデータを期待どおりの低レイテンシで配信できるようにすることで実現されています。
+
+以下は、Decahose で利用可能な主な機能です。
+
+* **拡張・強化された URL:** - 短縮 URL を完全に展開し、追加のメタデータ (ページタイトルと説明文) を提供
+* **ストリームのパーティショニング** - 2 つのパーティションで構成され、それぞれが Decahose ストリーム全体ボリュームの 50% を保持
+* **信頼性の向上** - バックエンドシステムの地理的分散
+
+注: このデータは一括で提供され、追加のフィルタリング (キーワードなど) には対応していません。
+
+`ENTERPRISE`
+
+<div id="streaming-likes">
+  ### いいねのストリーミング
+</div>
+
+*これはマネージドアクセスレベルでのみ利用可能なエンタープライズ API です。この API を使用するには、まず当社のエンタープライズセールスチームとのアカウント設定が必要です。 [詳細はこちら](https://developer.x.com/en/products/x-api/enterprise)*
+
+いいねは、どの投稿に誰がいいねしたかについてのインサイトを提供し、正確ないいね数を取得できるようにします。Gnip の Firehose と Decahose は、Gnip 経由で配信される投稿に関連するパブリックいいねを配信できます。これにより、投稿に関連付けられたリアルタイムのパブリックエンゲージメントおよびオーディエンス指標が得られます。
+ 
+
+**いいねの利用を開始する**
+
+いいねデータを利用するにあたっては、次の点を理解しておく必要があります。
+
+* いいねは独立した専用ストリームとして配信されます
+* いいねは、これまで「Favorites」と呼ばれてきました。拡張済みネイティブ形式のペイロードでもこの名称が保持されています
+* ストリームにはパブリックいいねのみが含まれます
+  * パブリックとは、いいねしたユーザー、投稿作成者、および投稿がすべてプラットフォーム上で公開状態であることを意味します
+* いいねはリツイートと非常によく似ており、公開されたエンゲージメントシグナルを表します
+* ペイロード要素には次が含まれます:
+  * 元の投稿オブジェクト
+  * 元の投稿を作成したアクターオブジェクト
+  * いいねアクションを実行したアクターオブジェクト
+* オリジナルコンテンツのみがいいねの対象になります
+  * リツイートにはいいねできません。リツイートに対するいいねは元の投稿に適用されます
+  * 引用ツイートには *いいねできます*
+* いいねのアクティビティには、該当する Gnip Enrichments (購入・適用されている場合) が含まれます
+* サポートされるプロダクト / 機能
+  * いいねストリームは Backfill をサポートします (購入・適用されている場合) 
+  * いいねストリームには Replay のサポートはありません
+  * いいねに対する Search または Historical のサポートはありません
+  * PowerTrack にいいねのサポートを追加する即時の計画はありません
+
+**Decahose**
+
+* Decahose で配信される 10% サンプルの投稿に対して、ストリームには該当するパブリックいいねが 100% 含まれます
+* **パーティション:** 2
+* **URL 構造**
+  * https://gnip-stream.x.com/stream/sample10-likes/accounts/&lt;accountName&gt;/publishers/twitter/&lt;streamLabel&gt;.json?partition=1
+
+**ネイティブのエンリッチド形式ペイロード**
+
+```json
+{
+   "id":"43560406e0ad9f68374445f5f30c33fc",
+   "created_at":"Thu Dec 01 22:27:39 +0000 2016",
+   "timestamp_ms":1480631259353,
+   "favorited_status":{
+      "created_at":"Thu Dec 01 22:27:16 +0000 2016",
+      "id":804451830033948672,
+      "id_str":"804451830033948672",
+      "text":"@kafammheppduman",
+      "source":"\u003ca href=\"http:\/\/x.com\/download\/android\" rel=\"nofollow\"\u003eX for Android\u003c\/a\u003e",
+      "truncated":false,
+      "in_reply_to_status_id":803694205163814912,
+      "in_reply_to_status_id_str":"803694205163814912",
+      "in_reply_to_user_id":2855759795,
+      "in_reply_to_user_id_str":"2855759795",
+      "in_reply_to_screen_name":"kafammheppduman",
+      "user":{
+         "id":2855759795,
+         "id_str":"2855759795",
+         "name":"delirdim kanka",
+         "screen_name":"kafammheppduman",
+         "location":"sanane",
+         "url":"http:\/\/instagram.com\/kafammheppduman",
+         "description":"Manit @GalatasaraySk \ud83d\udc9e",
+         "translator_type":"none",
+         "protected":false,
+         "verified":false,
+         "followers_count":3702,
+         "friends_count":607,
+         "listed_count":1,
+         "favourites_count":113338,
+         "statuses_count":389,
+         "created_at":"Sat Nov 01 22:38:25 +0000 2014",
+         "utc_offset":null,
+         "time_zone":null,
+         "geo_enabled":true,
+         "lang":"tr",
+         "contributors_enabled":false,
+         "is_translator":false,
+         "profile_background_color":"C0DEED",
+         "profile_background_image_url":"",
+         "profile_background_image_url_https":"",
+         "profile_background_tile":false,
+         "profile_link_color":"1DA1F2",
+         "profile_sidebar_border_color":"C0DEED",
+         "profile_sidebar_fill_color":"DDEEF6",
+         "profile_text_color":"333333",
+         "profile_use_background_image":true,
+       "Profile_image_url": "http:\/\/pbs.twimg.com\/profile_images\/804421763945861121\/v3bp9pnq_normal.jpg",
+         "Profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/804421763945861121\/v3bp9pnq_normal.jpg",
+         "profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/2855759795\/1480630085",
+         "default_profile":true,
+         "default_profile_image":false,
+         "following":null,
+         "follow_request_sent":null,
+         "notifications":null
+      },
+      "geo":null,
+      "coordinates":null,
+      "place":null,
+      "contributors":null,
+      "is_quote_status":false,
+      "retweet_count":0,
+      "favorite_count":0,
+      "entities":{
+         "hashtags":[],
+         "urls":[],
+         "user_mentions":[
+            {
+               "screen_name":"kafammheppduman",
+               "name":"delirdim kanka",
+               "id":2855759795,
+               "id_str":"2855759795",
+               "indices":[
+                  0,
+                  16
+               ]
+            }
+         ],
+         "symbols":[]
+      },
+      "favorited":false,
+      "retweeted":false,
+      "filter_level":"low",
+      "lang":"und"
+   },
+   "user":{
+      "id":774146932365070336,
+      "id_str":"774146932365070336",
+      "name":"Uyuyan Adam",
+      "screen_name":"saykoMenn",
+      "location":"Tarsus, T\u00fcrkiye",
+      "url":"http:\/\/connected2.me\/pmc1i",
+      "description":null,
+      "translator_type":"none",
+      "protected":false,
+      "verified":false,
+      "followers_count":414,
+      "friends_count":393,
+      "listed_count":0,
+      "favourites_count":9868,
+      "statuses_count":370,
+      "created_at":"Fri Sep 09 07:26:26 +0000 2016",
+      "utc_offset":null,
+      "time_zone":null,
+      "geo_enabled":false,
+      "lang":"tr",
+      "contributors_enabled":false,
+      "is_translator":false,
+      "profile_background_color":"F5F8FA",
+      "profile_background_image_url":"",
+      "profile_background_image_url_https":"",
+      "profile_background_tile":false,
+      "profile_link_color":"1DA1F2",
+      "profile_sidebar_border_color":"C0DEED",
+      "profile_sidebar_fill_color":"DDEEF6",
+      "profile_text_color":"333333",
+      "profile_use_background_image":true,
+      "Profile_image_url": "http:\/\/pbs.twimg.com\/profile_images\/802992813424201728\/VMzcTL3x_normal.jpg",
+      "Profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/802992813424201728\/VMzcTL3x_normal.jpg",
+      "profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/774146932365070336\/1480283382",
+      "default_profile":true,
+      "default_profile_image":false,
+      "following":null,
+      "follow_request_sent":null,
+      "notifications":null
+   }
+}
+```
+
+**いいね削除 / 「いいね取り消し」ペイロード**
+
+```json
+{
+   "delete":{
+      "favorite":{
+         "tweet_id":696615514970279937,
+         "tweet_id_str":"696615514970279937",
+         "user_id":2510287578,
+         "user_id_str":"2510287578"
+      },
+      "timestamp_ms":"1480437031205"
+   }
+}
+```
+
+<div id="guides">
+  ## ガイド
+</div>
+
+<div id="recovery-and-redundency">
+  ### リカバリと冗長性
+</div>
+
+**概要** 
+
+大量のリアルタイム投稿をストリーミングする場合、データの信頼性と完全性 (フルフィデリティ) を高めるための一連のベストプラクティスがあります。リアルタイムデータを取り込む際には、接続時間を最大化することが基本的な目標です。切断が発生したときには、それを自動的に検知して再接続することが重要です。再接続後には、データをバックフィルすべき期間がないかを確認することも重要です。これらの詳細を管理しリアルタイム投稿を取り込むコンポーネントは、ネットワーク、データストア、サーバー、ストレージといった観点を持つシステム全体の一部にすぎません。これらのシステムの複雑さを踏まえると、少なくとも開発／テスト用と本番用でストリームを分けるなど、異なるストリーミング環境を用意することもベストプラクティスです。
+
+Decahose には、これらの取り組みを支援する一連の機能が備わっています。
+
+1. 複数の環境をサポートするために、アカウントに対して[追加ストリーム](#AdditionalStreams)をデプロイできます。これらのストリームは互いに独立しており、それぞれを区別するための異なる stream&#95;label を持ちます。
+2. 接続維持を支援するため、各 Decahose ストリームは[冗長接続](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#additional-streams)をサポートしています。最も一般的なアーキテクチャは、1 つのストリームに 2 つの接続があり、クライアント側には 2 つの独立したコンシューマーが存在する構成で、理想的には異なるネットワーク上に配置します。この設計により、クライアント側のネットワーク、サーバー、およびデータストア経路にまたがって冗長性を持たせることができます。各接続ではデータの完全なコピーが配信されるため、クライアント側は重複データを許容し、管理できる必要がある点に注意してください。
+3. 「**ハートビート**」が 10 秒ごとに送信されます。ただし、Decahose ストリームではデータ量が十分に多いため、短い期間 (数秒程度) でも投稿がない場合は、接続に問題が発生している可能性があります。したがって、データの「無送信状態」とハートビートの欠如の両方を、切断検知に利用できます。
+
+切断は避けられないため、Decahose ストリームには専用の[リカバリ](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#overview)機能と[バックフィル](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#backfill)機能があり、切断やその他の運用上の問題によって取り逃したデータの復旧を支援します。
+
+<div id="additional-streams">
+  #### 追加ストリーム
+</div>
+
+追加の Decahose ストリームを用意することは、ソリューションの信頼性を高めるもう 1 つの方法です。追加ストリームはすべて完全に独立しており、それぞれ固有のエンドポイントを持ちます。各ストリームには固有の `stream_label` が割り当てられ、このラベルとアカウント名がそのストリームの URL の一部になります。以下の例を参照してください。
+
+https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json
+
+最も一般的な慣例は、本番システム専用のリアルタイムストリームを 1 つ用意し、開発およびテスト用に追加ストリームを 1 つ用意することです。テスト／開発用ストリームを持つことで、Decahose のお客様はクライアントコンシューマの更新をテストするためのストリームを確保できます。任意の (一意な) ラベルをストリームに割り当てることができますが、1 つの慣例として、本番ストリームには「prod」、追加の開発用ストリームには「dev」または「sandbox」を使用します。
+
+ストリームの数とそれぞれの一意なラベルは、アカウント担当者によって設定できます。
+
+**冗長接続**
+
+冗長接続とは、データストリームに対して複数の同時接続を確立できるようにすることを指します。これにより、2 つの別々のコンシューマから同じストリームに接続し、両方の接続を通じて同じデータを受信することで冗長性が提供されます。したがって、例えば一方のストリームが切断された場合や、アプリケーションのプライマリサーバーが障害を起こした場合など、さまざまな状況に対してホットフェイルオーバーを実現できます。
+
+特定のストリームに対して許可される接続数は、アカウント担当者によって設定できます。冗長ストリームを利用するには、プライマリ接続で使用しているものと同じ URL に接続するだけです。ストリームのデータは両方の接続を通じて送信され、両方のストリーム接続はストリームダッシュボード上に表示されます。
+
+課金の観点からは、複数接続を通じて受信したアクティビティ数について重複排除を行い、それぞれの一意なアクティビティについてのみ 1 回分の料金が請求される点に注意してください。Decahose には 2 つのパーティションがあるため、接続数がどのようにカウントされるかを以下に例示します。
+
+Connect to decahose partition=1
+Connect to decahose partition=1
+Connect to decahose partition=2
+
+上記の状況では合計 3 つの接続が存在します。partition=1 への接続が 2 つ、partition=2 への接続が 1 つです。通常は各パーティションに対して同じ数の接続を確保することが望ましいため、この例は partition=2 への冗長接続が切断され、さらなる調査が必要な状況を示しています。
+
+**リカバリー**
+
+<div id="overview">
+  #### 概要
+</div>
+
+Recovery は、直近 5 日間のローリングウィンドウで提供される X の履歴データにストリーミングアクセスできるデータリカバリツールです (プライマリなデータ収集には使用しないでください) 。このツールは、短時間の切断などによりリアルタイムストリームからのデータを取り逃した場合や、その他の理由で一定期間リアルタイムデータを取り込めなかったあらゆる状況で、データを復元する目的で利用することを想定しています。
+
+<div id="using-recovery">
+  #### Recovery の使用
+</div>
+
+Recovery ストリームを使用すると、アプリからはリアルタイムストリームへのリクエストと同様の方法で、このストリームにリクエストを送信できます。ただし、アプリはリクエストしている時間範囲を示すパラメータを URL 内で指定する必要があります。言い換えると、Recovery リクエストでは API に対して「時刻 A から時刻 B までの投稿」を要求します。これらの投稿は、その後ストリーミング接続を通じてリアルタイムストリームを模した形で配信されますが、リアルタイムよりわずかに遅い速度で配信されます。以下はその例です:
+
+&quot;https://stream-data-api.x.com/stream/powertrack/accounts/someAccountName/publishers/twitter/powertrack.json?startTime=2023-07-05T17:09:12.070Z&quot;
+
+投稿は指定した期間の最初の (最も古い) 1 分から配信が始まり、最後の 1 分が配信されるまで時系列順に続きます。その時点で、「Recovery Request Completed」メッセージが接続経由で送信され、その後サーバーによって接続が閉じられます。リクエストの開始時刻が、一致する結果がほとんど、またはまったく発生しなかった時間帯にあたる場合、最初の結果が配信されるまでにある程度の時間がかかる可能性があります。データは、その時点で処理されているアーカイブの部分で Recovery が一致を検出したときに配信されます。配信できる結果が存在しない場合でも、タイムアウトを防ぐため、ストリームはキャリッジリターン、いわゆる「ハートビート」を接続経由で送り続けます。
+
+Recovery は、短時間の切断により取り逃がしたデータを容易に回収するためのツールとして設計されており、1 日全体のような非常に長い時間範囲を対象としたものではありません。長時間分のデータを回収する必要がある場合は、回線の不安定さなどによってリクエスト途中で切断される可能性を低減し、長時間のリクエストの進捗をより把握しやすくするために、長いリクエストを (例: 2 時間などの) より短い時間ウィンドウに分割することを推奨します。
+
+<div id="data-availability">
+  #### データ可用性
+</div>
+
+5 分間のバックフィル猶予期間内に再接続できない場合でも、Recovery 機能を使用して直近 24 時間以内に取り逃したデータをリカバリできます。
+
+ストリーミングのリカバリ機能により、バックフィルの猶予期間を 24 時間まで延長できます。Recovery を使用すると、取り逃したデータの時間範囲を「リカバリ」できます。`start_time` と `end_time` のリクエストパラメータを使用して接続リクエストを行うと、リカバリストリームが開始されます。接続が確立されると、Recovery は指定された時間範囲のデータを再ストリーミングし、その後切断します。  
+
+Recovery には同時に 2 件のリクエストを行うことができ、つまり「2 つのリカバリジョブ」を同時に実行できます。Recovery は、開始時刻と終了時刻が定義される点を除き、技術的にはバックフィルと同じように動作します。1 回のリカバリ期間は、単一の時間範囲に対して行われます。
+
+<div id="backfill">
+  #### バックフィル
+</div>
+
+バックフィルをリクエストするには、接続リクエストに backfillMinutes=N パラメータを追加する必要があります。ここで N は、接続が確立されたときにバックフィルする時間 (分)  (1〜5、整数のみ) です。たとえば、90 秒間切断された場合、接続リクエストに backfillMinutes=2 を追加する必要があります。このリクエストでは、切断前の 30 秒間を含めて 2 分間のバックフィルが提供されるため、*コンシューマーアプリは重複データを許容できる必要があります*。
+
+5 分間のバックフィルをパーティション 1 に対してリクエストする Decahose 接続リクエスト URL の例は次のとおりです。
+
+https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json?partition=1&amp;backfillMinutes=5
+
+**注記:**
+
+* 接続のたびに常に「backfillMinutes=5」を使用し、提供される重複データを処理する、という運用も可能です。
+
+* 5 分を超えて切断された場合は、Recovery を使用してデータを復旧できます。
+
+**切断からの復旧**
+
+再起動および切断からの復旧には、いくつかの手順が必要です。
+
+* 切断期間の長さを判断する。
+  * 5 分以下か？
+    * ストリームで Backfill を有効にしている場合は、適切な「backfillMinutes」パラメータを指定した接続リクエストを準備します。
+  * 5 分より長いか？
+    * Recovery ストリームがある場合は、切断されていた期間について Recovery リクエストを行います (必要であれば Rules API を使用して、可能な限り現在のリアルタイムルールセットで行うのが理想的です) 。
+* 新しい接続をリクエストする。
+
+切断やダウンタイムが発生した場合、このような状況を軽減し、復旧するための戦略は次のとおりです。
+
+1. **バックフィルを実装する**\
+   バックフィルを使用すると、ストリーム接続から切断される前の時点から再接続でき、最大 5 分間の切断をカバーできます。これは接続リクエストにパラメータを含めることで実装されます。
+
+2. **別の場所から冗長ストリームを取り込む**\
+   冗長ストリームを同じ本番環境にストリーミングし、データの重複排除ができるのであれば、通常のストリームと冗長ストリームの両方で同時にダウンタイムや切断が発生しない限り、Recovery を行う必要はなくなります。冗長ストリームを本番環境にライブでストリーミングできない場合は、別の「緊急用」データストアに書き込むことができます。そのうえで、プライマリストリーム接続で切断やダウンタイムが発生した際には、その期間に欠損しているデータをプライマリデータベースに補完するためのデータを、システム側で確保しておくことができます。
+
+3. **Recovery を実装する**\
+   切断やダウンタイムがプライマリストリームと冗長ストリームの両方に影響する場合は、Decahose Recovery を使用して欠損データを復旧します。API にはアーカイブ 5 日分を対象とするローリングウィンドウが用意されており、そのウィンドウのうち 1 回あたり 1 時間分以下をリクエストしてストリーミングする形で利用するのが最適です。これはリアルタイムストリームと並行して実行します。Recovery が提供する 5 日間のウィンドウより前の Decahose データを復旧する手段はないため、重大なダウンタイムが発生した場合でも自社側で完全なデータコピーを保持できるよう、冗長ストリームを活用することが重要です。
+
+異常な保存データ量を検知した場合\
+切断やダウンタイムが発生していないのに欠損データを検知する可能性のある方法としては、次のようなものがあります。
+
+1. 受信した投稿数をカウントする\
+   システムは、取り込みアプリの最初の段階で受信した生の投稿数をカウントし、その数と最終的なデータストアに到達した投稿数を比較できるようにすべきです。差分を監視することで、受信後にデータがドロップされる原因となっている問題をチームに通知できます。
+
+2. 異常な保存ボリュームを分析する\
+   最終データベースに保存されているデータ量を分析し、異常な落ち込みがないかを確認することも有用です。これも問題の兆候になり得ますが、ボリュームが減少しても問題ない状況 (たとえば、X プラットフォームが利用できず、一定期間ユーザーが投稿を作成できない場合) も存在する点には留意してください。
+
+<div id="api-reference">
+  ## APIリファレンス
+</div>
+
+<div id="decahose-stream">
+  ### Decahose stream
+</div>
+
+このページ内のセクション
+
+[メソッド](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#methods)
+
+[認証](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#authentication)
+
+[GET /&#123;stream-type&#125;/:stream](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#get-stream-type-stream)
+
+[Replay API](/ja/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#replay-api)
+
+<div id="methods">
+  #### メソッド
+</div>
+
+| メソッド | 説明 |
+| :--- | :--- |
+| [GET /&#123;stream-type&#125;/:stream](#Stream) | データストリームへ接続 |
+
+<div id="authentication">
+  #### 認証[](#authentication- "Permalink to this headline")
+</div>
+
+Volume Stream API へのすべてのリクエストは、console.gnip.com のアカウントにログインする際に使用する有効なメールアドレスとパスワードの組み合わせから構成される HTTP Basic 認証を使用する必要があります。認証情報は各リクエストの Authorization ヘッダーとして渡す必要があります。そのため、すべての API リクエストに対して、クライアントが (HTTPS 上でエンコードされた認証情報を含む) &quot;Authentication: Basic&quot; という HTTP ヘッダーを追加して送信していることを確認してください。
+
+#### GET {stream-type}:stream
+
+リアルタイムのデータが配信される Firehose ストリームへの永続的な接続を確立します。
+
+<div id="request-specifications">
+  #### リクエスト仕様
+</div>
+
+|     |     |
+| :--- | :--- |
+| **リクエストメソッド** | HTTP GET |
+| **接続タイプ** | Keep-Alive  <br />  <br />リクエストのヘッダーで指定してください。 |
+| **URL** | ダッシュボードのストリームAPI Helpページに記載されており、以下の構造になっています:  <br />  <br />Decahose:<br /><br />[https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json?partition=1](https://gnip-stream.x.com/stream/sample10/accounts/:account_name/publishers/twitter/:stream_label.json?partition=1) |
+| **パーティション(必須)** | `partition=\{#}` - フルストリームを利用するには、パーティショニングが必須です。パーティションパラメータを指定してストリームに接続してください。各ストリームのパーティション数は以下の通りです:<br /><br />* Decahose: 2パーティション |
+| **圧縮** | Gzip。Gzip圧縮を使用してストリームに接続するには、接続リクエストにAccept-Encodingヘッダーを送信してください。ヘッダーは以下のようになります:  <br />  <br />Accept-Encoding: gzip |
+| **文字エンコーディング** | UTF-8 |
+| **レスポンス形式** | JSON。リクエストのヘッダーでレスポンスのJSON形式を指定してください。 |
+| **レート制限** | 60秒あたり10リクエスト |
+| **バックフィルパラメータ** | バックフィルが有効なストリームを購入した場合、GETリクエストに「backfillMinutes」パラメータを追加して有効化してください。 |
+| **読み取りタイムアウト** | クライアントに読み取りタイムアウトを設定し、30秒を超える値に設定してください。 |
+| **ツイート編集のサポート** | すべてのツイートオブジェクトには、ツイートの編集履歴を示すツイート編集メタデータが含まれます。詳細については、[「ツイートの編集」基礎ページ](/ja/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets)を参照してください。 |
+
+<div id="responses">
+  #### レスポンス
+</div>
+
+これらのリクエストに対して、API は次のレスポンスを返す可能性があります。ほとんどのエラーコードでは、ボディに追加の詳細を含む文字列が返されます。200 以外のレスポンスの場合、クライアントは再接続を試みる必要があります。
+
+| ステータス | テキスト | 説明 |
+| :--- | :--- | :--- |
+| 200 | Success | 接続が正常に確立され、以後は新しいアクティビティが到着し次第送信されます。 |
+| 401 | Unauthorized | 無効な認証情報が原因で HTTP 認証に失敗しました。console.gnip.com に自身の認証情報でログインし、リクエストで正しく使用できていることを確認してください。 |
+| 406 | Not Acceptable | 一般的には、クライアントがストリームからの gzip エンコーディングを受け入れるためのヘッダーを正しく含めていない場合に発生しますが、その他の状況でも発生する可能性があります。  <br />  <br />「この接続には圧縮が必要です。圧縮を有効にするには、リクエストに &#39;Accept-Encoding: gzip&#39; ヘッダーを送信し、クライアント側でストリームを読み取る際に解凍できるよう準備してください。」という内容に類似した JSON メッセージが含まれます。 |
+| 429 | Rate Limited | App が接続リクエストの上限を超過しました。 |
+| 503 | Service Unavailable | Twitter サーバー側の問題です。指数バックオフパターンを用いて再接続してください。この問題について [X API Status Page](https://api.twitterstat.us/) に通知が投稿されていない状態で、10 分経過しても接続できない場合は、サポートまたは緊急連絡先にお問い合わせください。 |
+
+<div id="example-curl-request">
+  #### curl リクエストの例
+</div>
+
+次の例では、コマンドラインで curl を使用してリクエストを送信します。ただし、これらのリクエストは任意のプログラミング言語を使用して送信することもできます。
+
+```
+curl --compressed -v -uexample@customer.com "https://gnip-stream.x.com/stream/firehose/accounts/:account\_name/publishers/twitter/:stream\_label.json?partition={#}"
+```
+
+<div id="replay-api">
+  #### Replay API
+</div>
+
+Replay API は、リアルタイムの Volume ストリームを補完する重要な API です。Replay はデータ復旧ツールであり、直近の X の履歴データ (ローリングウィンドウ) へのストリーミングアクセスを提供します。

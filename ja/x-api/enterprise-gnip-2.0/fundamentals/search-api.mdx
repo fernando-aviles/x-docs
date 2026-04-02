@@ -1,0 +1,1616 @@
+---
+title: "検索 API：エンタープライズ"
+sidebarTitle: 検索 API
+keywords: ["エンタープライズ検索", "GNIP 検索", "エンタープライズ検索 API", "検索 API エンタープライズ", "エンタープライズ検索エンドポイント"]
+---
+
+> **ご留意ください。**
+>
+> [X API v2](/ja/x-api/getting-started/about-x-api) で [投稿の検索](/ja/x-api/posts/search/introduction) と [投稿数](/ja/x-api/posts/counts/introduction) の新しいバージョンをリリースしました。X API v2 の[新機能をご確認ください](/ja/x-api/migrate/overview)。
+>
+> これらのエンドポイントは、ポストの編集メタデータを含むように更新されています。これらのメタデータの詳細については、[&quot;Edit Posts&quot; の基礎ページ](/ja/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) を参照してください。 
+
+<div id="overview">
+  ## Overview
+</div>
+
+`Enterprise`
+
+*エンタープライズ API は、当社の管理されたアクセスレベルでのみ利用可能です。これらの API を使用するには、まずエンタープライズ営業チームを通じてアカウントを開設する必要があります。詳細については [こちら](https://developer.x.com/en/products/x-api/enterprise) をご覧ください。*
+
+*X API におけるすべての検索系ポストオファリングは [こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api) から確認できます。*
+
+エンタープライズ検索 API には次の 2 種類があります。
+
+1. 30-Day Search API は、直近 30 日間のデータを提供します。
+2. Full-Archive Search API は、2006 年 3 月の最初のポストまでさかのぼる、X データ全体のコーパスへの完全かつ即時のアクセスを提供します。
+
+これらの RESTful API は、1 回のリクエストにつき最大 2,048 文字の単一クエリをサポートします。クエリは PowerTrack ルール構文で記述します。詳細は [Rules and filtering](/ja/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#getting-started-with-enterprise-rules-and-queries) を参照してください。ユーザーは、最小で 1 分単位の任意の時間範囲を指定できます。ただし、レスポンスは、指定した maxResults または 31 日のいずれか小さい方に制限され、次の結果セットを取得するための next トークンが含まれます。時間パラメーターを指定しない場合、API は直近 30 日間の一致するデータを返します。
+
+エンタープライズ検索 API は、1 分単位の粒度で、ポストアーカイブへの低レイテンシかつ完全忠実なクエリベースのアクセスを提供します。ポストデータは、クエリに一致する最新のポストから始まる逆時系列で返されます。ポストは、公開されてから約 30 秒後に Search API から利用可能になります。
+
+これらの検索エンドポイントは、編集されたポストのメタデータを提供します。2022 年 9 月 29 日以降に作成されたポストのすべてのオブジェクトには、そのポストが一度も編集されていない場合でも、ポスト編集メタデータが含まれます。ポストが編集されるたびに、新しいポスト ID が作成されます。ポストの編集履歴は、元の ID から始まるポスト ID の配列として記録されます。
+
+これらのエンドポイントは常に、最新の編集バージョンと、編集履歴があればその履歴もあわせて返します。30 分の編集ウィンドウ経過後に取得されたポストは、最終版を表します。編集ポストのメタデータの詳細については、[Edit Posts fundamentals](/ja/x-api/fundamentals/edit-posts) ページを参照してください。
+
+リクエストには、API レスポンスごとに返す投稿数の上限を指定する maxResults パラメーターが含まれます。クエリに関連付けられた投稿数が、このレスポンスごとの最大結果数を超える場合、レスポンスには next トークンが含まれます。これらの next トークンは、後続のリクエストで使用し、そのクエリに関連する投稿の全セットをページングします。
+
+これらのエンタープライズ検索 API には、クエリに関連するデータボリュームをリクエストできる *counts* エンドポイントが用意されています。 
+
+<div id="request-types">
+  ### リクエストの種類
+</div>
+
+Enterprise Search API では、2種類のリクエストをサポートしています。
+
+<div id="search-requests-data">
+  #### Search requests (data)
+</div>
+
+エンタープライズ検索 API への検索リクエストでは、指定した時間範囲に対して 1 回のレスポンスあたり最大 500 件の結果を取得でき、追加データのためにページネーションを行うこともできます。`maxResults` パラメータを使用すると、表示用途向けに小さいページサイズを指定して (必要に応じてユーザーがさらに結果を要求できるようにする) 、または大規模なデータ取得向けに大きいページサイズ (最大 500) を指定することができます。データは新しいものから順に (逆時系列で) 配信され、配信時点でコンプライアンス要件に準拠しています。
+
+<div id="counts-requests-post-count">
+  #### Counts requests (投稿数)
+</div>
+
+Counts requests は、過去のアクティビティ数を取得するための機能を提供します。これは、指定した期間内に、指定したクエリにマッチしたアクティビティが何回発生したかを表します。レスポンスは基本的に、日、時、分単位のバケットごとに集計されたカウントのヒストグラムを提供します (デフォルトのバケットは *hour* です) 。カウント結果は、ポストが公開されてからかなり後 (7 日以上) に発生するコンプライアンスイベント (例: 投稿の削除) を常に反映するとは限らない点に注意してください。そのため、同じクエリに対するデータリクエストの結果と、カウントメトリクスの値が常に一致するとは限りません。
+
+**Billing note:** データエンドポイントおよび Counts エンドポイントに対して行われた各リクエスト (*ページネーション用のリクエストを含む*) は、請求対象のリクエストとしてカウントされます。したがって、1 つのクエリに対して複数ページの結果がある場合、結果の X ページをページングして取得すると、課金上は X 回のリクエストに相当します。
+
+<div id="available-operators">
+  ### 使用可能なオペレーター
+</div>
+
+Enterprise Search API では、最大 2,048 文字までのルールを使用できます。Enterprise Search API でサポートされているオペレーターは以下のとおりです。詳細な説明は[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)を参照してください。 
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| **ポスト内容に対するマッチング:** | **関心のあるアカウントに対するマッチング:** | **ポスト属性:** | **地理空間オペレーター:** |
+| * keyword<br />* “quoted phrase”<br />* “keyword1 keyword2”~N<br />* #<br />* @<br />* $<br />* url:<br />* lang: | * from:<br />* to:<br />* retweets&#95;of: | * is:retweet  <br />    <br />* has:mentions<br />* has:hashtags<br />* has:media<br />* has:videos<br />* has:images<br />* has:links<br />* has:symbols<br />* is:verified  <br />    <br />* -is:nullcast (否定専用オペレーター) | * bounding&#95;box:[west&#95;long south&#95;lat east&#95;long north&#95;lat]<br />* point&#95;radius:[lon lat radius]<br />* has:geo<br />* place:<br />* place&#95;country:<br />* has:profile&#95;geo<br />* profile&#95;country:<br />* profile&#95;region:<br />* profile&#95;locality: |
+
+注記: オペレーターを埋め込んだりネストしたりしないでください。`"#cats"` は Search API で cats として解釈されます。`lang:` オペレーターおよびすべての `is:` と `has:` オペレーターは単独では使用できず、必ず別の句と組み合わせてください (例: `@XDevelopers has:links`)。    
+
+Search API では、トークナイズ／マッチング機能の制約により、使用できるオペレーターは限定されています。Enterprise リアルタイムおよびバッチ履歴 API では、追加のオペレーターが利用できます。詳細は[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#operators-by-product)を参照してください。
+
+さらに詳しくは、[オペレーター入門](/ja/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#building-rules-and-queries)ガイドを参照してください。
+
+<div id="data-availability-important-date">
+  ### データの利用可能性 / 重要な日付
+</div>
+
+Full-Archive search API を使用する際には、X プラットフォームが 2006 年以降も進化し続けていることに留意してください。新機能が追加されるたびに、基盤となる JSON オブジェクトには新しいメタデータが追加されてきました。そのため、検索演算子が照合対象とするポスト属性がいつ追加されたのかを理解しておくことが重要です。以下は、重要なメタデタグループに関する代表的な「導入日」です。ポスト属性がいつ最初に導入されたかについて詳しくは、[このガイド](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#full-archive-search-metadata-timeline)を参照してください。
+
+* 最初のポスト: 3/21/2006
+* 最初のネイティブリツイート: 11/6/2009
+* 最初の位置情報付きポスト: 11/19/2009
+* フィルタリング用に URL が初めてインデックス化: 8/27/2011
+* URL 展開メタデータの拡張 (Web サイトのタイトルと説明文) : 12/1/2014
+* プロフィール位置情報のエンリッチメントメタデータおよびフィルタリング: 2/17/2015
+
+<div id="data-updates-and-mutability">
+  ### データの更新と可変性
+</div>
+
+enterprise search API 群では、ポスト内の一部のデータは可変です。つまり、初回アーカイブ後に更新・変更される可能性があります。
+
+この可変データは、次の 2 つのカテゴリに分類されます。
+
+* User オブジェクトのメタデータ:
+  * ユーザーの @handle (数値の ID は決して変わりません) 
+  * 自己紹介 (Bio) テキスト
+  * 各種カウント: statuses、followers、friends、favorites、lists
+  * プロフィールの位置情報
+  * タイムゾーンや言語などのその他の詳細
+* ポストの統計値 - つまり、ユーザーの操作によってプラットフォーム上で変更されうるもの (以下は例) :
+  * Favorites 数
+  * Retweet 数
+
+ほとんどのケースでは、search API 群はポスト生成時点ではなく、*クエリ実行時* にプラットフォーム上に存在しているデータを返します。ただし、select オペレーター (例: from、to、@、is:verified) を使用したクエリでは、この限りではない場合があります。データは、特に直近の期間に対して更新頻度を高めて、定期的にインデックス内で更新されます。その結果、返されるデータが X.com 上に現在表示されているデータと完全には一致しない場合がありますが、最後にインデックスされた時点のデータとは一致しています。
+
+この不整合の問題は、オペレーターが可変データに適用されるクエリにのみ当てはまる点に注意してください。1 つの例として、ユーザー名でのフィルタリングが挙げられますが、この場合の最善の回避策は、@handle ではなくユーザーの数値 ID をクエリに使用することです。
+
+<div id="single-vs-multi-threaded-requests">
+  ### シングルスレッド vs. マルチスレッドリクエスト
+</div>
+
+各顧客には、検索エンドポイントごとに定められたレート制限があります。Full-Archive search の 1 分あたりのデフォルトレート制限は 120 リクエストであり、平均すると 1 秒あたり 2 クエリ (QPS) です。この平均 QPS は、理論上は毎秒 2 回 API にリクエストできることを意味します。プロダクトのページネーション機能を考えると、1 年分のクエリに関連する投稿が 100 万件あり、それが 1 年間に均等に分布している場合、すべてのデータを取得するには 2,000 件超のリクエストが必要になります (「maxResults」が 500 であると仮定)。1 レスポンスあたり 2 秒かかると仮定すると、1 本のスレッドで直列／逐次的にすべてのデータを取得するには 4,000 秒 (約 1 時間強) かかる計算になります (前のレスポンスの「next」トークンを使って 1 秒あたり 1 リクエスト)。悪くはありません。
+
+次に、データを受信するために 12 本の並列スレッドを使用する状況を考えてみます。100 万件の投稿が 1 年間に均等に分布していると仮定すると、リクエストを 12 本の並列スレッド (マルチスレッド) に分割し、単一の「ジョブ」に対する 1 秒あたりのレート制限をより有効に活用することができます。言い換えると、関心のある各月ごとに 1 本のスレッドを走らせることができ、その結果、データ取得を 12 倍速く (約 6 分) 行える可能性があります。
+
+このマルチスレッドの例は、counts エンドポイントにも同様に当てはまります。例えば、2 年間の期間について投稿数 (Post counts) を取得したい場合、シングルスレッドリクエストを 1 回発行し、31 日単位でページングしながらカウントをさかのぼることができます。1 レスポンスあたり 2 秒かかると仮定すると、24 回の API リクエストを行ってカウントの全セットを取得するのに約 48 秒かかります。しかし、同時に複数の 1 か月単位のリクエストを行うことも可能です。1 秒あたり 12 件のリクエストを行う場合、カウントの全セットはおよそ 2 秒で取得できます。
+
+<div id="retry-logic">
+  ### リトライロジック
+</div>
+
+Enterprise Search API で 503 エラーが発生した場合、多くは一時的なエラーであり、少し時間をおいてからリクエストを再試行することで解決できます。
+
+リクエストが連続して 4 回失敗し、その間に少なくとも 10 分待っている場合は、次の手順でトラブルシューティングしてください。
+
+* 対象としている時間範囲を短くしてリクエストを再試行します。うまくいかない場合は、最短で 6 時間の時間範囲になるまで繰り返します。
+* 多数の検索語を OR 条件でまとめている場合は、それらを複数のルールに分割し、それぞれを個別に再試行します。
+* ルール内で多数の除外条件を使用している場合は、ルール内の否定条件の語句の数を減らして再試行します。
+
+<div id="quick-start">
+  ## クイックスタート
+</div>
+
+<div id="getting-started-with-enterprise-search-posts-30-day-api">
+  ### enterprise Search Posts: 30-Day API を使い始める
+</div>
+
+enterprise Search Posts: 30-Day API を使用すると、直近 30 日以内に投稿されたポストを取得できます。投稿は、リクエストで指定したクエリに基づいてマッチングされ、返されます。クエリとは、取得するポストがどのような内容を含むべきかを定義するルールです。このチュートリアルでは、X アカウント @XDevelopers から英語で投稿されたポストを検索します。
+
+レスポンスで返されるポストは、ポスト全体のペイロードを含む data フォーマット、またはマッチした投稿数の数値データを返す counts フォーマットのいずれかになります。ここでは、cURL を使用して data エンドポイントおよび counts エンドポイントへリクエストを送信します。
+
+次のものが必要です:
+
+* [An enterprise account]https://developer.x.com/en/products/x-api/enterprise
+* ユーザー名、パスワード、アカウント名
+* console.gnip.com に表示される、検索エンドポイントに紐づいたラベル
+
+<div id="accessing-the-data-endpoint">
+  #### データエンドポイントへのアクセス
+</div>
+
+このデータエンドポイントから、一致した投稿の完全なペイロードを取得できます。ここでは、`from:` および `lang:` 演算子を使用して、@XDevelopers による英語の投稿を検索します。 *他の演算子については [こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)を参照してください。*
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL は、URL 構文を使用してファイルを取得または送信するためのコマンドラインツールです。*
+
+    以下の cURL リクエストを、次の項目を変更したうえでコマンドラインにコピーしてください。
+
+    * **Username** `<USERNAME>`  (例) `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>`  (例) `john-doe`
+
+    * **Label** `<LABEL>`  (例) `prod`
+
+    * **fromDate と toDate**  (例) `"fromDate":"201811010000", "toDate":"201811122359"`
+
+    *リクエストを送信すると、パスワードの入力を求められます。*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/30day/accounts/<ACCOUNT-NAME>/<LABEL>.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL の例">
+    ```bash
+    _これは cURL リクエストの例です。これをそのまま実行しても動作しません。_
+
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/30day/accounts/john-doe/prod.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"201811100000","toDate":"201812012359"}'
+    ```
+  </Tab>
+</Tabs>
+
+#### データエンドポイントのレスポンスペイロード
+
+API リクエストに対するレスポンスのペイロードは、以下の例のように JSON 形式になります。
+
+```json
+{
+	"results": [
+		{
+			"created_at": "Fri Nov 02 17:18:31 +0000 2018",
+			"id": 1058408022936977409,
+			"id_str": "1058408022936977409",
+			"text": "RT @harmophone: \"Tagboard、Twitter、TEGNA のコラボレーションによって可能になった革新的なクラウドソーシングは、地域に関連した会話を可視化しています…",
+			"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web クライアント<\/a>",
+			"truncated": false,
+			"in_reply_to_status_id": null,
+			"in_reply_to_status_id_str": null,
+			"in_reply_to_user_id": null,
+			"in_reply_to_user_id_str": null,
+			"in_reply_to_screen_name": null,
+			"user": {
+				"id": 2244994945,
+				"id_str": "2244994945",
+				"name": "Twitter Dev",
+				"screen_name": "TwitterDev",
+				"location": "インターネット",
+				"url": "https:\/\/developer.x.com\/",
+				"description": "Twitter プラットフォームのニュース、アップデート、イベントに関する公式情報源です。技術的なサポートが必要な場合は https:\/\/devcommunity.com\/ をご覧ください ⌨️ #TapIntoTwitter",
+				"translator_type": "null",
+				"protected": false,
+				"verified": true,
+				"followers_count": 503828,
+				"friends_count": 1477,
+				"listed_count": 1437,
+				"favourites_count": 2199,
+				"statuses_count": 3380,
+				"created_at": "Sat Dec 14 04:35:55 +0000 2013",
+				"utc_offset": null,
+				"time_zone": null,
+				"geo_enabled": true,
+				"lang": "en",
+				"contributors_enabled": false,
+				"is_translator": false,
+				"profile_background_color": "null",
+				"profile_background_image_url": "null",
+				"profile_background_image_url_https": "null",
+				"profile_background_tile": null,
+				"profile_link_color": "null",
+				"profile_sidebar_border_color": "null",
+				"profile_sidebar_fill_color": "null",
+				"profile_text_color": "null",
+				"profile_use_background_image": null,
+				"profile_image_url": "null",
+				"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/880136122604507136\/xHrnqf1T_normal.jpg",
+				"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/2244994945\/1498675817",
+				"default_profile": false,
+				"default_profile_image": false,
+				"following": null,
+				"follow_request_sent": null,
+				"notifications": null
+			},
+			"geo": null,
+			"coordinates": null,
+			"place": null,
+			"contributors": null,
+			"retweeted_status": {
+				"created_at": "Tue Oct 30 21:30:25 +0000 2018",
+				"id": 1057384253116289025,
+				"id_str": "1057384253116289025",
+				"text": "\"Tagboard、Twitter、TEGNA のコラボレーションによって可能になった革新的なクラウドソーシングは、地域に関連した会話を可視化しています… https:\/\/t.co\/w46U5TRTzQ",
+				"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web クライアント<\/a>",
+				"truncated": true,
+				"in_reply_to_status_id": null,
+				"in_reply_to_status_id_str": null,
+				"in_reply_to_user_id": null,
+				"in_reply_to_user_id_str": null,
+				"in_reply_to_screen_name": null,
+				"user": {
+					"id": 175187944,
+					"id_str": "175187944",
+					"name": "Tyler Singletary",
+					"screen_name": "harmophone",
+					"location": "San Francisco, CA",
+					"url": "http:\/\/medium.com\/@harmophone",
+					"description": "@Tagboard のプロダクト担当 SVP。@Klout および @LithiumTech でデータ、ビジネス、プロダクトに携わっていました。@BBI のボードメンバーであり、@Insightpool のアドバイザー。世界一ホワイトボードの使い方が下手です。",
+					"translator_type": "null",
+					"protected": false,
+					"verified": false,
+					"followers_count": 1982,
+					"friends_count": 1877,
+					"listed_count": 245,
+					"favourites_count": 23743,
+					"statuses_count": 12708,
+					"created_at": "Thu Aug 05 22:59:29 +0000 2010",
+					"utc_offset": null,
+					"time_zone": null,
+					"geo_enabled": false,
+					"lang": "en",
+					"contributors_enabled": false,
+					"is_translator": false,
+					"profile_background_color": "null",
+					"profile_background_image_url": "null",
+					"profile_background_image_url_https": "null",
+					"profile_background_tile": null,
+					"profile_link_color": "null",
+					"profile_sidebar_border_color": "null",
+					"profile_sidebar_fill_color": "null",
+					"profile_text_color": "null",
+					"profile_use_background_image": null,
+					"profile_image_url": "null",
+					"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/719985428632240128\/WYFHcK-m_normal.jpg",
+					"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/175187944\/1398653841",
+					"default_profile": false,
+					"default_profile_image": false,
+					"following": null,
+					"follow_request_sent": null,
+					"notifications": null
+				},
+				"geo": null,
+				"coordinates": null,
+				"place": null,
+				"contributors": null,
+				"is_quote_status": false,
+				"extended_tweet": {
+					"full_text": "\"Tagboard、Twitter、TEGNA のコラボレーションによって可能になった革新的なクラウドソーシングは、地域に関連した会話をリアルタイムで可視化し、討論会の最中に有権者が質問できるようにします\"  -- @adamostrow, @TEGNA\n詳しくはこちら: https:\/\/t.co\/ivAFtanfje",
+					"display_text_range": [
+						0,
+						259
+					],
+					"entities": {
+						"hashtags": [],
+						"urls": [
+							{
+								"url": "https:\/\/t.co\/ivAFtanfje",
+								"expanded_url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+								"display_url": "blog.tagboard.com\/twitter-and-ta…",
+								"unwound": {
+									"url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+									"status": 200,
+									"title": "Twitter と Tagboard が連携し、最高の選挙コンテンツを Tagboard を通じてニュースメディアに提供…",
+									"description": "Tagboard プロダクト責任者 Tyler Singletary による記事"
+								},
+								"indices": [
+									236,
+									259
+								]
+							}
+						],
+						"user_mentions": [
+							{
+								"screen_name": "adamostrow",
+								"name": "Adam Ostrow",
+								"id": 5695942,
+								"id_str": "5695942",
+								"indices": [
+									204,
+									215
+								]
+							},
+							{
+								"screen_name": "TEGNA",
+								"name": "TEGNA",
+								"id": 34123003,
+								"id_str": "34123003",
+								"indices": [
+									217,
+									223
+								]
+							}
+						],
+						"symbols": []
+					}
+				},
+				"quote_count": 0,
+				"reply_count": 1,
+				"retweet_count": 6,
+				"favorite_count": 19,
+				"entities": {
+					"hashtags": [],
+					"urls": [
+						{
+							"url": "https:\/\/t.co\/w46U5TRTzQ",
+							"expanded_url": "https:\/\/twitter.com\/i\/web\/status\/1057384253116289025",
+							"display_url": "twitter.com\/i\/web\/status\/1…",
+							"indices": [
+								117,
+								140
+							]
+						}
+					],
+					"user_mentions": [],
+					"symbols": []
+				},
+				"favorited": false,
+				"retweeted": false,
+				"possibly_sensitive": false,
+				"filter_level": "low",
+				"lang": "en"
+			},
+			"is_quote_status": false,
+			"quote_count": 0,
+			"reply_count": 0,
+			"retweet_count": 0,
+			"favorite_count": 0,
+			"entities": {
+				"hashtags": [],
+				"urls": [],
+				"user_mentions": [
+					{
+						"screen_name": "harmophone",
+						"name": "Tyler Singletary",
+						"id": 175187944,
+						"id_str": "175187944",
+						"indices": [
+							3,
+							14
+						]
+					}
+				],
+				"symbols": []
+			},
+			"favorited": false,
+			"retweeted": false,
+			"filter_level": "low",
+			"lang": "en",
+			"matching_rules": [
+				{
+					"tag": null
+				}
+			]
+		}
+	],
+	"requestParameters": {
+		"maxResults": 100,
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+<div id="accessing-the-counts-endpoint">
+  #### counts エンドポイントへのアクセス
+</div>
+
+counts エンドポイントを使用して、@XDevelopers アカウントから英語で投稿された投稿数を、`day` ごとにグループ化して取得します。
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL は、URL 構文を使用してファイルを取得または送信するためのコマンドラインツールです。*
+
+    次の cURL リクエストをコマンドラインにコピーし、以下の項目を変更してください。
+
+    * **Username** `<USERNAME>` 例: `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>` 例: `john-doe`
+
+    * **Label** `<LABEL>` 例: `prod`
+
+    * **fromDate と toDate** 例: `"fromDate":"201811010000", "toDate":"201811122359"`
+
+    *リクエストを送信すると、パスワードの入力を求められます。*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/30day/accounts/<ACCOUNT-NAME>/<LABEL>/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>","bucket":"day"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL example">
+    *これは cURL リクエストの例です。これをそのまま実行しても動作しません。*
+
+    ```bash
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/30day/accounts/john-doe/prod/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"201811100000","toDate":"201812012359","bucket":"day"}'
+    ```
+  </Tab>
+</Tabs>
+
+#### カウントエンドポイントのレスポンスペイロード
+
+API リクエストに対するレスポンスのペイロードは、以下の例のように JSON 形式で返されます。
+
+```json
+{
+	"results": [
+		{
+			"timePeriod": "201811010000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811020000",
+			"count": 1
+		},
+		{
+			"timePeriod": "201811030000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811040000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811050000",
+			"count": 0
+		}
+	],
+	"totalCount": 1,
+	"requestParameters": {
+		"bucket": "day",
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+よくできました！これで enterprise Search Posts: 30-Day API に正常にアクセスできました。
+
+<div id="referenced-articles">
+  ##### **関連記事**
+</div>
+
+* [ポストオブジェクトの概要](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary)
+* [検索演算子](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)
+* [ポストオブジェクトとペイロード](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#post-object)
+
+<div id="getting-started-with-enterprise-search-posts-full-archive-api">
+  ### enterprise Search Posts: Full-Archive API を使い始める
+</div>
+
+enterprise Search Posts: Full-Archive API は、2006 年の最初のポスト以降の投稿をすべて取得できるようにします。投稿は、リクエストで指定するクエリに基づいてマッチングされ、返されます。クエリとは、取得するポストに何を含めるかを定義するルールです。このチュートリアルでは、X アカウント @XDevelopers から英語で投稿された投稿を検索します。
+
+レスポンスで返される投稿は、ポストの完全なペイロードを取得できる `data` 形式、またはマッチした投稿の数値カウントデータを取得できる `counts` 形式のいずれかになります。ここでは、cURL を使用して `data` エンドポイントと `counts` エンドポイントにリクエストを送信します。
+
+次のものが必要です。
+
+* [エンタープライズアカウント]https://developer.x.com/en/products/x-api/enterprise
+* ユーザー名、パスワード、アカウント名
+* console.gnip.com に表示される、検索エンドポイントに関連付けられているラベル
+
+<div id="accessing-the-data-endpoint">
+  #### データエンドポイントへのアクセス
+</div>
+
+データエンドポイントでは、一致した投稿それぞれについてポストの完全なペイロードが返されます。ここでは、`from:` と `lang:` オペレーターを使用して、@XDevelopers から英語で投稿された投稿を検索します。 *他のオペレーターについては [こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)を参照してください。*
+
+* [cURL](#tab1)
+* [cURL 例](#tab2)
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL は、URL 構文を使用してファイルを取得または送信するためのコマンドラインツールです。*
+
+    次の cURL リクエストを、以下の項目を変更したうえでコマンドラインにコピーしてください。
+
+    * **Username** `<USERNAME>` 例: `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>` 例: `john-doe`
+
+    * **Label** `<LABEL>` 例: `prod`
+
+    * **fromDate と toDate** 例: `"fromDate":"201802010000", "toDate":"201802282359"`
+
+    *リクエストを送信すると、パスワードの入力を求められます。*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/fullarchive/accounts/<ACCOUNT-NAME>/<LABEL>.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL example">
+    *これは cURL リクエストの例です。このまま実行しても動作しません。*
+
+    ```bash
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/fullarchive/accounts/john-doe/prod.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"201802010000","toDate":"201802282359"}'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="data-endpoint-response-payload">
+  ##### データエンドポイントのレスポンスペイロード
+</div>
+
+API リクエストのレスポンスとして返されるペイロードは、以下のように JSON 形式になります。
+
+```json
+{
+	"results": [
+		{
+			"created_at": "Fri Nov 02 17:18:31 +0000 2018",
+			"id": 1058408022936977409,
+			"id_str": "1058408022936977409",
+			"text": "RT @harmophone: 「Tagboard、Twitter、TEGNA のコラボレーションによって実現した革新的なクラウドソーシングは、地域に関連する会話をリアルタイムで可視化しています…」",
+			"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web Client<\/a>",
+			"truncated": false,
+			"in_reply_to_status_id": null,
+			"in_reply_to_status_id_str": null,
+			"in_reply_to_user_id": null,
+			"in_reply_to_user_id_str": null,
+			"in_reply_to_screen_name": null,
+			"user": {
+				"id": 2244994945,
+				"id_str": "2244994945",
+				"name": "Twitter Dev",
+				"screen_name": "TwitterDev",
+				"location": "インターネット",
+				"url": "https:\/\/developer.x.com\/",
+				"description": "Twitter Platform に関するニュース、アップデート、イベント情報をお届けする公式アカウントです。技術的なサポートが必要な場合は https:\/\/devcommunity.com\/ をご覧ください ⌨️ #TapIntoTwitter",
+				"translator_type": "null",
+				"protected": false,
+				"verified": true,
+				"followers_count": 503828,
+				"friends_count": 1477,
+				"listed_count": 1437,
+				"favourites_count": 2199,
+				"statuses_count": 3380,
+				"created_at": "Sat Dec 14 04:35:55 +0000 2013",
+				"utc_offset": null,
+				"time_zone": null,
+				"geo_enabled": true,
+				"lang": "en",
+				"contributors_enabled": false,
+				"is_translator": false,
+				"profile_background_color": "null",
+				"profile_background_image_url": "null",
+				"profile_background_image_url_https": "null",
+				"profile_background_tile": null,
+				"profile_link_color": "null",
+				"profile_sidebar_border_color": "null",
+				"profile_sidebar_fill_color": "null",
+				"profile_text_color": "null",
+				"profile_use_background_image": null,
+				"profile_image_url": "null",
+				"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/880136122604507136\/xHrnqf1T_normal.jpg",
+				"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/2244994945\/1498675817",
+				"default_profile": false,
+				"default_profile_image": false,
+				"following": null,
+				"follow_request_sent": null,
+				"notifications": null
+			},
+			"geo": null,
+			"coordinates": null,
+			"place": null,
+			"contributors": null,
+			"retweeted_status": {
+				"created_at": "Tue Oct 30 21:30:25 +0000 2018",
+				"id": 1057384253116289025,
+				"id_str": "1057384253116289025",
+				"text": "\"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relev… https:\/\/t.co\/w46U5TRTzQ",
+				"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web Client<\/a>",
+				"truncated": true,
+				"in_reply_to_status_id": null,
+				"in_reply_to_status_id_str": null,
+				"in_reply_to_user_id": null,
+				"in_reply_to_user_id_str": null,
+				"in_reply_to_screen_name": null,
+				"user": {
+					"id": 175187944,
+					"id_str": "175187944",
+					"name": "Tyler Singletary",
+					"screen_name": "harmophone",
+					"location": "San Francisco, CA",
+					"url": "http:\/\/medium.com\/@harmophone",
+					"description": "@Tagboard の SVP Product。@Klout や @LithiumTech でデータ、ビジネス、プロダクトに携わってきました。@BBI のボードメンバーであり、@Insightpool のアドバイザーでもあります。ホワイトボードの使い方は世界一下手です。",
+					"translator_type": "null",
+					"protected": false,
+					"verified": false,
+					"followers_count": 1982,
+					"friends_count": 1877,
+					"listed_count": 245,
+					"favourites_count": 23743,
+					"statuses_count": 12708,
+					"created_at": "Thu Aug 05 22:59:29 +0000 2010",
+					"utc_offset": null,
+					"time_zone": null,
+					"geo_enabled": false,
+					"lang": "en",
+					"contributors_enabled": false,
+					"is_translator": false,
+					"profile_background_color": "null",
+					"profile_background_image_url": "null",
+					"profile_background_image_url_https": "null",
+					"profile_background_tile": null,
+					"profile_link_color": "null",
+					"profile_sidebar_border_color": "null",
+					"profile_sidebar_fill_color": "null",
+					"profile_text_color": "null",
+					"profile_use_background_image": null,
+					"profile_image_url": "null",
+					"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/719985428632240128\/WYFHcK-m_normal.jpg",
+					"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/175187944\/1398653841",
+					"default_profile": false,
+					"default_profile_image": false,
+					"following": null,
+					"follow_request_sent": null,
+					"notifications": null
+				},
+				"geo": null,
+				"coordinates": null,
+				"place": null,
+				"contributors": null,
+				"is_quote_status": false,
+				"extended_tweet": {
+					"full_text": "\"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relevant conversations in real-time and enabling voters to ask questions during debates,”  -- @adamostrow, @TEGNA\nLearn More: https:\/\/t.co\/ivAFtanfje",
+					"display_text_range": [
+						0,
+						259
+					],
+					"entities": {
+						"hashtags": [],
+						"urls": [
+							{
+								"url": "https:\/\/t.co\/ivAFtanfje",
+								"expanded_url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+								"display_url": "blog.tagboard.com\/twitter-and-ta…",
+								"unwound": {
+									"url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+									"status": 200,
+									"title": "Twitter と Tagboard が連携し、選挙に関する最高のコンテンツを Tagboard を通じてニュースメディアに提供…",
+									"description": "Tagboard プロダクト責任者 Tyler Singletary による記事"
+								},
+								"indices": [
+									236,
+									259
+								]
+							}
+						],
+						"user_mentions": [
+							{
+								"screen_name": "adamostrow",
+								"name": "Adam Ostrow",
+								"id": 5695942,
+								"id_str": "5695942",
+								"indices": [
+									204,
+									215
+								]
+							},
+							{
+								"screen_name": "TEGNA",
+								"name": "TEGNA",
+								"id": 34123003,
+								"id_str": "34123003",
+								"indices": [
+									217,
+									223
+								]
+							}
+						],
+						"symbols": []
+					}
+				},
+				"quote_count": 0,
+				"reply_count": 1,
+				"retweet_count": 6,
+				"favorite_count": 19,
+				"entities": {
+					"hashtags": [],
+					"urls": [
+						{
+							"url": "https:\/\/t.co\/w46U5TRTzQ",
+							"expanded_url": "https:\/\/twitter.com\/i\/web\/status\/1057384253116289025",
+							"display_url": "twitter.com\/i\/web\/status\/1…",
+							"indices": [
+								117,
+								140
+							]
+						}
+					],
+					"user_mentions": [],
+					"symbols": []
+				},
+				"favorited": false,
+				"retweeted": false,
+				"possibly_sensitive": false,
+				"filter_level": "low",
+				"lang": "en"
+			},
+			"is_quote_status": false,
+			"quote_count": 0,
+			"reply_count": 0,
+			"retweet_count": 0,
+			"favorite_count": 0,
+			"entities": {
+				"hashtags": [],
+				"urls": [],
+				"user_mentions": [
+					{
+						"screen_name": "harmophone",
+						"name": "Tyler Singletary",
+						"id": 175187944,
+						"id_str": "175187944",
+						"indices": [
+							3,
+							14
+						]
+					}
+				],
+				"symbols": []
+			},
+			"favorited": false,
+			"retweeted": false,
+			"filter_level": "low",
+			"lang": "en",
+			"matching_rules": [
+				{
+					"tag": null
+				}
+			]
+		}
+	],
+	"requestParameters": {
+		"maxResults": 100,
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+#### カウント用エンドポイントへのアクセス
+
+カウント用エンドポイントを使って、英語の @XDevelopers アカウント発の投稿数を、`day` ごとに集計して取得します。
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL は、URL 構文を使用してファイルを取得または送信するためのコマンドラインツールです。*
+
+    以下の項目を自身の値に置き換えたうえで、次の cURL リクエストをコマンドラインにコピーしてください。
+
+    * **Username** `<USERNAME>` 例: `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>` 例: `john-doe`
+
+    * **Label** `<LABEL>` 例: `prod`
+
+    * **fromDate と toDate** 例: `"fromDate":"201802010000", "toDate":"201802282359"`
+
+    *リクエストを送信すると、パスワードの入力を求められます。*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/fullarchive/accounts/<ACCOUNT-NAME>/<LABEL>/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>","bucket":"day"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL example">
+    ```bash
+    _これは cURL リクエストの例です。そのまま実行しても動作しません。_
+
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/fullarchive/accounts/john-doe/prod/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"201802010000","toDate":"201802282359","bucket":"day"}'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="counts-endpoint-response-payload">
+  #### Counts エンドポイントのレスポンスペイロード
+</div>
+
+API リクエストに対するレスポンスペイロードは、以下のとおり JSON 形式で返されます。
+
+```json
+{
+	"results": [
+		{
+			"timePeriod": "201811010000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811020000",
+			"count": 1
+		},
+		{
+			"timePeriod": "201811030000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811040000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811050000",
+			"count": 0
+		}
+	],
+	"totalCount": 1,
+	"requestParameters": {
+		"bucket": "day",
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+お疲れさまでした！これで enterprise Search Posts: Full-Archive API へのアクセスに成功しました。
+
+##### 参考資料
+
+* [ポストオブジェクトの概要](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary)
+* [検索演算子](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)
+* [ポストオブジェクトとペイロード](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#post-object)
+
+<div id="guides">
+  ## ガイド
+</div>
+
+<div id="building-search-queries">
+  ### 検索クエリの作成
+</div>
+
+<div id="enterprise-operators">
+  ### エンタープライズ向けオペレーター
+</div>
+
+以下は、X のエンタープライズ検索 API でサポートされているすべてのオペレーターの一覧です。
+
+* **Enterprise** 30 日検索 API
+* **Enterprise** フルアーカイブ検索 API
+
+プロダクトごとの利用可能なオペレーターを並べて比較するには、[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#operators-by-product)を参照してください。
+
+| 演算子                             | 説明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| キーワード                           | ポストの本文または URL 内のトークン化されたキーワードにマッチします。これはトークン化に基づく照合であり、指定したキーワード文字列はポスト本文のトークン化されたテキストと比較されます。トークン化は、句読点、記号、および区切り文字に該当する Unicode 基本多言語面の文字に基づいて行われます。たとえば、テキストが “I like coca-cola” のポストは、次のトークンに分割されます: I, like, coca, cola。これらのトークンが、ルールで使用したキーワード文字列と比較されます。句読点 (例: coca-cola) 、記号、または区切り文字を含む文字列にマッチさせるには、以下で説明する引用符付きの完全一致を使用する必要があります。<br /><br />**注:** Search API では、アクセント付き文字や特殊文字は標準的なラテン文字に正規化されます。これにより、外国語における意味が変化したり、予期しない結果が返されたりする可能性があります。<br />たとえば、&quot;músic&quot; は “music” にマッチし、その逆も同様です。<br />また、スペイン語の一般的なフレーズ &quot;Feliz Año Nuevo!&quot; は、インデックス時に &quot;Feliz Ano Nuevo&quot; として扱われ、フレーズの意味が変化します。<br /><br />**注:** このオペレーターは、ポスト内の URL と展開済み URL の両方にマッチします。 |
+| 絵文字                             | ポスト本文中の絵文字にマッチします。絵文字はトークン単位でマッチし、指定した絵文字はポスト本文のトークン化されたテキストと照合されます。トークン化は句読点、記号／絵文字、および区切り用の Unicode 基本多言語面文字に基づきます。たとえば、「I like <Icon icon="pizza-slice" iconType="solid" />」というテキストを含むポストは、次のトークンに分割されます: I, like, <Icon icon="pizza-slice" iconType="solid" />。これらのトークンが、ルールで使用する絵文字と比較されます。絵文字にバリアントがある場合は、その絵文字をルールに追加する際に必ず引用符 (&quot; &quot;) で囲んでください。                                                                                                                                                                                                                                                                                                                                 |
+| &quot;完全一致フレーズ&quot;            | ポストの本文または URL 内の、トークン化され順序付けられたフレーズに一致します。これはトークン単位での一致であり、指定したキーワード文字列が、ポスト本文をトークン化したテキストと照合されることを意味します。トークン化は句読点、記号、および区切り記号にあたる Unicode 基本多言語面の文字に基づいて行われます。<br /><br />**注:** 句読点はトークン化されず、空白として扱われます。<br />たとえば、引用符付きの “#hashtag” は “hashtag” には一致しますが、#hashtag には一致しません (実際のハッシュタグに一致させるには、引用符なしの hashtag # 演算子を使用してください) 。<br />たとえば、引用符付きの “$cashtag” は “cashtag” には一致しますが、$cashtag には一致しません (実際のキャッシュタグに一致させるには、引用符なしの cashtag $ 演算子を使用してください) 。<br />たとえば、&quot;Love Snow&quot; は &quot;#love #snow&quot; に一致します。<br />たとえば、&quot;#Love #Snow&quot; は &quot;love snow&quot; に一致します。<br /><br />**注:** この演算子は、ポスト内の URL と展開された (unwound) URL の両方に一致します。                                    |
+| &quot;keyword1 keyword2&quot;~N | 一般的に近接演算子と呼ばれ、この演算子はキーワード同士が互いに N 個以内のトークンしか離れていないポストにマッチします。<br /><br />キーワードの順序が逆の場合、互いに N-2 個より多くトークンが離れていてはなりません。引用符内には任意の数のキーワードを含めることができます。N は 6 を超えることはできません。<br /><br />この演算子は `enterprise` 検索 API でのみ利用可能である点に注意してください。                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| from:                           | 特定のユーザーからのあらゆるポストにマッチします。<br />値には、そのユーザーの X の数値アカウント ID かユーザー名 (@ 文字を除く) を指定する必要があります。数値の X アカウント ID を取得する方法については、[こちら](/ja/x-api/users/lookup/introduction) または [こちら](http://gettwitterid.com/) を参照してください。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| to:                             | 特定のユーザーへの返信である任意のポストに一致します。<br /><br />値には、そのユーザーの数値XアカウントIDまたはユーザー名 (@ 文字を除く) を指定する必要があります。数値XアカウントIDの検索方法については、[こちら](/ja/x-api/users/lookup/introduction) を参照してください。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| url:                            | ポスト内に含まれる展開済み URL に対してトークン化 (キーワード／フレーズ) マッチを実行します (`url_contains` と同様) 。句読点や特殊文字を含むトークンやフレーズは二重引用符で囲む必要があります。たとえば、url:&quot;/developer&quot; のように指定します。一般には推奨しませんが、特定のプロトコルに対してマッチさせたい場合は、二重引用符で囲んで指定します：url:&quot;https://developer.x.com&quot;。<br />**注:** PowerTrack または Historical PowerTrack を使用する場合、このオペレーターは引用ポストの元となるオリジナルのポスト内に含まれる URL に対してマッチします。たとえば、ルールに url:&quot;developer.x.com&quot; を含めており、あるポストがその URL を含んでいる場合、そのポストを引用したすべてのツイートも結果に含まれます。これは Search API を使用する場合には当てはまりません。                                                                                                                                                                                                |
+| #                               | 指定されたハッシュタグを含む任意の投稿にマッチします。<br /><br />このオペレーターはトークン化されたマッチではなく、完全一致でマッチを行います。つまり、ルール「2016」は、ハッシュタグ「2016」を持つ投稿にはマッチしますが、ハッシュタグ「2016election」を持つ投稿にはマッチしません。<br /><br />注意: ハッシュタグオペレーターは、本文からハッシュタグを抽出するのではなく、X のエンティティ抽出に依存してハッシュタグをマッチさせます。X Entities の JSON 属性の詳細については [こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#hashtags) を参照してください。                                                                                                                                                                                                                                                                                                                                  |
+| @                               | 指定したユーザー名に言及しているポストすべてにマッチします。<br />to: 演算子は、@mention 演算子でマッチするポストの部分集合を返します。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| $                               | 指定された「キャッシュタグ」 (トークンの先頭文字が「$」であるもの) を含む任意のポストにマッチします。<br /><br />このキャッシュタグ演算子は、本文からキャッシュタグを直接抽出しようとするのではなく、X の「symbols」エンティティ抽出機能に依存してキャッシュタグをマッチングする点に注意してください。X Entities の JSON 属性の詳細は、[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#symbols)を参照してください。<br /><br />なお、この演算子は `enterprise` 検索 API でのみ利用可能です。<br /><br />                                                                                                                                                                                                                                                                                                                                                       |
+| retweets&#95;of:                | *利用可能なエイリアス*: retweets&#95;of&#95;user:<br />指定したユーザーのリツイート投稿に一致します。ユーザー名と数値の X アカウント ID の両方を受け付けます (ポストのステータス ID ではありません) 。数値の X アカウント ID を検索する方法については、[こちら](/ja/x-api/users/lookup/introduction)を参照してください。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| lang:                           | X によって特定の言語として分類された投稿にマッチします (ポストが分類されている場合に限ります) 。各ポストは現在 1 つの言語にのみ分類されるため、複数の言語を AND 条件で指定しても結果は返されない点に注意してください。<br /><br />**注:** 言語の分類が行えない場合、返される値は「und」 (undefined) になります。<br /><br />以下の一覧は、現在サポートされている言語と、それぞれに対応する BCP 47 言語識別子を表しています。<br />                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| アムハラ語: am | ドイツ語: de | マラヤーラム語: ml | スロバキア語: sk |
+| アラビア語: ar | ギリシャ語: el | ディベヒ語 (モルディブ語) : dv | スロベニア語: sl |
+| アルメニア語: hy | グジャラート語: gu | マラーティー語: mr | ソラニ・クルド語: ckb |
+| バスク語: eu | ハイチ・クレオル語: ht | ネパール語: ne | スペイン語: es |
+| ベンガル語: bn | ヘブライ語: iw | ノルウェー語: no | スウェーデン語: sv |
+| ボスニア語: bs | ヒンディー語: hi | オリヤー語: or | タガログ語: tl |
+| ブルガリア語: bg | ローマ字表記のヒンディー語: hi-Latn | パンジャーブ語: pa | タミル語: ta |
+| ビルマ語 (ミャンマー語) : my | ハンガリー語: hu | パシュトー語: ps | テルグ語: te |
+| クロアチア語: hr | アイスランド語: is | ペルシャ語: fa | タイ語: th |
+| カタロニア語: ca | インドネシア語: in | ポーランド語: pl | チベット語: bo |
+| チェコ語: cs | イタリア語: it | ポルトガル語: pt | 繁体字中国語: zh-TW |
+| デンマーク語: da | 日本語: ja | ルーマニア語: ro | トルコ語: tr |
+| オランダ語: nl | カンナダ語: kn | ロシア語: ru | ウクライナ語: uk |
+| 英語: en | クメール語: km | セルビア語: sr | ウルドゥー語: ur |
+| エストニア語: et | 韓国語: ko | 簡体字中国語: zh-CN | ウイグル語: ug |
+| フィンランド語: fi | ラオ語: lo | シンド語: sd | ベトナム語: vi |
+| フランス語: fr | ラトビア語: lv | シンハラ語: si | ウェールズ語: cy |
+| ジョージア語: ka | リトアニア語: lt |     |
+
+|||
+|:----|:---|
+|place:|指定された場所 *または* X place ID (例を参照) でタグ付けされた投稿にマッチします。複数語から成る地名 (&quot;New York City&quot; や &quot;Palo Alto&quot; など) は引用符で囲む必要があります。<br /><br />**注:** X place ID の取得方法については、公開 API エンドポイント [GET geo/search](https://developer.x.com/en/docs/x-api/v1/geo/place-information/overview) を参照してください。<br /><br />**注:** Retweet の場所情報は元のポストに紐付いているため、このオペレーターは Retweet にはマッチしません。また、Quote Tweet の元のポストに紐付いている場所にもマッチしません。|
+|place&#95;country:|タグ付けされた [place](https://developer.x.com/en/docs/x-api/v1/geo/place-information/overview) に関連付けられている国コードが、指定された ISO アルファベット 2 文字コードと一致する投稿にマッチします。<br /><br />有効な ISO コードは以下を参照してください: [http://en.wikipedia.org/wiki/ISO&#95;3166-1&#95;alpha-2](http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)<br /><br />**注:** Retweet の場所情報は元のポストに紐付いているため、このオペレーターは Retweet にはマッチしません。また、Quote Tweet の元のポストに紐付いている場所にもマッチしません。|
+|point&#95;radius:[lon lat radius]|存在する場合はポストの厳密な位置 (x, y) 、および X では「Place」のジオポリゴンに対して評価され、Place が定義された領域内に完全に含まれている場合にマッチします。<br /><br />* サポートされる半径の単位はマイル (mi) とキロメートル (km) です。<br />* 半径は 25mi 未満である必要があります。<br />* 経度は ±180 の範囲です。<br />* 緯度は ±90 の範囲です。<br />* すべての座標は 10 進法の度数 (decimal degrees) で指定します。<br />* ルール引数は角括弧で囲み、スペース区切りで指定します。<br /><br />**注:** Retweet の場所情報は元のポストに紐付いているため、このオペレーターは Retweet にはマッチしません。また、Quote Tweet の元のポストに紐付いている場所にもマッチしません。|
+|bounding&#95;box:[west&#95;long south&#95;lat east&#95;long north&#95;lat]|*利用可能なエイリアス*: geo&#95;bounding&#95;box:<br /><br />存在する場合はポストの厳密な位置 (long, lat) 、および X では「Place」のジオポリゴンに対して評価され、Place が定義された領域内に完全に含まれている場合にマッチします。<br /><br />* west&#95;long と south&#95;lat はバウンディングボックスの南西端を表し、west&#95;long がその地点の経度、south&#95;lat がその地点の緯度です。<br />* east&#95;long と north&#95;lat はバウンディングボックスの北東端を表し、east&#95;long がその地点の経度、north&#95;lat がその地点の緯度です。<br />* バウンディングボックスの幅と高さは 25mi 未満である必要があります。<br />* 経度は ±180 の範囲です。<br />* 緯度は ±90 の範囲です。<br />* すべての座標は 10 進法の度数 (decimal degrees) で指定します。<br />* ルール引数は角括弧で囲み、スペース区切りで指定します。<br />**注:** Retweet の場所情報は元のポストに紐付いているため、このオペレーターは Retweet にはマッチしません。また、Quote Tweet の元のポストに紐付いている場所にもマッチしません。|
+|profile&#95;country:|Profile Geo エンリッチメントの「address」オブジェクト内の「countryCode」フィールドに対する完全一致です。<br />ISO-3166-1-alpha-2 仕様に基づく正規化された 2 文字の国コードセットを使用します。このオペレーターは、簡潔にするために「address」オブジェクト内の「country」フィールド用オペレーターの代替として提供されています。|
+|profile&#95;region:|Profile Geo エンリッチメントの「address」オブジェクト内の「region」フィールドにマッチします。<br /><br />これは文字列全体に対する完全一致です。バックスラッシュで文字をエスケープする必要はありません。たとえば、スラッシュを含むものにマッチさせる場合は「one/two」を使用し、「one\/two」は使用しません。空白や句読点を含む部分文字列にマッチさせるには、二重引用符を使用してください。|
+|profile&#95;locality:|Profile Geo エンリッチメントの「address」オブジェクト内の「locality」フィールドにマッチします。<br /><br />これは文字列全体に対する完全一致です。バックスラッシュで文字をエスケープする必要はありません。たとえば、スラッシュを含むものにマッチさせる場合は「one/two」を使用し、「one\/two」は使用しません。空白や句読点を含む部分文字列にマッチさせるには、二重引用符を使用してください。|
+
+<Info>
+  **注:** `is:` および `has:` オペレーターは、Search API を使用する場合に単独では使用できず、必ず別の句と組み合わせて使用する必要があります。
+
+  たとえば、`@XDeevelopers has:links`
+</Info>
+
+|                     |                                                                                                                                                                                                                                                                                                                        |
+| :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| has:geo             | X によって提供された、ポスト固有の位置情報データを持つ投稿にマッチします。これは、「geo」による緯度・経度座標、または対応する表示名、ジオポリゴン、その他のフィールドを含む、X の [“Place”](https://dev.x.com/overview/api/places) 形式の「location」のいずれかです。<br /><br />  <br /><br />**注記:** Search API を使用する場合、このオペレーターは、`is:` や `has:` を含まない他のオペレーターと併用する必要があります。                                            |
+| has:profile&#95;geo | *利用可能な別名*: has:derived&#95;user&#95;geo<br /><br />実際の値の内容に関わらず、任意の [Profile Geo](http://support.gnip.com/enrichments/profile_geo.html) メタデータを持つ投稿にマッチします。  <br />  <br /><br />**注:** Search API を使用する場合、このオペレーターは、`is:` や `has:` を含まない他のオペレーターと組み合わせて使用する必要があります。                                                    |
+| has:links           | このオペレーターは、メッセージ本文にリンクを含む投稿にマッチします。  <br />  <br /><br />**注:** Search API を使用する場合、このオペレーターは、`is:` または `has:` を含まない他のオペレーターと組み合わせて使用する必要があります。                                                                                                                                                                          |
+| is:retweet          | ルールに一致する明示的なリツイートのみを配信します。否定形で使用すると、ルールに一致するリツイートは配信対象から除外され、オリジナルのコンテンツのみが配信されます。<br /><br />このオペレーターは、X のリツイート機能を使用した通常のリツイートのみを対象とします。X のリツイート機能を使用していない引用ツイートや内容を変更した投稿は、このオペレーターではマッチしません。<br /><br />  <br /><br />**注:** Search API を使用する場合、このオペレーターは、`is:` や `has:` を含まない他のオペレーターと組み合わせて使用する必要があります。           |
+| is:reply            | 投稿が他の投稿への返信であるかどうかに基づいてフィルタリングするためのオペレーターです。ルールに一致する明示的な返信のみを配信します。ルールに一致する返信を配信対象から除外するように、このオペレーターを否定形で使用することもできます。<br /><br />なお、このオペレーターは有料の Premium および Enterprise 検索で利用可能であり、Sandbox 開発環境では利用できません。<br /><br />  <br /><br />**注:** Search API を使用する場合、このオペレーターは、`is:` や `has:` を含まない他のオペレーターと組み合わせて使用する必要があります。 |
+| is:quote            | 別のポストを参照する投稿、つまり Post ペイロード内の &quot;is&#95;quote&#95;status&quot;:true で識別される引用ツイートのみを配信します。否定形を指定することで、引用ツイートを除外することもできます。  <br /><br />**注意:** Search API を使用する場合、このオペレーターは、`is:` や `has:` を含まない他のオペレーターと併用する必要があります。                                                                                                |
+| is:verified         | X によって「認証済み」とされている投稿者の投稿のみを返します。また、否定形を使用すると、投稿者が認証済みである投稿を除外できます。  <br />  <br /><br />**注:** Search API を使用する場合、この演算子は、`is:` や `has:` を含まない他の演算子と組み合わせて使用する必要があります。                                                                                                                                                  |
+| has:mentions        | 他の X ユーザーに言及している投稿にマッチします。  <br />  <br /><br />**注意:** Search API を使用する場合、この演算子は、`is:` または `has:` を含まない他の演算子と組み合わせて使用する必要があります。                                                                                                                                                                                       |
+| has:hashtags        | ハッシュタグを含む投稿に一致します。  <br />  <br /><br />**注:** Search API を使用する際は、この演算子を、`is:` または `has:` を含まない他の演算子と組み合わせて使用する必要があります。                                                                                                                                                                                                |
+| has:media           | *利用可能な別名*: has:media&#95;link<br /><br />X によってメディアとして分類された URL を含む投稿にマッチします。例: pic.x.com。  <br />  <br /><br />**注:** Search API を使用する際は、このオペレーターを `is:` または `has:` を含まない他のオペレーターと組み合わせて使用する必要があります。                                                                                                                  |
+| has:images          | X によってメディア URL として分類された URL を含む投稿にマッチします。例: pic.x.com。  <br />  <br /><br />**注:** Search API を使用する場合、この演算子は、`is:` または `has:` を含まない他の演算子と組み合わせて使用する必要があります。                                                                                                                                                            |
+| has:videos          | *使用可能なエイリアス*: has:video&#95;link<br /><br />ネイティブな X 動画 (X に直接アップロードされた動画) を含む投稿にマッチします。Vine や Periscope で作成された動画、または他の動画ホスティングサイトへのリンクを含む投稿にはマッチしません。  <br />  <br /><br />**注意:** Search API を使用する場合、この演算子は、`is:` または `has:` を含まない他の演算子と組み合わせて使用する必要があります。                                                             |
+| has:symbols         | 先頭に「$」文字が付いたカッシュタグ記号を含む投稿にマッチします (例: $tag) 。このオペレーターは `enterprise` 検索 API でのみ利用可能です。  <br />  <br /><br />**注:** Search API を使用する場合、このオペレーターは `is:` または `has:` を含まない他のオペレーターと組み合わせて使用する必要があります。                                                                                                                          |
+
+<div id="product-overview">
+  ### 製品概要
+</div>
+
+エンタープライズ向けの Full-archive Search は 2015 年 8 月にリリースされ、プレミアム向けバージョンは 2018 年 2 月にリリースされました。これらの検索プロダクトにより、顧客は公開されている任意のポストに即座にアクセスできます。Full-archive Search では、単一のクエリを送信し、従来型の RESTful 方式でレスポンスを受け取ります。Full-archive Search は 1 レスポンスあたり最大 500 件のポストのページネーションを実装しており、レート制限はプレミアム向けが 1 分あたり最大 60 リクエスト (rpm)、エンタープライズ向けが 120 rpm となっています。これらの仕様から、Full-archive Search は同時リクエストを活用することで、大量のポストを高速に取得する用途に適しています。
+
+ディスク上のポストのフラットファイル群を基盤とする Historical PowerTrack とは異なり、Full-archive Search のポストアーカイブはオンラインデータベースに近い構造になっています。すべてのデータベースと同様に、その内容に対してクエリを実行できます。また、高速なデータ取得を可能にするための *index* を利用しています。Full-archive Search エンドポイントでは、クエリ言語は PowerTrack Operators で構成されており、各 Operator はインデックス化されたポストの JSON 属性に対応しています。
+
+また、Historical PowerTrack と同様に、クエリ実行時点の情報を表すポスト属性も存在します。たとえば、Search API を使って 2010 年に投稿されたポストを現在取得すると、そのユーザーのプロフィールの説明文、アカウントの「ホーム」ロケーション、表示名、および「いいね」や Retweet 数といったポストのメトリクスは、2010 年当時ではなく、現在時点の値に更新されて返されます。 
+
+<div id="metadata-timelines">
+  ### メタデータのタイムライン
+</div>
+
+以下は、Full-archive search エンドポイントの Operator がマッチし始めた時期のタイムラインです。場合によっては、Operator のマッチングが、X 上で「コミュニケーション上の慣習」が一般的になってからかなり *後* に開始されたものもあります。たとえば、@Replies は 2006 年にユーザーの慣習として現れましたが、それをサポートする JSON を伴った *第一級オブジェクト* や *イベント* になったのは 2007 年初頭でした。そのため、2006 年の @Replies に対してマッチングを行うには、`to:` や `in_reply_to_status_id:` PowerTrack Operator に頼るのではなく、ポスト本文を調査する必要があります。
+
+ここに記載されている詳細は、Full-Archive Search を用いて、数百件におよぶ検索を行った結果に基づいて生成されています。このタイムラインは 100% 完全でも精密でもありません。ユースケースにとって重要となる、他のフィルタリング／メタデータの「誕生日」を見つけた場合は、ぜひお知らせください。
+
+なお、基盤となる Search インデックスは再構築される可能性があります。そのため、これらのタイムラインの詳細は変更される場合があります。
+
+<div id="2006">
+  #### 2006
+</div>
+
+* 3月26日 - `lang:`。検索インデックスを生成する際に、ポストのメタデータがバックフィルされる例。
+* 7月13日 - `has:mentions` のマッチングが開始。
+* 10月6日 - `has:symbols`。株式銘柄について議論するための $cashtag (または symbol) が一般化するのは2009年初頭になってからであり、それまではほとんどの用法が俗語 (例: $slang) だったと考えられる。
+* 10月26日 - `has:links` のマッチングが開始。
+* 11月23日 - `has:hashtags` のマッチングが開始。
+
+<div id="2007">
+  #### 2007
+</div>
+
+* 1月30日 - @reply が初めて first-class 扱いとなり (in&#95;reply&#95;to&#95;user&#95;id) 、`reply_to_status_id:` のマッチングが始まる。
+* 8月23日 - トピックや会話を整理する一般的な慣習としてハッシュタグが登場。1週間後に最初の本格的な利用例が現れる。
+
+<div id="2009">
+  #### 2009
+</div>
+
+* 5月15日 - `is:retweet`。このオペレーターは、公式リツイートの「ベータ」版リリースおよびその「Via @」パターンから一致するようになります。このベータ期間中は、ポストの動詞は「post」となり、元のポストはペイロードに含まれません。
+* 8月13日 - 公式リツイートの最終版が、「RT @」パターン、動詞「share」、および元のポストを含む `retweet_status` 属性とともにリリースされます (そのため JSON ペイロードサイズはおおよそ2倍になります) 。
+
+<div id="2010">
+  #### 2010
+</div>
+
+* 3月6日 - `has:geo`、`bounding_box:` および `point_radius:` の地理演算子でのマッチングが開始される。
+* 8月28日 - `has:videos` (2015年2月まで、この演算子は、youtube.com や vimeo.com、vivo.com など一部の動画ホスティングサイトへのリンクを含む投稿にマッチします) 。
+
+<div id="2011">
+  #### 2011
+</div>
+
+* 7月20日 - `has:media` と `has:images` が検索でマッチするように。ネイティブ写真機能は2010年8月9日に正式発表。
+
+<div id="2014">
+  #### 2014
+</div>
+
+* 12月3日ごろ - *一部の* [Enhanced URL metadata](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) が HTML の title と description とともにペイロードに含まれるようになりました。拡張メタデータは 2016年5月に、より完全な形で導入されました。
+
+<div id="2015">
+  #### 2015
+</div>
+
+* 2月10日 - `has:videos` は「ネイティブ」な X 動画にマッチします。
+* 2月17日 - `has:profile_geo`, `profile_country:`, `profile_region:`, `profile_locality:` [Profile Geo](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments#profile-geo) オペレーターがマッチングに対応し始めます。
+* 2月17日 - `place_country:` と `place:` ポストのジオオペレーターがマッチングに対応し始めます。
+
+<div id="2016">
+  #### 2016
+</div>
+
+* 5月1日 - [Enhanced URL metadata](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) が本格的に利用可能となり、[2016年8月の Gnip 2.0 ローンチ](https://blog.x.com/2016/gnip-2-is-here) の一部として正式に発表されました。Search API には、これらのメタデータに対応する Operator は用意されていません。
+
+<div id="2017">
+  #### 2017
+</div>
+
+* 2月22日 - 投票メタデータが拡張されたネイティブ形式で利用可能になりました。これらのメタデータに対応する Operator はありません。
+
+<div id="2022">
+  #### 2022
+</div>
+
+* 9月27日 - この日以降に作成されたすべてのポストオブジェクトには、編集ポストのメタデータが利用可能です。ポストオブジェクトを提供するすべての Enterprise エンドポイントは、この日からこのメタデータを提供するように更新されました。提供される編集メタデータには、`edit_history` および `edit_controls` オブジェクトが含まれます。これらのメタデータは、2022年9月27日以前に作成された投稿については返されません。現時点では、これらのメタデータに対応する Enterprise Operator はありません。編集ポストのメタデータについて詳しくは、[Edit Posts fundamentals](/ja/x-api/fundamentals/edit-posts) ページを参照してください。
+
+<div id="2022">
+  #### 2022
+</div>
+
+* 9月29日 - この日以降に作成されたすべてのポストオブジェクトでは、編集済みポストのメタデータが利用可能です。ポストオブジェクトを提供するすべての Enterprise エンドポイントは、この日からこのメタデータを提供するように更新されました。提供される編集メタデータには、edit&#95;history オブジェクトと edit&#95;controls オブジェクトが含まれます。これらのメタデータは、2022年9月27日より前に作成された投稿については返されません。現在のところ、これらのメタデータに対応する Enterprise Operators は存在しません。ポスト編集メタデータの詳細については、[ポスト編集の基本](/ja/x-api/fundamentals/edit-posts) ページを参照してください。
+
+<div id="filtering-tips">
+  ### フィルタリングのヒント
+</div>
+
+ここまで説明してきたタイムライン情報から分かるように、Search API のフィルターを作成する際には多くの詳細を考慮する必要があります。特に重要な点が 2 つあります。
+
+* 一部のメタデータには「付与開始日」があるため、フィルターの結果に *偽陰性* が含まれる可能性があります。これは、検索期間全体または一部では存在していなかったメタデータに依存するオペレーターを使った検索です。たとえば、`has:images` オペレーターを使ってポストを検索する場合、2011 年 7 月より前の期間についてはヒットが一切ありません。これは、そのオペレーターが (X のユーザーインターフェースを使ってポストに添付された) *ネイティブ* 写真にマッチするためです。写真共有ポストのより完全なデータセットを取得するには、2011 年 7 月より前の期間に対するフィルターでは、写真ホスティング用の一般的な URL にマッチするルール句を含める必要があります。
+* 一部のメタデータは、ポストが X に投稿された時点より *後* の時点のメタデータでバックフィルされています。
+
+PowerTrack クエリを作成する際に、一般的に注目される属性タイプがいくつかあります。
+
+* X Profiles
+* オリジナルポストまたは共有ポスト
+* ポストの言語分類
+* 位置情報参照付きポスト
+* 共有リンクのメディア
+
+これらの中にはプロダクト固有の動作をするものもあれば、同一の動作をするものもあります。詳細は以下を参照してください。
+
+<div id="x-profiles">
+  #### X プロフィール
+</div>
+
+Search APIs は、*取得時点* のユーザープロフィールデータが付与された過去の投稿を返します。たとえば 2014 年の投稿をリクエストした場合でも、そのユーザーのプロフィールメタデータは、クエリを実行した時点での状態を反映します。
+
+<div id="original-posts-and-retweets">
+  #### 元の投稿とリツイート
+</div>
+
+PowerTrack の `_is:retweet_` オペレーターを使うと、リツイートを含めるか除外するかを指定できます。このオペレーターを利用する場合、2009 年 8 月以前のデータについては、リツイートとしてマッチさせるか (あるいはマッチさせないか) のために 2 つの戦略を用意しておく必要があります。2009 年 8 月以前は、「@RT 」パターンに一致するかどうかを確認するために、ポスト本文自体を正確なフレーズ一致でチェックする必要があります (実際には、2009 年 5〜8 月のリツイートをフィルタリングする場合は、「Via @」パターンも含める必要があります) 。2009 年 8 月以降の期間については、*is:retweet* オペレーターが利用可能です。
+
+<div id="post-language-classifications">
+  #### ポストの言語分類
+</div>
+
+ポストの言語分類でフィルタリングする場合、X の過去のプロダクト間では挙動が大きく異なります。Search アーカイブが構築されたとき、すべての投稿に対して X の言語分類がさかのぼって付与されました。そのため、`lang:` オペレーターはすべてのポストのアーカイブ全体に対して利用できます。
+
+<div id="geo-referencing-posts">
+  #### ポストの地理参照
+</div>
+
+投稿を地理参照する主な方法は 3 つあります。
+
+* **投稿本文内の地理的な記述。** 投稿本文内の地理的な記述に基づいてマッチングする方法は、ローカルな知識に依存するため最も難しい方法であることが多いものの、全投稿アーカイブに対して利用できるオプションです。[こちら](https://x.com/biz/statuses/28311)は、「golden gate」フィルターに基づいてサンフランシスコ地域を対象に 2006 年に行われた地理参照マッチの例です。
+
+* **ユーザーがジオタグ付けした投稿。** Search APIs では、2010 年 3 月から一部の Geo オペレーターを使って投稿のマッチングができるようになり、2015 年 2 月からは他の Geo オペレーターも利用可能になりました。
+
+  * 2010 年 3 月 6 日: `has:geo`、`bounding_box:`、`point_radius:`
+  * 2015 年 2 月 17 日: `place_country:`、`place:`
+
+* **ユーザーがアカウントプロフィールの「ホーム」位置情報を設定。** Profile Geo オペレーターは Historical PowerTrack と Search APIs の両方で利用できます。Search APIs では、これらの Profile Geo メタデータは 2015 年 2 月から利用可能です。Profile Geo メタデータが利用可能になる前に投稿されたコンテンツについては、正規化されていないユーザー入力にマッチさせるために使用できる `bio_location:` オペレーターが用意されています。
+
+<div id="shared-links-and-media">
+  #### 共有リンクとメディア
+</div>
+
+2012年3月に、拡張 URL エンリッチメントが導入されました。この時期以前は、ポストのペイロードにはユーザーが指定した URL のみが含まれていました。そのため、ユーザーが短縮 URL を含めていた場合、関心のある (展開済み) URL と照合するのが難しいことがありました。Search API では、これらのメタデータは 2012 年 3 月以降利用可能です。
+
+2016年7月には、強化 URL エンリッチメントが導入されました。この強化版では、ポストのペイロードに Web サイトの HTML のタイトルと説明が含まれ、それらに対してマッチングするためのオペレーターも提供されます。これらのメタデータは 2014 年 12 月頃から現れ始めています。
+
+2016年9月、X は「ネイティブアタッチメント」を導入し、末尾の共有リンクがポストの 140 文字制限にはカウントされなくなりました。両方の URL エンリッチメントは、これらの共有リンクにも引き続き適用されます。
+
+関連する Search オペレーターがマッチし始める時期は次のとおりです。
+
+* 2006年10月26日 - `has:links`
+* 2011年7月20日 - `has:images` と `has:media`
+* 2011年8月 - `url:`  ([Expanded URLs エンリッチメント](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) を利用) 。早い例では 2006 年 9 月の `(url:"spotify.com" OR url:gnip OR url:microsoft OR url:google OR url:youtube)` が http://x.com/Adam/statuses/16602 にマッチします。twitter&#95;entities や gnip オブジェクトには urls[] メタデータが存在しないにもかかわらずです。`"youtube.com"` は、urls[] メタデータが一切なくても `url:youtube` にマッチするメッセージコンテンツの一例です。
+* 2015年2月10日 - ネイティブ動画に対する `has:videos`。2010/08/28 から 2015/02/10 の間、このオペレーターは youtube.com、vimeo.com、vivo.com などの特定の動画ホスティングサイトへのリンクを含むポストにマッチします。
+* 2016年5月1日 - [Enhanced URLs エンリッチメント](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) に基づく `url_title:` と `url_description:` が一般提供開始。最初の強化 URL メタデータは 2014 年 12 月に現れ始めました。
+
+<div id="frequently-asked-questionsfaq">
+  ## よくある質問 (FAQ)
+</div>
+
+<div id="general-search-post-api-questions">
+  ### Search Post API 全般に関する質問
+</div>
+
+<AccordionGroup>
+  <Accordion title="data エンドポイントで取得できる投稿数が、counts エンドポイントでカウントされる投稿数と一致しません。なぜですか？">
+    counts エンドポイントと data エンドポイントによって提供される結果には、差異が生じることが知られています。counts エンドポイントはコンプライアンス適用前 (削除された投稿や位置情報のスクラブなどを考慮しない状態) である一方、data エンドポイントは配信時点でコンプライアンスに準拠し、すべてのコンプライアンスイベントを反映しているため、結果に不一致が生じる場合があります。
+  </Accordion>
+
+  <Accordion title="クエリに一致するはずのポストが取得できません。なぜですか？">
+    これが起こりうる理由はいくつかあり、たとえば次のとおりです。
+
+    1. 期待していたポストが非公開アカウントのものである場合
+    2. データエンドポイントではすべてのコンプライアンスイベントが考慮されるため (削除された投稿やジオ情報が削除されたものなどは、レスポンスに含まれません) 。
+  </Accordion>
+
+  <Accordion title="自分のクエリにマッチしたポストに、除外（否定）したはずのキーワードが含まれていました。これはなぜですか？">
+    これは、Premium のルールおよびフィルタリング機能の誤った利用が原因である可能性が高いです。[こちらのドキュメント](/ja/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering)を確認し、ルールを作成する際の制約事項を十分に理解してください。
+  </Accordion>
+
+  <Accordion title="Search ポスト API を使い始める際に利用できるライブラリはありますか？">
+    はい、あります。例えば次のようなものです。
+
+    * [Tweepy](http://www.tweepy.org/) - 標準的な search/投稿 プロダクトを利用するのに適しています (Python)
+    * [X API](https://github.com/geduldig/TwitterAPI) - 標準的な Search Post API を利用するのに適しています (Python)
+    * [Search Posts Python](https://github.com/xdevplatform/search-tweets-python) と [Search Posts Ruby](https://github.com/xdevplatform/search-tweets-ruby) - enterprise (および v2！) の Search Post API で使用できる、便利な 2 つのツールです
+
+    X が直接サポートしているライブラリはすべて、xdevplatform の GitHub ページに掲載されています: [https://github.com/xdevplatform](https://github.com/xdevplatform)。
+
+    [他のサードパーティ製ライブラリ](/ja/resources/fundamentals/authentication#oauth-1-0a-2)もあり、役立つ場合があります。ただし、これらの一部は Premium および Enterprise 製品では動作しない場合がある点に注意してください。
+  </Accordion>
+
+  <Accordion title="データエンドポイントへのリクエストで `maxResults` に指定した値より少ない数の投稿しか返されないことはありますか？">
+    はい。データエンドポイントは、指定された `maxResults` に達するか、30 日が経過した時点のいずれか早い方でページネーションされます。
+
+    たとえば、ある 30 日間に 800 件の投稿がある場合、すべての結果を取得するには 2 回リクエストを行う必要があります。1 回のリクエストで返せる投稿の最大数は 500 件 (`maxResults`) だからです。また、1 か月目に 400 件、2 か月目に 100 件の投稿がある場合も、完全な結果を取得するには 2 回のリクエストが必要です。最初のリクエストで指定した `maxResults` 未満の投稿しか返されなかった場合でも、30 日が経過するとページネーションが行われるためです。
+  </Accordion>
+
+  <Accordion title="一致する投稿はどのような順序で返されますか？">
+    投稿は新しいものから古いものへと、逆時系列で返されます。たとえば、最初のページにはクエリに一致する最新の投稿が表示され、結果の投稿日時が最初にリクエストした `fromDate` に到達するまでページネーションが続きます。
+  </Accordion>
+
+  <Accordion title="投稿の編集は、利用状況や課金にどのような影響がありますか？">
+    課金対象となるのは元のポストだけです。以降の編集は無視され、アクティビティ全体のカウントには加算されません。
+
+    `Enterprise`
+  </Accordion>
+
+  <Accordion title="Enterprise Search ポスト API の料金について詳しく知りたいのと、このオファリングに申し込みたいと考えています。どのように手続きすればよいですか？">
+    当社のエンタープライズ向けソリューションは、お客様のビジネスニーズに合わせて、料金を見通しやすい形でカスタマイズされています。詳しくは、[こちら](/ja/x-api/enterprise-gnip-2.0/enterprise-gnip) からお申し込みください。
+  </Accordion>
+
+  <Accordion title="自分のユースケースに合ったルールセットを作成するにはどうすればよいですか？">
+    * エンタープライズ向け Search ポスト API のドキュメントは[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-search-apis)をご覧ください
+    * ルールとフィルタリングに関する有用な情報は[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#enterprise-operators)をご覧ください
+    * data エンドポイントの利用に関する有用な情報は[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#data-endpoint)をご覧ください
+    * counts エンドポイントの利用に関する有用な情報は[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#counts-endpoint)をご覧ください
+    * 利用可能なオペレーターの一覧は[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators)をご覧ください
+  </Accordion>
+
+  <Accordion title="今月分のリクエスト上限を超えてしまいましたが、さらに多くのデータにアクセスする必要があります。どうすればよいですか？">
+    この件については、Xの担当アカウントマネージャーまでお問い合わせください。
+  </Accordion>
+</AccordionGroup>
+
+<div id="error-troubleshooting-guide">
+  ### エラー対処ガイド
+</div>
+
+**コード 404 - Not Found**
+
+1. 各エンドポイントに対して適切なパラメータを使用していることを確認してください (例：`buckets` フィールドは counts エンドポイントでのみ使用でき、data エンドポイントでは使用できません) 
+2. `:product`、`:account_name`、`:label` フィールドが正しいことを再度確認してください。`:label` フィールドは GNIP コンソール (エンタープライズ顧客のみ) で確認できます。
+
+<div id="api-reference">
+  ## APIリファレンス
+</div>
+
+<div id="enterprise-search-apis">
+  ### Enterprise search APIs
+</div>
+
+エンタープライズ検索 API には 2 種類あります。
+
+* 30-Day Search API - 過去 30 日間に投稿されたツイートを提供します。
+* Full-Archive Search API - 2006 年 3 月に投稿された最初のツイート以降のツイートを提供します。
+
+これらの検索 API は共通の設計となっており、以下の説明は両方に適用されます。2022 年 9 月 29 日以降に作成されたツイートについては、その編集履歴を表すツイート編集メタデータが Tweet オブジェクトに含まれる点に注意してください。詳細については、「[Edit Tweets](/ja/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets)」の基礎ページを参照してください。
+
+以下は、エンタープライズ検索 API と統合する際に必要となる重要なポイントです。
+
+* ツイートデータおよび件数をリクエストするメソッド
+* 認証
+* ページネーション
+* API リクエストパラメータとリクエスト例
+* API レスポンスの JSON ペイロードとレスポンス例
+* HTTP レスポンスコード
+
+エンタープライズ API は、低レイテンシーかつ完全な精度で、クエリベースによるツイートアーカイブへのアクセスを提供します。2 つの API の違いは検索できる期間だけで、直近 30 日間か、2006 年までさかのぼれるかの違いです。期間は分単位の粒度で指定できます。ツイートデータは、クエリにマッチする最新のツイートから始まる逆時系列で提供されます。ツイートは、公開されてからおおよそ 30 秒後に検索 API から利用可能になります。
+
+<div id="methods">
+  #### メソッド
+</div>
+
+エンタープライズ検索のベースとなる URI は `https://gnip-api.x.com/search/` です。
+
+| Method | Description |
+| :--- | :--- |
+| [POST /search/:product/accounts/:account&#95;name/:label](#SearchRequests) | 指定した PowerTrack ルールに一致する、過去 30 日間のツイートを取得します。 |
+| [POST /search/:product/accounts/:account&#95;name/:label/counts](#CountRequests) | 指定した PowerTrack ルールに一致する、過去 30 日間のツイート数を取得します。 |
+
+ここで:
+
+* `:product` はリクエストを送信する検索エンドポイントを表し、`30day` または `fullarchive` のいずれかです。
+* `:account_name` は、console.gnip.com に表示されるアカウントに関連付けられた (大文字・小文字を区別する) 名前です。
+* `:label` は、console.gnip.com に表示される検索エンドポイントに関連付けられた (大文字・小文字を区別する) ラベルです。
+
+たとえば、TwitterDev アカウントがラベル「prod」 (production の略) を持つ 30 日検索プロダクトを利用している場合、検索エンドポイントは次のようになります。
+
+* データエンドポイント: [https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod.json](https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod.json)
+* カウントエンドポイント: [https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod/counts.json](https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod/counts.json)
+
+ご利用中のエンタープライズ検索 API の完全なエンドポイントは [https://console.gnip.com](https://console.gnip.com) に表示されます。
+
+以下に、curl というシンプルな HTTP ユーティリティを使った、いくつかのリクエスト例を示します。これらの例では、URL に `:product`、`:account_name`、`:label` を使用しています。これらの例を利用する際は、ご自身の情報に合わせて URL を更新してください。
+
+<div id="authentication">
+  #### 認証
+</div>
+
+Enterprise search API へのすべてのリクエストは、[https://console.gnip.com](https://console.gnip.com) のアカウントへのログインに使用する有効なメールアドレスとパスワードの組み合わせから構成される HTTP の *Basic Authentication* を使用する必要があります。認証情報は、各リクエストで *Authorization* ヘッダーとして送信する必要があります。
+
+<div id="requestresponse-behavior">
+  #### リクエスト／レスポンスの挙動
+</div>
+
+`fromDate` と `toDate` パラメータを使用することで、API がサポートする任意の期間をリクエストできます。30-Day search API は直近 31 日分のツイートを提供します (「30-Day」API と呼ばれていますが、ユーザーが完全な 1 か月分をリクエストできるように 31 日分を利用可能にしています) 。Full-Archive search API は、最初のツイート (2006 年 3 月 21 日) までさかのぼってツイートを提供します。ただし、単一のレスポンスに含まれるのは、指定した `maxResults` または 31 日分のうち小さい方までです。一致するデータ量または指定した時間範囲が、指定した `maxResults` または 31 日を超える場合、指定した期間の残りの部分をページングするために使用すべき `next` トークンが返されます。
+
+たとえば、Full-Archive search を使用して、2017 年 1 月 1 日から 2017 年 6 月 30 日までの間でクエリに一致するすべてのツイートを取得したいとします。リクエストでは、`fromDate` と `toDate` パラメータを使用して、その 6 か月間全体を指定します。search API は、最初の「ページ」のツイートを返し、そのツイート数は `maxResults` パラメータ (デフォルトは 100) で指定した数になります。さらにツイートが存在する場合 (通常は存在します) 、API は次のデータ「ページ」をリクエストできるようにする `next` トークンも返します。この処理は、API が `next` トークンを返さなくなるまで繰り返されます。詳細については次のセクションを参照してください。
+
+<div id="pagination">
+  #### ページネーション
+</div>
+
+データリクエストとカウントリクエストの両方を行う場合、単一のレスポンスで返せる量を超えてデータが存在することがあります。そのような場合、レスポンスには「next」トークンが含まれます。「next」トークンは、ルートレベルのJSON属性として提供されます。「next」トークンが提供されている場合は常に、取得可能な追加データが存在することを意味するため、APIリクエストを継続して実行する必要があります。
+
+**Note:** 「next」トークンの挙動は、データリクエストとカウントリクエストでわずかに異なります。両方の動作については、APIリファレンスセクションでのレスポンス例とともに説明しています。
+
+<div id="data-pagination">
+  ##### データのページネーション
+</div>
+
+データをリクエストする場合、1 回のレスポンスで返せる量を超えるデータが生成される可能性があります。各データリクエストには、1 回のリクエストで返すツイートの最大数を設定するパラメータが含まれています。この `maxResults` パラメータのデフォルト値は 100 で、10～500 の範囲で設定できます。クエリに一致するツイートの数が、リクエストで使用した `maxResults` パラメータを超える場合、レスポンスには &#39;next&#39; トークン (ルートレベルの JSON 属性) が含まれます。この &#39;next&#39; トークンは後続のリクエストで使用し、そのクエリに一致するツイートの次の部分 (すなわち次の「ページ」) を取得するためのものです。&#39;next&#39; トークンは、そのクエリの結果の最後の「ページ」に到達し、&#39;next&#39; トークンが返されなくなるまで提供され続けます。
+
+次の「ページ」のデータをリクエストするには、元のクエリとまったく同じクエリを実行する必要があります。必要に応じて `query`、`toDate`、`fromDate` パラメータを含め、さらに前回のレスポンスで返された値を設定した &#39;next&#39; リクエストパラメータも含めます。これは GET リクエストと POST リクエストのいずれでも利用できます。ただし、GET リクエストの場合、&#39;next&#39; パラメータは URL エンコードされている必要があります。
+
+クエリの対象期間をカバーするすべてのツイートを受信するまで、前回のクエリで受け取った &#39;next&#39; トークンを引き続き渡すことができます。&#39;next&#39; トークンを含まないレスポンスを受信した場合、それは最後のページに到達しており、指定したクエリおよび期間に対して利用できる追加データがないことを意味します。
+
+<div id="counts-pagination">
+  ##### カウントのページネーション
+</div>
+
+`counts` エンドポイントは、クエリに関連付けられたツイート数を、日次、時間単位、または分単位のいずれかの粒度で提供します。`counts` API エンドポイントは、最大 31 日分のカウントをタイムスタンプ付き配列として返します。31 日を超える期間のカウントをリクエストした場合、`next` トークンが返されます。データ用の `next` トークンと同様に、元とまったく同じクエリを送信し、前回のレスポンスで返された値を設定した `next` リクエストパラメータも含める必要があります。
+
+31 日を超えるカウントをリクエストする場合以外にも、`next` トークンが提供されるシナリオがあります。ボリュームの大きいクエリでは、カウントの生成に時間がかかり、レスポンスのタイムアウトが発生する可能性があります。この場合、31 日分より少ないカウントしか受け取れませんが、カウントのペイロード全体を取得し終えるまでリクエストを継続できるように、`next` トークンが返されます。***重要:*** タイムアウトが発生した場合、レスポンスには完全な「バケット」のみが含まれます。そのため、2.5 日分のデータがある場合は、2 日分の完全な「バケット」のみが結果として返されます。
+
+<div id="additional-notes">
+  ##### 追加の注意事項
+</div>
+
+* 検索リクエストで fromDate または toDate を使用する場合、取得できる結果は指定した時間範囲内のものだけになります。時間範囲内の結果の最後のグループに到達すると、`next` トークンは返されません。
+* `next` 要素は、maxResults の値が 10〜500 の任意の値 (デフォルト値は 100) で使用できます。maxResults は各レスポンスで返されるツイート数を決定しますが、最終的にすべての結果を取得することを妨げるものではありません。
+* `next` 要素には有効期限がありません。同じ `next` クエリを使用した複数のリクエストは、リクエストのタイミングに関係なく同じ結果を受け取ります。
+* `next` パラメータを使用して結果をページングする場合、クエリの境界付近で重複が発生することがあります。アプリケーション側でこれらの重複を許容できるようにしておく必要があります。
+
+<div id="data-endpoint">
+  #### データエンドポイント
+</div>
+
+<div id="post-searchproductlabel">
+  ##### POST /search/:product/:label
+</div>
+
+<div id="endpoint-pattern">
+  ###### エンドポイントパターン:
+</div>
+
+このエンドポイントは、指定されたクエリおよび期間に対応するデータを返します。期間が指定されていない場合、時間パラメータはデフォルトで直近30日間になります。注記: 以下で説明するパラメータを URL にエンコードすることで、POST ではなく GET リクエストを使用して同じ機能を実行することもできます。
+
+<div id="data-request-parameters">
+  ##### データリクエストパラメータ
+</div>
+
+| Parameters | Description | Required | Sample Value |
+| :--- | :--- | :--- | :--- |
+| query | 最大 2,048 文字まで指定できる、1 つの PowerTrack ルールと同等の内容を指定します (肯定および否定の句の数に制限はありません) 。  <br />  <br />このパラメータには、すべてのオペレーターを含む PowerTrack ルールを構成するすべての要素を含める必要があります。ルールの一部をクエリの他のパラメータに分割しないでください。  <br />  <br />**注:** すべての PowerTrack オペレーターがサポートされているわけではありません。サポートされているオペレーターは[こちら](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators)に一覧があります。 | Yes | (snow OR cold OR blizzard) weather |
+| tag | タグは、ルールおよびそれにマッチしたデータを、異なる論理グループに分けるために使用できます。ルールタグが指定された場合、そのルールタグは &#39;matching&#95;rules&#39; 属性に含まれます。  <br />  <br />ルールタグにはルール固有の UUID を割り当て、必要な対応関係はクライアント側で管理することを推奨します。 | No  | 8HYG54ZGTU |
+| fromDate | ツイートが返される最も古い UTC タイムスタンプ (Full-Archive search の場合は 2006 年 3 月 21 日まで遡及可能) を指定します。タイムスタンプは分単位の粒度で、指定した時刻を含みます (例: 12:00 は 00 分を含みます) 。  <br />  <br />*指定した場合:* toDate パラメータを指定せずに fromDate のみを使用すると、今( ) から fromDate まで過去に遡るクエリ結果が返されます。  <br />  <br />*指定しなかった場合:* fromDate が指定されていない場合、API は今( ) から、または (指定されていれば) toDate から 30 日前までのすべての結果を返します。  <br />  <br />fromDate と toDate のどちらのパラメータも使用しない場合、API はリクエスト時点から過去に遡る直近 30 日間のすべての結果を返します。 | No  | 201207220000 |
+| toDate | ツイートが返される、最も新しい (最新の) UTC タイムスタンプを指定します。タイムスタンプは分単位の粒度で、上限値は含みません (例: 11:59 はその時間の 59 分を含みません) 。  <br />  <br />*指定した場合:* fromDate パラメータを指定せずに toDate のみを使用すると、toDate より前の直近 30 日間のデータが返されます。  <br />  <br />*指定しなかった場合:* toDate が指定されていない場合、API は今( ) から fromDate まで過去に遡る、クエリのすべての結果を返します。  <br />  <br />fromDate と toDate のどちらのパラメータも使用しない場合、API はリクエスト時点から過去に遡る、30 日インデックス全体のすべての結果を返します。 | No  | 201208220000 |
+| maxResults | 1 回のリクエストで返される検索結果の最大数を指定します。10 以上、システム上限 (現在 500) 以下の数値です。デフォルトでは、1 回のリクエストのレスポンスで 100 件の結果が返されます。 | No  | 500 |
+| next | このパラメータは、[こちら](#Pagination)で説明されているように、次の「ページ」の結果を取得するために使用されます。パラメータに指定する値は API が返すレスポンスから直接取得したものであり、変更してはいけません。 | No  | NTcxODIyMDMyODMwMjU1MTA0 |
+
+<div id="additional-details">
+  ###### 追加の詳細
+</div>
+
+|     |     |
+| :--- | :--- |
+| **利用可能な期間** | 30-Day: 直近31日間  <br />Full-Archive: 2006年3月21日～現在 |
+| **クエリ形式** | 最大2,048文字までの1つの PowerTrack ルールに相当するクエリ (ポジティブおよびネガティブ句の数に制限はありません) 。  <br />  <br />**注:** すべての PowerTrack 演算子がサポートされているわけではありません。サポートされている演算子の一覧については、[Available operators](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) を参照してください。 |
+| **レート制限** | パートナーには、分単位および秒単位の両方でレート制限が適用されます。1分あたりのレート制限は、契約書に記載されているとおりパートナーごとに異なります。ただし、これらの1分あたりのレート制限は、単一のバーストで消費することを想定したものではありません。1分あたりのレート制限にかかわらず、すべてのパートナーは、データおよび／またはカウントに対するすべてのリクエストを合算した上で、1秒あたり最大20リクエストに制限されます。 |
+| **コンプライアンス** | Full-Archive Search API から配信されるすべてのデータは、配信時点においてコンプライアンス要件に準拠しています。 |
+| **リアルタイム性** | データは、Twitter プラットフォーム上で生成されてから30秒以内にインデックスに反映され、利用可能になります。 |
+
+<div id="example-data-requests-and-responses">
+  ##### データリクエストとレスポンスの例
+</div>
+
+<div id="example-post-request">
+  ###### POST リクエストの例
+</div>
+
+* POST リクエストのパラメータは、以下のように JSON 形式のボディで送信されます。
+* 取得対象の PowerTrack ルールのすべての部分 (例: キーワード、bounding&#95;box: のようなその他のオペレーター) は、&#39;query&#39; パラメータに含める必要があります。
+* ルールの一部をクエリ URL 内の別々のパラメータとして分割しないでください。
+
+以下は、初回データリクエストを行うための、cURL を使用した POST コマンドの例です。
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label.json" -d '{"query":"from:twitterDev","maxResults":500,"fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm"}'
+```
+
+API データレスポンスに &#39;next&#39; トークンが含まれている場合、以下は、元のリクエストの &#39;next&#39; パラメータに指定されたトークンを設定した後続リクエストの例です。
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label.json" -d '{"query":"from:twitterDev","maxResults":500,"fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm",
+    "next":"NTcxODIyMDMyODMwMjU1MTA0"}'
+```
+
+<div id="example-get-request">
+  ###### GET リクエストの例
+</div>
+
+* GET リクエストのパラメータは、標準的な URL エンコードを用いて URL にエンコードされます。
+* クエリ対象となる PowerTrack ルールのすべての要素 (例: キーワード、`bounding_box:` のような他のオペレーター) は、`query` パラメータに含める必要があります。
+* クエリ URL 内で、ルールの一部を個別のパラメータとして分割しないでください。
+
+以下は、初回のデータリクエストを行うための、cURL を使用した GET コマンドの例です。
+
+```bash
+    curl -u<username> "http://gnip-api.x.com/search/:product/accounts/:account_name/:label.json?query=from%3Atwitterdev&maxResults=500&fromDate=yyyymmddhhmm&toDate=yyyymmddhhmm"
+```
+
+<div id="example-data-responses">
+  ###### データレスポンスの例
+</div>
+
+2022年9月29日以降に作成されたツイートの場合、Tweet オブジェクトには、その編集履歴を表すツイート編集メタデータが含まれます。詳細については、[&quot;ツイートの編集&quot;](/ja/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) の基本事項のページを参照してください。
+
+以下はデータクエリに対するレスポンスの例です。この例では、利用可能なツイートが &#39;maxResults&#39; を超えていることを前提としているため、後続のリクエスト用に &#39;next&#39; トークンが返されています。クエリに関連付けられたツイートが &#39;maxResults&#39; 以下の場合、レスポンスには &#39;next&#39; トークンは含まれません。
+&#39;next&#39; 要素の値はクエリごとに変化し、不透明な文字列として扱う必要があります。レスポンスボディ内での &#39;next&#39; 要素は次のような形式になります。
+
+```json
+{
+    "results":
+      [
+            {--Tweet 1--},
+            {--Tweet 2--},
+            ...
+            {--Tweet 500--}
+      ],
+    "next":"NTcxODIyMDMyODMwMjU1MTA0",
+    "requestParameters":
+      {
+        "maxResults":500,
+        "fromDate":"201101010000",
+        "toDate":"201201010000"
+      }
+  }
+```
+
+後続のリクエストに対するレスポンスは、次のようになります (新しいツイートや異なる &#39;next&#39; の値に注目してください) :
+
+```json
+{
+      "results":
+      [
+            {--Tweet 501--},
+            {--Tweet 502--},
+            ...
+            {--Tweet 1000--}
+      ],
+      "next":"R2hCDbpBFR6eLXGwiRF1cQ",
+      "requestParameters":
+      {
+        "maxResults":500,
+        "fromDate":"201101010000",
+        "toDate":"201201010000"
+      }
+  }
+```
+
+直前のクエリで返された &#39;next&#39; 要素を引き続き指定し続けることで、そのクエリで指定した期間に含まれるすべてのツイートを取得できます。&#39;next&#39; 要素を含まないレスポンスを受け取った場合は、最後のページに到達しており、指定した時間範囲内で取得可能な追加データがないことを意味します。
+
+<div id="counts-endpoint">
+  #### カウント用エンドポイント
+</div>
+
+<div id="searchstreamcounts">
+  ##### /search/:stream/counts
+</div>
+
+<div id="endpoint-pattern">
+  ###### エンドポイントパターン:
+</div>
+
+`/search/fullarchive/accounts/:account_name/:label/counts.json`
+
+このエンドポイントは、指定されたクエリに対するカウント (データボリューム) データを返します。期間が指定されていない場合、時間パラメーターのデフォルトは直近30日間になります。データボリュームは、日単位、時間単位 (デフォルト) 、または分単位のいずれかで、タイムスタンプ付き配列として返されます。
+
+**注:** この機能は、以下で説明するパラメーターを URL にエンコードすることで、POST ではなく GET リクエストを使用して実行することもできます。
+
+<div id="counts-request-parameters">
+  ##### カウントリクエストのパラメータ
+</div>
+
+| Parameters | Description | Required | Sample Value |
+| :--- | :--- | :--- | :--- |
+| query | 1 つの PowerTrack ルールに相当するクエリで、最大 2,048 文字まで指定できます (肯定/否定の句の数に制限はありません) 。  <br />  <br />このパラメータには、すべてのオペレーターを含む PowerTrack ルールのすべての要素を含める必要があり、ルールの一部を query の別パラメータに分割してはいけません。  <br />  <br />**注:** すべての PowerTrack オペレーターがサポートされているわけではありません。サポートされているオペレーターの一覧については、[Available operators](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) を参照してください。 | Yes | (snow OR cold OR blizzard) weather |
+| fromDate | ツイートが提供される最も古い UTC タイムスタンプ (2006 年 3 月 21 日まで遡ることができます) 。タイムスタンプは分単位の精度で、下限値を含みます (例: 12:00 は 00 分を含みます) 。  <br />  <br />*指定した場合:* `toDate` パラメータを指定せずに `fromDate` のみを使用した場合、API は現在から `fromDate` まで遡って、クエリのカウント (データ量) データを返します。`fromDate` が現在から 31 日を超えて過去の場合、リクエストをページングするための next トークンが返されます。  <br />  <br />*指定しない場合:* `fromDate` を指定しない場合、API は現在 ( ) または `toDate` (指定されている場合) を基準として、その 30 日前まで遡ったカウント (データ量) を返します。  <br />  <br />`fromDate` と `toDate` のどちらのパラメータも使用しない場合、API はリクエスト時点から遡って直近 30 日間のカウント (データ量) を返します。 | No  | 201207220000 |
+| toDate | ツイートが提供される最も新しい (最新の) UTC タイムスタンプ。タイムスタンプは分単位の精度で、上限値は含みません (例: 11:59 はその時間の 59 分目を含みません) 。  <br />  <br />*指定した場合:* `fromDate` パラメータを指定せずに `toDate` のみを使用した場合、`toDate` から 30 日前まで遡った最新のカウント (データ量) が返されます。  <br />  <br />*指定しない場合:* `toDate` を指定しない場合、API はクエリについて `fromDate` まで遡ったカウント (データ量) を返します。`fromDate` が現在から 31 日を超えて過去の場合、リクエストをページングするための next トークンが返されます。  <br />  <br />`fromDate` と `toDate` のどちらのパラメータも使用しない場合、API はリクエスト時点から遡って直近 30 日間のカウント (データ量) を返します。 | No  | 201208220000 |
+| bucket | カウントデータが提供される時間単位です。指定した期間内の毎日、毎時、または毎分のカウントデータを返すことができます。デフォルトでは毎時のカウントが返されます。指定可能な値: &#39;day&#39;, &#39;hour&#39;, &#39;minute&#39; | No  | minute |
+| next | このパラメータは、[HERE](#Pagination) で説明しているように、結果の次の「ページ」を取得するために使用します。このパラメータに使用する値は、API から返されるレスポンスから直接取得するものであり、変更してはいけません。 | No  | NTcxODIyMDMyODMwMjU1MTA0 |
+
+<div id="additional-details">
+  ###### 追加の詳細
+</div>
+
+|     |     |
+| :--- | :--- |
+| **利用可能な期間** | 30-Day: 直近31日間  <br />Full-Archive: 2006年3月21日 〜 現在 |
+| **クエリ形式** | 1つの PowerTrack ルールに相当し、最大2,048文字まで。  <br />  <br />**注:** すべての PowerTrack オペレーターがサポートされているわけではありません。サポートされているオペレーターの一覧は、[Available operators](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) を参照してください。 |
+| **レート制限** | パートナーには、分単位および秒単位の両方でレート制限が適用されます。1分あたりのレート制限は、契約で規定されているとおりパートナーごとに異なります。ただし、これらの1分あたりのレート制限は、単一のバーストで使い切ることを想定したものではありません。1分あたりのレート制限の値にかかわらず、すべてのパートナーは、データおよび/またはカウントに対する全リクエストを合算したうえで、1秒あたり最大20リクエストに制限されます。 |
+| **カウント精度** | このエンドポイントから提供されるカウントは、発生したツイート数を反映したものであり、その後のコンプライアンスイベント (削除、位置情報のスクラブなど) は反映しません。カウントに含まれていても、ユーザーのコンプライアンスアクションにより、データエンドポイントからは取得できないツイートが含まれている場合があります。 |
+
+<div id="example-counts-requests-and-responses">
+  ##### カウント用リクエストとレスポンスの例
+</div>
+
+<div id="example-post-request">
+  ###### POST リクエストの例
+</div>
+
+* POST リクエストのパラメータは、以下のように JSON 形式のボディで送信されます。
+* クエリ対象とする PowerTrack ルールのすべての要素 (例: キーワード、bounding&#95;box: のようなその他のオペレーター) は、&#39;query&#39; パラメータに含めて指定してください。
+* ルールの一部を、クエリ URL の別個のパラメータとして分割しないでください。
+
+以下は、初回の counts リクエストを行うための POST (cURL 使用) コマンドの例です。
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label/counts.json" -d '{"query":"TwitterDev","fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm","bucket":"day"}'
+```
+
+API の counts レスポンスに &#39;next&#39; トークンが含まれている場合、以下に示すのは、提供されたトークンを &#39;next&#39; パラメーターに設定した、元のリクエストと同一内容の後続リクエストです。
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label/counts.json" -d '{"query":"TwitterDev","fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm","bucket":"day",
+    "next":"YUcxO87yMDMyODMwMjU1MTA0"}'
+```
+
+<div id="example-get-request">
+  ###### GET リクエストの例
+</div>
+
+* GET リクエストのリクエストパラメータは、標準的な URL エンコード方式で URL にエンコードされます
+* クエリ対象の PowerTrack ルールのすべての要素 (例: キーワード、bounding&#95;box: のようなその他のオペレーター) は、&#39;query&#39; パラメータに指定してください
+* ルールの要素を分割して、query URL 内の別々のパラメータとして指定しないでください
+
+以下は、初回の counts リクエストを送信するための GET (cURL 使用) コマンドの例です：
+
+```bash
+    curl -u<username> "http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label/counts.json?query=TwitterDev&bucket=day&fromDate=yyyymmddhhmm&toDate=yyyymmddhhmm"
+```
+
+<div id="example-counts-responses">
+  #### カウントレスポンスの例
+</div>
+
+以下は、counts (データボリューム) クエリに対するレスポンスの例です。このレスポンス例には &#39;next&#39; トークンが含まれており、これは counts リクエストの対象期間が 31 日を超えているか、もしくは送信されたクエリに関連付けられたデータ量が十分に大きく、部分的なレスポンスが返される条件を満たしたことを意味します。
+
+&#39;next&#39; 要素の値はクエリごとに変化し、不透明な文字列として扱う必要があります。レスポンスボディ内での &#39;next&#39; 要素は、次のような形式になります。
+
+```json
+    {
+      "results": [
+        { "timePeriod": "201101010000", "count": 32 },
+        { "timePeriod": "201101020000", "count": 45 },
+        { "timePeriod": "201101030000", "count": 57 },
+        { "timePeriod": "201101040000", "count": 123 },
+        { "timePeriod": "201101050000", "count": 134 },
+        { "timePeriod": "201101060000", "count": 120 },
+        { "timePeriod": "201101070000", "count": 43 },
+        { "timePeriod": "201101080000", "count": 65 },
+        { "timePeriod": "201101090000", "count": 85 },
+        { "timePeriod": "201101100000", "count": 32 },
+        { "timePeriod": "201101110000", "count": 23 },
+        { "timePeriod": "201101120000", "count": 85 },
+        { "timePeriod": "201101130000", "count": 32 },
+        { "timePeriod": "201101140000", "count": 95 },
+        { "timePeriod": "201101150000", "count": 109 },
+        { "timePeriod": "201101160000", "count": 34 },
+        { "timePeriod": "201101170000", "count": 74 },
+        { "timePeriod": "201101180000", "count": 24 },
+        { "timePeriod": "201101190000", "count": 90 },
+        { "timePeriod": "201101200000", "count": 85 },
+        { "timePeriod": "201101210000", "count": 93 },
+        { "timePeriod": "201101220000", "count": 48 },
+        { "timePeriod": "201101230000", "count": 37 },
+        { "timePeriod": "201101240000", "count": 54 },
+        { "timePeriod": "201101250000", "count": 52 },
+        { "timePeriod": "201101260000", "count": 84 },
+        { "timePeriod": "201101270000", "count": 120 },
+        { "timePeriod": "201101280000", "count": 34 },
+        { "timePeriod": "201101290000", "count": 83 },
+        { "timePeriod": "201101300000", "count": 23 },
+        { "timePeriod": "201101310000", "count": 12 }
+       ],
+      "totalCount":2027,
+      "next":"NTcxODIyMDMyODMwMjU1MTA0",
+      "requestParameters":
+        {
+          "bucket":"day",
+          "fromDate":"201101010000",
+          "toDate":"201201010000"
+        }
+    }
+```
+
+後続のリクエストに対するレスポンスは、次のようになります (新しい counts タイムラインと異なる「next」値に注目してください) ：
+
+```json
+    {
+      "results": [
+        { "timePeriod": "201102010000", "count": 45 },
+        { "timePeriod": "201102020000", "count": 76 },
+         ....
+        { "timePeriod": "201103030000", "count": 13 }
+     ],
+     "totalCount":3288,
+     "next":"WE79fnakFanyMDMyODMwMjU1MTA0",
+     "requestParameters":
+        {
+          "bucket":"day",
+          "fromDate":"201101010000",
+          "toDate":"201201010000"
+        }
+    }
+```
+
+前回のクエリから返された &#39;next&#39; 要素を引き続き渡すことで、そのクエリの時間範囲内に含まれるすべてのカウントを取得するまでページングを続けることができます。&#39;next&#39; 要素を含まないレスポンスを受け取った場合、それは最後のページに到達しており、指定した時間範囲内で取得可能な追加のカウントが存在しないことを意味します。
+
+<div id="http-response-codes">
+  #### HTTP response codes
+</div>
+
+| Status | Text | Description |
+| :--- | :--- | :--- |
+| 200 | OK  | リクエストは成功しました。JSON レスポンスは次の例と同様の形式になります。 |
+| 400 | Bad Request | 通常、このレスポンスは、リクエスト内に無効な JSON が含まれている場合、または JSON ペイロードがまったく送信されなかった場合に返されます。 |
+| 401 | Unauthorized | 無効な認証情報により HTTP 認証に失敗しました。お使いの認証情報で console.gnip.com にログインし、リクエストで正しく使用していることを確認してください。 |
+| 404 | Not Found | リクエストが送信された URL にリソースが存在しません。誤った URL が使用されている可能性があります。 |
+| 422 | Unprocessable Entity | クエリ内のパラメータが無効な場合に返されます (例: 無効な PowerTrack ルール) 。 |
+| 429 | Unknown Code | アプリケーションが接続リクエスト数の上限を超過しました。対応する JSON メッセージは次の例と同様の形式になります。 |
+| 500 | Internal Server Error | サーバー側でエラーが発生しました。指数バックオフ方式を用いてリクエストを再試行してください。 |
+| 502 | Proxy Error | サーバー側でエラーが発生しました。指数バックオフ方式を用いてリクエストを再試行してください。 |
+| 503 | Service Unavailable | サーバー側でエラーが発生しました。指数バックオフ方式を用いてリクエストを再試行してください。 |

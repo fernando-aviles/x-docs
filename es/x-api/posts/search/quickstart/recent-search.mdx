@@ -1,0 +1,276 @@
+---
+title: Inicio rápido de búsqueda reciente
+sidebarTitle: Búsqueda reciente
+description: Realiza tu primera solicitud de búsqueda reciente en cuestión de minutos
+keywords: ["búsqueda reciente", "inicio rápido de búsqueda reciente", "tutorial de búsqueda reciente", "buscar Tweets", "guía de búsqueda reciente", "ejemplo de búsqueda"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te explica cómo realizar tu primera solicitud de búsqueda reciente para encontrar Publicaciones de los últimos 7 días.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * El Bearer Token de tu App (se encuentra en la Consola de desarrollador en &quot;Keys and tokens&quot;)
+</Note>
+
+***
+
+<Steps>
+  <Step title="Crear una consulta" icon="magnifying-glass">
+    Las consultas de búsqueda utilizan operadores para encontrar Publicaciones. Comienza con una palabra clave sencilla:
+
+    ```
+    python
+    ```
+
+    O bien combina varios operadores:
+
+    ```
+    python lang:en -is:retweet
+    ```
+
+    Esto coincide con las Publicaciones que contienen &quot;python&quot; en inglés y excluye los retweets.
+
+    <Tip>
+      Consulta la [referencia completa de operadores](/es/x-api/posts/search/integrate/operators) para ver todas las opciones disponibles.
+    </Tip>
+  </Step>
+
+  <Step title="Realizar una solicitud" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/recent?query=python%20lang%3Aen%20-is%3Aretweet" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Buscar publicaciones recientes
+      for page in client.posts.search_recent(
+          query="python lang:en -is:retweet"
+      ):
+          for post in page.data:
+              print(post.text)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Buscar publicaciones recientes
+      const paginator = client.posts.searchRecent({
+        query: "python lang:en -is:retweet",
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(post.text);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Revisar la respuesta" icon="eye">
+    De forma predeterminada, la respuesta incluye `id`, `text` y `edit_history_tweet_ids`:
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1234567890123456789",
+          "text": "Just started learning Python and loving it!",
+          "edit_history_tweet_ids": ["1234567890123456789"]
+        },
+        {
+          "id": "1234567890123456788",
+          "text": "Python tip: use list comprehensions for cleaner code",
+          "edit_history_tweet_ids": ["1234567890123456788"]
+        }
+      ],
+      "meta": {
+        "newest_id": "1234567890123456789",
+        "oldest_id": "1234567890123456788",
+        "result_count": 2
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Agregar campos y expansions" icon="sliders">
+    Solicita datos adicionales usando parámetros de consulta:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/recent?\
+      query=python%20lang%3Aen%20-is%3Aretweet&\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Búsqueda con campos y Expansions
+      for page in client.posts.search_recent(
+          query="python lang:en -is:retweet",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Me gusta: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Búsqueda con campos y Expansions
+      const paginator = client.posts.searchRecent({
+        query: "python lang:en -is:retweet",
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Me gusta: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+
+    **Respuesta:**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1234567890123456789",
+          "text": "Just started learning Python and loving it!",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "9876543210",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          },
+          "edit_history_tweet_ids": ["1234567890123456789"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "pythondev",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "newest_id": "1234567890123456789",
+        "oldest_id": "1234567890123456789",
+        "result_count": 1
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Paginar resultados" icon="arrow-right">
+    Los SDK gestionan la paginación automáticamente. Para cURL, utiliza el `next_token` de la respuesta:
+
+    ```bash
+    curl "https://api.x.com/2/tweets/search/recent?\
+    query=python&\
+    max_results=100&\
+    next_token=b26v89c19zqg8o3fo7gesq314yb9l2l4ptqy" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+
+    <Card title="Guía de paginación" icon="arrow-right" href="/es/x-api/posts/search/integrate/paginate">
+      Más información sobre cómo explorar grandes conjuntos de resultados
+    </Card>
+  </Step>
+</Steps>
+
+***
+
+<div id="example-queries">
+  ## Consultas de ejemplo
+</div>
+
+<AccordionGroup>
+  <Accordion title="Publicaciones de un usuario específico">
+    ```
+    from:XDevelopers
+    ```
+  </Accordion>
+
+  <Accordion title="Publicaciones con un hashtag">
+    ```
+    #Python -is:retweet
+    ```
+  </Accordion>
+
+  <Accordion title="Publicaciones con imágenes">
+    ```
+    "machine learning" has:images lang:en
+    ```
+  </Accordion>
+
+  <Accordion title="Publicaciones que mencionan a un usuario">
+    ```
+    @elonmusk -is:retweet -is:reply
+    ```
+  </Accordion>
+
+  <Accordion title="Publicaciones con enlaces a un dominio">
+    ```
+    url:github.com lang:en
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Crear una consulta" icon="magnifying-glass" href="/es/x-api/posts/search/integrate/build-a-query">
+    Domina la sintaxis de las consultas y los operadores
+  </Card>
+
+  <Card title="Referencia de operadores" icon="list-check" href="/es/x-api/posts/search/integrate/operators">
+    Consulta todos los operadores disponibles
+  </Card>
+
+  <Card title="Búsqueda en el archivo completo" icon="vault" href="/es/x-api/posts/search/quickstart/full-archive-search">
+    Busca en el archivo completo de Publicaciones
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/posts/search-recent-posts">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

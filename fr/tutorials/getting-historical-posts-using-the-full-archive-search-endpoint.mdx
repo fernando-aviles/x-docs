@@ -1,0 +1,211 @@
+---
+title: Récupérer des Publications historiques à l’aide de l’endpoint de recherche dans l’archive complète v2
+mode: wide
+keywords: ["recherche dans l’archive complète", "recherche historique", "Tweets historiques", "recherche dans les archives", "tutoriel de recherche", "données historiques", "archive complète"]
+---
+
+<div id="introduction">
+  ## Introduction
+</div>
+
+Les [endpoints de recherche de Publications](/fr/x-api/posts/search/introduction)
+dans l’environnement v2 vous permettent de recevoir des Publications liées à des sujets
+qui vous intéressent, à partir d’une requête de recherche que vous définissez.
+Nous proposons deux endpoints différents pour la recherche de Publications en v2 :
+la recherche récente, qui est disponible pour tous les développeurs disposant
+d’un compte approuvé et qui peut rechercher des Publications jusqu’à sept jours
+en arrière, et la recherche dans l’archive complète, qui est uniquement
+disponible pour les chercheurs approuvés pour le
+[parcours de produit Academic Research](https://developer.x.com/en/products/x-api/early-access/guide#na_2),
+et qui permet de rechercher dans l’intégralité de l’archive de Publications
+remontant à mars 2006.
+
+Vous pouvez consulter l’ensemble de notre offre de recherche sur notre
+[page de présentation de la recherche](/fr/x-api/posts/search/introduction).
+
+Ces endpoints de recherche de Publications répondent à l’un des cas d’usage
+les plus courants pour les chercheurs universitaires, qui peuvent les utiliser
+pour des études longitudinales ou pour analyser un sujet ou un événement passé.
+
+Ce tutoriel propose un guide pas à pas destiné aux chercheurs qui souhaitent
+utiliser l’endpoint de recherche dans l’archive complète pour interroger
+l’historique complet des données publiques d’X. Il montrera également différentes
+façons de constituer un jeu de données, par exemple en récupérant des
+Publications géolocalisées, ainsi que la manière de parcourir les Publications
+disponibles pour une requête.
+
+<div id="prerequisites">
+  ### Prérequis
+</div>
+
+Actuellement, cet endpoint n’est disponible que dans le cadre de l’
+[offre Academic Research](https://developer.x.com/en/solutions/academic-research/products-for-researchers).
+Pour utiliser cet endpoint, vous devez
+[demander l’accès](https://developer.x.com/en/portal/petition/academic/is-it-right-for-you).
+Pour en savoir plus, consultez
+[les informations sur la demande et les exigences de cette offre](https://developer.x.com/en/solutions/academic-research/application-info).
+
+<div id="connect-an-app-to-the-academic-project">
+  ### Connecter une App au projet académique
+</div>
+
+Une fois que votre accès à l’offre de produit Academic Research a été approuvé, vous verrez
+votre [Project](/fr/resources/fundamentals/developer-apps) académique dans la
+[Console de développement](https://developer.x.com/en/portal/dashboard). Depuis la
+section &quot;Apps&quot;, cliquez sur &quot;Add App&quot; pour connecter votre
+[X App](/fr/resources/fundamentals/developer-apps) au Project.
+
+[](https://res.cloudinary.com/practicaldev/image/fetch/s--gHFOyuDc--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://dev-to-uploads.s3.amazonaws.com/i/gb7aevhqyfvfjznd0pnd.png)
+
+![Cette image affiche un Project académique dans la Console de développement auquel aucune App n’a encore été ajoutée](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/tutorials/getting-historical-tweets-using-the-full-archive-search-endpoint/dev-portal-1.png.twimg.1920.png)
+
+Ensuite, vous pouvez soit choisir une App existante et la connecter à votre Project (comme
+indiqué ci-dessous).
+
+![Cette image montre la page qui s’affiche lorsque vous essayez d’ajouter une App à votre Project académique](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/tutorials/getting-historical-tweets-using-the-full-archive-search-endpoint/dev-portal-2.png.twimg.1920.png)
+
+Ou vous pouvez créer une nouvelle App, lui donner un nom et cliquer sur &quot;complete&quot; pour connecter une nouvelle
+App à votre Project académique.
+
+![Cette image montre la page où vous saisirez un nom pour votre nouvelle App, ou qui vous permet de sélectionner une App existante](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/tutorials/getting-historical-tweets-using-the-full-archive-search-endpoint/dev-portal-3.png.twimg.1920.png)
+
+Cela vous fournira vos clés d’API et le
+[Jeton Bearer](/fr/resources/fundamentals/authentication#using-and-generating-an-app-only-bearer-token) que vous pourrez
+ensuite utiliser pour vous connecter à l’endpoint de recherche sur l’archive complète.
+
+![Cette image montre la page qui s’affiche après la création d’une nouvelle App et qui présente vos clés et jetons](https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/docs/tutorials/getting-historical-tweets-using-the-full-archive-search-endpoint/dev-portal-4.png.twimg.1920.png)
+
+**Veuillez noter**
+
+Les clés de la capture d’écran ci-dessus sont masquées, mais dans votre propre Console de développement,
+vous pourrez voir les valeurs réelles de la clé d’API, de la clé secrète d’API et du
+Jeton Bearer. Enregistrez ces clés et le Jeton Bearer, car vous en aurez besoin
+pour appeler l’endpoint de recherche sur l’archive complète.
+
+<div id="connecting-to-the-full-archive-search-endpoint">
+  ### Connexion au endpoint de recherche dans l’archive complète
+</div>
+
+La commande cURL ci-dessous montre comment récupérer des Publications historiques à partir du compte @XDevelopers. Remplacez $BEARER&#95;TOKEN par votre propre Jeton Bearer, collez la requête complète dans votre terminal, puis appuyez sur « Entrée ».
+
+```bash
+curl --request GET 'https://api.x.com/2/tweets/search/all?query=from:xdevelopers' --header 'Authorization: Bearer $BEARER_TOKEN'
+```
+
+Vous verrez le JSON de la réponse.
+
+Par défaut, seules les 10 Publications les plus récentes seront renvoyées. Si vous souhaitez
+plus de 10 Publications par requête, vous pouvez utiliser le paramètre max&#95;results et le définir sur une valeur maximale de 500 Publications par requête, comme indiqué ci-dessous :
+
+```bash
+curl --request GET 'https://api.x.com/2/tweets/search/all?query=from:xdevelopers&max_results=500' --header 'Authorization: Bearer $BEARER_TOKEN'
+```
+
+###
+
+Création de requêtes
+
+Comme vous pouvez le voir dans les exemples d’appels ci-dessus, en utilisant le paramètre `query`, vous pouvez
+spécifier les données que vous souhaitez rechercher. Par exemple, si vous souhaitez
+récupérer toutes les Publications contenant le mot *covid* ou le mot *coronavirus*, vous pouvez
+utiliser l’opérateur `OR` entre parenthèses, et votre requête peut être
+`(covid OR coronavirus)` et ainsi votre appel d’API ressemblera à ce qui suit :
+
+```bash
+curl --request GET 'https://api.x.com/2/tweets/search/all?query=(covid%20OR%20coronavirus)&max_results=500' --header 'Authorization: Bearer $BEARER_TOKEN'
+```
+
+De même, si vous souhaitez récupérer toutes les Publications qui contiennent le terme *covid19* sans être des retweets, vous pouvez utiliser l’opérateur is:retweet avec le NOT logique (représenté par -). Votre requête sera donc covid19 -is:retweet et votre appel d’API sera :
+
+```bash
+curl --request GET 'https://api.x.com/2/tweets/search/all?query=covid19%20-is:retweet&max_results=500' --header 'Authorization: Bearer $BEARER_TOKEN'
+```
+
+Consultez
+[ce guide pour une liste complète des opérateurs](/fr/x-api/posts/search/integrate/build-a-query)
+qui sont pris en charge par l’endpoint de recherche de l’archive complète.
+
+<div id="using-the-start_time-and-end_time-parameters-to-get-historical-posts">
+  ### Utiliser les paramètres start_time et end_time pour obtenir des Publications historiques
+</div>
+
+Lorsque vous utilisez l’endpoint de recherche full-archive, par défaut, les Publications des 30 derniers jours sont renvoyées. Si vous voulez obtenir des Publications antérieures à 30 jours, vous pouvez utiliser les paramètres start&#95;time et end&#95;time dans votre appel d’API. Ces paramètres doivent respecter un format de date et d’heure RFC3339 valide, par exemple 2020-12-21T13:00:00.00Z. Ainsi, si vous voulez obtenir toutes les Publications du compte XDevelopers pour le mois de décembre 2020, votre appel d’API sera le suivant :
+
+```bash
+curl --request GET 'https://api.x.com/2/tweets/search/all?query=from:XDevelopers&start_time=2020-12-01T00:00:00.00Z&end_time=2021-01-01T00:00:00.00Z' --header 'Authorization: Bearer $BEARER_TOKEN'
+```
+
+###
+
+Obtenir des Publications historiques géolocalisées
+
+Les Publications géolocalisées sont des Publications qui comportent des informations géographiques associées,
+telles qu’une ville, une région, un pays, etc.
+
+<div id="using-hasgeo-operator">
+  #### Utilisation de l&#39;opérateur has:geo
+</div>
+
+Si vous voulez récupérer des Publications qui contiennent des données de géolocalisation, vous pouvez utiliser l&#39;opérateur has:geo.
+Par exemple, la requête cURL suivante ne récupérera que les Publications du compte
+@XDevelopers qui possèdent des données de géolocalisation :
+
+```
+curl --request GET
+'https://api.x.com/2/tweets/search/all?query=from:xdevelopers%20has:geo' --header
+'Authorization: Bearer $BEARER_TOKEN'
+```
+
+<div id="using-place_country-operator">
+  #### Utilisation de l&#39;opérateur place_country
+</div>
+
+De la même manière, vous pouvez limiter les Publications qui disposent de données de géolocalisation à un pays spécifique en utilisant l&#39;opérateur place&#95;country. La commande cURL ci-dessous récupère toutes les Publications du handle @XDevelopers provenant des États-Unis :
+
+```
+curl --request GET
+'https://api.x.com/2/tweets/search/all?query=from:xdevelopers%20place_country:US'
+--hbasheader 'Authorization: Bearer XXXXX'
+```
+
+Le pays est spécifié ci-dessus à l&#39;aide du code ISO alpha-2 (code de pays à deux lettres). Les codes ISO valides peuvent être consultés [ici](http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
+
+<div id="getting-more-than-500-historical-posts-using-the-next_token">
+  ### Obtenir plus de 500 Publications historiques à l’aide de next_token
+</div>
+
+Comme mentionné ci-dessus, par défaut vous ne pouvez obtenir au maximum que 500 Publications par requête
+adressée à l’endpoint de recherche sur l’archive complète. S’il y a plus de 500 Publications
+disponibles pour votre requête, votre réponse JSON inclura un next&#95;token que vous
+pourrez ajouter à votre appel à l’API afin d’obtenir les Publications suivantes pour cette
+requête. Ce next&#95;token est disponible dans l’objet meta de votre réponse JSON,
+qui ressemble à ceci :
+
+```
+{ "newest_id": "12345678...", "oldest_id": "12345678...", "result_count": 500,
+"nebashxt_token": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" }
+```
+
+Ainsi, pour récupérer les prochaines Publications disponibles, utilisez la valeur de next&#95;token de cet objet meta
+et utilisez cette valeur comme valeur de next&#95;token dans votre appel d’API vers
+l’endpoint de recherche dans l’archive complète, comme indiqué ci-dessous (vous utiliserez votre propre Jeton Bearer
+et la valeur que vous obtenez pour le Next Token lors de votre précédent appel d’API).
+
+```
+curl --request GET
+'https://api.x.com/2/tweets/search/all?max_results=500&query=covid&next_token=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+--header 'Authorization: Bearer $BEARER_TOKEN'
+```
+
+De cette façon, vous pouvez vérifier en continu si un next&#95;token est disponible et, si vous n’avez pas encore atteint le nombre de Publications que vous souhaitez collecter, vous pouvez continuer à appeler l’endpoint full-archive avec le nouveau next&#95;token pour chaque requête.
+
+Vous trouverez ci-dessous quelques ressources qui peuvent vous aider lorsque vous utilisez l’endpoint full-archive search. Nous serions ravis de connaître vos commentaires. Contactez-nous sur
+[@XDevelopers](https://x.com/XDevelopers) ou sur nos
+[forums communautaires](https://devcommunity.x.com/) pour toute question concernant cet endpoint.
+
+<div id="additional-resources">
+  ### Ressources supplémentaires
+</div>
+
+* [Référence de l’API pour le point de terminaison de recherche dans l’archive complète](/fr/x-api/posts/full-archive-search)
+* [Découvrez les bases de la création d’une requête de recherche](/fr/x-api/posts/search/integrate/build-a-query)

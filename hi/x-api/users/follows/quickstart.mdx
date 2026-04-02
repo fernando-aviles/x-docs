@@ -1,0 +1,322 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: फ़ॉलोअर और फ़ॉलोइंग की सूचियाँ प्राप्त करें और फ़ॉलो प्रबंधित करें
+keywords: ["फ़ॉलो त्वरित शुरुआत", "फ़ॉलोअर त्वरित शुरुआत", "फ़ॉलोइंग ट्यूटोरियल", "फ़ॉलो मार्गदर्शिका"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको फ़ॉलोअर और फ़ॉलोइंग सूचियाँ प्राप्त करने और फ़ॉलो को प्रबंधित करने की प्रक्रिया समझाती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत App के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके App का बेयरर टोकन (लुकअप के लिए)
+  * User Access Token (फ़ॉलो प्रबंधित करने के लिए)
+</Note>
+
+***
+
+<div id="get-a-users-followers">
+  ## किसी उपयोगकर्ता के फ़ॉलोअर्स प्राप्त करें
+</div>
+
+किसी विशेष उपयोगकर्ता को फ़ॉलो करने वाले उपयोगकर्ताओं की सूची प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/followers?\
+  user.fields=username,verified,public_metrics&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # पेजिनेशन के साथ किसी उपयोगकर्ता के फ़ॉलोअर्स प्राप्त करें
+  for page in client.users.get_followers(
+      "2244994945",
+      user_fields=["username", "verified", "public_metrics"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Followers: {user.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // पेजिनेशन के साथ किसी उपयोगकर्ता के फ़ॉलोअर्स प्राप्त करें
+  const paginator = client.users.getFollowers("2244994945", {
+    userFields: ["username", "verified", "public_metrics"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Followers: ${user.public_metrics?.followers_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Developer",
+      "username": "dev_user",
+      "verified": false,
+      "public_metrics": {
+        "followers_count": 500,
+        "following_count": 200,
+        "tweet_count": 1500
+      }
+    }
+  ],
+  "meta": {
+    "result_count": 1,
+    "next_token": "abc123"
+  }
+}
+```
+
+***
+
+<div id="get-who-a-user-follows">
+  ## देखें कि कोई उपयोगकर्ता किसे फ़ॉलो करता है
+</div>
+
+किसी विशेष उपयोगकर्ता किन उपयोगकर्ताओं को फ़ॉलो करता है, इसकी सूची प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/following?\
+  user.fields=username,verified&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # किसी उपयोगकर्ता द्वारा फ़ॉलो किए जाने वाले उपयोगकर्ता प्राप्त करें
+  for page in client.users.get_following(
+      "2244994945",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // किसी उपयोगकर्ता द्वारा फ़ॉलो किए जाने वाले उपयोगकर्ता प्राप्त करें
+  const paginator = client.users.getFollowing("2244994945", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="follow-a-user">
+  ## किसी उपयोगकर्ता को फ़ॉलो करें
+</div>
+
+प्रमाणीकृत उपयोगकर्ता की ओर से किसी उपयोगकर्ता को फ़ॉलो करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/following" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को फ़ॉलो करें
+  response = client.users.follow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"फ़ॉलो कर रहा है: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को फ़ॉलो करें
+  const response = await client.users.follow("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`फ़ॉलो कर रहा है: ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": {
+    "following": true,
+    "pending_follow": false
+  }
+}
+```
+
+<Note>
+  यदि लक्षित खाता सुरक्षित है, तो फ़ॉलो अनुरोध स्वीकृत होने तक `pending_follow` का मान `true` रहेगा।
+</Note>
+
+***
+
+<div id="unfollow-a-user">
+  ## किसी उपयोगकर्ता को अनफ़ॉलो करें
+</div>
+
+प्रमाणीकृत उपयोगकर्ता की ओर से किसी उपयोगकर्ता को अनफ़ॉलो करने के लिए:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/following/2244994945" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को अनफ़ॉलो करें
+  response = client.users.unfollow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को अनफ़ॉलो करें
+  const response = await client.users.unfollow("123456789", "2244994945");
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": {
+    "following": false
+  }
+}
+```
+
+***
+
+<div id="common-parameters">
+  ## सामान्य पैरामीटर
+</div>
+
+| पैरामीटर           | विवरण                                     |
+| :----------------- | :---------------------------------------- |
+| `max_results`      | प्रति पृष्ठ परिणाम (1-1000, डिफ़ॉल्ट 100) |
+| `pagination_token` | अगले पृष्ठ का टोकन                        |
+| `user.fields`      | अतिरिक्त उपयोगकर्ता फ़ील्ड्स              |
+| `expansions`       | शामिल करने के लिए संबंधित ऑब्जेक्ट्स      |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="उपयोगकर्ता खोज" icon="user" href="/hi/x-api/users/lookup/introduction">
+    उपयोगकर्ता प्रोफ़ाइल देखें
+  </Card>
+
+  <Card title="ब्लॉक" icon="ban" href="/hi/x-api/users/blocks/introduction">
+    उपयोगकर्ताओं को ब्लॉक और अनब्लॉक करें
+  </Card>
+
+  <Card title="म्यूट" icon="volume-xmark" href="/hi/x-api/users/mutes/introduction">
+    उपयोगकर्ताओं को म्यूट और अनम्यूट करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/users/followers-lookup">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

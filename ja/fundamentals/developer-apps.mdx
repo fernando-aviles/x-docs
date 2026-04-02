@@ -1,0 +1,183 @@
+---
+title: アプリ
+sidebarTitle: アプリ
+icon: cube
+description: X API にアクセスするための App を作成して構成します
+keywords: ["X Apps", "開発者向け Apps", "API キー", "OAuth", "認証", "App 管理", "API 認証情報", "アクセス トークン", "OAuth 1.0a", "OAuth 2.0", "App 権限", "コールバック URL"]
+---
+
+App は API 認証情報を格納するコンテナです。各 App は独自のキー、トークン、設定を持ちます。
+
+---
+
+<div id="app-credentials">
+  ## App の認証情報
+</div>
+
+App を作成すると、次の認証情報を生成できます。
+
+| Credential | Use case |
+|:-----------|:---------|
+| **API Key & Secret** | OAuth 1.0a で認証します。リクエストに署名したり、ユーザートークンを生成するために使用されます。 |
+| **Access Token & Secret** | 自分のアカウントとしてリクエストを実行します（OAuth 1.0a）。 |
+| **Client ID & Secret** | OAuth 2.0 で認証します。認可コードフローに使用されます。 |
+| **Bearer Token** | 公開データエンドポイント向けの App 専用認証に使用されます。 |
+
+<Tip>
+新しいプロジェクトには **OAuth 2.0** を選択してください。よりきめ細かなスコープを提供し、X API v2 のユーザーコンテキストエンドポイントでは必須です。
+</Tip>
+
+---
+
+<div id="creating-an-app">
+  ## App の作成
+</div>
+
+<Steps>
+  <Step title="開発者コンソールを開く">
+    [console.x.com](https://console.x.com) にアクセスしてサインインします。
+  </Step>
+  <Step title="「Create App」をクリック">
+    App の名前、説明、および利用目的を入力します。
+  </Step>
+  <Step title="認証情報を生成する">
+    作成後に、必要なキーとトークンを生成します。
+  </Step>
+  <Step title="安全に保管する">
+    認証情報はすぐに保存してください。表示されるのは 1 回だけです。
+  </Step>
+</Steps>
+
+---
+
+<div id="app-permissions-oauth-10a">
+  ## App の権限 (OAuth 1.0a)
+</div>
+
+OAuth 1.0a の App には 3 種類の権限レベルがあります。
+
+<Tabs>
+  <Tab title="読み取り専用">
+    - 投稿、ユーザー、および公開データを閲覧できます
+    - 投稿や「いいね」、その他の変更はできません
+    - ダイレクトメッセージにはアクセスできません
+  </Tab>
+  <Tab title="読み取りおよび書き込み">
+    - すべての読み取り権限
+    - 投稿の作成および削除
+    - ユーザーのフォロー/フォロー解除
+    - 「いいね」とリポスト
+    - ダイレクトメッセージにはアクセスできません
+  </Tab>
+  <Tab title="読み取り、書き込み、および DM">
+    - すべての読み取りおよび書き込み権限
+    - ダイレクトメッセージの送受信
+  </Tab>
+</Tabs>
+
+<Note>
+権限を変更するには、更新されたスコープを持つ新しいトークンを取得するために、ユーザーに App を再承認してもらう必要があります。
+</Note>
+
+---
+
+<div id="oauth-20-app-types">
+  ## OAuth 2.0 App タイプ
+</div>
+
+OAuth 2.0 を設定する際は、App の種類を選択します。
+
+| Type | Client | Use case |
+|:-----|:-------|:---------|
+| **Web App** | Confidential | 機密情報を安全に保存できるサーバーサイドアプリケーション |
+| **Automated App / Bot** | Confidential | サーバー上で動作する Bot や自動化サービス |
+| **Native App** | Public | 機密情報を安全に保持できないモバイルまたはデスクトップアプリ |
+| **Single Page App** | Public | ブラウザベースの JavaScript アプリ |
+
+**機密クライアント (Confidential clients)** には Client Secret が発行されます。**パブリッククライアント (Public clients)** は PKCE のみを使用します。
+
+---
+
+<div id="callback-urls">
+  ## コールバックURL
+</div>
+
+コールバックURL（リダイレクトURI）は、OAuth フローで必須です。ユーザーがあなたのAppを承認すると、認可コード付きでコールバックURLにリダイレクトされます。
+
+<div id="requirements">
+  ### 要件
+</div>
+
+- 開発者コンソールで App の許可リストにコールバック URL を追加する
+- URL は、末尾のスラッシュも含めて完全に一致している必要がある
+- App ごとに最大 **10 個のコールバック URL**
+- 本番環境では `https://` を使用する
+- ローカル開発では `http://127.0.0.1` を使用する（`localhost` ではない）
+
+<div id="disallowed-protocols">
+  ### 禁止されているプロトコル
+</div>
+
+次のプロトコルは使用できません：`javascript`、`data`、`file`、`ftp`、`mailto`、`telnet`、およびその他の非標準スキーム。
+
+<Accordion title="禁止されているプロトコルの一覧（全リスト）">
+`vbscript`, `javascript`, `vbs`, `data`, `mocha`, `keyword`, `livescript`, `ftp`, `file`, `gopher`, `acrobat`, `callto`, `daap`, `itpc`, `itms`, `firefoxurl`, `hcp`, `ldap`, `mailto`, `mmst`, `mmsu`, `msbd`, `rtsp`, `mso-offdap`, `snews`, `news`, `nntp`, `outlook`, `stssync`, `rlogin`, `telnet`, `tn3270`, `shell`, `sip`
+</Accordion>
+
+---
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="アプリを分けて使用する" icon="layer-group">
+    開発・ステージング・本番用にそれぞれ異なるアプリを作成してください。
+  </Card>
+  <Card title="認証情報を定期的に更新する" icon="arrows-rotate">
+    キーは定期的に、また侵害が疑われる場合には直ちに再生成してください。
+  </Card>
+  <Card title="最小限の権限" icon="shield-check">
+    アプリが実際に必要とする権限だけをリクエストしてください。
+  </Card>
+  <Card title="利用状況を監視する" icon="chart-simple">
+    開発者コンソールを定期的に確認し、API の利用状況を把握してください。
+  </Card>
+</CardGroup>
+
+---
+
+<div id="automated-account-labels">
+  ## 自動アカウントラベル
+</div>
+
+App がボットアカウントを運用している場合、そのアカウントに自動アカウントラベルを付与できます。
+
+1. ボットアカウントの **設定** に移動します
+2. **あなたのアカウント** → **自動化** を選択します
+3. 管理用アカウントをリンクします
+
+これにより、ユーザーからの信頼が高まり、ボットアカウントをスパムと区別しやすくなります。
+
+---
+
+<div id="troubleshooting">
+  ## トラブルシューティング
+</div>
+
+<Accordion title="コールバック URL が承認されていないエラー">
+コールバック URL が、開発者コンソールに登録されているものと完全に一致していることを確認してください（プロトコルや末尾のスラッシュも含みます）。クエリパラメーターとして渡す際は、その URL を URL エンコードしてください。
+
+```json
+{
+  "errors": [{
+    "code": 415,
+    "message": "Callback URL not approved for this client application."
+  }]
+}
+```
+</Accordion>
+
+<Accordion title="App が凍結された">
+App が凍結されている場合は、X プラットフォームチームからの通知メールが届いていないか確認してください。異議申し立てには [Platform Help Form](https://help.x.com/forms/platform) を使用してください。
+</Accordion>

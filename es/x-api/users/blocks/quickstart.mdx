@@ -1,0 +1,257 @@
+---
+title: Inicio rápido
+sidebarTitle: Inicio rápido
+description: Bloquea y desbloquea usuarios y obtén tu lista de cuentas bloqueadas
+keywords: ["inicio rápido bloqueos", "inicio rápido bloquear usuarios", "tutorial sobre bloqueos", "guía sobre bloqueos"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te explica cómo bloquear y desbloquear usuarios y obtener tu lista de bloqueados.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * Un token de acceso de usuario (OAuth 1.0a u OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-blocked-users">
+  ## Obtener usuarios bloqueados
+</div>
+
+<Steps>
+  <Step title="Obtén tu ID de usuario">
+    Necesitas el ID del usuario autenticado para recuperar tu lista de bloqueos. Puedes obtenerlo en el endpoint `/2/users/me` o usar el ID de tus tokens.
+  </Step>
+
+  <Step title="Solicita tu lista de bloqueos">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/blocking?\
+      user.fields=username,verified,created_at&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # Obtener usuarios bloqueados con paginación
+      for page in client.users.get_blocking(
+          "123456789",
+          user_fields=["username", "verified", "created_at"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Created: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // Obtener usuarios bloqueados con paginación
+      const paginator = client.users.getBlocking("123456789", {
+        userFields: ["username", "verified", "created_at"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Created: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Revisa la respuesta">
+    ```json
+    {
+      "data": [
+        {
+          "id": "17874544",
+          "name": "Example User",
+          "username": "example_user",
+          "verified": false,
+          "created_at": "2008-12-04T18:51:57.000Z"
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "abc123"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="block-a-user">
+  ## Bloquear a un usuario
+</div>
+
+<Steps>
+  <Step title="Identificar al usuario de destino">
+    Obtén el ID de usuario de la cuenta que quieres bloquear.
+  </Step>
+
+  <Step title="Enviar una solicitud de bloqueo">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/blocking" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"target_user_id": "9876543210"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # Bloquear a un usuario
+      response = client.users.block(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+      print(f"Blocking: {response.data.blocking}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // Bloquear a un usuario
+      const response = await client.users.block("123456789", {
+        targetUserId: "9876543210",
+      });
+      console.log(`Blocking: ${response.data?.blocking}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Confirmar el bloqueo">
+    ```json
+    {
+      "data": {
+        "blocking": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unblock-a-user">
+  ## Desbloquear a un usuario
+</div>
+
+<Steps>
+  <Step title="Enviar una solicitud de desbloqueo">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X DELETE "https://api.x.com/2/users/123456789/blocking/9876543210" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # Desbloquear a un usuario
+      response = client.users.unblock(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+      print(f"Blocking: {response.data.blocking}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // Desbloquear a un usuario
+      const response = await client.users.unblock("123456789", "9876543210");
+      console.log(`Blocking: ${response.data?.blocking}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Confirmar el desbloqueo">
+    ```json
+    {
+      "data": {
+        "blocking": false
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Silenciamientos" icon="volume-xmark" href="/es/x-api/users/mutes/introduction">
+    Silencia usuarios en lugar de bloquearlos
+  </Card>
+
+  <Card title="Seguidos" icon="user-plus" href="/es/x-api/users/follows/introduction">
+    Gestiona a quién sigues
+  </Card>
+
+  <Card title="Guía de integración" icon="book" href="/es/x-api/users/blocks/integrate">
+    Conceptos clave y mejores prácticas
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/users/get-blocking">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

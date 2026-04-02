@@ -1,0 +1,610 @@
+---
+title: X API レート制限
+sidebarTitle: レート制限
+description: X API v2 のエンドポイントごとのレート制限
+keywords: ["レート制限", "API レート制限", "リクエスト制限", "レート制限機能", "スロットリング", "15分間のウィンドウ"]
+---
+
+レート制限は、各エンドポイントごとに実行できるリクエスト数を制御します。制限を超過すると、ウィンドウがリセットされるまで 429 エラーが返されます。
+
+***
+
+<div id="how-rate-limits-work">
+  ## レート制限の仕組み
+</div>
+
+| 概念 | 説明 |
+|:--------|:------------|
+| **時間ウィンドウ** | 通常は 15 分または 24 時間です |
+| **ユーザー単位の制限** | OAuth 1.0a または OAuth 2.0 のユーザートークンを使用する場合に適用されます |
+| **App 単位の制限** | ベアラートークン (App 専用) を使用する場合に適用されます |
+| **エンドポイント単位** | 各エンドポイントごとに固有の制限があります |
+
+***
+
+<div id="checking-your-limits">
+  ## 制限の確認
+</div>
+
+レスポンスヘッダーには、現在のレート制限の状態が示されます。
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Header                   | Description                   |
+| :----------------------- | :---------------------------- |
+| `x-rate-limit-limit`     | 許可される最大リクエスト数                 |
+| `x-rate-limit-remaining` | ウィンドウ内で残っているリクエスト数            |
+| `x-rate-limit-reset`     | ウィンドウがリセットされる時刻の Unix タイムスタンプ |
+
+***
+
+<div id="rate-limit-tables">
+  ## レート制限テーブル
+</div>
+
+各エンドポイントのレート制限は以下のテーブルで確認できます。[開発者コンソール](https://console.x.com)でも同じ制限を確認できます。
+
+<Note>
+  特に記載がない限り、制限は 15 分ごとの上限として表示されています (例: 「/24hrs」や「/sec」) 。
+</Note>
+
+<div id="posts-25-endpoints">
+  ### 投稿 (25個のエンドポイント)
+</div>
+
+<div id="tweets-lookup">
+  #### ツイートの取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets` | 3,500/15min | 5,000/15min |
+| GET | `/2/tweets/:id` | 450/15min | 900/15min |
+
+<div id="recent-search">
+  #### 直近の検索
+</div>
+
+| Method | Endpoint | Per App | Per User | Notes |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/recent` | 450/15min | 300/15min | デフォルトは 10 件、最大 100 件の結果; クエリ長は最大 512 文字 |
+
+<div id="full-archive-search">
+  #### 全アーカイブ検索
+</div>
+
+| Method | Endpoint | Per App | Per User | Notes |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/all` | 1/sec, 300/15min | 1/sec | デフォルト 10 件、最大 500 件の結果; クエリ長 1024 文字 |
+
+<div id="post-counts">
+  #### ポスト数
+</div>
+
+| Method | Endpoint | Per App | Per User | 注記 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/counts/recent` | 300/15min | — | クエリ長: 512 |
+| GET | `/2/tweets/counts/all` | 300/15min | — | クエリ長: 1024 |
+
+<div id="filtered-stream">
+  #### フィルタ済みストリーム
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと | 注記 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/search/stream` | 50/15min | — | 接続数 1; ルール数 1000; ルール長 1024; 250 投稿/秒 |
+| GET | `/2/tweets/search/stream/rules` | 450/15min | — | 接続数 1; ルール数 1000; ルール長 1024 |
+| POST | `/2/tweets/search/stream/rules` | 100/15min | — | 接続数 1; ルール数 1000; ルール長 1024 |
+
+<div id="manage-posts">
+  #### 投稿の管理
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/tweets` | 10,000/24hrs | 100/15min |
+| DELETE | `/2/tweets/:id` | — | 50/15min |
+
+<div id="timelines">
+  #### タイムライン
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/tweets` | 10,000/15min | 900/15min |
+| GET | `/2/users/:id/mentions` | 450/15min | 300/15min |
+| GET | `/2/users/:id/timelines/reverse_chronological` | — | 180/15min |
+
+<div id="likes-lookup">
+  #### いいねの取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/:id/liking_users` | 75/15min | 75/15min |
+| GET | `/2/users/:id/liked_tweets` | 75/15min | 75/15min |
+
+<div id="manage-likes">
+  #### いいね管理
+</div>
+
+| メソッド | エンドポイント | App 単位 | ユーザー単位 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/likes` | — | 50/15分, 1,000/24時間 |
+| DELETE | `/2/users/:id/likes/:tweet_id` | — | 50/15分, 1,000/24時間 |
+
+<div id="retweets-lookup">
+  #### リツイートの取得
+</div>
+
+| Method | Endpoint | Per App | Per User | Notes |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/tweets/:id/retweeted_by` | 75/15min | 75/15min | — |
+| GET | `/2/tweets/:id/quote_tweets` | 75/15min | 75/15min | — |
+| GET | `/2/users/reposts_of_me` | — | 75/15min | 最大 100 件の結果 |
+
+<div id="manage-retweets">
+  #### リツイートの管理
+</div>
+
+| メソッド | エンドポイント | アプリごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/retweets` | — | 50/15min |
+| DELETE | `/2/users/:id/retweets/:tweet_id` | — | 50/15min |
+
+<div id="hide-replies">
+  #### 返信を非表示にする
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| PUT | `/2/tweets/:tweet_id/hidden` | — | 50/15min |
+
+***
+
+<div id="users-14-endpoints">
+  ### ユーザー (14個のエンドポイント)
+</div>
+
+<div id="users-lookup">
+  #### ユーザー取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users` | 300/15min | 900/15min |
+| GET | `/2/users/:id` | 300/15min | 900/15min |
+| GET | `/2/users/by` | 300/15min | 900/15min |
+| GET | `/2/users/by/username/:username` | 300/15min | 900/15min |
+| GET | `/2/users/me` | — | 75/15min |
+
+<div id="search-users">
+  #### ユーザー検索
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/search` | 300/15min | 900/15min |
+
+<div id="follows-lookup">
+  #### フォロー取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/following` | 300/15min | 300/15min |
+| GET | `/2/users/:id/followers` | 300/15min | 300/15min |
+
+<div id="manage-follows">
+  #### フォローの管理
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/following` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/following/:target_user_id` | — | 50/15min |
+
+<div id="blocks-lookup">
+  #### ブロックの取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/blocking` | — | 15/15min |
+
+<div id="mutes-lookup">
+  #### ミュートの取得
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/muting` | — | 15/15min |
+
+<div id="manage-mutes">
+  #### ミュートの管理
+</div>
+
+| Method | Endpoint | App 単位 | ユーザー単位 |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/muting` | — | 50/15min |
+| DELETE | `/2/users/:source_user_id/muting/:target_user_id` | — | 50/15min |
+
+***
+
+<div id="spaces-6-endpoints">
+  ### Spaces (6 個のエンドポイント)
+</div>
+
+<div id="spaces-lookup">
+  #### Spaces 取得
+</div>
+
+| Method | Endpoint | アプリごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/:id` | 300/15min | 300/15min |
+| GET | `/2/spaces` | 300/15min | 300/15min |
+| GET | `/2/spaces/:id/tweets` | 300/15min | 300/15min |
+| GET | `/2/spaces/by/creator_ids` | 300/15min, 1/sec | 300/15min, 1/sec |
+| GET | `/2/spaces/:id/buyers` | 300/15min | 300/15min |
+
+<div id="search-spaces">
+  #### Spaces の検索
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/spaces/search` | 300/15分 | 300/15分 |
+
+***
+
+<div id="direct-messages-8-endpoints">
+  ### ダイレクトメッセージ (8個のエンドポイント)
+</div>
+
+<div id="direct-messages-lookup">
+  #### ダイレクトメッセージの取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/dm_events` | — | 15/15min |
+| GET | `/2/dm_events/:id` | — | 15/15min |
+| GET | `/2/dm_conversations/:dm_conversation_id/dm_events` | — | 15/15min |
+| GET | `/2/dm_conversations/with/:participant_id/dm_events` | — | 15/15min |
+
+<div id="manage-direct-messages">
+  #### ダイレクトメッセージの管理
+</div>
+
+| Method | Endpoint | アプリごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/dm_conversations` | 1,440/24hrs | 15/15min, 1,440/24hrs |
+| POST | `/2/dm_conversations/with/:participant_id/messages` | 1,440/24hrs | 15/15min, 1,440/24hrs |
+| POST | `/2/dm_conversations/:dm_conversation_id/messages` | 1,440/24hrs | 15/15min, 1,440/24hrs |
+| DELETE | `/2/dm_events/:id` | 4,000/24hrs | 300/15min, 1,500/24hrs |
+
+***
+
+<div id="lists-14-endpoints">
+  ### リスト (14 個のエンドポイント)
+</div>
+
+<div id="lists-lookup">
+  #### リストの取得
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id` | 75/15min | 75/15min |
+| GET | `/2/users/:id/owned_lists` | 15/15min | 15/15min |
+
+<div id="list-tweets-lookup">
+  #### リスト内ツイートの取得
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/tweets` | 900/15min | 900/15min |
+
+<div id="list-member-lookup">
+  #### リストメンバーの参照
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/lists/:id/members` | 900/15min | 900/15min |
+| GET | `/2/users/:id/list_memberships` | 75/15min | 75/15min |
+
+<div id="manage-lists">
+  #### リストの管理
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists` | — | 300/15min |
+| DELETE | `/2/lists/:id` | — | 300/15min |
+| PUT | `/2/lists/:id` | — | 300/15min |
+
+<div id="manage-list-members">
+  #### リストのメンバーを管理
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/lists/:id/members` | — | 300/15min |
+| DELETE | `/2/lists/:id/members/:user_id` | — | 300/15min |
+
+<div id="manage-list-follows">
+  #### リストフォローの管理
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/followed_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/followed_lists/:list_id` | — | 50/15min |
+
+<div id="pinned-lists">
+  #### ピン留めされたリスト
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/pinned_lists` | 15/15min | 15/15min |
+| POST | `/2/users/:id/pinned_lists` | — | 50/15min |
+| DELETE | `/2/users/:id/pinned_lists/:list_id` | — | 50/15min |
+
+***
+
+<div id="bookmarks-5-endpoints">
+  ### ブックマーク (5個のエンドポイント)
+</div>
+
+<div id="bookmarks-lookup">
+  #### ブックマークの取得
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/:id/bookmarks` | — | 180/15min |
+| GET | `/2/users/:id/bookmarks/folders` | 50/15min | 50/15min |
+| GET | `/2/users/:id/bookmarks/folders/:folder_id` | 50/15min | 50/15min |
+
+<div id="manage-bookmarks">
+  #### ブックマークの管理
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/users/:id/bookmarks` | — | 50/15min |
+| DELETE | `/2/users/:id/bookmarks/:tweet_id` | — | 50/15min |
+
+***
+
+<div id="compliance-3-endpoints">
+  ### コンプライアンス (3 個のエンドポイント)
+</div>
+
+<div id="batch-compliance">
+  #### バッチコンプライアンス
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/compliance/jobs` | 150/15min | — |
+| GET | `/2/compliance/jobs/:job_id` | 150/15min | — |
+| GET | `/2/compliance/jobs` | 150/15min | — |
+
+***
+
+<div id="usage-1-endpoint">
+  ### 使用量 (1 エンドポイント)
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/usage/tweets` | 50/15分 | — |
+
+***
+
+<div id="trends-2-endpoints">
+  ### トレンド (2件のエンドポイント)
+</div>
+
+<div id="personalized-trends">
+  #### パーソナライズドトレンド
+</div>
+
+| Method | Endpoint | Per App | Per User |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/users/personalized_trends` | 200/24hrs, 200/15min | 100/24hrs, 10/15min |
+
+<div id="trends-by-woeid">
+  #### WOEID ごとのトレンド
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/trends/by/woeid/:id` | 75/15min | — |
+
+***
+
+<div id="communities-2-endpoints">
+  ### Communities (2 エンドポイント)
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと | 注記 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/communities/:id` | 300/15min | 300/15min | — |
+| GET | `/2/communities/search` | 300/15min | 300/15min | 最大 100 件の結果 |
+
+***
+
+<div id="analytics-1-endpoint">
+  ### アナリティクス (1 個のエンドポイント)
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/analytics` | 300/15min | 300/15min |
+
+***
+
+<div id="media-8-endpoints">
+  ### メディア (8 エンドポイント)
+</div>
+
+| メソッド | エンドポイント | App ごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| POST | `/2/media/upload` | 50,000/24時間 | 500/15分 |
+| GET | `/2/media/upload` | 100,000/24時間 | 1,000/15分 |
+| POST | `/2/media/upload/initialize` | 180,000/24時間 | 1,875/15分 |
+| POST | `/2/media/upload/:id/append` | 180,000/24時間 | 1,875/15分 |
+| POST | `/2/media/upload/:id/finalize` | 180,000/24時間 | 1,875/15分 |
+| POST | `/2/media/metadata` | 50,000/24時間 | 500/15分 |
+| POST | `/2/media/subtitles` | 10,000/24時間 | 100/15分 |
+| DELETE | `/2/media/subtitles` | 10,000/24時間 | 100/15分 |
+
+***
+
+<div id="activity-webhooks">
+  ### アクティビティと Webhook
+</div>
+
+| Method | Endpoint | App ごと | ユーザーごと | 備考 |
+|:-------|:---------|:--------|:---------|:------|
+| GET | `/2/activity/stream` | 450/15分 | — | 同時接続2件、1秒あたり250投稿 |
+| POST | `/2/activity/subscriptions` | 500/15分 | — | — |
+| GET | `/2/activity/subscriptions` | 500/15分 | — | — |
+| PUT | `/2/activity/subscriptions/:subscription_id` | 500/15分 | — | — |
+| DELETE | `/2/activity/subscriptions/:subscription_id` | 500/15分 | — | — |
+| POST | `/2/webhooks` | 450/15分 | — | — |
+| GET | `/2/webhooks` | 450/15分 | — | — |
+| PUT | `/2/webhooks/:webhook_id` | 450/15分 | — | — |
+| DELETE | `/2/webhooks/:webhook_id` | 450/15分 | — | — |
+| POST | `/2/webhooks/replay` | 100/15分 | — | — |
+
+***
+
+<div id="other-endpoints">
+  ### その他のエンドポイント
+</div>
+
+| Method | Endpoint | Appごと | ユーザーごと |
+|:-------|:---------|:--------|:---------|
+| GET | `/2/tweets/sample10/stream` | 100/15min | — |
+| GET | `/2/news/:id` | 200/15min | — |
+| GET | `/2/news/search` | 200/15min | 200/15min |
+| POST | `/2/users/:id/dm/block` | 25/15min, 1,000/24hrs | 10/15min, 400/24hrs |
+| POST | `/2/users/:id/dm/unblock` | 25/15min, 1,000/24hrs | 10/15min, 400/24hrs |
+| GET | `/2/users/by/username/:username/tweets` | 1,500/15min | 900/15min |
+| GET | `/2/users/by/username/:username/mentions` | 450/15min | 180/15min |
+| GET | `/2/users/:id/following/spaces` | 300/15min | 300/15min |
+| GET | `/2/tweets/:id/retweets` | 75/15min | 75/15min |
+| DELETE | `/2/connections/all` | 25/15min | 25/15min |
+
+***
+
+<div id="handling-rate-limits">
+  ## レート制限への対処
+</div>
+
+レート制限に達すると、HTTP 429 レスポンスが返されます。
+
+```json
+{
+  "errors": [{
+    "code": 88,
+    "message": "Rate limit exceeded"
+  }]
+}
+```
+
+<div id="recovery-strategy">
+  ### リカバリー戦略
+</div>
+
+1. `x-rate-limit-reset` ヘッダーでウィンドウのリセット時刻を確認する
+2. 再試行する前にその時刻まで待機する
+3. 必要に応じて指数バックオフを使用する
+
+```python
+import time
+
+def make_request_with_backoff(url, headers):
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 429:
+        reset_time = int(response.headers.get('x-rate-limit-reset', 0))
+        wait_time = max(reset_time - time.time(), 60)
+        time.sleep(wait_time)
+        return make_request_with_backoff(url, headers)
+    
+    return response
+```
+
+***
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="レスポンスをキャッシュする" icon="database">
+    結果をローカルに保存して、同じリクエストの繰り返しを減らします。
+  </Card>
+
+  <Card title="ストリーミングを利用する" icon="signal-stream">
+    リアルタイムデータには、ポーリングではなくフィルタ済みストリームを使用します。
+  </Card>
+
+  <Card title="ヘッダーを監視する" icon="gauge-high">
+    残りリクエスト数を追跡し、レート制限に達するのを避けます。
+  </Card>
+
+  <Card title="リクエストを分散する" icon="clock">
+    リクエストを時間ウィンドウ全体に分散させます。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="rate-limits-vs-billing">
+  ## レート制限と課金
+</div>
+
+レート制限と課金は別に管理されています。
+
+| 概念 | 目的 |
+|:--------|:--------|
+| **レート制限** | システムの安定性を保つためにリクエスト頻度を制御する |
+| **利用課金** | 取得したデータ量に応じて課金する (従量課金)  |
+
+レート制限内に収まっていても利用料金が発生しますし、追加の料金なしでレート制限に達することもあります。
+
+***
+
+<div id="enterprise-rate-limits">
+  ## エンタープライズ向けのレート制限
+</div>
+
+エンタープライズのお客様には、カスタムのレート制限が設定されています。アカウントマネージャーに連絡するか、[Enterprise へのアクセスを申請](/ja/enterprise/forms/enterprise-api-interest)してください。
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="エラー処理" icon="triangle-exclamation" href="/ja/x-api/fundamentals/response-codes-and-errors">
+    429 などのエラーを処理します。
+  </Card>
+
+  <Card title="はじめに" icon="rocket" href="/ja/x-api/getting-started/about-x-api">
+    アクセスレベルと機能について学びます。
+  </Card>
+</CardGroup>

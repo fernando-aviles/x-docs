@@ -1,0 +1,255 @@
+---
+title: रिस्पॉन्स कोड और त्रुटियाँ
+sidebarTitle: रिस्पॉन्स कोड
+description: X API के लिए HTTP स्टेटस कोड और त्रुटि हैंडलिंग
+keywords: ["रिस्पॉन्स कोड", "त्रुटि कोड", "HTTP स्टेटस कोड", "API त्रुटियाँ", "त्रुटि हैंडलिंग", "डिबगिंग"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+X API मानक HTTP स्टेटस कोड का उपयोग करता है। सफल अनुरोध 2xx codes लौटाते हैं; errors के मामले में 4xx या 5xx codes लौटाए जाते हैं, जिनका विवरण रिस्पॉन्स बॉडी में होता है।
+
+***
+
+<div id="http-status-codes">
+  ## HTTP स्टेटस कोड
+</div>
+
+<div id="success-codes">
+  ### सफल कोड
+</div>
+
+| Code    | अर्थ             | विवरण                                          |
+| :------ | :--------------- | :--------------------------------------------- |
+| **200** | ठीक है           | अनुरोध सफल रहा                                 |
+| **201** | बनाया गया        | संसाधन बनाया गया (POST requests)               |
+| **204** | कोई सामग्री नहीं | रिस्पॉन्स बॉडी के बिना सफलता (DELETE requests) |
+
+<div id="client-error-codes">
+  ### क्लाइंट त्रुटि कोड
+</div>
+
+| Code    | अर्थ             | सामान्य कारण                                                         |
+| :------ | :--------------- | :------------------------------------------------------------------- |
+| **400** | अमान्य अनुरोध    | अमान्य JSON, गलत तरीके से बनी क्वेरी, आवश्यक पैरामीटर मौजूद नहीं हैं |
+| **401** | अनधिकृत          | अमान्य या अनुपस्थित प्रमाणीकरण क्रेडेंशियल                           |
+| **403** | निषिद्ध          | प्रमाणीकरण वैध है, लेकिन इस संसाधन या action के लिए अनुमति नहीं है |
+| **404** | नहीं मिला        | संसाधन मौजूद नहीं है या उसे हटा दिया गया है                        |
+| **409** | विरोध            | स्ट्रीम में कोई rule नहीं है (केवल filtered स्ट्रीम)                   |
+| **429** | बहुत अधिक अनुरोध | रेट लिमिट या usage cap पार हो गई है                                 |
+
+<div id="server-error-codes">
+  ### सर्वर त्रुटि कोड
+</div>
+
+| कोड     | अर्थ                | क्या करें                                                         |
+| :------ | :------------------ | :---------------------------------------------------------------- |
+| **500** | आंतरिक सर्वर त्रुटि | प्रतीक्षा करें और फिर से प्रयास करें; [स्टेटस पेज](/hi/status) देखें |
+| **502** | बैड गेटवे           | प्रतीक्षा करें और फिर से प्रयास करें                              |
+| **503** | सेवा अनुपलब्ध       | X पर अत्यधिक लोड है; प्रतीक्षा करें और फिर से प्रयास करें         |
+| **504** | गेटवे टाइमआउट       | प्रतीक्षा करें और फिर से प्रयास करें                              |
+
+***
+
+<div id="error-response-format">
+  ## त्रुटि प्रतिक्रिया का प्रारूप
+</div>
+
+त्रुटि प्रतिक्रियाओं में संरचित विवरण शामिल होते हैं:
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The 'query' parameter is required.",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+| फ़ील्ड   | विवरण                              |
+| :------- | :--------------------------------- |
+| `type`   | त्रुटि type की पहचान करने वाला URI |
+| `title`  | त्रुटि का संक्षिप्त विवरण          |
+| `detail` | इस त्रुटि का विशिष्ट स्पष्टीकरण    |
+
+त्रुटि के type के आधार पर अतिरिक्त फ़ील्ड्स मौजूद हो सकते हैं।
+
+***
+
+<div id="error-types">
+  ## त्रुटि के प्रकार
+</div>
+
+| Type                              | Description                                          |
+| :-------------------------------- | :--------------------------------------------------- |
+| `about:blank`                     | सामान्य त्रुटि (HTTP status code देखें)              |
+| `.../invalid-request`             | गलत प्रारूप वाला अनुरोध या अमान्य पैरामीटर           |
+| `.../resource-not-found`          | पोस्ट, उपयोगकर्ता या अन्य संसाधन मौजूद नहीं है       |
+| `.../not-authorized-for-resource` | निजी/संरक्षित सामग्री की पहुँच नहीं है               |
+| `.../client-forbidden`            | ऐप नामांकित नहीं है या उसके पास आवश्यक पहुँच नहीं है |
+| `.../usage-capped`                | उपयोग सीमा पार हो गई                                 |
+| `.../rate-limit-exceeded`         | रेट लिमिट पार हो गई                                  |
+| `.../streaming-connection`        | स्ट्रीम कनेक्शन में समस्या                           |
+| `.../rule-cap`                    | फ़िल्टर की गई स्ट्रीम के लिए नियम बहुत अधिक हैं      |
+| `.../invalid-rules`               | नियम सिंटैक्स में त्रुटि                             |
+| `.../duplicate-rules`             | नियम पहले से मौजूद है                                |
+
+***
+
+<div id="partial-errors">
+  ## आंशिक त्रुटियाँ
+</div>
+
+कुछ अनुरोध आंशिक रूप से सफल हो सकते हैं। `200` प्रतिक्रिया में `data` और `errors` दोनों शामिल हो सकते हैं:
+
+```json
+{
+  "data": [
+    {"id": "123", "text": "Hello"}
+  ],
+  "errors": [
+    {
+      "resource_id": "456",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [456].",
+      "type": "https://api.x.com/2/problems/resource-not-found"
+    }
+  ]
+}
+```
+
+ऐसा तब होता है, जब एक साथ कई संसाधनों का अनुरोध किया जाता है और उनमें से कुछ उपलब्ध नहीं होते।
+
+***
+
+<div id="troubleshooting-common-errors">
+  ## सामान्य errors का समस्या निवारण
+</div>
+
+<Accordion title="401 अनधिकृत">
+  **अपना प्रमाणीकरण जांचें:**
+
+  * पुष्टि करें कि आप इस endpoint के लिए सही प्रमाणीकरण विधि का उपयोग कर रहे हैं
+  * सुनिश्चित करें कि credentials दोबारा जनरेट नहीं किए गए हैं
+  * `Authorization` header का फ़ॉर्मैट जांचें
+  * OAuth 1.0a के लिए, signature calculation की पुष्टि करें
+
+  [प्रमाणीकरण गाइड →](/hi/resources/fundamentals/authentication/overview)
+</Accordion>
+
+<Accordion title="403 निषिद्ध">
+  **अपनी पहुंच जांचें:**
+
+  * पुष्टि करें कि आपके ऐप को इस endpoint का access प्राप्त है
+  * कुछ endpoints के लिए विशेष enrollment या approval की आवश्यकता होती है
+  * user-context endpoints के लिए उपयुक्त OAuth scopes चाहिए
+  * resource निजी या संरक्षित हो सकता है
+</Accordion>
+
+<Accordion title="429 बहुत अधिक अनुरोध">
+  **रेट लिमिट लागू है:**
+
+  * दोबारा कोशिश कब करनी है, यह जानने के लिए `x-rate-limit-reset` header जांचें
+  * exponential backoff लागू करें
+  * responses को cache करने पर विचार करें
+  * requests को पूरे time window में फैलाएं
+
+  [रेट लिमिट्स गाइड →](/hi/x-api/fundamentals/rate-limits)
+</Accordion>
+
+<Accordion title="400 खराब अनुरोध">
+  **अपने अनुरोध को ठीक करें:**
+
+  * JSON syntax की जांच करें
+  * देखें कि कोई आवश्यक parameters छूट तो नहीं गए हैं
+  * parameter types की पुष्टि करें (strings बनाम numbers)
+  * queries में special characters को escape करें
+</Accordion>
+
+<Accordion title="अपेक्षित पोस्ट्स नहीं मिल रहे">
+  **इन बातों की जांच करें:**
+
+  * संरक्षित accounts की पोस्ट्स केवल authorization के साथ ही दिखाई देती हैं
+  * deleted पोस्ट्स 404 लौटाती हैं
+  * कुछ पोस्ट्स कुछ regions में withheld हो सकती हैं
+  * पुष्टि करें कि search query syntax सही है
+</Accordion>
+
+<Accordion title="स्ट्रीम डिस्कनेक्शन">
+  **पुनःकनेक्शन संभालें:**
+
+  * backoff के साथ automatic reconnect लागू करें
+  * छूटे हुए data के लिए recovery features का उपयोग करें
+  * full-buffer disconnects की जांच करें (client पर्याप्त तेज़ी से consume नहीं कर रहा है)
+  * पुष्टि करें कि कम से कम एक स्ट्रीम rule मौजूद है
+
+  [स्ट्रीमिंग गाइड →](/hi/x-api/posts/filtered-stream/integrate/handling-disconnections)
+</Accordion>
+
+***
+
+<div id="rate-limit-headers">
+  ## रेट लिमिट हेडर
+</div>
+
+हर रिस्पॉन्स में रेट लिमिट की जानकारी शामिल होती है:
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| शीर्षक                   | विवरण                                |
+| :----------------------- | :----------------------------------- |
+| `x-rate-limit-limit`     | वर्तमान विंडो में अधिकतम अनुरोध      |
+| `x-rate-limit-remaining` | शेष अनुरोध                           |
+| `x-rate-limit-reset`     | विंडो रीसेट होने का Unix टाइमस्टैम्प |
+
+***
+
+<div id="best-practices">
+  ## सर्वोत्तम प्रथाएँ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="स्टेटस कोड जाँचें" icon="square-check">
+    रिस्पॉन्स बॉडी को parse करने से पहले हमेशा HTTP स्टेटस जाँचें।
+  </Card>
+
+  <Card title="आंशिक errors को संभालें" icon="triangle-exclamation">
+    200 रिस्पॉन्स में भी `errors` array की जाँच करें।
+  </Card>
+
+  <Card title="रीट्राई लॉजिक लागू करें" icon="arrows-rotate">
+    429 और 5xx errors के लिए exponential backoff का उपयोग करें।
+  </Card>
+
+  <Card title="अनुरोध का विवरण लॉग करें" icon="file-lines">
+    डीबगिंग के लिए request ID और timestamp शामिल करें।
+  </Card>
+</CardGroup>
+
+***
+
+<div id="getting-help">
+  ## मदद पाना
+</div>
+
+त्रुटियों से जुड़े प्रश्न पोस्ट करते समय, इनमें यह जानकारी शामिल करें:
+
+* API endpoint URL
+* अनुरोध हेडर (क्रेडेंशियल्स हटा दें)
+* पूरी त्रुटि प्रतिक्रिया
+* आप क्या होने की अपेक्षा कर रहे थे
+* आपने कौन-कौन से चरण आज़माए हैं
+
+<CardGroup cols={2}>
+  <Card title="डेवलपर फ़ोरम" icon="comments" href="https://devcommunity.x.com">
+    प्रश्न पूछें और समाधान खोजें।
+  </Card>
+
+  <Card title="API स्टेटस" icon="signal" href="/hi/status">
+    ज्ञात समस्याओं की जाँच करें।
+  </Card>
+</CardGroup>

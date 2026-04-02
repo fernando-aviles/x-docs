@@ -1,0 +1,105 @@
+---
+title: ベストプラクティス
+keywords: ["認証のベストプラクティス", "OAuth のベストプラクティス", "セキュリティのベストプラクティス", "API キーのセキュリティ", "トークンのセキュリティ", "認証のセキュリティ"]
+---
+
+import { Button } from "/snippets/ja/button.mdx";
+
+API key とトークンは、細心の注意を払って厳重に管理する必要があります。 
+
+これらの認証情報は、あなたの [developer App](/ja/resources/fundamentals/developer-apps) および、あなたが代理でリクエスト送信を許可した X アカウントに直接紐づいています。キーが漏えいした場合、悪意のある第三者がそれらを使って、あなたの developer App またはその認可されたユーザーの代理として X のエンドポイントにリクエストを送信できてしまいます。その結果、予期しないレート制限に達したり、有料アクセスの割り当てを使い切ってしまったり、場合によっては developer App が凍結されてしまうこともあります。
+
+以下のセクションでは、API key とトークンを管理する際に考慮すべきベストプラクティスを説明します。
+
+<div id="regenerate-api-keys-and-tokens">
+  ## API キーとトークンを再生成する
+</div>
+
+API キーが漏えいした可能性がある場合は、次の手順に従って API キーを再生成してください。
+
+1. [開発者コンソールの「Apps」ページ](https://developer.x.com/en/portal/projects-and-apps.html)に移動します。
+2. 対象の App の横にある「Keys and tokens」アイコン (🗝) をクリックします。
+3. 再生成したいキーとトークンのセットの横にある「Regenerate」ボタンをクリックします。 
+
+Access Token またはベアラートークンをプログラム経由で再生成したい場合は、認証エンドポイントを使用して再生成できます。
+
+* Access Token を再生成したい場合は、まず [POST oauth/invalidate&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth2-invalidate-token) エンドポイントを使ってトークンを失効させ、その後 [3-legged OAuth flow](/ja/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) を使ってトークンを再生成する必要があります。
+* ベアラートークンを再生成したい場合は、まず [POST oauth2/invalidate&#95;token](/ja/resources/fundamentals/authentication/api-reference#post-oauth2-invalidate-token) エンドポイントを使ってトークンを失効させ、その後 [POST oauth2/token](/ja/resources/fundamentals/authentication/api-reference#post-oauth2-token) エンドポイントを使ってトークンを再生成する必要があります。
+
+<div id="having-a-central-file-for-your-secrets">
+  ## シークレット用の単一ファイルを用意する
+</div>
+
+`.ENV` ファイルやその他の `.yaml` ファイルなど、シークレットをまとめて保持するためのファイルを用意するのは有用な場合がありますが、これらを誤って git リポジトリにコミットしてしまわないように、防止できるよう適切に設定された `.gitignore` ファイルを必ず用意してください。 
+
+<div id="environment-variables">
+  ## 環境変数
+</div>
+
+環境変数を利用するコードを書くと便利なことがあります。 
+
+一例として、Python で書くと次のようになります。
+
+```python
+import os
+
+consumer_key = os.environ.get("CONSUMER_KEY")
+
+consumer_secret = os.environ.get("CONSUMER_SECRET")
+```
+
+ターミナルで次のようなコマンドを入力します:
+
+```bash
+export CONSUMER_KEY='xxxxxxxxxxxxxxxxxxx'
+export CONSUMER_SECRET='xxxxxxxxxxxxxxxxxxxxxxx'
+```
+
+<div id="source-code-and-version-control">
+  ## ソースコードとバージョン管理
+</div>
+
+開発者が犯しがちなセキュリティ上の典型的なミスは、GitHub や BitBucket などのアクセス可能なバージョン管理システム上のソースコードに API キーやトークンをコミットしてしまうことです。これらのコードリポジトリの多くは公開されています。公開リポジトリでこのミスがあまりに頻繁に起きるため、API キーをスクレイピングして収益を上げているボットまで存在します。
+
+* サーバーの環境変数を使用します。API キーを環境変数に保存することで、コードやバージョン管理の対象から外しておくことができます。これにより、環境ごとに異なるキーを簡単に使い分けることもできます。
+* ソース管理から除外された設定ファイルを使用します。バージョン管理で追跡されないように、そのファイル名を [.gitignore](https://git-scm.com/docs/gitignore) ファイルに追加します。
+* 一度バージョン管理に含めた後でコードから API キーを削除しても、コードベースの過去バージョンにアクセスすれば API キーに依然としてアクセスできる可能性があります。次のセクションで説明しているとおり、API キーを再生成してください。
+
+<div id="databases">
+  ## データベース
+</div>
+
+アクセストークンをデータベースに保存する必要がある場合は、次の点に留意してください。
+
+* アクセストークンがそのトークンの所有者だけに読み取れるように、データベースへのアクセスを制限してください。
+* アクセストークン用のデータベーステーブルに対する更新／書き込み権限を制限してください。これはキー管理システムで自動化されるようにしてください。
+* どのようなデータストアに保存する場合でも、アクセストークンは保存前に暗号化してください。
+
+<div id="password-management-tools">
+  ## パスワード管理ツール
+</div>
+
+1Password や LastPass のようなパスワード管理ツールは、キーやトークンを安全な場所に保管するのに役立ちます。共有チーム向けのパスワード管理ツール内で、これらを共有することは避けたほうがよいでしょう。
+
+<div id="web-storage-cookies">
+  ## Web storage &amp; cookies
+</div>
+
+Web Storage には、LocalStorage と SessionStorage の 2 種類があります。これらは Cookies の利用を改善する目的で導入されたもので、Web Storage のほうが Cookie よりもはるかに大きな容量を扱える点が利点です。ただし、それぞれのストレージ方式には異なる長所と短所があります。
+ 
+
+**Web Storage: LocalStorage**
+
+ローカルの Web Storage に保存されたものは永続的です。これは、明示的に削除しない限りデータが保持され続けることを意味します。プロジェクトのニーズによっては、これは利点と見なせるでしょう。しかし、LocalStorage を使用する際には注意が必要です。なぜなら、データの変更や追加は、その Web ページへの今後のすべてのアクセスで利用可能になるからです。通常、LocalStorage の使用は推奨しませんが、いくつかの例外がある場合もあります。もし LocalStorage を使用する場合、同一オリジンポリシーをサポートしていることを知っておくとよいでしょう。ここに保存されたすべてのデータは、同じオリジンからのみ利用できます。さらに、LocalStorage を使用することによる追加のパフォーマンス上の利点として、データを HTTP リクエストごとにサーバーへ送り返す必要がないため、クライアントとサーバー間のトラフィックを削減できる点があります。
+ 
+
+**Web Storage: SessionStorage**
+
+SessionStorage は LocalStorage と似ていますが、主な違いは SessionStorage が永続的ではない点です。SessionStorage に書き込みを行ったウィンドウ (またはブラウザによってはタブ) が閉じられると、データは失われます。これは、ユーザーセッション内でトークンの読み取りアクセスを制限するうえで有用です。セキュリティの観点から考えた場合、通常は LocalStorage よりも SessionStorage を使用するほうが望ましいです。LocalStorage と同様に、SessionStorage にも同一オリジンポリシーのサポートや、クライアントとサーバー間のトラフィック削減といった利点があります。
+ 
+
+**Cookies**
+
+Cookies はセッションデータを保存する、より伝統的な方法です。各 Cookie に有効期限を設定できるため、失効の管理やアクセス制限を容易に行うことができます。しかし、データがすべての HTTP リクエストごとにサーバーへ送信されるため、Cookies を使用するとクライアントとサーバー間のトラフィックは確実に増加します。Cookies を使用する場合は、セッションハイジャックへの対策が必要になります。デフォルトでは Cookie は HTTP 上で平文送信されるため、その内容はパケットスニッフィングや、攻撃者がトラフィックを改ざんし得る中間者攻撃に対して脆弱です。データの送信中の保護のため、常に HTTPS を強制すべきです。これにより、 (データの) 機密性、完全性、および認証が確保されます。ただし、Web アプリケーションやサイトが HTTP と HTTPS の両方で利用可能な場合は、Cookie に &#39;Secure&#39; フラグも付与する必要があります。これにより、攻撃者がユーザーに対してサイトの HTTP 版へのリンクを送信し、その結果生成される HTTP リクエストを盗聴することを防ぐことができます。
+
+Cookies 使用時のセッションハイジャックに対する二次的な防御策としては、影響の大きいアクションが実行される前に、ユーザーの本人確認を再度行うことが挙げられます。Cookie のセキュリティを向上させるために検討すべきもう 1 つのフラグは &#39;HttpOnly&#39; フラグです。このフラグは、該当する Cookie が指定されたサーバーからのみアクセスされるべきであることをブラウザに指示します。クライアントサイドスクリプトからのアクセス試行は、このフラグによって禁止されるため、ほとんどのクロスサイトスクリプティング (XSS) 攻撃に対する保護に役立ちます。

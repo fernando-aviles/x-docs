@@ -1,0 +1,48 @@
+---
+title: OAuth Echo
+sidebarTitle: OAuth Echo
+keywords: ["OAuth Echo", "test OAuth Echo", "vérification OAuth", "test d'echo", "OAuth 1.0a Echo", "vérifier OAuth"]
+---
+
+import { Button } from "/snippets/fr/button.mdx";
+
+
+<div id="oauth-echo">
+  ### OAuth Echo
+</div>
+
+OAuth Echo est un moyen de déléguer de façon sécurisée une autorisation OAuth à un tiers lors de l’interaction avec une API.
+
+Quatre parties interviennent dans cette interaction :
+
+* **l’Utilisateur** qui utilise X via une application X particulière et autorisée
+* **le Consommateur**, c’est-à-dire l’application X qui tente d’interagir avec le fournisseur de médias tiers (par exemple, un site de partage de photos)
+* **le Délégataire**, c’est-à-dire le fournisseur de médias tiers
+* **le Fournisseur de service**, alias X lui-même
+     
+
+Essentiellement, il s’agit de préparer une requête que le Délégataire enverra à l’API X (X API) pour le compte d’une application et d’un utilisateur. Ajoutez ce qui serait autrement une requête OAuth signée dans un en-tête HTTP et demandez au Délégataire d’envoyer cette requête à X après avoir terminé l’opération intermédiaire.
+
+Voici un exemple : l’Utilisateur veut téléverser une photo. Le Consommateur va appeler la méthode d’upload sur le Délégataire avec une requête POST. Le POST doit contenir l’image, mais il doit aussi contenir deux éléments supplémentaires sous forme d’en-têtes HTTP :
+
+* `x-auth-service-provider` — en pratique, il s’agit du « realm » vers lequel la délégation d’identité doit être envoyée — dans le cas de X, définissez-le sur https://api.x.com/1.1/account/verify_credentials.json. Les intégrations X basées sur iOS5 ajouteront un paramètre supplémentaire application_id à cette URL, qui sera également utilisé pour calculer la oauth_signature utilisée dans x-verify-credentials-authorization.
+* `x-verify-credentials-authorization` — le Consommateur doit créer tous les paramètres OAuth nécessaires pour pouvoir appeler https://api.x.com/1.1/account/verify_credentials.json en utilisant OAuth dans l’en-tête HTTP (par exemple, cela doit ressembler à OAuth oauth\_consumer\_key=”...”, oauth\_token=”...”, oauth\_signature\_method=”...”, oauth\_signature=”...”, oauth\_timestamp=”...”, oauth\_nonce=”...”, oauth_version=”...” ).
+     
+
+Gardez à l’esprit que toute la transaction doit se dérouler dans un laps de temps pendant lequel la valeur de `oauth_timestamp` est toujours valide.
+
+En alternative, au lieu d’envoyer ces deux paramètres dans l’en-tête, ils peuvent être envoyés dans le POST sous la forme de x\_auth\_service_provider et x\_verify\_credentials_authorization — dans ce cas, n’oubliez pas d’échapper et d’inclure les paramètres dans la chaîne de base de la signature OAuth — de manière similaire au codage des paramètres dans n’importe quelle requête. Il est préférable d’utiliser des en-têtes HTTP pour garder les opérations aussi séparées que possible.
+
+L’objectif du Délégataire, à ce stade, est de vérifier que l’Utilisateur est bien celui qu’il prétend être avant d’enregistrer le média. Une fois que le Délégataire reçoit toutes les données ci-dessus via sa méthode d’upload, il doit stocker temporairement l’image, puis construire un appel vers le point de terminaison (endpoint) spécifié dans l’en-tête x-auth-service-provider — dans ce cas, https://api.x.com/1.1/account/verify_credentials.json, en utilisant le même en-tête d’authentification OAuth fourni par le Consommateur dans l’en-tête x-verify-credentials-authorization.
+ 
+
+<div id="oauth-echo-best-practices">
+  #### Bonnes pratiques OAuth Echo
+</div>
+
+Utilisez l’URL fournie par `x-auth-service-provider` pour effectuer la recherche, et _non_ une valeur codée en dur. Apple iOS, par exemple, ajoute un paramètre supplémentaire `application_id` à toutes les requêtes OAuth, et son existence doit être préservée à chaque étape d’OAuth Echo.
+
+Pour la partie autorisation OAuth, prenez la valeur de l’en-tête `x-verify-credentials-authorization` et placez-la dans son propre en-tête `Authorization` pour l’appel au fournisseur de services. Par prudence, confirmez que la valeur dans `x-auth-service-provider` est bien celle attendue.
+
+* Si le fournisseur de services renvoie un HTTP 200, c’est bon. Le Délégateur doit stocker l’image de façon permanente, générer une URL, puis la renvoyer.
+* Si le fournisseur de services ne renvoie pas un HTTP 200, supprimez l’image, puis renvoyez une erreur au Consommateur.

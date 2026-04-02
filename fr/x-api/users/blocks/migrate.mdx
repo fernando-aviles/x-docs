@@ -1,0 +1,241 @@
+---
+title: Guide de migration
+sidebarTitle: Guide de migration
+keywords: ["migration des blocages", "migrer les blocages", "blocages v1.1 vers v2", "guide de migration des blocages", "migrer les blocages"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="blocks-lookup-standard-v11-compared-to-x-api-v2">
+  ### Recherche des comptes bloqués : standard v1.1 par rapport à X API v2
+</div>
+
+Si vous avez utilisé les endpoints standard v1.1 [GET blocks/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-blocks-ids) et [GET blocks/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-blocks-list), l’objectif de ce guide est de vous aider à comprendre les similitudes et les différences entre les endpoints de recherche de comptes bloqués standard v1.1 et X API v2.
+
+* **Points communs**
+  * Authentification
+* **Différences**
+  * URL des endpoints
+
+  * Limites du nombre d’utilisateurs par requête
+
+  * Exigences relatives aux App et aux Projets
+
+  * Formats de données de réponse
+
+  * Paramètres de requête
+
+<div id="similarities">
+  #### Similarités
+</div>
+
+**Authentification**
+
+Les endpoints de recherche des blocages des versions standard v1.1 et X API v2 utilisent tous deux [OAuth 1.0a User Context](/fr/resources/fundamentals/authentication#oauth-1-0a-2). Par conséquent, si vous utilisiez auparavant l’un des endpoints de recherche des blocages standard v1.1, vous pouvez continuer à utiliser la même méthode d’authentification lors de votre migration vers la version X API v2. 
+
+<div id="differences">
+  #### Différences
+</div>
+
+**URLs des endpoints**
+
+* Endpoints standard v1.1 :
+  * GET https://api.x.com/1.1/blocks/ids.json
+    (liste des id d’utilisateurs qui sont bloqués par l’utilisateur spécifié)
+  * GET https://api.x.com/1.1/blocks/lists.json
+    (liste des utilisateurs qui sont bloqués par l’utilisateur spécifié)
+* Endpoint X API v2 :
+  * GET https://api.x.com/2/users/:id/blocking
+    (liste des utilisateurs qui sont bloqués par l’id d’utilisateur spécifié)
+     
+
+**Limites d’utilisateurs par requête**
+
+Les endpoints standard v1.1 vous permettent de retourner jusqu’à 5000 utilisateurs par requête. Les nouveaux endpoints v2 vous permettent de retourner jusqu’à 1000 utilisateurs par requête. Pour retourner un total de 1000 utilisateurs, vous devez passer max&#95;results=1000 comme paramètre de requête ; vous pouvez ensuite passer le next&#95;token renvoyé dans la charge utile de la réponse au paramètre de requête pagination&#95;token dans votre requête suivante.
+ 
+
+**Exigences liées à l’App et au Project**
+
+Les endpoints X API v2 exigent que vous utilisiez des identifiants provenant d’une [developer App](/fr/resources/fundamentals/developer-apps) qui est associée à un [Project](/fr/resources/fundamentals/developer-apps) lorsque vous authentifiez vos requêtes. Tous les endpoints X API v1.1 peuvent utiliser des identifiants provenant d’Apps ou d’Apps associées à un Project.
+
+**Format des données de réponse**
+
+L’une des plus grandes différences entre les versions d’endpoints standard v1.1 et X API v2 est la manière dont vous sélectionnez les champs qui sont renvoyés dans votre charge utile.
+
+Pour les endpoints standard, vous recevez de nombreux champs de réponse par défaut, puis vous avez la possibilité d’utiliser des paramètres pour indiquer quels champs ou quels ensembles de champs doivent être renvoyés dans la charge utile.
+
+La version X API v2 ne fournit par défaut que les champs user id, name et username. Pour demander des champs ou objets supplémentaires, vous devrez utiliser les paramètres [fields](/fr/x-api/fundamentals/fields) et [expansions](/fr/x-api/fundamentals/expansions). Tous les champs d’utilisateur que vous demandez depuis cet endpoint seront renvoyés dans l’objet utilisateur principal. Tout objet Publication étendu et ses champs seront renvoyés dans un objet includes au sein de votre réponse. Vous pouvez ensuite faire correspondre les objets étendus à l’objet utilisateur en faisant correspondre les id présents à la fois dans l’utilisateur et dans l’objet Publication étendu. 
+
+Nous vous encourageons à en savoir plus sur ces nouveaux paramètres dans leurs guides respectifs, ou en lisant notre guide sur [la façon d’utiliser les fields et expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions). 
+
+Nous avons également rédigé un [guide de migration de format de données](/fr/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) qui peut vous aider à mapper les champs standard v1.1 vers les nouveaux champs v2. Ce guide vous fournira également le paramètre expansions et fields spécifique que vous devrez passer avec votre requête v2 pour retourner des champs précis. 
+ 
+
+En plus des changements dans la manière dont vous demandez certains champs, X API v2 introduit également de nouveaux modèles JSON pour les objets renvoyés par les API, y compris les objets [P](/fr/x-api/fundamentals/data-dictionary#tweet)ublication et [user](/fr/x-api/fundamentals/data-dictionary#user).
+
+* Au niveau racine JSON, les endpoints standard renvoient des objets Publication dans un tableau statuses, tandis que X API v2 renvoie un tableau data. 
+* Au lieu de faire référence à des « statuses » Retweeted et Quoted, le JSON X API v2 fait référence à des Tweets Retweeted et Quoted. De nombreux champs hérités et obsolètes, tels que contributors et user.translator&#95;type, sont supprimés. 
+* Au lieu d’utiliser à la fois favorites (dans l’objet Publication) et favourites (dans l’objet user), X API v2 utilise le terme like. 
+* X adopte la convention selon laquelle les valeurs JSON sans valeur (par exemple null) ne sont pas écrites dans la charge utile. Les attributs de Publication et d’utilisateur ne sont inclus que s’ils ont des valeurs non nulles. 
+   
+
+Nous avons également introduit un nouvel ensemble de champs dans l’[objet Publication](/fr/x-api/fundamentals/data-dictionary#tweet), notamment :
+
+* Un champ [conversation&#95;id](/fr/x-api/fundamentals/conversation-id)
+* Deux nouveaux champs [annotations](/fr/x-api/fundamentals/post-annotations), notamment context et entities
+* Plusieurs nouveaux champs [metrics](/fr/x-api/fundamentals/metrics) 
+* Un nouveau champ reply&#95;setting, qui vous indique qui peut répondre à une Publication donnée
+
+**Paramètres de requête**
+
+Les paramètres de requête standard de la v1.1 suivants acceptaient deux paramètres de requête (user&#95;id ou screen&#95;name). L’X API v2 n’accepte que l’identifiant utilisateur numérique, qui doit être fourni dans le chemin de l’endpoint.
+
+***
+
+<div id="code-examples">
+  ## Exemples de code
+</div>
+
+<div id="get-blocked-users-v2">
+  ### Récupérer les utilisateurs bloqués (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/blocking?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a avec contexte utilisateur (User Context)
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/blocking"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Récupérer les utilisateurs bloqués avec pagination
+  for page in client.users.get_blocking(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Récupérer les utilisateurs bloqués avec pagination
+  const paginator = client.users.getBlocking("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="block-a-user-v2">
+  ### Bloquer un utilisateur (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/blocking" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # Nécessite une authentification OAuth 1.0a dans un contexte utilisateur
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/blocking"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Bloquer un utilisateur
+  response = client.users.block(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Blocking: {response.data.blocking}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Bloquer un utilisateur
+  const response = await client.users.block("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Blocking: ${response.data?.blocking}`);
+  ```
+</CodeGroup>

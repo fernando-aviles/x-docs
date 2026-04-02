@@ -1,0 +1,244 @@
+---
+title: ホームタイムライン クイックスタート
+sidebarTitle: ホームタイムライン
+description: ユーザーのホームタイムラインを時系列の新しい順で取得します
+keywords: ["ホームタイムライン", "時系列の逆順", "ホームタイムライン クイックスタート", "タイムライン クイックスタート", "ホームタイムライン チュートリアル"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、逆時系列のホームタイムラインエンドポイントへの最初のリクエストの手順を説明します。
+
+<Note>
+  **前提条件**
+
+  作業を始める前に、次を用意してください:
+
+  * 承認済みの App を持つ[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * ユーザーアクセストークン (このエンドポイントではユーザー認証が必要です) 
+</Note>
+
+***
+
+<div id="step-1-get-the-user-id">
+  ## ステップ 1: ユーザー ID を取得する
+</div>
+
+取得したいホームタイムラインのアカウントのユーザー ID が必要です。次の username ルックアップエンドポイントを使って取得します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  response = client.users.get_by_username("XDevelopers")
+  print(f"User ID: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(`User ID: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+レスポンスにはユーザー ID が含まれます。
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+***
+
+<div id="step-2-request-the-home-timeline">
+  ## ステップ 2：ホームタイムラインをリクエストする
+</div>
+
+ユーザー ID と User Access Token を指定して GET リクエストを送信します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # ページネーションを使ってホームタイムラインを取得
+  for page in client.posts.get_home_timeline("2244994945"):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // ページネーションを使ってホームタイムラインを取得
+  const paginator = client.posts.getHomeTimeline("2244994945");
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-3-review-the-response">
+  ## ステップ3：レスポンスを確認する
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1524796546306478083",
+      "text": "Today marks the launch of Devs in the Details...",
+      "edit_history_tweet_ids": ["1524796546306478083"]
+    },
+    {
+      "id": "1524468552404668416",
+      "text": "Join us tomorrow for a discussion about bots...",
+      "edit_history_tweet_ids": ["1524468552404668416"]
+    }
+  ],
+  "meta": {
+    "result_count": 2,
+    "newest_id": "1524796546306478083",
+    "oldest_id": "1524468552404668416",
+    "next_token": "7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4"
+  }
+}
+```
+
+***
+
+<div id="step-4-add-fields-and-expansions">
+  ## ステップ 4: フィールドと Expansions を追加する
+</div>
+
+クエリパラメータで追加のデータをリクエストします:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified&\
+  max_results=10" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # フィールドと Expansions を指定してホームタイムラインを取得
+  for page in client.posts.get_home_timeline(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // フィールドと Expansions を指定してホームタイムラインを取得
+  const paginator = client.posts.getHomeTimeline("2244994945", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-5-paginate-through-results">
+  ## ステップ 5: 結果をページネーションする
+</div>
+
+SDK ではページネーションが自動的に処理されます。cURL を使用する場合は、レスポンスの `next_token` を使って、より多くの結果を取得します。
+
+```bash
+curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+max_results=10&\
+pagination_token=7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="common-parameters">
+  ## 共通パラメーター
+</div>
+
+| Parameter | 説明 | デフォルト |
+|:----------|:------------|:--------|
+| `max_results` | 1 ページあたりの結果数 (1-100) | 10 |
+| `start_time` | 最も古いポストのタイムスタンプ (ISO 8601) | — |
+| `end_time` | 最も新しいポストのタイムスタンプ (ISO 8601) | — |
+| `since_id` | この ID 以降の投稿を返す | — |
+| `until_id` | この ID より前の投稿を返す | — |
+| `exclude` | `retweets`、`replies`、または両方を除外 | — |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ユーザーのメンション" icon="at" href="/ja/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    ユーザーがメンションされている投稿を取得する
+  </Card>
+
+  <Card title="インテグレーションガイド" icon="book" href="/ja/x-api/posts/timelines/integrate">
+    基本概念とベストプラクティス
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/reverse-chronological-timeline-by-user-id">
+    エンドポイントの詳細ドキュメント
+  </Card>
+
+  <Card title="ページネーションガイド" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
+    大規模な結果セットを扱う
+  </Card>
+</CardGroup>

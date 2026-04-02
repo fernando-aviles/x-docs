@@ -1,0 +1,244 @@
+---
+title: होम टाइमलाइन की त्वरित शुरुआत
+sidebarTitle: होम टाइमलाइन
+description: किसी उपयोगकर्ता की होम टाइमलाइन को उल्टे कालानुक्रमिक क्रम में प्राप्त करें
+keywords: ["होम टाइमलाइन", "उल्टा कालानुक्रमिक क्रम", "होम टाइमलाइन की त्वरित शुरुआत", "टाइमलाइन की त्वरित शुरुआत", "होम टाइमलाइन ट्यूटोरियल"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको reverse chronological home timeline एंडपॉइंट पर अपना पहला अनुरोध करने में मदद करती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * एक स्वीकृत ऐप के साथ [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * User Access Tokens (इस एंडपॉइंट के लिए उपयोगकर्ता प्रमाणीकरण आवश्यक है)
+</Note>
+
+***
+
+<div id="step-1-get-the-user-id">
+  ## चरण 1: उपयोगकर्ता ID प्राप्त करें
+</div>
+
+जिस खाते की होम टाइमलाइन आप प्राप्त करना चाहते हैं, उसकी उपयोगकर्ता ID आपको चाहिए होगी। इसे username lookup एंडपॉइंट का उपयोग करके खोजें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  response = client.users.get_by_username("XDevelopers")
+  print(f"User ID: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(`User ID: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+रिस्पॉन्स में उपयोगकर्ता ID शामिल होती है:
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+***
+
+<div id="step-2-request-the-home-timeline">
+  ## चरण 2: होम टाइमलाइन का अनुरोध करें
+</div>
+
+उपयोगकर्ता ID और User Access Token का उपयोग करके एक GET अनुरोध करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # पेजिनेशन के साथ होम टाइमलाइन प्राप्त करें
+  for page in client.posts.get_home_timeline("2244994945"):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // पेजिनेशन के साथ होम टाइमलाइन प्राप्त करें
+  const paginator = client.posts.getHomeTimeline("2244994945");
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-3-review-the-response">
+  ## चरण 3: रिस्पॉन्स की समीक्षा करें
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1524796546306478083",
+      "text": "Today marks the launch of Devs in the Details...",
+      "edit_history_tweet_ids": ["1524796546306478083"]
+    },
+    {
+      "id": "1524468552404668416",
+      "text": "Join us tomorrow for a discussion about bots...",
+      "edit_history_tweet_ids": ["1524468552404668416"]
+    }
+  ],
+  "meta": {
+    "result_count": 2,
+    "newest_id": "1524796546306478083",
+    "oldest_id": "1524468552404668416",
+    "next_token": "7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4"
+  }
+}
+```
+
+***
+
+<div id="step-4-add-fields-and-expansions">
+  ## चरण 4: फ़ील्ड्स और expansions जोड़ें
+</div>
+
+क्वेरी पैरामीटर का उपयोग करके अतिरिक्त डेटा का अनुरोध करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified&\
+  max_results=10" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # फ़ील्ड्स और expansions के साथ होम टाइमलाइन पाएं
+  for page in client.posts.get_home_timeline(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // फ़ील्ड्स और expansions के साथ होम टाइमलाइन पाएं
+  const paginator = client.posts.getHomeTimeline("2244994945", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-5-paginate-through-results">
+  ## चरण 5: परिणामों के पृष्ठों में आगे बढ़ें
+</div>
+
+SDKs पेजिनेशन को अपने-आप संभालते हैं। cURL के लिए, और परिणाम पाने के लिए रिस्पॉन्स में दिए गए `next_token` का उपयोग करें:
+
+```bash
+curl "https://api.x.com/2/users/2244994945/timelines/reverse_chronological?\
+max_results=10&\
+pagination_token=7140dibdnow9c7btw421dyz6jism75z99gyxd8egarsc4" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="common-parameters">
+  ## सामान्य पैरामीटर
+</div>
+
+| पैरामीटर      | विवरण                                           | डिफ़ॉल्ट |
+| :------------ | :---------------------------------------------- | :------- |
+| `max_results` | प्रति पृष्ठ परिणाम (1-100)                      | 10       |
+| `start_time`  | सबसे पुरानी पोस्ट का टाइमस्टैम्प (ISO 8601)     | —        |
+| `end_time`    | सबसे नई पोस्ट का टाइमस्टैम्प (ISO 8601)         | —        |
+| `since_id`    | इस ID के बाद की पोस्ट्स लौटाएँ                  | —        |
+| `until_id`    | इस ID से पहले की पोस्ट्स लौटाएँ                 | —        |
+| `exclude`     | `retweets`, `replies`, या दोनों को शामिल न करें | —        |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="उपयोगकर्ता उल्लेख" icon="at" href="/hi/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    किसी उपयोगकर्ता का उल्लेख करने वाली पोस्ट्स प्राप्त करें
+  </Card>
+
+  <Card title="एकीकरण मार्गदर्शिका" icon="book" href="/hi/x-api/posts/timelines/integrate">
+    मुख्य अवधारणाएँ और सर्वोत्तम प्रथाएँ
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/reverse-chronological-timeline-by-user-id">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+
+  <Card title="पृष्ठांकन मार्गदर्शिका" icon="arrow-right" href="/hi/x-api/fundamentals/pagination">
+    बड़े परिणाम सेटों में नेविगेट करें
+  </Card>
+</CardGroup>

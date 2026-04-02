@@ -1,0 +1,126 @@
+---
+title: Webhooks
+sidebarTitle: Introduction
+description: Recevez des données en temps réel via des webhooks
+keywords: ["webhooks", "API de webhook", "webhooks en temps réel", "distribution via webhook", "webhooks d'événements"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Les webhooks permettent la transmission de données en temps réel à votre serveur. Au lieu d’interroger l’API pour détecter des mises à jour, vous recevez les données dès que les événements se produisent.
+
+<div id="overview">
+  ## Vue d’ensemble
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Diffusion en temps réel" icon="bolt">
+    Recevez les événements instantanément
+  </Card>
+
+  <Card title="En mode push" icon="arrow-right">
+    Données envoyées à votre serveur
+  </Card>
+
+  <Card title="Efficace" icon="gauge">
+    Aucun polling nécessaire
+  </Card>
+
+  <Card title="Fiable" icon="shield">
+    Prise en charge des tentatives de renvoi et de la reprise
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-types">
+  ## Types de webhooks
+</div>
+
+| Type | Description |
+|:-----|:------------|
+| [Filtered Stream Webhooks](/fr/x-api/webhooks/stream/introduction) | Recevoir des Publications d’un flux filtré via un webhook |
+| [Account Activity API](/fr/x-api/account-activity/introduction) | Recevoir des événements d’activité de compte |
+------------------------------------------------------------------------------------------------------------------
+
+<div id="webhook-requirements">
+  ## Fonctionnement des webhooks
+</div>
+
+```
+┌──────────┐      ┌──────────┐      ┌──────────┐
+│ X Event  │  →   │ X Server │  →   │ Your     │
+│ Occurs   │      │          │      │ Webhook  │
+└──────────┘      └──────────┘      └──────────┘
+```
+
+1. **Un événement se produit** — Un utilisateur publie un message, envoie un DM, etc.
+2. **X envoie une requête** — Requête POST vers l’URL de votre webhook
+3. **Vous traitez** — Votre serveur gère l’événement
+4. **Répondez avec 200** — Retournez 200 OK pour accuser réception
+
+***
+
+<div id="security">
+  ## Exigences relatives aux webhooks
+</div>
+
+| Exigence | Description |
+|:------------|:------------|
+| **HTTPS** | L’URL du webhook doit utiliser HTTPS |
+| **Publique** | L’URL doit être accessible publiquement |
+| **Réponse rapide** | Répondre en moins de 10 secondes |
+| **200 OK** | Renvoyer un code d’état 200 pour accuser réception |
+
+***
+
+## Sécurité
+
+<div id="signature-verification">
+  ### Contrôle par challenge-réponse (CRC)
+</div>
+
+X valide votre webhook en envoyant une requête CRC. Répondez avec un hachage HMAC-SHA256 :
+
+```python
+import hmac
+import hashlib
+import base64
+
+def handle_crc(crc_token, consumer_secret):
+    sha256_hash = hmac.new(
+        consumer_secret.encode(),
+        crc_token.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    return {
+        "response_token": "sha256=" + base64.b64encode(sha256_hash).decode()
+    }
+```
+
+### Vérification de la signature
+
+Vérifiez l’authenticité du webhook à l’aide de l’en-tête `x-twitter-webhooks-signature`.
+
+***
+
+## Mise en route
+
+<Note>
+  **Prérequis**
+
+  * Un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) approuvé
+  * Un [Project and App](/fr/resources/fundamentals/developer-apps) dans la Console de développement
+  * Un point de terminaison HTTPS accessible publiquement
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Webhooks de flux filtrés" icon="filter" href="/fr/x-api/webhooks/stream/introduction">
+    Recevez des Publications filtrées via webhook
+  </Card>
+
+  <Card title="Account Activity API" icon="bell" href="/fr/x-api/account-activity/introduction">
+    Recevez des événements de compte via webhook
+  </Card>
+</CardGroup>

@@ -1,0 +1,48 @@
+---
+title: OAuth Echo
+sidebarTitle: OAuth Echo
+keywords: ["OAuth Echo", "OAuth Echo परीक्षण", "OAuth सत्यापन", "Echo परीक्षण", "OAuth 1.0a Echo", "OAuth सत्यापित करें"]
+---
+
+import { Button } from "/snippets/hi/button.mdx";
+
+
+<div id="oauth-echo">
+  ### OAuth Echo
+</div>
+
+OAuth Echo, किसी API के साथ इंटरैक्ट करते समय, किसी तृतीय-पक्ष को OAuth प्राधिकरण सुरक्षित रूप से सौंपने का एक तरीका है।
+
+इस इंटरैक्शन में चार पक्ष शामिल होते हैं:
+
+* **उपयोगकर्ता** जो किसी विशेष, अधिकृत X ऐप के माध्यम से X का उपयोग कर रहा है
+* **Consumer**, यानी वह X ऐप जो तृतीय-पक्ष मीडिया प्रदाता (उदा. फ़ोटो-शेयरिंग साइट) के साथ इंटरैक्ट करने का प्रयास कर रहा है
+* **Delegator**, यानी तृतीय-पक्ष मीडिया प्रदाता
+* **सेवा प्रदाता** अर्थात स्वयं X
+   
+
+मूल रूप से, किसी ऐप और उपयोगकर्ता की ओर से X API को भेजने के लिए Delegator हेतु एक अनुरोध तैयार करें। जो अनुरोध सामान्यतः एक signed OAuth अनुरोध होता, उसे HTTP हेडर में जोड़ें और Delegator से कहें कि मध्यवर्ती कार्रवाई पूरी होने के बाद वह उस अनुरोध को X को भेज दे।
+
+यहाँ एक उदाहरण है: उपयोगकर्ता एक फ़ोटो अपलोड करना चाहता है। Consumer, POST के साथ Delegator पर upload कॉल करेगा। POST में इमेज होनी चाहिए, लेकिन उसमें HTTP हेडर्स के रूप में दो अतिरिक्त आइटम भी होने चाहिए:
+
+* `x-auth-service-provider` — व्यावहारिक रूप से, यह वह realm है जहाँ identity delegation भेजी जानी चाहिए — X के मामले में, इसे https://api.x.com/1.1/account/verify&#95;credentials.json पर सेट करें। iOS5-आधारित X integrations इस URL में एक अतिरिक्त application&#95;id parameter जोड़ेंगी, जिसका उपयोग x-verify-credentials-authorization में प्रयुक्त oauth&#95;signature की गणना के लिए भी किया जाएगा।
+* `x-verify-credentials-authorization` — Consumer को सभी आवश्यक OAuth parameters बनाने चाहिए, ताकि वह HTTP हेडर में OAuth का उपयोग करते हुए https://api.x.com/1.1/account/verify&#95;credentials.json को कॉल कर सके (उदा. यह ऐसा दिखना चाहिए OAuth oauth&#95;consumer&#95;key=”...”, oauth&#95;token=”...”, oauth&#95;signature&#95;method=”...”, oauth&#95;signature=”...”, oauth&#95;timestamp=”...”, oauth&#95;nonce=”...”, oauth&#95;version=”...” ).
+   
+
+ध्यान रखें कि पूरे transaction की अवधि इतनी कम होनी चाहिए कि `oauth_timestamp` अब भी वैध रहे।
+
+वैकल्पिक रूप से, हेडर में इन दो parameters को भेजने के बजाय, इन्हें POST में x&#95;auth&#95;service&#95;provider और x&#95;verify&#95;credentials&#95;authorization के रूप में भेजा जा सकता है — इस स्थिति में, OAuth signature base string में parameters को escape करके शामिल करना याद रखें — ठीक वैसे ही जैसे किसी भी अनुरोध में parameters को encode किया जाता है। operations को यथासंभव अलग रखने के लिए HTTP हेडर्स का उपयोग करना सर्वोत्तम है।
+
+इस बिंदु पर Delegator का लक्ष्य यह सत्यापित करना है कि मीडिया सहेजने से पहले उपयोगकर्ता वही है, जो वह होने का दावा करता है। जब Delegator को अपनी upload method के माध्यम से ऊपर दिया गया सारा डेटा प्राप्त हो जाए, तो उसे इमेज को अस्थायी रूप से संग्रहीत करना चाहिए, और फिर x-auth-service-provider हेडर में निर्दिष्ट endpoint पर एक कॉल बनानी चाहिए — इस मामले में, https://api.x.com/1.1/account/verify&#95;credentials.json, और इसके लिए वही OAuth authentication हेडर उपयोग करना चाहिए, जो Consumer ने x-verify-credentials-authorization हेडर में प्रदान किया था।
+ 
+
+<div id="oauth-echo-best-practices">
+  #### OAuth Echo के लिए सर्वोत्तम प्रथाएँ
+</div>
+
+लुकअप करने के लिए `x-auth-service-provider` द्वारा दिए गए URL का उपयोग करें, *not* किसी हार्ड-कोड किए गए मान का। उदाहरण के लिए, Apple iOS सभी OAuth अनुरोधों में एक अतिरिक्त application&#95;id पैरामीटर जोड़ता है, और OAuth Echo के हर चरण में इसकी मौजूदगी बनी रहनी चाहिए।
+
+OAuth authorization वाले हिस्से के लिए, x-verify-credentials-authorization में मौजूद हेडर मान लें और सेवा प्रदाता को की जाने वाली कॉल के लिए उसे अलग Authorization हेडर में रखें। एहतियात के तौर पर, यह भी सुनिश्चित करें कि `x-auth-service-provider` में दिया गया मान वही है जो होना चाहिए।
+
+* अगर सेवा प्रदाता HTTP 200 लौटाता है, तो सब ठीक है। Delegator को इमेज को स्थायी रूप से संग्रहीत करना चाहिए, एक URL जनरेट करना चाहिए, और उसे लौटाना चाहिए।
+* अगर सेवा प्रदाता HTTP 200 नहीं लौटाता है, तो इमेज को त्याग दें और फिर Consumer को एक त्रुटि लौटाएँ।

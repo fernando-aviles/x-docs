@@ -1,0 +1,81 @@
+---
+title: Límites de tasa
+keywords: ["límites de tasa de Ads API", "limitación de tasa", "throttling de Ads API", "límites de tasa", "límites de solicitudes", "límites de Ads API"]
+---
+
+El Advertiser API está sujeto a límites de tasa de forma similar a la REST API v1.1, como se documenta aquí: [Limitación de tasa en la REST API v1.1](https://developer.x.com/content/developer-twitter/en/docs/basics/rate-limits). A diferencia de la REST API v1.1, no existe un índice programático de los límites por endpoint. Los límites de tasa por endpoint y las ventanas de restablecimiento se comunican mediante encabezados de respuesta HTTP. Todos los límites de tasa en el Ads API utilizan OAuth 1.0a.
+
+<div id="user-level-and-ad-account-level-limits">
+  ## Límites a nivel de usuario y a nivel de cuenta de anuncios
+</div>
+
+Hay dos tipos de límites de tasa: a nivel de token de usuario y a nivel de cuenta de anuncios. Un subconjunto de endpoints está configurado para usar límites de tasa a nivel de cuenta de anuncios. Un token de usuario es el [OAuth access token](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) que utilizas para autenticarte y llamar a la Ads API. Cada token de usuario puede tener acceso a una o más cuentas de anuncios.
+
+Los desarrolladores deben utilizar el límite de tasa a nivel de cuenta de anuncios cuando se devuelva en los encabezados de respuesta y recurrir al límite a nivel de usuario únicamente cuando no se encuentre el límite a nivel de cuenta de anuncios.
+
+Los límites de tasa a nivel de usuario se expresan mediante estos encabezados: **x-rate-limit-limit**, **x-rate-limit-remaining** y **x-rate-limit-reset**.
+
+Para los endpoints con límites de tasa a nivel de cuenta de anuncios habilitados, los límites de tasa se expresan mediante estos encabezados: **x-account-rate-limit-limit**, **x-account-rate-limit-remaining** y **x-account-rate-limit-reset**.
+
+Los límites de tasa a nivel de cuenta de anuncios se proporcionan solo para endpoints de tipo GET, con el fin de permitir que las aplicaciones sincronicen datos de entidades (como objetos de campaña o de line item) desde un único token de usuario que accede a múltiples cuentas de anuncios. No se garantiza que las acciones de escritura utilicen los mismos límites de tasa a nivel de cuenta de anuncios.
+
+Para los endpoints con límites de tasa a nivel de cuenta de anuncios, el límite de tasa a nivel de usuario se establece en un valor alto que representa una cuota global para toda tu aplicación. Cuando esté disponible, el límite de tasa a nivel de cuenta de anuncios debe tener prioridad para controlar tu volumen de solicitudes.
+
+<div id="best-practices">
+  ## Mejores prácticas
+</div>
+
+1. Guarda en tu base de datos una marca de tiempo con la última sincronización y, al solicitar datos, cuando corresponda, pide los datos con la opción `sort_by=updated_at-desc` para poder detener tu proceso de sincronización una vez que alcances datos anteriores a la marca de tiempo de tu última sincronización. Esto evitará sincronizar los mismos datos de forma redundante.
+
+2. Solicita múltiples entidades en una sola petición: algunos endpoints te permiten especificar una lista de valores separados por comas para recuperar varios conjuntos de datos similares. Esto puede reducir el número total de llamadas que realizas y, por lo tanto, aprovechar mejor el límite de frecuencia.
+
+3. Solicita el valor máximo de “count” en tus peticiones: en algunos endpoints como [GET accounts/:account&#95;id/targeting&#95;criteria](/es/x-ads-api/campaign-management#targeting-criteria) se recomienda encarecidamente hacer la llamada con el valor máximo de count para devolver 1000 objetos en lugar del valor predeterminado de 200.
+
+<div id="analytics-syncing">
+  ## Sincronización de Analytics
+</div>
+
+Consulta la [Guía sobre límites de tasa de Analytics](/es/x-ads-api/analytics#best-practices) para obtener más información sobre los límites de tasa de los endpoints de Analytics.
+
+<div id="faqs">
+  ## Preguntas frecuentes
+</div>
+
+*¿Es posible aumentar los límites de tasa para una cuenta publicitaria en particular o para nuestra aplicación?*
+
+En general, no podemos aumentar los límites de tasa y estos están configurados para admitir incluso las cuentas publicitarias más grandes. Implementa primero las prácticas recomendadas que se indican en este documento y, si los límites de tasa siguen afectando tu capacidad para escalar o lograr tus objetivos comerciales, comunícate con tus contactos de X Ads API con todos los detalles sobre el caso de uso y las solicitudes involucradas.
+
+<div id="scopes-of-rate-limiting">
+  ## Ámbitos de los límites de frecuencia
+</div>
+
+<div id="scopes-for-this-doc">
+  ### Ámbitos de este documento
+</div>
+
+* Categoría: todos los endpoints que entran en la categoría indicada están sujetos a límites de frecuencia que comparten un único cupo asignado por ventana.
+* Endpoint: cada endpoint tiene su propio cupo de solicitudes asignado por ventana.
+
+<div id="ads-api-rate-limit-chart">
+  ## Tabla de límites de frecuencia de Ads API
+</div>
+
+<div id="ads-api-rate-limits">
+  ### Límites de tasa de la Ads API
+</div>
+
+| Tipo de endpoint | Alcance por endpoint o categoría | Límite de tasa por ventana de 1 minuto |
+| :--- | :--- | :--- |
+| Escrituras (POST, PUT, DELETE) | Categoría | 450 |
+| Audiencia | Endpoint | 1500 |
+
+| Tipo de endpoint | Alcance por endpoint o categoría | Límite de tasa por ventana de 15 minutos |
+| :--- | :--- | :--- |
+| Analytics (síncrono) | Categoría | 250 |
+| Lecturas de entidades principales (Line Items, Campaigns, etc.)<br /><br />Otras lecturas de cuenta (otros endpoints GET con :account&#95;id) | Endpoint (nivel de cuenta publicitaria)<br /><br />Endpoint (nivel parcial de cuenta publicitaria) | 10,000<br /><br />2000 |
+| Criterios de segmentación (excepto los siguientes) | Categoría | 400 |
+| Criterios de segmentación (tv&#95;markets, tv&#95;shows) | Endpoint | 2000 |
+| Audience Insights | Categoría | 400 |
+| Keyword Insights | Categoría | 500 |
+| Lecturas globales (endpoints GET sin :account&#95;id) | Endpoint | 5   |
+| Conversiones | Endpoint | 60,000 |

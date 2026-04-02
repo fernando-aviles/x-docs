@@ -1,0 +1,156 @@
+---
+title: PKCE के साथ OAuth 2.0 ऑथराइज़ेशन कोड फ़्लो
+sidebarTitle: PKCE के साथ OAuth 2.0 ऑथराइज़ेशन कोड फ़्लो
+keywords: ["OAuth 2.0 PKCE", "ऑथराइज़ेशन कोड फ़्लो", "PKCE", "OAuth 2.0 फ़्लो", "PKCE फ़्लो", "OAuth 2.0 ऑथराइज़ेशन", "कोड चैलेंज"]
+---
+
+<div id="oauth-20-authorization-code-flow-with-pkce">
+  ### PKCE के साथ OAuth 2.0 ऑथराइज़ेशन कोड फ़्लो
+</div>
+
+<div id="introduction">
+  #### परिचय
+</div>
+
+OAuth 2.0 एक उद्योग-मानक प्राधिकरण प्रोटोकॉल है, जो किसी एप्लिकेशन के स्कोप पर अधिक नियंत्रण और कई डिवाइसों पर प्राधिकरण फ़्लो की सुविधा देता है। OAuth 2.0 आपको विशिष्ट, सूक्ष्म-स्तर के scopes चुनने की अनुमति देता है, जो उपयोगकर्ता की ओर से आपको खास अनुमतियाँ देते हैं। 
+
+अपने ऐप में OAuth 2.0 सक्षम करने के लिए, आपको इसे डेवलपर कंसोल के ऐप सेटिंग्स section में मौजूद अपने ऐप की authentication settings में सक्षम करना होगा।
+
+<div id="how-long-will-my-credentials-stay-valid">
+  #### मेरे क्रेडेंशियल कितने समय तक मान्य रहेंगे?
+</div>
+
+डिफ़ॉल्ट रूप से, PKCE के साथ OAuth 2.0 ऑथराइज़ेशन कोड फ़्लो के ज़रिए बनाया गया access token केवल दो घंटे तक ही मान्य रहेगा, जब तक कि आपने `offline.access` scope का इस्तेमाल न किया हो।
+
+<div id="refresh-tokens">
+  #### रीफ़्रेश टोकन
+</div>
+
+रीफ़्रेश टोकन किसी एप्लिकेशन को रीफ़्रेश टोकन फ़्लो के माध्यम से उपयोगकर्ता से फिर से अनुमति मांगे बिना नया access token प्राप्त करने की अनुमति देते हैं।
+
+यदि `offline.access` scope लागू किया जाता है, तो एक OAuth 2.0 रीफ़्रेश टोकन जारी किया जाएगा। इस रीफ़्रेश टोकन की मदद से आप एक access token प्राप्त कर सकते हैं। यदि यह scope पास नहीं किया जाता है, तो हम रीफ़्रेश टोकन जनरेट नहीं करेंगे।
+
+रीफ़्रेश टोकन का उपयोग करके नया access token प्राप्त करने के लिए किए जाने वाले अनुरोध का एक उदाहरण इस प्रकार है:
+
+```bash
+POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'refresh_token=bWRWa3gzdnk3WHRGU1o0bmRRcTJ5VUxWX1lZTDdJSUtmaWcxbTVxdEFXcW5tOjE2MjIxNDc3NDM5MTQ6MToxOnJ0OjE' \
+--data-urlencode 'grant_type=refresh_token' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ
+```
+
+<div id="app-settings">
+  #### ऐप सेटिंग्स
+</div>
+
+आप अपने ऐप की प्रमाणीकरण सेटिंग्स के लिए OAuth 1.0a या OAuth 2.0 चुन सकते हैं। आप किसी ऐप को OAuth 1.0a और OAuth 2.0, दोनों के एक्सेस के लिए भी सक्षम कर सकते हैं।
+
+OAuth 2.0 का उपयोग केवल X API v2 के साथ किया जा सकता है। अगर आपने OAuth 2.0 चुना है, तो आप अपने ऐप के Keys and Tokens सेक्शन में Client ID देख सकेंगे। 
+
+<div id="confidential-clients">
+  #### गोपनीय क्लाइंट
+</div>
+
+[गोपनीय क्लाइंट](https://datatracker.ietf.org/doc/html/rfc6749#section-2.1) क्रेडेंशियल्स को सुरक्षित रूप से रख सकते हैं, बिना उन्हें अनधिकृत पक्षों के सामने उजागर किए, और authorization server के साथ सुरक्षित रूप से authenticate कर सकते हैं, जिससे आपका client secret सुरक्षित रहता है। Public client, क्योंकि वे आमतौर पर ब्राउज़र में या मोबाइल डिवाइस पर चलते हैं, आपके client secret का उपयोग नहीं कर सकते। यदि आप ऐसे ऐप का type चुनते हैं जो एक गोपनीय क्लाइंट है, तो आपको एक client secret प्रदान किया जाएगा। 
+
+यदि आपने डेवलपर कंसोल में ऐसा client type चुना है जो एक गोपनीय क्लाइंट है, तो आप Client Secret भी देख पाएँगे। आपके विकल्प हैं Native App, Single page App, Web App, Automated App, या bot। Native App और Single page App public client हैं, जबकि Web App, Automated App, और bot गोपनीय क्लाइंट हैं।
+
+मान्य Authorization Header वाले गोपनीय क्लाइंट के लिए आपको client id की आवश्यकता नहीं होती। Public client के अनुरोधों में आपको अब भी body में Client Id शामिल करना आवश्यक है। 
+
+<div id="scopes">
+  #### स्कोप
+</div>
+
+स्कोप आपको अपने ऐप के लिए सूक्ष्म स्तर की ऐक्सेस सेट करने देते हैं, ताकि आपके ऐप के पास केवल वही अनुमतियाँ हों जिनकी उसे आवश्यकता है। कौन-से स्कोप किन एंडपॉइंट्स से मैप होते हैं, इसके बारे में अधिक जानने के लिए हमारी [प्रमाणीकरण मैपिंग गाइड](/hi/resources/fundamentals/authentication/guides/v2-authentication-mapping) देखें।
+
+|                      |                                                                                                                              |
+| :------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| **स्कोप**            | **विवरण**                                                                                                                    |
+| tweet.read           | वे सभी Tweet जिन्हें आप देख सकते हैं, जिनमें सुरक्षित खातों के Tweet भी शामिल हैं।                                           |
+| tweet.write          | आपकी ओर से Tweet और Retweet करें।                                                                                            |
+| tweet.moderate.write | आपके Tweets के जवाब छिपाएँ और फिर से दिखाएँ।                                                                                 |
+| users.email          | प्रमाणीकृत उपयोगकर्ता का ईमेल।                                                                                               |
+| users.read           | कोई भी खाता जिसे आप देख सकते हैं, जिनमें सुरक्षित खाते भी शामिल हैं।                                                         |
+| follows.read         | वे लोग जो आपको फ़ॉलो करते हैं और वे लोग जिन्हें आप फ़ॉलो करते हैं।                                                           |
+| follows.write        | आपकी ओर से लोगों को फ़ॉलो और अनफ़ॉलो करें।                                                                                   |
+| offline.access       | जब तक आप ऐक्सेस रद्द नहीं करते, अपने खाते से जुड़े रहें।                                                                     |
+| space.read           | वे सभी Spaces जिन्हें आप देख सकते हैं।                                                                                       |
+| mute.read            | वे खाते जिन्हें आपने म्यूट किया है।                                                                                          |
+| mute.write           | आपकी ओर से खातों को म्यूट और अनम्यूट करें।                                                                                   |
+| like.read            | वे Tweets जिन्हें आपने लाइक किया है और वे लाइक जिन्हें आप देख सकते हैं।                                                      |
+| like.write           | आपकी ओर से Tweets को लाइक और अनलाइक करें।                                                                                    |
+| list.read            | वे सूचियाँ, सूची सदस्य, और सूची फ़ॉलोअर जिन सूचियों को आपने बनाया है या जिनके आप सदस्य हैं, उनमें निजी सूचियाँ भी शामिल हैं। |
+| list.write           | आपकी ओर से सूचियाँ बनाएँ और प्रबंधित करें।                                                                                   |
+| block.read           | वे खाते जिन्हें आपने ब्लॉक किया है।                                                                                          |
+| block.write          | आपकी ओर से खातों को ब्लॉक और अनब्लॉक करें।                                                                                   |
+| bookmark.read        | प्रमाणीकृत उपयोगकर्ता के बुकमार्क किए गए Tweets प्राप्त करें।                                                                |
+| bookmark.write       | Tweets में बुकमार्क जोड़ें और हटाएँ।                                                                                         |
+| media.write          | मीडिया अपलोड करें।                                                                                                           |
+
+<div id="rate-limits">
+  #### रेट लिमिट्स
+</div>
+
+अधिकांश मामलों में, रेट लिमिट्स OAuth 1.0a के साथ प्रमाणीकरण करते समय जैसी ही हैं, सिवाय Tweet lookup और Users lookup के। OAuth 2.0 का उपयोग करते समय, हम Tweet lookup और user lookup के लिए प्रति-ऐप सीमा को 15 मिनट में 300 अनुरोधों से बढ़ाकर 900 अनुरोध कर रहे हैं। अधिक जानने के लिए, [रेट लिमिट्स पर हमारा दस्तावेज़](/hi/resources/fundamentals/rate-limits) ज़रूर देखें।
+
+<div id="grant-types">
+  #### ग्रांट टाइप
+</div>
+
+इस शुरुआती लॉन्च के लिए हम केवल [authorization code](https://oauth.net/2/grant-types/authorization-code/) with [PKCE](https://oauth.net/2/pkce/) और [refresh token](https://oauth.net/2/grant-types/refresh-token/) को समर्थित [grant types](https://oauth.net/2/grant-types/) के रूप में उपलब्ध करा रहे हैं। भविष्य में हम और grant types उपलब्ध करा सकते हैं।
+
+<div id="oauth-20-flow">
+  #### OAuth 2.0 फ्लो
+</div>
+
+OAuth 2.0, OAuth 1.0a के लिए वर्तमान में उपयोग किए जा रहे फ्लो के समान फ्लो का उपयोग करता है। आप [इस विषय पर हमारे दस्तावेज़](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) में इसका आरेख और विस्तृत व्याख्या देख सकते हैं। 
+
+<div id="glossary">
+  #### शब्दावली
+</div>
+
+|                         |                                                                                                                                                                                                                                                                                                                                                |
+| :---------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **शब्द**                | **विवरण**                                                                                                                                                                                                                                                                                                                                      |
+| ग्रांट टाइप             | OAuth फ़्रेमवर्क अलग-अलग उपयोग स्थितियों के लिए कई grant type निर्दिष्ट करता है, साथ ही नए grant type बनाने का एक फ़्रेमवर्क भी देता है। उदाहरणों में authorization code, client credentials, device code, और refresh token शामिल हैं।                                                                                                         |
+| Confidential client     | Client ऐसे अनुप्रयोग होते हैं जो authorization server के साथ सुरक्षित रूप से प्रमाणित हो सकते हैं, उदाहरण के लिए अपने पंजीकृत client secret को सुरक्षित रखकर।                                                                                                                                                                                  |
+| Public client           | Client पंजीकृत client secret का उपयोग नहीं कर सकते, जैसे ब्राउज़र या मोबाइल डिवाइस पर चलने वाले अनुप्रयोग।                                                                                                                                                                                                                                     |
+| Authorization code flow | इसका उपयोग confidential और public, दोनों तरह के client द्वारा authorization code के बदले access token प्राप्त करने के लिए किया जाता है।                                                                                                                                                                                                        |
+| PKCE                    | यह authorization code flow का एक extension है, जो कई तरह के हमलों को रोकता है और public client से OAuth exchange को सुरक्षित रूप से करने में सक्षम बनाता है।                                                                                                                                                                                   |
+| Client ID               | इसे डेवलपर कंसोल के keys and tokens सेक्शन में &quot;Client ID&quot; शीर्षक के अंतर्गत पाया जा सकता है। अगर यह आपको दिखाई नहीं देता, तो कृपया सीधे हमारी टीम से संपर्क करें। authorize URL जनरेट करने के लिए Client ID की आवश्यकता होगी।                                                                                                       |
+| Redirect URI            | आपका callback URL। इसके लिए [exact match validation](https://datatracker.ietf.org/doc/html/rfc6749#section-10.6) होना आवश्यक है।                                                                                                                                                                                                               |
+| Authorization code      | यह किसी अनुप्रयोग को उपयोगकर्ताओं की ओर से API को कॉल करने की अनुमति देता है। इसे auth&#95;code कहा जाता है। App owner को उपयोगकर्ता से स्वीकृत auth&#95;code मिलने के बाद auth&#95;code केवल 30 सेकंड के लिए मान्य रहता है। आपको 30 सेकंड के भीतर इसे access token के बदले एक्सचेंज करना होगा, नहीं तो auth&#95;code की अवधि समाप्त हो जाएगी। |
+| Access token            | Access token वे टोकन हैं जिनका उपयोग अनुप्रयोग किसी उपयोगकर्ता की ओर से API अनुरोध करने के लिए करते हैं।                                                                                                                                                                                                                                       |
+| Refresh token           | यह किसी अनुप्रयोग को refresh token flow के माध्यम से, उपयोगकर्ता को फिर से प्रॉम्प्ट किए बिना, नया access token प्राप्त करने की अनुमति देता है।                                                                                                                                                                                                |
+| Client Secret           | अगर आपने ऐसा App type चुना है जो confidential client है, तो आपके App के keys and tokens सेक्शन में “Client ID” के अंतर्गत आपको “Client Secret” दिया जाएगा।                                                                                                                                                                                     |
+
+<div id="parameters">
+  #### पैरामीटर
+</div>
+
+OAuth 2.0 authorize URL बनाने के लिए, आपको यह सुनिश्चित करना होगा कि authorization URL में नीचे दिए गए पैरामीटर शामिल हों। 
+
+|                               |                                                                                                                                                                                                                                                                |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **पैरामीटर**                  | **विवरण**                                                                                                                                                                                                                                                      |
+| response&#95;type             | आपको “code” शब्द का उपयोग करके यह निर्दिष्ट करना होगा कि यह एक code है।                                                                                                                                                                                        |
+| client&#95;id                 | यह डेवलपर कंसोल में &quot;Client ID&quot; शीर्षक के अंतर्गत मिल सकता है।                                                                                                                                                                                       |
+| redirect&#95;uri              | आपका callback URL। यह मान आपके ऐप की settings में परिभाषित Callback URLs में से किसी एक से बिल्कुल मेल खाना चाहिए। OAuth 2.0 के लिए, आपके callback URL पर [exact match validation](https://datatracker.ietf.org/doc/html/rfc6749#section-10.6) होना आवश्यक है। |
+| state                         | एक यादृच्छिक string, जिसे आप [CSRF attacks](https://auth0.com/docs/protocols/state-parameters) से सुरक्षा के लिए सत्यापन हेतु प्रदान करते हैं।  इस string की लंबाई 500 वर्णों तक हो सकती है।                                                                   |
+| code&#95;challenge            | एक [PKCE](https://www.oauth.com/oauth2-servers/pkce/authorization-request/) पैरामीटर, जो आपके हर अनुरोध के लिए एक यादृच्छिक secret होता है।                                                                                                                    |
+| code&#95;challenge&#95;method | उस method को निर्दिष्ट करता है जिसका उपयोग आप अनुरोध करने के लिए कर रहे हैं (S256 OR plain)।                                                                                                                                                                   |
+
+<div id="authorize-url">
+  #### ऑथराइज़ URL
+</div>
+
+OAuth 2.0 के साथ, आप एक ऑथराइज़ URL बनाते हैं, जिसका उपयोग किसी उपयोगकर्ता को X के “साइन इन” की तरह एक प्रमाणीकरण फ़्लो के ज़रिए प्रमाणित करने की अनुमति देने के लिए किया जा सकता है। 
+
+आपके द्वारा बनाए जा रहे URL का एक उदाहरण इस प्रकार है: 
+
+```
+https://x.com/i/oauth2/authorize?response_type=code&client_id=M1M5R3BMVy13QmpScXkzTUt5OE46MTpjaQ&redirect_uri=https://www.example.com&scope=tweet.read%20users.read%20account.follows.read%20account.follows.write&state=state&code_challenge=challenge&code_challenge_method=plain
+```
+
+इस URL के सही तरह से काम करने के लिए उसका उचित encoding होना ज़रूरी है। [percent encoding](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) पर हमारा दस्तावेज़ ज़रूर देखें।

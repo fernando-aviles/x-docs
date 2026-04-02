@@ -1,0 +1,255 @@
+---
+title: 응답 코드 및 오류
+sidebarTitle: 응답 코드
+description: X API용 HTTP 상태 코드와 오류 처리
+keywords: ["응답 코드", "오류 코드", "HTTP 상태 코드", "API 오류", "오류 처리", "디버깅"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+X API는 표준 HTTP 상태 코드를 사용합니다. 요청이 성공하면 2xx 코드를 반환하고, 오류가 발생하면 응답 본문에 자세한 정보를 포함해 4xx 또는 5xx 코드를 반환합니다.
+
+***
+
+<div id="http-status-codes">
+  ## HTTP 상태 코드
+</div>
+
+<div id="success-codes">
+  ### 성공 코드
+</div>
+
+| 코드 | 의미 | 설명 |
+|:-----|:--------|:------------|
+| **200** | OK | 요청이 성공적으로 처리되었습니다 |
+| **201** | Created | 리소스가 생성되었습니다(POST 요청) |
+| **204** | No Content | 응답 본문 없이 성공적으로 처리되었습니다(DELETE 요청) |
+
+<div id="client-error-codes">
+  ### 클라이언트 오류 코드
+</div>
+
+| Code | Meaning | Common causes |
+|:-----|:--------|:--------------|
+| **400** | 잘못된 요청 (Bad Request) | 잘못된 JSON, 형식이 잘못된 쿼리, 필수 파라미터 누락 |
+| **401** | 인증 실패 (Unauthorized) | 유효하지 않거나 누락된 인증 자격 증명 |
+| **403** | 접근 금지 (Forbidden) | 인증은 유효하지만 이 리소스나 작업에 대한 권한 없음 |
+| **404** | 찾을 수 없음 (Not Found) | 리소스가 존재하지 않거나 삭제됨 |
+| **409** | 충돌 (Conflict) | 스트림에 규칙이 없음 (필터링된 스트림에만 해당) |
+| **429** | 요청 과다 (Too Many Requests) | rate limit 또는 사용 한도 초과 |
+
+<div id="server-error-codes">
+  ### 서버 오류 코드
+</div>
+
+| 코드 | 의미 | 조치 방법 |
+|:-----|:--------|:-----------|
+| **500** | 내부 서버 오류 | 잠시 기다렸다가 다시 시도; [상태 페이지](/ko/status)를 확인 |
+| **502** | 잘못된 게이트웨이 | 잠시 기다렸다가 다시 시도 |
+| **503** | 서비스 이용 불가 | X가 과부하 상태입니다. 잠시 기다렸다가 다시 시도 |
+| **504** | 게이트웨이 시간 초과 | 잠시 기다렸다가 다시 시도 |
+
+***
+
+<div id="error-response-format">
+  ## 오류 응답 형식
+</div>
+
+오류 응답에는 구조화된 상세 정보가 포함됩니다:
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The 'query' parameter is required.",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+| Field    | Description      |
+| :------- | :--------------- |
+| `type`   | 오류 유형을 식별하는 URI  |
+| `title`  | 간단한 오류 설명        |
+| `detail` | 이 오류에 대한 구체적인 설명 |
+
+오류 유형에 따라 추가 필드가 존재할 수 있습니다.
+
+***
+
+<div id="error-types">
+  ## 오류 유형
+</div>
+
+| Type | Description |
+|:-----|:------------|
+| `about:blank` | 일반 오류 (HTTP 상태 코드를 참고하세요) |
+| `.../invalid-request` | 형식이 잘못된 요청 또는 잘못된 매개변수 |
+| `.../resource-not-found` | 게시물, 사용자 또는 기타 리소스가 존재하지 않음 |
+| `.../not-authorized-for-resource` | 비공개/보호된 콘텐츠에 대한 액세스 권한 없음 |
+| `.../client-forbidden` | App이 등록되지 않았거나 필요한 액세스 권한이 없음 |
+| `.../usage-capped` | 사용 한도 초과 |
+| `.../rate-limit-exceeded` | 요청 한도(rate limit) 초과 |
+| `.../streaming-connection` | 스트림 연결 문제 |
+| `.../rule-cap` | 필터링된 스트림 규칙 수가 너무 많음 |
+| `.../invalid-rules` | 규칙 구문 오류 |
+| `.../duplicate-rules` | 이미 존재하는 규칙 |
+
+***
+
+<div id="partial-errors">
+  ## 부분 오류
+</div>
+
+일부 요청은 부분적으로만 성공할 수 있습니다. 200 상태 코드의 응답에는 `data`와 `errors`가 모두 포함될 수 있습니다.
+
+```json
+{
+  "data": [
+    {"id": "123", "text": "Hello"}
+  ],
+  "errors": [
+    {
+      "resource_id": "456",
+      "resource_type": "tweet",
+      "title": "Not Found Error",
+      "detail": "Could not find tweet with id: [456].",
+      "type": "https://api.x.com/2/problems/resource-not-found"
+    }
+  ]
+}
+```
+
+여러 리소스를 한꺼번에 요청했을 때 그중 일부를 사용할 수 없는 경우 이 오류가 발생합니다.
+
+***
+
+<div id="troubleshooting-common-errors">
+  ## 일반적인 오류 문제 해결
+</div>
+
+<Accordion title="401 Unauthorized">
+  **인증을 확인하세요:**
+
+  * 엔드포인트에 맞는 올바른 인증 방식을 사용하고 있는지 확인하세요
+  * 자격 증명이 재발급되어 이전 값이 무효화되지 않았는지 확인하세요
+  * `Authorization` 헤더 형식을 확인하세요
+  * OAuth 1.0a의 경우, 서명 계산이 올바른지 검증하세요
+
+  [인증 가이드 →](/ko/resources/fundamentals/authentication/overview)
+</Accordion>
+
+<Accordion title="403 Forbidden">
+  **접근 권한을 확인하세요:**
+
+  * App이 이 엔드포인트에 접근할 수 있는지 확인하세요
+  * 일부 엔드포인트는 별도의 등록 또는 승인이 필요합니다
+  * 사용자 컨텍스트 기반 엔드포인트는 적절한 OAuth scope가 필요합니다
+  * 리소스가 비공개이거나 보호되어 있을 수 있습니다
+</Accordion>
+
+<Accordion title="429 Too Many Requests">
+  **요청 한도에 도달했습니다:**
+
+  * 재시도 가능한 시점을 확인하려면 `x-rate-limit-reset` 헤더를 확인하세요
+  * 지수 백오프를 구현하세요
+  * 응답을 캐싱하는 것을 고려하세요
+  * 요청을 시간 창 전체에 고르게 분산하세요
+
+  [요청 한도 가이드 →](/ko/x-api/fundamentals/rate-limits)
+</Accordion>
+
+<Accordion title="400 Bad Request">
+  **요청을 수정하세요:**
+
+  * JSON 구문을 검증하세요
+  * 필수 파라미터가 누락되지 않았는지 확인하세요
+  * 파라미터 type(문자열 vs 숫자)을 검증하세요
+  * 쿼리에서 특수 문자를 이스케이프하세요
+</Accordion>
+
+<Accordion title="Missing expected posts">
+  **다음 사항을 확인하세요:**
+
+  * 보호된 계정의 포스트는 권한이 있는 경우에만 볼 수 있습니다
+  * 삭제된 포스트는 404를 반환합니다
+  * 일부 포스트는 특정 지역에서 제한될 수 있습니다
+  * 검색 쿼리 구문이 올바른지 확인하세요
+</Accordion>
+
+<Accordion title="Stream disconnections">
+  **재연결을 처리하세요:**
+
+  * 백오프를 사용해 자동 재연결을 구현하세요
+  * 누락된 데이터를 복구하기 위한 기능을 사용하세요
+  * 전체 버퍼로 인한 연결 해제(클라이언트가 데이터를 충분히 빠르게 소비하지 못하는 경우)를 확인하세요
+  * 최소 한 개 이상의 스트림 규칙이 존재하는지 확인하세요
+
+  [스트리밍 가이드 →](/ko/x-api/posts/filtered-stream/integrate/handling-disconnections)
+</Accordion>
+
+***
+
+<div id="rate-limit-headers">
+  ## Rate limit 헤더
+</div>
+
+모든 응답에는 rate limit 관련 정보가 포함됩니다:
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Header                   | Description           |
+| :----------------------- | :-------------------- |
+| `x-rate-limit-limit`     | 현재 윈도우에서 허용되는 최대 요청 수 |
+| `x-rate-limit-remaining` | 남은 요청 수               |
+| `x-rate-limit-reset`     | 윈도우가 초기화되는 Unix 타임스탬프 |
+
+***
+
+<div id="best-practices">
+  ## 모범 사례
+</div>
+
+<CardGroup cols={2}>
+  <Card title="상태 코드 확인" icon="square-check">
+    응답 본문을 파싱하기 전에 항상 HTTP 상태 코드를 확인하세요.
+  </Card>
+
+  <Card title="부분 오류 처리" icon="triangle-exclamation">
+    HTTP 200 응답에서도 `errors` 배열이 있는지 확인하세요.
+  </Card>
+
+  <Card title="재시도 로직 구현" icon="arrows-rotate">
+    429 및 5xx 오류에 대해서는 지수 백오프를 사용하세요.
+  </Card>
+
+  <Card title="요청 세부 정보 기록" icon="file-lines">
+    디버깅을 위해 요청 ID와 타임스탬프를 포함하세요.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="getting-help">
+  ## 도움 받기
+</div>
+
+오류 관련 질문을 게시할 때는 다음 내용을 포함하세요:
+
+* API endpoint URL
+* 요청 헤더(자격 증명 정보는 마스킹)
+* 전체 오류 응답 본문
+* 기대한 동작
+* 지금까지 시도한 단계
+
+<CardGroup cols={2}>
+  <Card title="Developer Forum" icon="comments" href="https://devcommunity.x.com">
+    질문하고 해결 방법을 찾아보세요.
+  </Card>
+
+  <Card title="API 상태" icon="signal" href="/ko/status">
+    알려진 문제가 있는지 확인하세요.
+  </Card>
+</CardGroup>

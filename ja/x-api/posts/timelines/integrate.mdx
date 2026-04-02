@@ -1,0 +1,375 @@
+---
+title: 連携ガイド
+sidebarTitle: 連携ガイド
+description: Timelines エンドポイントをアプリケーションに統合するための主要な概念とベストプラクティス
+keywords: ["タイムライン連携", "タイムラインガイド", "タイムライン実装", "ホームタイムライン連携", "ユーザータイムライン連携"]
+---
+
+このガイドでは、Timelines エンドポイントをアプリケーションに統合するために必要となる主要な概念を解説します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+<div id="endpoint-requirements">
+  ### エンドポイントの要件
+</div>
+
+| Endpoint | App-Only | User Context |
+|:---------|:---------|:-------------|
+| ユーザーの投稿タイムライン | ✓ | ✓ |
+| ユーザーのメンションタイムライン | ✓ | ✓ |
+| ホームタイムライン | — | ✓ (必須)  |
+
+### 非公開指標
+
+非公開指標にアクセスするには、ポストの投稿者を代表して認証する必要があります。
+
+<Warning>
+  これらのフィールドには User Context 認証が必要です：
+
+  * `tweet.fields.non_public_metrics`
+  * `tweet.fields.promoted_metrics`
+  * `tweet.fields.organic_metrics`
+  * `media.fields.non_public_metrics`
+  * `media.fields.promoted_metrics`
+  * `media.fields.organic_metrics`
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドとexpansions
+</div>
+
+デフォルトでは、レスポンスには `id`、`text`、`edit_history_tweet_ids` のみが含まれます。追加のデータを取得するには、次のようにリクエストします:
+
+<div id="example-request">
+  ### リクエスト例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/tweets?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ユーザーの投稿タイムラインを取得する
+  for page in client.posts.get_user_posts(
+      user_id="123",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text} - {post.public_metrics}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ページネーションを使用してユーザーの投稿タイムラインを取得する
+  const paginator = client.posts.getUserPosts("123", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - ${JSON.stringify(post.public_metrics)}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="key-fields">
+  ### 主要フィールド
+</div>
+
+| フィールド | 説明 |
+|:------|:------------|
+| `created_at` | ポストの作成タイムスタンプ |
+| `public_metrics` | エンゲージメント数 |
+| `conversation_id` | スレッドの識別子 |
+| `context_annotations` | トピックの分類情報 |
+| `entities` | ハッシュタグ、メンション、URL |
+
+<Card title="フィールドとExpansionsのガイド" icon="sliders" href="/ja/x-api/fundamentals/fields">
+  レスポンスのカスタマイズ方法について詳しく確認する
+</Card>
+
+***
+
+<div id="pagination">
+  ## ページネーション
+</div>
+
+タイムラインは 1 リクエストあたり最大 100 件の投稿を返します。より多くの結果が必要な場合は、ページネーションを使用してください。
+
+<div id="how-it-works">
+  ### 仕組み
+</div>
+
+1. 最初のリクエストで `max_results` を指定する
+2. `meta` オブジェクトから `next_token` を取得する
+3. 次回のリクエストに `pagination_token` を含める
+4. `next_token` が返されなくなるまで繰り返す
+
+<div id="example">
+  ### 例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 最初のリクエスト
+  curl "https://api.x.com/2/users/123/tweets?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # ページネーション用トークンを使用した後続のリクエスト
+  curl "https://api.x.com/2/users/123/tweets?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK がページネーションを自動的に処理します
+  all_posts = []
+
+  for page in client.posts.get_user_posts(user_id="123", max_results=100):
+      if page.data:
+          all_posts.extend(page.data)
+
+  print(f"Found {len(all_posts)} posts")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllTimelinePosts(userId) {
+    const allPosts = [];
+
+    // SDK は async イテレーションによりページネーションを自動的に処理します
+    const paginator = client.posts.getUserPosts(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allPosts.push(...page.data);
+      }
+    }
+
+    return allPosts;
+  }
+
+  // 使用例
+  const posts = await getAllTimelinePosts("123");
+  console.log(`Found ${posts.length} posts`);
+  ```
+</CodeGroup>
+
+<Card title="ページネーションガイド" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
+  ページネーションの詳細については、こちらをご覧ください
+</Card>
+
+***
+
+<div id="filtering-results">
+  ## 結果のフィルタリング
+</div>
+
+<div id="time-based-filtering">
+  ### 時間ベースのフィルタリング
+</div>
+
+| Parameter | Description |
+|:----------|:------------|
+| `start_time` | 最も古いポストのタイムスタンプ (ISO 8601) |
+| `end_time` | 最も新しいポストのタイムスタンプ (ISO 8601) |
+| `since_id` | このIDより後の投稿を返します |
+| `until_id` | このIDより前の投稿を返します |
+
+<div id="exclude-parameter">
+  ### exclude パラメーター
+</div>
+
+結果から特定のポストの種類を除外します。
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/tweets?exclude=retweets,replies" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # リツイートと返信を除外
+  for page in client.posts.get_user_posts(
+      user_id="123",
+      exclude=["retweets", "replies"]
+  ):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // リツイートと返信を除外
+  const paginator = client.posts.getUserPosts("123", {
+    exclude: ["retweets", "replies"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => console.log(post.text));
+  }
+  ```
+</CodeGroup>
+
+| 値 | 説明 |
+|:------|:-------|
+| `retweets` | リツイートを除外 |
+| `replies` | 返信を除外 |
+
+***
+
+<div id="volume-limits">
+  ## ボリューム制限
+</div>
+
+各タイムラインには、取得できる最大件数が設定されています。
+
+| Endpoint | 最大投稿数 |
+|:---------|:--------------|
+| User Posts timeline | 直近3,200件 |
+| User Posts (exclude=replies) | 直近800件 |
+| User mentions timeline | 直近800件 |
+| Home timeline | 3,200件または7日分 |
+
+<Note>
+  これらの上限を超える範囲の投稿をリクエストした場合、レスポンス自体は成功ステータスで返されますが、データは含まれません。
+</Note>
+
+***
+
+<div id="post-edits">
+  ## ポストの編集
+</div>
+
+投稿は30分以内に最大5回まで編集できます。タイムライン関連エンドポイントは常に最新バージョンを返します。
+
+<div id="considerations">
+  ### 考慮事項
+</div>
+
+* 作成から30分以上経過した投稿は最終版として扱われます
+* リアルタイムに近いユースケースでは、編集が行われる可能性を考慮する必要があります
+* 必要に応じて、Post lookup を使用して最終状態を確認してください
+
+<Card title="ポスト編集の基本" icon="clock-rotate-left" href="/ja/x-api/fundamentals/edit-posts">
+  ポストの編集について詳しく学ぶ
+</Card>
+
+***
+
+<div id="post-metrics">
+  ## ポストのメトリクス
+</div>
+
+<div id="public-metrics">
+  ### 公開メトリクス
+</div>
+
+App-Only または User Context 認証を使用しているすべての投稿で利用可能です。
+
+```json
+{
+  "public_metrics": {
+    "retweet_count": 156,
+    "reply_count": 23,
+    "like_count": 892,
+    "quote_count": 12
+  }
+}
+```
+
+<div id="private-metrics">
+  ### 非公開メトリクス
+</div>
+
+ポストの作成者による User Context 認証が必要です:
+
+* 過去30日以内の投稿にのみ利用可能
+* 認証済みユーザーが作成した投稿に対してのみ返される
+* 他のユーザーの投稿に対してはエラーを返す
+
+***
+
+<div id="edge-cases">
+  ## エッジケース
+</div>
+
+<Accordion title="非公開メトリクスとページネーション">
+  30日より前の投稿に対して非公開メトリクスをリクエストすると、`result_count: 0` の `next_token` を受け取る場合があります。これを回避するには:
+
+  * リクエスト対象を直近30日以内に限定する
+  * `max_results` を少なくとも 10 に設定する
+</Accordion>
+
+<Accordion title="プロモーションされていない投稿のプロモーションメトリクス">
+  プロモーションされていない投稿に対してプロモーションメトリクスをリクエストすると、空のレスポンスが返されます。これは既知の問題です。
+</Accordion>
+
+<Accordion title="切り詰められたリツイートテキスト">
+  140文字を超えるテキストを含むリツイートでは、`text` フィールドが切り詰められます。完全なテキストを取得するには、`referenced_tweets.id` の expansion を使用してください。
+</Accordion>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ホームタイムラインクイックスタート" icon="house" href="/ja/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
+    ユーザーのホームフィードを取得
+  </Card>
+
+  <Card title="メンションクイックスタート" icon="at" href="/ja/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    ユーザー宛てのメンションを取得
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/user-posts-timeline-by-user-id">
+    エンドポイントの詳細ドキュメント
+  </Card>
+
+  <Card title="ページネーション" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
+    大量の結果セットを処理する
+  </Card>
+</CardGroup>

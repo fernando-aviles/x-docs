@@ -1,0 +1,199 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: बैच अनुपालन जॉब बनाएँ और चलाएँ
+keywords: ["अनुपालन त्वरित शुरुआत", "बैच अनुपालन ट्यूटोरियल", "अनुपालन जॉब गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको पोस्ट्स या उपयोगकर्ताओं की अनुपालन स्थिति जाँचने के लिए एक बैच अनुपालन जॉब बनाने की प्रक्रिया बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन
+</Note>
+
+***
+
+<Steps>
+  <Step title="एक जॉब बनाएँ" icon="plus">
+    `type` (`tweets` या `users`) निर्दिष्ट करते हुए एक नया अनुपालन जॉब बनाएँ:
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/compliance/jobs" \
+          -H "Authorization: Bearer $BEARER_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "type": "tweets",
+            "name": "my-compliance-job"
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/compliance/jobs"
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "type": "tweets",
+            "name": "my-compliance-job"
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        print(response.json())
+        ```
+      </Tab>
+    </Tabs>
+
+    **प्रतिक्रिया:**
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "type": "tweets",
+        "name": "my-compliance-job",
+        "status": "created",
+        "upload_url": "https://storage.googleapis.com/...",
+        "download_url": "https://storage.googleapis.com/...",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    }
+    ```
+
+    अगले चरणों के लिए `upload_url` और `download_url` सहेज लें।
+  </Step>
+
+  <Step title="अपनी डेटा फ़ाइल तैयार करें" icon="file">
+    हर पंक्ति में एक ID के साथ एक टेक्स्ट फ़ाइल बनाएँ:
+
+    ```
+    1234567890
+    1234567891
+    1234567892
+    1234567893
+    ```
+
+    इसे `ids.txt` के रूप में सहेजें।
+  </Step>
+
+  <Step title="अपना डेटा अपलोड करें" icon="upload">
+    दी गई `upload_url` पर फ़ाइल अपलोड करें:
+
+    ```bash
+    curl -X PUT "UPLOAD_URL_FROM_RESPONSE" \
+      -H "Content-Type: text/plain" \
+      --data-binary @ids.txt
+    ```
+  </Step>
+
+  <Step title="जॉब की स्थिति जाँचें" icon="clock">
+    जॉब पूरा होने तक उसकी स्थिति जाँचते रहें:
+
+    ```bash
+    curl "https://api.x.com/2/compliance/jobs/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+
+    **जॉब की स्थितियाँ:**
+
+    | स्थिति        | विवरण                                          |
+    | :------------ | :--------------------------------------------- |
+    | `created`     | जॉब बनाई गई, अपलोड की प्रतीक्षा में            |
+    | `in_progress` | डेटा प्रोसेस किया जा रहा है                    |
+    | `complete`    | परिणाम डाउनलोड के लिए तैयार हैं                |
+    | `failed`      | जॉब विफल रही                                   |
+    | `expired`     | पूरा होने से पहले जॉब की समय-सीमा समाप्त हो गई |
+  </Step>
+
+  <Step title="परिणाम डाउनलोड करें" icon="download">
+    जब `status` `complete` हो जाए, तो `download_url` से डाउनलोड करें:
+
+    ```bash
+    curl "DOWNLOAD_URL_FROM_RESPONSE" -o results.json
+    ```
+
+    **परिणाम का प्रारूप** (प्रति पंक्ति एक JSON ऑब्जेक्ट):
+
+    ```json
+    {"id": "1234567890", "action": "delete", "created_at": "2024-01-10T12:00:00.000Z", "redacted_at": "2024-01-12T08:30:00.000Z", "reason": "deleted"}
+    {"id": "1234567891", "action": "delete", "created_at": "2024-01-10T12:00:00.000Z", "redacted_at": "2024-01-13T14:20:00.000Z", "reason": "suspended"}
+    ```
+
+    परिणामों में केवल उन्हीं ID का उल्लेख होगा जिनके लिए अनुपालन ईवेंट हैं। जो ID परिणामों में नहीं हैं, वे अब भी मान्य हैं।
+  </Step>
+</Steps>
+
+***
+
+<div id="compliance-actions">
+  ## अनुपालन कार्रवाइयाँ
+</div>
+
+<AccordionGroup>
+  <Accordion title="पोस्ट अनुपालन ईवेंट">
+    | कार्रवाई | कारण        | विवरण                           |
+    | :------- | :---------- | :------------------------------ |
+    | `delete` | `deleted`   | पोस्ट हटा दी गई                 |
+    | `delete` | `bounced`   | पोस्ट अनुपालन जाँच में विफल रही |
+    | `delete` | `protected` | खाता सुरक्षित हो गया            |
+    | `delete` | `suspended` | खाता निलंबित कर दिया गया        |
+    | `delete` | `scrub_geo` | जियो डेटा हटा दिया गया          |
+  </Accordion>
+
+  <Accordion title="उपयोगकर्ता अनुपालन ईवेंट">
+    | कार्रवाई | कारण          | विवरण                      |
+    | :------- | :------------ | :------------------------- |
+    | `delete` | `deleted`     | खाता हटा दिया गया          |
+    | `delete` | `suspended`   | खाता निलंबित कर दिया गया   |
+    | `delete` | `protected`   | खाता सुरक्षित हो गया       |
+    | `delete` | `deactivated` | खाता निष्क्रिय कर दिया गया |
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="list-all-jobs">
+  ## सभी जॉब्स प्राप्त करें
+</div>
+
+अपने ऐप के लिए सभी अनुपालन जॉब्स प्राप्त करें:
+
+```bash
+curl "https://api.x.com/2/compliance/jobs?type=tweets" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="एकीकरण मार्गदर्शिका" icon="book" href="/hi/x-api/compliance/batch-compliance/integrate">
+    मुख्य अवधारणाएँ और सर्वोत्तम प्रथाएँ
+  </Card>
+
+  <Card title="अनुपालन स्ट्रीम्स" icon="stream" href="/hi/x-api/compliance/streams/introduction">
+    रीयल-टाइम अनुपालन इवेंट
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/compliance/create-job">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

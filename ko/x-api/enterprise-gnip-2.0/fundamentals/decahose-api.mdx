@@ -1,0 +1,423 @@
+---
+title: Decahose API
+keywords: ["Decahose", "10% stream", "decahose API", "enterprise decahose", "10% sampled stream", "enterprise streaming"]
+---
+
+<Note>
+  이 엔드포인트는 게시물 편집 메타데이터를 포함하도록 업데이트되었습니다. 이러한 메타데이터에 대해 더 알아보려면 [&quot;게시물 편집&quot; 기본 개념 페이지](/ko/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets)를 참조하세요. 
+</Note>
+
+<div id="decahose-stream">
+  ### Decahose 스트림
+</div>
+
+[Enterprise](https://developer.x.com/en/products/x-api/enterprise)
+
+*이는 관리형 액세스 단계에서만 제공되는 엔터프라이즈 API입니다. 이 API를 사용하려면 먼저 엔터프라이즈 영업 팀과 계정을 설정해야 합니다. [자세히 알아보기](https://developer.x.com/en/products/x-api/enterprise)*
+
+Decahose는 스트리밍 연결을 통해 실시간 X Firehose에서 무작위로 추출한 10% 샘플을 제공합니다. 이는 실시간 샘플링 알고리즘을 통해 이루어지며, 이 알고리즘은 데이터를 무작위로 선택하면서도 X가 Firehose를 통해 전송하는 즉시 기대되는 저지연 데이터 전송을 유지합니다.
+
+아래는 Decahose에서 제공되는 일부 기능입니다:
+
+* **확장 및 향상된 URL:** - 단축 URL을 완전히 풀어 원본 URL을 제공하고, 추가 메타데이터(페이지 제목 및 설명)를 제공합니다.
+* **스트림 파티셔닝** - 2개의 파티션으로 구성되며, 각 파티션은 Decahose 스트림 전체 볼륨의 50%를 포함합니다.
+* **향상된 안정성** - 백엔드 시스템의 지리적 다양성
+
+참고: 이 데이터는 대량으로 제공되며, 추가 필터링(예: 키워드 필터링)은 지원하지 않습니다.
+
+`ENTERPRISE`
+
+<div id="streaming-likes">
+  ### 좋아요 스트리밍
+</div>
+
+*이 API는 관리형 액세스 레벨에서만 사용할 수 있는 엔터프라이즈 API입니다. 이 API를 사용하려면 먼저 엔터프라이즈 영업팀을 통해 계정을 설정해야 합니다. [자세히 알아보기](https://developer.x.com/en/products/x-api/enterprise)*
+
+좋아요를 통해 누가 포스트에 좋아요를 눌렀는지에 대한 인사이트를 얻고, 정확한 좋아요 수를 확인할 수 있습니다. Gnip의 Firehose 및 Decahose는 Gnip을 통해 전달되는 포스트와 관련된 공개 좋아요를 제공할 수 있습니다. 이를 통해 특정 게시물과 연관된 실시간 공개 참여 및 오디언스 지표를 확보할 수 있습니다.
+ 
+
+**좋아요 시작하기**
+
+좋아요 데이터 수신을 준비하면서 다음 사항을 알아두어야 합니다.
+
+* 좋아요는 독립적인 별도 스트림으로 전달됩니다.
+* 좋아요는 과거에는 “Favorites”로 불렸습니다. Enriched 네이티브 형식 페이로드는 이 명칭을 그대로 유지합니다.
+* 스트림에는 공개 좋아요만 포함됩니다.
+  * 공개란, 좋아요를 누른 사용자, 게시물 작성자, 게시물이 모두 플랫폼에서 공개 상태임을 의미합니다.
+* 좋아요는 리트윗과 매우 유사하며, 참여에 대한 공개 신호를 나타냅니다.
+* 페이로드 요소에는 다음이 포함됩니다.
+  * 원본 게시물 객체
+  * 원본 게시물을 생성한 Actor 객체
+  * 좋아요 작업을 수행한 Actor 객체
+* 원본 콘텐츠에만 좋아요를 남길 수 있습니다.
+  * 리트윗에는 좋아요를 남길 수 없습니다. 리트윗에 남긴 좋아요는 원본 게시물에 적용됩니다.
+  * 인용 Tweet에는 좋아요를 남길 수 있습니다.
+* 좋아요 활동에는 (구매/적용된 경우) 해당되는 Gnip Enrichment가 포함됩니다.
+* 지원되는 제품 / 기능
+  * 좋아요 스트림은 (구매/적용된 경우) Backfill을 지원합니다.
+  * 좋아요 스트림에는 Replay 지원이 없습니다.
+  * 좋아요에는 Search나 Historical 지원이 제공되지 않습니다.
+  * PowerTrack에 좋아요 지원을 추가할 즉각적인 계획은 없습니다.
+
+**Decahose**
+
+* Decahose에서 제공되는 10% 샘플 포스트의 경우, 스트림에는 해당하는 공개 좋아요가 100% 포함됩니다.
+* **파티션:** 2
+* **URL 구조**
+  * https://gnip-stream.x.com/stream/sample10-likes/accounts/&lt;accountName&gt;/publishers/twitter/&lt;streamLabel&gt;.json?partition=1
+
+**네이티브 Enriched 형식 페이로드**
+
+```json
+{
+   "id":"43560406e0ad9f68374445f5f30c33fc",
+   "created_at":"Thu Dec 01 22:27:39 +0000 2016",
+   "timestamp_ms":1480631259353,
+   "favorited_status":{
+      "created_at":"Thu Dec 01 22:27:16 +0000 2016",
+      "id":804451830033948672,
+      "id_str":"804451830033948672",
+      "text":"@kafammheppduman",
+      "source":"\u003ca href=\"http:\/\/x.com\/download\/android\" rel=\"nofollow\"\u003eX for Android\u003c\/a\u003e",
+      "truncated":false,
+      "in_reply_to_status_id":803694205163814912,
+      "in_reply_to_status_id_str":"803694205163814912",
+      "in_reply_to_user_id":2855759795,
+      "in_reply_to_user_id_str":"2855759795",
+      "in_reply_to_screen_name":"kafammheppduman",
+      "user":{
+         "id":2855759795,
+         "id_str":"2855759795",
+         "name":"delirdim kanka",
+         "screen_name":"kafammheppduman",
+         "location":"sanane",
+         "url":"http:\/\/instagram.com\/kafammheppduman",
+         "description":"Manit @GalatasaraySk \ud83d\udc9e",
+         "translator_type":"none",
+         "protected":false,
+         "verified":false,
+         "followers_count":3702,
+         "friends_count":607,
+         "listed_count":1,
+         "favourites_count":113338,
+         "statuses_count":389,
+         "created_at":"Sat Nov 01 22:38:25 +0000 2014",
+         "utc_offset":null,
+         "time_zone":null,
+         "geo_enabled":true,
+         "lang":"tr",
+         "contributors_enabled":false,
+         "is_translator":false,
+         "profile_background_color":"C0DEED",
+         "profile_background_image_url":"",
+         "profile_background_image_url_https":"",
+         "profile_background_tile":false,
+         "profile_link_color":"1DA1F2",
+         "profile_sidebar_border_color":"C0DEED",
+         "profile_sidebar_fill_color":"DDEEF6",
+         "profile_text_color":"333333",
+         "profile_use_background_image":true,
+       "Profile_image_url": "http:\/\/pbs.twimg.com\/profile_images\/804421763945861121\/v3bp9pnq_normal.jpg",
+         "Profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/804421763945861121\/v3bp9pnq_normal.jpg",
+         "profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/2855759795\/1480630085",
+         "default_profile":true,
+         "default_profile_image":false,
+         "following":null,
+         "follow_request_sent":null,
+         "notifications":null
+      },
+      "geo":null,
+      "coordinates":null,
+      "place":null,
+      "contributors":null,
+      "is_quote_status":false,
+      "retweet_count":0,
+      "favorite_count":0,
+      "entities":{
+         "hashtags":[],
+         "urls":[],
+         "user_mentions":[
+            {
+               "screen_name":"kafammheppduman",
+               "name":"delirdim kanka",
+               "id":2855759795,
+               "id_str":"2855759795",
+               "indices":[
+                  0,
+                  16
+               ]
+            }
+         ],
+         "symbols":[]
+      },
+      "favorited":false,
+      "retweeted":false,
+      "filter_level":"low",
+      "lang":"und"
+   },
+   "user":{
+      "id":774146932365070336,
+      "id_str":"774146932365070336",
+      "name":"Uyuyan Adam",
+      "screen_name":"saykoMenn",
+      "location":"Tarsus, T\u00fcrkiye",
+      "url":"http:\/\/connected2.me\/pmc1i",
+      "description":null,
+      "translator_type":"none",
+      "protected":false,
+      "verified":false,
+      "followers_count":414,
+      "friends_count":393,
+      "listed_count":0,
+      "favourites_count":9868,
+      "statuses_count":370,
+      "created_at":"Fri Sep 09 07:26:26 +0000 2016",
+      "utc_offset":null,
+      "time_zone":null,
+      "geo_enabled":false,
+      "lang":"tr",
+      "contributors_enabled":false,
+      "is_translator":false,
+      "profile_background_color":"F5F8FA",
+      "profile_background_image_url":"",
+      "profile_background_image_url_https":"",
+      "profile_background_tile":false,
+      "profile_link_color":"1DA1F2",
+      "profile_sidebar_border_color":"C0DEED",
+      "profile_sidebar_fill_color":"DDEEF6",
+      "profile_text_color":"333333",
+      "profile_use_background_image":true,
+      "Profile_image_url": "http:\/\/pbs.twimg.com\/profile_images\/802992813424201728\/VMzcTL3x_normal.jpg",
+      "Profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/802992813424201728\/VMzcTL3x_normal.jpg",
+      "profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/774146932365070336\/1480283382",
+      "default_profile":true,
+      "default_profile_image":false,
+      "following":null,
+      "follow_request_sent":null,
+      "notifications":null
+   }
+}
+```
+
+**좋아요 삭제 / “좋아요 취소” 페이로드**
+
+```json
+{
+   "delete":{
+      "favorite":{
+         "tweet_id":696615514970279937,
+         "tweet_id_str":"696615514970279937",
+         "user_id":2510287578,
+         "user_id_str":"2510287578"
+      },
+      "timestamp_ms":"1480437031205"
+   }
+}
+```
+
+<div id="guides">
+  ## 가이드
+</div>
+
+<div id="recovery-and-redundency">
+  ### 복구 및 중복성
+</div>
+
+**소개** 
+
+대량의 실시간 포스트를 스트리밍할 때에는 데이터 신뢰성과 데이터의 완전한 충실도를 모두 보장하기 위한 일련의 모범 사례가 존재합니다. 실시간 데이터를 소비할 때는 연결 시간을 최대화하는 것이 기본 목표입니다. 연결이 끊어졌을 때 이를 자동으로 감지하고 재연결하는 것이 중요합니다. 재연결 후에는 그동안 백필(backfill)이 필요한 구간이 있는지 평가하는 것도 중요합니다. 이러한 세부 사항을 관리하고 실시간 포스트를 소비하는 컴포넌트는 네트워크, 데이터 저장소, 서버, 스토리지 등의 고려 사항을 가진 시스템의 일부에 불과합니다. 이러한 시스템이 복잡하다는 점을 감안하면, 개발/테스트와 운영 환경을 최소한 분리하여 서로 다른 스트리밍 환경을 두는 것이 또 다른 모범 사례입니다.
+
+Decahose는 이러한 작업을 지원하는 여러 기능을 제공합니다.
+
+1. 여러 환경을 지원하기 위해, 계정에 대해 [Additional Streams](#AdditionalStreams)를 구성할 수 있습니다. 이 스트림들은 서로 독립적이며, 서로를 구분할 수 있도록 서로 다른 stream&#95;label을 가집니다.
+2. 연결 유지를 지원하기 위해, 각 Decahose 스트림은 [Redundant Connections](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#additional-streams)를 지원합니다. 가장 일반적인 아키텍처에서는 하나의 스트림이 두 개의 연결을 사용하며, 클라이언트 측에는 이상적으로 서로 다른 네트워크에 위치한 두 개의 독립적인 소비자가 존재합니다. 이러한 설계로 클라이언트 측 네트워크, 서버, 데이터 저장소 경로 전반에 걸쳐 중복성을 둘 수 있습니다. 각 연결마다 데이터의 전체 사본이 제공되므로, 클라이언트 측은 중복 데이터를 허용하고 이를 처리할 수 있어야 합니다.
+3. &#39;**heartbeat**&#39;가 10초마다 전송됩니다. 하지만 Decahose 스트림의 경우 데이터 양이 충분히 많기 때문에, 짧은 기간(예: 몇 초) 동안 포스트가 전혀 없는 것도 연결 문제를 의미할 수 있습니다. 따라서 데이터가 전혀 전송되지 않는 구간(data silence)과 heartbeat 부재 모두를 연결 끊김을 감지하는 데 사용할 수 있습니다.
+
+연결 끊김은 발생할 수밖에 없기 때문에, Decahose 스트림에는 전용 [Recovery](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#overview) 및 [Backfill](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#backfill) 기능이 있어, 연결 끊김 및 기타 운영상의 문제로 인해 누락된 데이터를 복구하는 데 도움이 됩니다.
+
+<div id="additional-streams">
+  #### 추가 스트림
+</div>
+
+추가 Decahose 스트림을 두는 것은 솔루션의 신뢰성을 높이는 또 다른 방법입니다. 추가 스트림은 각각 고유한 엔드포인트를 가진 완전히 독립적인 스트림입니다. 각 스트림에는 고유한 stream&#95;label이 할당되며, 이 레이블과 계정 이름이 함께 해당 스트림의 URL을 구성합니다. 아래 예제를 참고하십시오:
+
+https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json
+
+가장 일반적인 관례는 실시간 스트림 하나를 운영(production) 시스템 전용으로 두고, 개발 및 테스트용으로 추가 스트림을 하나 더 두는 것입니다. 테스트/개발 스트림을 두면 Decahose 고객은 클라이언트 consumer 업데이트를 테스트할 수 있는 스트림을 확보하게 됩니다. 어떤 (고유한) 레이블이든 스트림에 할당할 수 있지만, 한 가지 관례로 운영 스트림에는 ‘prod’를 사용하고, 추가 개발 스트림에는 ‘dev’ 또는 ‘sandbox’를 사용하는 방식이 있습니다.
+
+스트림의 개수와 각 스트림의 고유한 레이블은 계정 담당자를 통해 설정할 수 있습니다.
+
+**이중화된 연결**
+
+이중화된 연결은 간단히 말해 데이터 스트림에 대해 둘 이상의 동시 연결을 설정할 수 있도록 해 줍니다. 이렇게 하면 두 개의 개별 consumer가 동일한 스트림에 연결되어 두 연결을 통해 동일한 데이터를 수신함으로써 이중화가 제공됩니다. 따라서, 예를 들어 하나의 스트림 연결이 끊기거나 App의 기본 서버가 장애가 나는 등의 다양한 상황에서 App이 즉시 핫 페일오버(hot failover)를 수행할 수 있습니다.
+
+특정 스트림에 허용되는 연결 수는 계정 담당자를 통해 설정할 수 있습니다. 이중화된 스트림을 사용하려면 기본(primary) 연결에 사용하는 것과 동일한 URL에 그대로 연결하면 됩니다. 스트림 데이터는 두 연결 모두를 통해 전송되며, 두 스트림 연결 모두 스트림 대시보드에 표시됩니다.
+
+과금 목적으로, 여러 연결을 통해 수신한 activity 건수는 중복 제거하여 각 고유 activity당 한 번만 과금된다는 점에 유의하십시오. Decahose에는 두 개의 파티션이 있으므로, 아래는 연결 수가 어떻게 계산되는지에 대한 예시입니다:
+
+Connect to decahose partition=1\
+Connect to decahose partition=1\
+Connect to decahose partition=2
+
+위 상황에서는 총 세 개의 연결이 발생합니다. partition=1에 두 개의 연결, partition=2에 한 개의 연결이 있는 상태입니다. 일반적으로는 각 파티션에 동일한 수의 연결을 두는 것이 바람직하므로, 이 예시는 partition=2에 대한 이중화된 연결이 끊어진 상황을 보여 주며, 추가 조사가 필요한 상태를 강조합니다.
+
+**복구**
+
+<div id="overview">
+  #### 개요
+</div>
+
+Recovery는 최근 X 과거 데이터에 대해 이동하는 5일치 구간의 스트리밍 액세스를 제공하는 데이터 복구 도구입니다. 기본 데이터 수집용으로 사용해서는 안 됩니다. 이 도구는 소비 애플리케이션이 실시간 스트림에서 데이터를 놓친 경우, 예를 들어 짧은 시간 동안 연결이 끊겼거나 그 밖에 어떤 이유로든 일정 기간 동안 실시간 데이터를 수집하지 못한 상황에서 데이터를 복구하는 용도로 사용해야 합니다.
+
+<div id="using-recovery">
+  #### Recovery 사용하기
+</div>
+
+Recovery 스트림을 사용하면 앱이 실시간 스트림에 대한 요청과 동일한 방식으로 Recovery 스트림에 요청을 보낼 수 있습니다. 다만, 앱은 요청하려는 시간 범위를 나타내는 파라미터를 URL에 지정해야 합니다. 다시 말해, Recovery 요청은 API에 &quot;시간 A부터 시간 B까지의 포스트&quot;를 요청하는 것입니다. 그런 다음 이 포스트들은 실시간 스트림을 모방하는 방식으로 스트리밍 연결을 통해 전달되지만, 실시간 스트림보다 약간 느린 속도로 전달됩니다. 아래 예제를 참고하세요:
+
+&quot;https://stream-data-api.x.com/stream/powertrack/accounts/someAccountName/publishers/twitter/powertrack.json?startTime=2023-07-05T17:09:12.070Z&quot;
+
+포스트는 지정된 기간의 첫 번째(가장 오래된) 분부터 시작하여, 마지막 분이 전달될 때까지 시간순으로 계속 전달됩니다. 그 시점에 &quot;Recovery Request Completed&quot; 메시지가 연결을 통해 전송되며, 이후 서버가 연결을 종료합니다. 요청이 매칭되는 결과가 거의 없거나 전혀 없는 시간대에서 시작되는 경우, 첫 번째 결과가 전달되기까지 일정 시간이 소요될 수 있습니다. Recovery가 해당 시점에 처리 중인 아카이브 구간에서 매칭을 발견할 때 데이터가 전달되기 때문입니다. 전달할 결과가 없을 때에도, 스트림은 연결이 타임아웃되는 것을 방지하기 위해 캐리지 리턴, 즉 &quot;하트비트(heartbeat)&quot;를 계속 전송합니다.
+
+Recovery는 짧은 연결 끊김으로 인해 누락된 데이터를 쉽게 복구하기 위한 도구이며, 하루 전체와 같은 매우 긴 기간을 대상으로 하는 용도는 아닙니다. 장기간의 데이터를 복구해야 하는 경우, 더 긴 요청을 (예: 두 시간 단위로) 더 짧은 시간 구간으로 나누어, 인터넷 불안정성 등으로 인해 요청 중간에 연결이 끊길 가능성을 줄이고, 긴 요청의 진행 상황을 더 잘 파악할 수 있도록 할 것을 권장합니다.
+
+<div id="data-availability">
+  #### 데이터 가용성
+</div>
+
+5분 백필 윈도우 안에 다시 연결하지 못한 경우, Recovery 기능을 사용해 최근 24시간 이내에 누락된 데이터를 복구할 수 있습니다.
+
+스트리밍 Recovery 기능을 사용하면 백필 윈도우를 24시간까지 확장할 수 있습니다. Recovery를 통해 누락된 데이터가 발생한 시간 구간을 “복구”할 수 있습니다. &#39;start&#95;time&#39; 및 &#39;end&#95;time&#39; 요청 매개변수를 사용해 연결 요청을 보내면 Recovery 스트림이 시작됩니다. 연결이 설정되면, Recovery는 지정된 기간의 데이터를 다시 스트리밍한 뒤 연결을 종료합니다.  
+
+동시에 최대 2개의 Recovery 요청, 즉 “두 개의 Recovery 작업”을 수행할 수 있습니다. Recovery는 시작 시간과 종료 시간이 정의된다는 점을 제외하면 기술적으로 백필과 동일한 방식으로 동작합니다. Recovery 기간은 하나의 시간 구간에만 적용됩니다.
+
+<div id="backfill">
+  #### 백필(Backfill)
+</div>
+
+백필을 요청하려면 연결 요청에 `backfillMinutes=N` 파라미터를 추가해야 합니다. 여기서 N은 연결이 다시 수립될 때 백필할 분 수(1–5, 정수만 허용)입니다. 예를 들어, 90초 동안 연결이 끊겼다면 연결 요청에 `backfillMinutes=2`를 추가해야 합니다. 이 요청은 연결이 끊기기 전 30초 구간을 포함해 2분 동안의 백필 데이터를 제공하므로, *consumer 앱은 중복 데이터를 처리할 수 있어야 합니다*.
+
+파티션 1에 5분 백필을 요청하는 Decahose 연결 요청 URL 예시는 다음과 같습니다:
+
+https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json?partition=1&amp;backfillMinutes=5
+
+**참고 사항:**
+
+* 연결 시 항상 `backfillMinutes=5`를 사용하는 선택지도 있으며, 그 경우 제공되는 중복 데이터를 애플리케이션에서 처리해야 합니다.
+
+* 5분을 초과해 연결이 끊긴 경우, Recovery를 사용해 데이터를 복구할 수 있습니다.
+
+**연결 끊김(Disconnect)에서 복구하기**
+
+연결이 끊긴 후 재시작하고 복구하는 과정은 다음 단계로 구성됩니다:
+
+* 연결이 끊긴 기간 길이를 파악합니다.
+  * 5분 이내인가요?
+    * 스트림에 Backfill이 활성화되어 있다면, 적절한 `backfillMinutes` 파라미터로 연결 요청을 준비합니다.
+  * 5분 초과인가요?
+    * Recovery 스트림이 있다면, 끊긴 기간에 대해 Recovery 요청을 수행합니다(필요하다면 Rules API를 사용해 현재 실시간 룰 세트를 활용하는 것이 이상적입니다).
+* 새 연결을 요청합니다.
+
+연결 끊김이나 다운타임이 발생했을 때, 다음과 같은 전략으로 이 상황을 완화하고 복구할 수 있습니다:
+
+1. **Backfill 구현**
+   Backfill을 사용하면 스트림 연결이 끊기기 이전 시점부터 다시 연결할 수 있으며, 최대 5분 간의 연결 끊김을 보완할 수 있습니다. 이는 연결 요청에 파라미터를 포함하는 방식으로 구현됩니다.
+
+2. **다른 위치에서 중복 스트림 소비**
+   중복 스트림을 동일한 실시간 환경으로 흘려보내면서 데이터를 중복 제거할 수 있다면, 일반 스트림과 중복 스트림이 동시에 다운되거나 연결이 끊기는 경우를 제외하고는 Recovery가 필요하지 않습니다. 중복 스트림을 운영(production) 환경으로 실시간 스트리밍할 수 없다면 별도의 “비상(emergency)” 데이터 저장소에 적재할 수 있습니다. 그런 다음 기본 스트림 연결에 연결 끊김이나 다운타임이 발생했을 때, 시스템은 누락된 기간에 대해 기본 데이터베이스를 보완할 수 있는 데이터를 보유하게 됩니다.
+
+3. **Recovery 구현**
+   연결 끊김이나 다운타임이 기본 스트림과 중복 스트림 모두에 영향을 주는 경우, Decahose Recovery를 사용해 누락된 데이터를 복구합니다. API는 아카이브의 5일치 구간을 롤링 윈도우로 제공하며, 한 번에 최대 1시간 분량만 요청해 스트리밍하는 방식으로 활용하는 것이 가장 좋습니다. 이는 실시간 스트림과 병렬로 수행됩니다. Recovery가 제공하는 5일 윈도우를 넘어선 Decahose 데이터의 복구 솔루션은 제공되지 않으므로, 귀측 환경에서 상당한 다운타임이 발생했을 때에도 귀측에 온전한 데이터 복사본이 있도록 중복 스트림을 활용하는 것이 중요합니다.
+
+저장된 데이터 볼륨이 비정상적일 때—
+연결 끊김이나 다운타임이 발생하지 않았음에도 누락된 데이터를 감지할 수 있는 잠재적인 방법은 다음과 같습니다…
+
+1. 수신 포스트 개수 세기
+   시스템은 수집 앱의 가장 초기에 수신하는 원본 포스트 개수를 집계하고, 그 숫자를 최종 데이터 저장소에 도달한 포스트 개수와 비교할 수 있는 방법을 제공해야 합니다. 차이가 발생하면 이를 모니터링하여, 수신 후 데이터가 누락되게 만드는 문제에 대해 팀에 알림을 보낼 수 있습니다.
+
+2. 비정상적인 저장 볼륨 분석
+   최종 데이터베이스에 저장된 데이터 볼륨을 분석해 비정상적인 감소가 있는지 확인하는 것도 좋습니다. 이 역시 문제를 나타낼 수 있지만, 볼륨 감소가 정상인 상황도 있을 수 있습니다(예: X 플랫폼을 사용할 수 없어 일정 시간 동안 사용자가 포스트를 작성할 수 없는 경우 등).
+
+<div id="api-reference">
+  ## API 참조 문서
+</div>
+
+<div id="decahose-stream">
+  ### Decahose 스트림
+</div>
+
+이 페이지에서 이동
+
+[메서드](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#methods)
+
+[인증](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#authentication)
+
+[GET /&#123;stream-type&#125;/:stream](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#get-stream-type-stream)
+
+[Replay API](/ko/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#replay-api)
+
+<div id="methods">
+  #### 메서드
+</div>
+
+| 메서드 | 설명 |
+| :--- | :--- |
+| [GET /&#123;stream-type&#125;/:stream](#Stream) | 데이터 스트림에 연결합니다 |
+
+<div id="authentication">
+  #### 인증[](#authentication- "Permalink to this headline")
+</div>
+
+Volume Stream API에 대한 모든 요청은 console.gnip.com에서 계정에 로그인할 때 사용하는 유효한 이메일 주소와 비밀번호 조합으로 구성된 HTTP Basic 인증을 사용해야 합니다. 자격 증명은 각 요청마다 Authorization 헤더로 전달해야 합니다. 따라서 모든 API 요청에 대해 클라이언트가 HTTPS를 통해 인코딩된 자격 증명을 포함한 &quot;Authentication: Basic&quot; HTTP 헤더를 추가하고 있는지 확인하십시오.
+
+#### GET {stream-type}:stream
+
+실시간 데이터를 전달하는 Firehose 스트림에 대한 지속 연결을 설정합니다.
+
+<div id="request-specifications">
+  #### 요청 사양
+</div>
+
+|     |     |
+| :--- | :--- |
+| **Request Method** | HTTP GET |
+| **Connection Type** | Keep-Alive  <br />  <br />요청 헤더에 이를 명시해야 합니다. |
+| **URL** | 대시보드의 스트림 API Help 페이지에서 다음 구조를 사용해 확인할 수 있습니다:  <br />  <br />Decahose:<br /><br />[https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json?partition=1](https://gnip-stream.x.com/stream/sample10/accounts/:account_name/publishers/twitter/:stream_label.json?partition=1) |
+| **Partition (required)** | `partition=\{#}` - 전체 스트림을 수신하기 위해 이제 파티션 지정이 필수입니다. `partition` 파라미터를 지정하여 스트림에 연결해야 합니다. 스트림별 파티션 수는 아래와 같습니다:<br /><br />* Decahose: 파티션 2개 |
+| **Compression** | Gzip. Gzip 압축을 사용해 스트림에 연결하려면, 연결 요청에 `Accept-Encoding` 헤더를 포함하면 됩니다. 헤더는 다음과 같은 형식이어야 합니다:  <br />  <br />Accept-Encoding: gzip |
+| **Character Encoding** | UTF-8 |
+| **Response Format** | JSON. 응답 형식으로 JSON을 사용하도록 요청 헤더에 명시해야 합니다. |
+| **Rate Limit** | 60초당 요청 10건. |
+| **Backfill Parameter** | Backfill이 활성화된 스트림을 구매한 경우, 이를 사용하려면 GET 요청에 &quot;backfillMinutes&quot; 파라미터를 추가해야 합니다. |
+| **Read Timeout** | 클라이언트에 읽기 타임아웃(read timeout)을 설정하고, 그 값이 30초보다 크도록 설정해야 합니다. |
+| **Support for Tweet edits** | 모든 Tweet 객체에는 Tweet의 편집 내역을 설명하는 Tweet 편집 메타데이터가 포함됩니다. 자세한 내용은 [&quot;Edit Tweets&quot; 기본 사항 페이지](/ko/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets)를 참고하세요. |
+
+<div id="responses">
+  #### 응답
+</div>
+
+다음 응답이 이러한 요청에 대해 API에서 반환될 수 있습니다. 대부분의 오류 코드는 본문에 추가 세부 정보가 담긴 문자열과 함께 반환됩니다. 200이 아닌 상태 코드의 응답인 경우, 클라이언트는 재연결을 시도해야 합니다.
+
+| Status | Text | Description |
+| :--- | :--- | :--- |
+| 200 | Success | 연결이 성공적으로 열렸으며, 새 activity가 도착하는 대로 전송됩니다. |
+| 401 | Unauthorized | 잘못된 자격 증명으로 인해 HTTP 인증에 실패했습니다. 요청에서 자격 증명을 올바르게 사용하고 있는지 확인하기 위해, 해당 자격 증명으로 console.gnip.com에 로그인하세요. |
+| 406 | Not Acceptable | 일반적으로 스트림에서 gzip 인코딩을 수락하기 위한 헤더를 클라이언트가 제대로 포함하지 않았을 때 발생하지만, 다른 상황에서도 발생할 수 있습니다.  <br />  <br />&quot;이 연결에는 압축이 필요합니다. 압축을 활성화하려면 요청에 &#39;Accept-Encoding: gzip&#39; 헤더를 보내고, 클라이언트 쪽에서 스트림을 읽을 때 압축을 해제할 준비를 하세요.&quot;와 비슷한 JSON 메시지를 포함합니다. |
+| 429 | Rate Limited | App이 연결 요청 한도를 초과했습니다. |
+| 503 | Service Unavailable | Twitter 서버 문제입니다. 지수 백오프 패턴을 사용하여 다시 연결하세요. 이 문제에 대한 공지가 [X API Status Page](https://api.twitterstat.us/)에 게시되어 있지 않고 10분 후에도 연결할 수 없다면 지원팀 또는 비상 연락처로 문의하세요. |
+
+<div id="example-curl-request">
+  #### 예시 curl 요청
+</div>
+
+다음 예시 요청은 명령줄에서 curl을 사용하여 수행합니다. 단, 이러한 요청은 선호하는 프로그래밍 언어를 사용해 전송할 수도 있습니다:
+
+```
+curl --compressed -v -uexample@customer.com "https://gnip-stream.x.com/stream/firehose/accounts/:account\_name/publishers/twitter/:stream\_label.json?partition={#}"
+```
+
+<div id="replay-api">
+  #### Replay API
+</div>
+
+Replay API는 실시간 Volume 스트림을 보완하는 중요한 구성 요소입니다. Replay는 X의 최근 이력 데이터에 대해 롤링 윈도우 방식의 스트리밍 접근을 제공하는 데이터 복구 도구입니다.

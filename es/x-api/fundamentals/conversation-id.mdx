@@ -1,0 +1,207 @@
+---
+title: ID de conversación
+sidebarTitle: ID de conversación
+description: Hacer seguimiento y reconstruir hilos de conversación
+keywords: ["conversation ID", "hilos de conversación", "hilos de respuesta", "seguimiento de hilos", "seguimiento de conversaciones"]
+---
+
+Cada respuesta en X pertenece a un hilo de conversación. El campo `conversation_id` te permite identificar, hacer seguimiento y reconstruir árboles de conversación completos.
+
+***
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+Cuando alguien publica y otras personas responden, todas las respuestas comparten el mismo `conversation_id`, el identificador de la Publicación original que inició la conversación.
+
+```
+Publicación original (ID: 1234567890)  ← conversation_id para todas las respuestas
+├── Respuesta 1 (ID: 1234567891)    → conversation_id: 1234567890
+│   └── Respuesta a la Respuesta 1        → conversation_id: 1234567890
+└── Respuesta 2 (ID: 1234567892)    → conversation_id: 1234567890
+    └── Respuesta a la Respuesta 2        → conversation_id: 1234567890
+```
+
+No importa lo profundo que sea el hilo, todas las Publicaciones comparten el mismo `conversation_id`.
+
+***
+
+<div id="requesting-conversation_id">
+  ## Solicitar conversation_id
+</div>
+
+Agrega `conversation_id` a tus `tweet.fields`:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_reply_to_user_id,referenced_tweets" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Respuesta:
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "@user Great point!",
+    "conversation_id": "1234567890",
+    "in_reply_to_user_id": "2244994945",
+    "referenced_tweets": [{
+      "type": "replied_to",
+      "id": "1234567890"
+    }]
+  }
+}
+```
+
+***
+
+<div id="getting-a-full-conversation">
+  ## Obtener una conversación completa
+</div>
+
+Usa `conversation_id` como operador de búsqueda para recuperar todas las publicaciones del hilo:
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=conversation_id:1234567890&\
+tweet.fields=author_id,created_at,in_reply_to_user_id&\
+expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Devuelve todas las respuestas a la Publicación original, ordenadas en orden cronológico inverso.
+
+***
+
+<div id="use-cases">
+  ## Casos de uso
+</div>
+
+<Tabs>
+  <Tab title="Reconstrucción de hilos">
+    Reconstruye el árbol completo de la conversación:
+
+    ```python
+    import requests
+
+    conversation_id = "1234567890"
+    url = f"https://api.x.com/2/tweets/search/recent"
+    params = {
+        "query": f"conversation_id:{conversation_id}",
+        "tweet.fields": "author_id,in_reply_to_user_id,referenced_tweets,created_at",
+        "max_results": 100
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    replies = response.json()["data"]
+
+    # Ordena por created_at para obtener el orden cronológico
+    replies.sort(key=lambda x: x["created_at"])
+    ```
+  </Tab>
+
+  <Tab title="Monitoreo de conversaciones">
+    Transmite respuestas de conversaciones específicas en tiempo real:
+
+    ```bash
+    # Agrega una regla de stream filtrado para una conversación
+    curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"add": [{"value": "conversation_id:1234567890"}]}'
+    ```
+  </Tab>
+
+  <Tab title="Análisis de conversaciones">
+    Cuenta las respuestas en una conversación:
+
+    ```bash
+    curl "https://api.x.com/2/tweets/counts/recent?\
+    query=conversation_id:1234567890" \
+      -H "Authorization: Bearer $TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="related-fields">
+  ## Campos relacionados
+</div>
+
+| Campo | Descripción |
+|:------|:------------|
+| `conversation_id` | ID de la publicación original que inició el hilo |
+| `in_reply_to_user_id` | ID de usuario de la publicación a la que se responde |
+| `referenced_tweets` | Array con `type: "replied_to"` y el ID de la publicación principal |
+
+***
+
+<div id="example-full-thread-retrieval">
+  ## Ejemplo: recuperación de todo el hilo
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567893",
+      "text": "@user2 @user1 I agree with you both!",
+      "conversation_id": "1234567890",
+      "author_id": "3333333333",
+      "created_at": "2024-01-15T12:05:00.000Z",
+      "in_reply_to_user_id": "2222222222",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567892"}]
+    },
+    {
+      "id": "1234567892",
+      "text": "@user1 That's interesting!",
+      "conversation_id": "1234567890",
+      "author_id": "2222222222",
+      "created_at": "2024-01-15T12:03:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    },
+    {
+      "id": "1234567891",
+      "text": "@user1 Great point!",
+      "conversation_id": "1234567890",
+      "author_id": "4444444444",
+      "created_at": "2024-01-15T12:02:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    }
+  ],
+  "meta": {
+    "result_count": 3
+  }
+}
+```
+
+***
+
+<div id="notes">
+  ## Notas
+</div>
+
+* El `conversation_id` de la Publicación original es igual a su `id`
+* `conversation_id` está disponible en todos los endpoints v2 que devuelven Publicaciones
+* Úsalo con [filtered stream](/es/x-api/posts/filtered-stream/introduction) para supervisar conversaciones en tiempo real
+* Combínalo con [pagination](/es/x-api/fundamentals/pagination) para hilos largos
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Buscar publicaciones" icon="magnifying-glass" href="/es/x-api/posts/search/introduction">
+    Busca por conversation&#95;id.
+  </Card>
+
+  <Card title="Flujo filtrado" icon="signal-stream" href="/es/x-api/posts/filtered-stream/introduction">
+    Supervisa conversaciones en tiempo real.
+  </Card>
+</CardGroup>

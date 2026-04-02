@@ -1,0 +1,206 @@
+---
+title: リツイート検索
+sidebarTitle: リツイート検索
+description: ポストをリツイートしたユーザーを取得する
+keywords: ["リツイート検索", "リツイートクイックスタート", "リツイートを取得", "リツイートチュートリアル", "リツイートガイド", "リツイート例"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、特定のポストをリポストしたユーザーを取得する方法を説明します。
+
+<Note>
+  **前提条件**
+
+  開始する前に、次のものが必要です。
+
+  * 承認済みの App を持つ [開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App のベアラートークン (公開データ用) またはユーザーアクセス・トークン (非公開メトリクス用) 
+</Note>
+
+***
+
+<div id="get-users-who-retweeted-a-post">
+  ## ポストをリツイートしたユーザーを取得する
+</div>
+
+<Steps>
+  <Step title="ポストIDを確認する">
+    リツイートしたユーザーを取得したいポストのIDを確認します:
+
+    ```
+    https://x.com/XDevelopers/status/1354143047324299264
+                                    └── ここがポストIDです
+    ```
+  </Step>
+
+  <Step title="リクエストを送信する">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+      user.fields=created_at,username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ページネーションを使ってポストをリツイートしたユーザーを取得する
+      for page in client.posts.get_retweeted_by(
+          "1354143047324299264",
+          user_fields=["created_at", "username", "verified"]
+      ):
+          for user in page.data:
+              print(f"{user.username} - Joined: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // ページネーションを使ってポストをリツイートしたユーザーを取得する
+      const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+        userFields: ["created_at", "username", "verified"],
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Joined: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する">
+    ```json
+    {
+      "data": [
+        {
+          "created_at": "2008-12-04T18:51:57.000Z",
+          "id": "17874544",
+          "username": "TwitterSupport",
+          "name": "Twitter Support",
+          "verified": true
+        },
+        {
+          "created_at": "2007-02-20T14:35:54.000Z",
+          "id": "783214",
+          "username": "Twitter",
+          "name": "Twitter",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## 追加データを取得する
+</div>
+
+expansions を使用して、ピン留めされた投稿などの関連データを取得します:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # expansions を指定してリツイートしたユーザーを取得
+  for page in client.posts.get_retweeted_by(
+      "1354143047324299264",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # ピン留めされた投稿は page.includes.tweets に含まれます
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // expansions を指定してリツイートしたユーザーを取得
+  const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // ピン留めされた投稿は page.includes?.tweets に含まれます
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### 拡張を含むレスポンス
+</div>
+
+```json
+{
+  "data": [
+    {
+      "pinned_tweet_id": "1389270063807598594",
+      "created_at": "2018-11-21T14:24:58.000Z",
+      "id": "1065249714214457345",
+      "username": "TwitterSpaces",
+      "name": "Spaces"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-05-03T17:26:09.000Z",
+        "id": "1389270063807598594",
+        "text": "now, everyone with 600 or more followers can host a Space..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="リツイートを管理" icon="retweet" href="/ja/x-api/posts/retweets/quickstart/manage-retweets">
+    リツイートとその取り消し
+  </Card>
+
+  <Card title="引用投稿" icon="quote-left" href="/ja/x-api/posts/quote-tweets/quickstart">
+    引用投稿を取得
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/get-retweeted-by">
+    エンドポイントの完全なドキュメント
+  </Card>
+</CardGroup>

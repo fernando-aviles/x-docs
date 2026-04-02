@@ -1,0 +1,125 @@
+---
+title: X の ID
+sidebarTitle: X の ID
+icon: fingerprint
+description: X API における一意の識別子について理解する
+keywords: ["X IDs", "Twitter IDs", "ユーザー ID", "ツイート ID", "Snowflake ID", "64ビット整数", "ID 形式", "一意の識別子"]
+---
+
+X API のあらゆるオブジェクト (投稿、ユーザー、リスト、DM、スペース) には一意の ID が割り当てられています。これらの ID の仕組みを理解することで、信頼性の高い統合を構築できます。
+
+***
+
+<div id="id-format">
+  ## ID の形式
+</div>
+
+X の ID は、「Snowflake」と呼ばれるシステムで生成される **64 ビット符号なし整数** です。各 ID には次の情報がエンコードされています。
+
+* **Timestamp** — オブジェクトが作成された時刻
+* **Worker number** — どのサーバーがその ID を生成したか
+* **Sequence number** — そのミリ秒内での順序
+
+そのため、ID はおおよそ時間順になっており、より大きな ID は一般的に新しいオブジェクトを表します。
+
+<Tip>
+  ID は、単一のオブジェクト type 内だけでなく、X 全体でグローバルに一意です。
+</Tip>
+
+***
+
+<div id="string-vs-integer-representation">
+  ## 文字列表現と整数表現
+</div>
+
+<Warning>
+  **コード内では常に文字列のidを使用してください。** 一部のプログラミング言語 (JavaScript など) は 64 ビット整数を正確に表現できません。
+</Warning>
+
+JavaScript では、整数は 53 ビットに制限されています。このため、大きな id では精度が失われます。
+
+```javascript
+// This loses precision!
+const id = 10765432100123456789;
+console.log(id.toString()); // "10765432100123458000" — 誤り!
+
+// Use strings instead
+const id = "10765432100123456789";
+console.log(id); // "10765432100123456789" — correct!
+```
+
+<div id="api-versions">
+  ### API バージョン
+</div>
+
+| バージョン | ID 形式 |
+|:--------|:----------|
+| **X API v2** | ID はデフォルトで文字列として返されます |
+| **X API v1.1** | `id` (整数) と `id_str` (文字列) の両方を返します — 常に `id_str` を使用してください |
+
+***
+
+<div id="working-with-ids">
+  ## ID の扱い方
+</div>
+
+<div id="storing-ids">
+  ### id の保存
+</div>
+
+データベースでは id を文字列または 64 ビット整数として保存することを推奨します：
+
+| データベース | 推奨される型 |
+|:---------|:-----------------|
+| PostgreSQL | `BIGINT` または `TEXT` |
+| MySQL | `BIGINT UNSIGNED` または `VARCHAR(20)` |
+| MongoDB | 文字列 |
+| SQLite | `TEXT` (SQLite の整数は最大 63 ビットです)  |
+
+<div id="comparing-ids">
+  ### id の比較
+</div>
+
+時系列順に並べる目的で id を比較する場合:
+
+```python
+# Python - safe for 64-bit integers
+if int(id1) > int(id2):
+    print("id1 is newer")
+
+# JavaScript - 文字列として比較(同じ長さのIDに対して辞書順で機能)
+# またはBigIntを使用
+if (BigInt(id1) > BigInt(id2)) {
+    console.log("id1 is newer");
+}
+```
+
+***
+
+<div id="common-id-types">
+  ## 一般的な ID の種類
+</div>
+
+| オブジェクト | ID の例 | 注記 |
+|:-------|:-----------|:------|
+| ポスト (ツイート)  | `1234567890123456789` | Tweet ID とも呼ばれます |
+| ユーザー | `2244994945` | 古いアカウントの ID はより短くなります |
+| リスト | `1234567890` | |
+| スペース | `1YqGodQbNXDxv` | 英数字で構成されており、Snowflake 形式ではありません |
+| DM イベント | `1234567890123456789` | |
+
+***
+
+<div id="related-resources">
+  ## 関連リソース
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Data Dictionary" icon="book" href="/ja/x-api/fundamentals/data-dictionary">
+    各オブジェクトの種類ごとの ID フィールドを確認できます。
+  </Card>
+
+  <Card title="ポスト検索" icon="magnifying-glass" href="/ja/x-api/posts/lookup/introduction">
+    ID を指定して投稿を取得します。
+  </Card>
+</CardGroup>

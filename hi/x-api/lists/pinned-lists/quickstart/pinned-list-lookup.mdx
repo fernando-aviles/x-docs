@@ -1,0 +1,141 @@
+---
+title: पिन की गई सूचियों का लुकअप
+sidebarTitle: पिन की गई सूचियों का लुकअप
+description: किसी उपयोगकर्ता की पिन की गई सूचियाँ प्राप्त करें
+keywords: ["पिन की गई सूचियों का लुकअप त्वरित शुरुआत", "पिन की गई सूचियों का लुकअप", "पिन की गई सूचियाँ त्वरित शुरुआत", "सूची लुकअप त्वरित शुरुआत"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको किसी उपयोगकर्ता की पिन की गई सूचियाँ प्राप्त करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * उपयोगकर्ता एक्सेस टोकन (OAuth 1.0a या OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-pinned-lists">
+  ## पिन की गई सूचियाँ प्राप्त करें
+</div>
+
+<Steps>
+  <Step title="अपनी उपयोगकर्ता ID प्राप्त करें">
+    आपको अपने प्रमाणीकृत उपयोगकर्ता की ID चाहिए। आप इसे [user lookup endpoint](/hi/x-api/users/lookup/introduction) का उपयोग करके या अपने Access Token से प्राप्त कर सकते हैं (उसका संख्यात्मक भाग आपकी उपयोगकर्ता ID है)।
+  </Step>
+
+  <Step title="पिन की गई सूचियों का अनुरोध करें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/pinned_lists?\
+      list.fields=follower_count,member_count,owner_id&\
+      expansions=owner_id&\
+      user.fields=created_at,username" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # पिन की गई सूचियाँ प्राप्त करें
+      response = client.lists.get_pinned(
+          "2244994945",
+          list_fields=["follower_count", "member_count", "owner_id"],
+          expansions=["owner_id"],
+          user_fields=["created_at", "username"]
+      )
+
+      for lst in response.data:
+          print(f"{lst.name} - {lst.follower_count} followers")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // पिन की गई सूचियाँ प्राप्त करें
+      const response = await client.lists.getPinned("2244994945", {
+        listFields: ["follower_count", "member_count", "owner_id"],
+        expansions: ["owner_id"],
+        userFields: ["created_at", "username"],
+      });
+
+      response.data?.forEach((lst) => {
+        console.log(`${lst.name} - ${lst.follower_count} followers`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1454155907651158017",
+          "name": "Tech News",
+          "follower_count": 150,
+          "member_count": 25,
+          "owner_id": "2244994945"
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "name": "X Developers",
+            "created_at": "2013-12-14T04:35:55.000Z"
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="available-list-fields">
+  ## उपलब्ध सूची फ़ील्ड्स
+</div>
+
+| फ़ील्ड           | विवरण                   |
+| :--------------- | :---------------------- |
+| `description`    | सूची का विवरण           |
+| `owner_id`       | स्वामी की उपयोगकर्ता ID |
+| `private`        | क्या सूची निजी है       |
+| `member_count`   | सदस्यों की संख्या       |
+| `follower_count` | फ़ॉलोअर्स की संख्या     |
+| `created_at`     | सूची बनाने की तारीख     |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="पिन की गई सूचियों को प्रबंधित करें" icon="thumbtack" href="/hi/x-api/lists/pinned-lists/quickstart/manage-pinned-lists">
+    सूचियों को पिन और अनपिन करें
+  </Card>
+
+  <Card title="सूची लुकअप" icon="list" href="/hi/x-api/lists/list-lookup/quickstart">
+    सूची का विवरण प्राप्त करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/lists/get-users-pinned-lists">
+    एंडपॉइंट का पूर्ण दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

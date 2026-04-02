@@ -1,0 +1,302 @@
+---
+title: 統合ガイド
+sidebarTitle: 統合ガイド
+description: リスト ルックアップを統合するための主要な概念とベストプラクティス
+keywords: ["list lookup integration", "lists integration guide", "list lookup implementation"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、アプリケーションにリスト取得エンドポイントを統合するために必要な主要な概念を説明します。
+
+***
+
+<div id="authentication">
+  ## 認証
+</div>
+
+リスト参照エンドポイントは複数の認証方法をサポートしています：
+
+| 方法 | 推奨用途 | 非公開リストへのアクセスは可能ですか？ |
+|:-------|:---------|:-------------------------|
+| [OAuth 2.0 App-Only](/ja/resources/fundamentals/authentication#oauth-2-0) | 公開リストのデータ | いいえ |
+| [OAuth 2.0 Authorization Code with PKCE](/ja/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | ユーザー向け App | はい (所有/フォロー中)  |
+| [OAuth 1.0a User Context](/ja/resources/fundamentals/authentication) | レガシーな統合 | はい (所有/フォロー中)  |
+
+<div id="example-request">
+  ### リクエスト例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,private" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # リスト ID を指定してリストを取得
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "private"]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "private"],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="endpoints-overview">
+  ## エンドポイント概要
+</div>
+
+| メソッド | エンドポイント | 説明 |
+|:-------|:---------|:------------|
+| GET | [`/2/lists/:id`](/ja/x-api/lists/get-list) | ID で指定したリストを取得 |
+| GET | [`/2/users/:id/owned_lists`](/ja/x-api/users/get-owned-lists) | 指定ユーザーが所有するリストを取得 |
+
+***
+
+<div id="fields-and-expansions">
+  ## フィールドとexpansions
+</div>
+
+<div id="default-response">
+  ### 既定のレスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News"
+  }
+}
+```
+
+<div id="available-fields">
+  ### 利用可能なフィールド
+</div>
+
+<Accordion title="list.fields">
+  | フィールド | 説明 |
+  |:------|:------------|
+  | `created_at` | リストが作成された日時 |
+  | `description` | リストの説明 |
+  | `follower_count` | フォロワー数 |
+  | `member_count` | メンバー数 |
+  | `owner_id` | オーナーのユーザーID |
+  | `private` | リストが非公開かどうか |
+</Accordion>
+
+<Accordion title="user.fields (owner_id の展開が必要)">
+  | フィールド | 説明 |
+  |:------|:------------|
+  | `username` | オーナーの @handle |
+  | `name` | オーナーの表示名 |
+  | `verified` | オーナーの認証ステータス |
+  | `profile_image_url` | オーナーのプロフィール画像の URL |
+</Accordion>
+
+<div id="example-with-expansions">
+  ### expansions を利用した例
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,owner_id&\
+  expansions=owner_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 所有者の expansion を指定してリストを取得
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "owner_id"],
+      expansions=["owner_id"],
+      user_fields=["username", "verified"]
+  )
+
+  print(response.data)
+  print(response.includes)  # 所有者のユーザーオブジェクトが含まれる
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "owner_id"],
+    expansions: ["owner_id"],
+    userFields: ["username", "verified"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // 所有者のユーザーオブジェクトが含まれる
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### expansions を含むレスポンス
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News",
+    "description": "Top tech journalists",
+    "member_count": 50,
+    "follower_count": 1250,
+    "owner_id": "2244994945"
+  },
+  "includes": {
+    "users": [
+      {
+        "id": "2244994945",
+        "username": "XDevelopers",
+        "verified": true
+      }
+    ]
+  }
+}
+```
+
+<Card title="Fields と expansions のガイド" icon="sliders" href="/ja/x-api/fundamentals/fields">
+  レスポンスのカスタマイズ方法について詳しく学びましょう
+</Card>
+
+***
+
+<div id="pagination">
+  ## ページネーション
+</div>
+
+所有しているリストを取得する場合、結果はページネーション形式で返されます:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # 最初のリクエスト
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # ページネーショントークンを指定した後続リクエスト
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK がページネーションを自動的に処理します
+  all_lists = []
+
+  for page in client.lists.get_user_owned_lists(user_id="123", max_results=100):
+      if page.data:
+          all_lists.extend(page.data)
+
+  print(f"{len(all_lists)} 個のリストが見つかりました")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllOwnedLists(userId) {
+    const allLists = [];
+
+    // SDK がページネーションを自動的に処理します
+    const paginator = client.lists.getUserOwnedLists(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allLists.push(...page.data);
+      }
+    }
+
+    return allLists;
+  }
+
+  // 使用例
+  const lists = await getAllOwnedLists("123");
+  console.log(`合計 ${lists.length} 個のリストが見つかりました`);
+  ```
+</CodeGroup>
+
+<Card title="ページネーションガイド" icon="arrow-right" href="/ja/x-api/fundamentals/pagination">
+  ページネーションの詳細はこちら
+</Card>
+
+***
+
+<div id="private-lists">
+  ## 非公開リスト
+</div>
+
+* 非公開リストは、所有者にのみ表示されます
+* 非公開リストの詳細を取得するには、所有者として認証されている必要があります
+* `private` フィールドは、リストが非公開かどうかを示します
+
+***
+
+<div id="error-handling">
+  ## エラー処理
+</div>
+
+| ステータス | エラー | 解決策 |
+|:-------|:------|:---------|
+| 400 | 無効なリクエスト | リスト ID の形式を確認してください |
+| 401 | 認証されていません | 認証情報を確認してください |
+| 403 | アクセスが禁止されています | リストが非公開である可能性があります |
+| 404 | 見つかりません | リストが存在しません |
+| 429 | リクエストが多すぎます | 待機してから再試行してください |
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/lists/list-lookup/quickstart">
+    最初のリスト検索リクエストを行う
+  </Card>
+
+  <Card title="リストの投稿" icon="list" href="/ja/x-api/lists/list-tweets/introduction">
+    リストから投稿を取得する
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/lists/get-list">
+    エンドポイントの完全なドキュメント
+  </Card>
+
+  <Card title="Sample code" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    動作するコード例
+  </Card>
+</CardGroup>

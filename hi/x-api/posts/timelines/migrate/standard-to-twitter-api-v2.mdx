@@ -1,0 +1,262 @@
+---
+title: v1 से v2
+sidebarTitle: v1 से v2
+keywords: ["v1.1 से v2 में माइग्रेशन", "टाइमलाइन माइग्रेशन", "टाइमलाइन माइग्रेट करें", "स्टैंडर्ड v1.1 से v2 टाइमलाइन", "v1 से v2 टाइमलाइन", "माइग्रेशन गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="standard-v11-timelines-to-x-api-v2-timelines">
+  ## Standard v1.1 टाइमलाइन्स से X API v2 टाइमलाइन्स
+</div>
+
+यदि आप v1.1 timelines endpoints (statuses/user&#95;timeline और statuses/mentions&#95;timeline) के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य आपको standard और X API v2 timelines endpoints के बीच समानताओं और अंतरों को समझने में मदद करना है, ताकि आप अपने मौजूदा integration को नए संस्करण में migrate कर सकें।
+
+* **समानताएँ:**
+  * प्रमाणीकरण:
+    * OAuth 1.0a User Context (रिवर्स क्रोनोलॉजिकल होम टाइमलाइन, उपयोगकर्ता पोस्ट टाइमलाइन और उपयोगकर्ता mentions टाइमलाइन)
+    * OAuth 2.0 App-Only (उपयोगकर्ता पोस्ट टाइमलाइन)
+  * Historical Access limit: User timeline (उपयोगकर्ता पोस्ट टाइमलाइन) सबसे हाल की 3200 पोस्ट्स तक पहुँच प्रदान करती है; mentions timeline (उपयोगकर्ता mention टाइमलाइन) सबसे हाल के 800 mentions तक पहुँच प्रदान करती है।
+  * पोस्ट edit history और metadata के लिए समर्थन
+  * रेट लिमिट्स (उपयोगकर्ता पोस्ट टाइमलाइन)
+  * Refresh polling: since&#95;id के बाद से नए results प्राप्त करने की क्षमता
+  * पोस्ट IDs के माध्यम से टाइमलाइन्स में traverse करने की क्षमता
+  * Results specifications:
+    * Results order: लौटाए गए results रिवर्स क्रोनोलॉजिकल क्रम में होते हैं
+    * replies को exclude करने की क्षमता (केवल उपयोगकर्ता पोस्ट टाइमलाइन)
+    * Retweets को exclude करने की क्षमता (केवल उपयोगकर्ता पोस्ट टाइमलाइन)
+* **अंतर**
+  * नई प्रमाणीकरण क्षमता:
+    * OAuth 2.0 App-Only (उपयोगकर्ता mention टाइमलाइन)
+    * OAuth 2.0 Authorization Code Flow with PKCE (रिवर्स क्रोनोलॉजिकल होम टाइमलाइन, उपयोगकर्ता पोस्ट टाइमलाइन और उपयोगकर्ता mentions टाइमलाइन)
+  * पहुँच संबंधी आवश्यकताएँ: X API v2 ऐप और Project आवश्यकताएँ
+  * रेट लिमिट्स (उपयोगकर्ता mention टाइमलाइन और रिवर्स क्रोनोलॉजिकल होम टाइमलाइन)
+  * अतिरिक्त pagination method
+    * प्रति रिस्पॉन्स अलग max&#95;results (count)
+  * प्रतिक्रिया डेटा प्रारूप
+  * अनुरोध पैरामीटर
+    * अनुरोध पैरामीटर के आधार पर अनुकूलित डेटा प्रारूप, जिसमें v2 फ़ील्ड्स और expansions शामिल हैं
+    * अतिरिक्त उपलब्ध डेटा: metrics, पोस्ट annotations, polls
+
+<div id="similarities">
+  ### समानताएँ
+</div>
+
+**प्रमाणीकरण**
+
+v1.1 `statuses/user_timeline` और X API v2 उपयोगकर्ता पोस्ट टाइमलाइन endpoint, दोनों [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication) और [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#bearer-token-also-known-as-app-only) का समर्थन करते हैं। इसलिए, यदि आप X API v2 संस्करण पर माइग्रेट करते हैं, तो आप उसी प्रमाणीकरण विधि और प्राधिकरण टोकन का उपयोग जारी रख सकते हैं।
+
+**ऐतिहासिक ऐक्सेस**
+
+v1.1 `statuses/user_timeline` और X API v2 उपयोगकर्ता पोस्ट टाइमलाइन endpoint, दोनों Retweets सहित सबसे हाल के 3200 पोस्ट्स लौटाते हैं।
+
+v1.1 `statuses/mentions_timeline` और X API v2 user mention timeline endpoint, दोनों सबसे हाल के 800 पोस्ट्स लौटा सकते हैं।
+
+**पोस्ट edit history और metadata के लिए समर्थन**
+
+दोनों संस्करण ऐसा metadata प्रदान करते हैं जो किसी भी edit history का वर्णन करता है। अधिक जानकारी के लिए [filtered stream API संदर्भ](/hi/x-api/posts/filtered-stream#api-reference-index) और [Edit Posts fundamentals page](/hi/x-api/fundamentals/edit-posts) देखें।
+
+**रेट लिमिट्स**
+
+|                                                                                                                                                  |                                                                                                                                                                      |
+| :----------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Standard v1.1**                                                                                                                                | **X API v2**                                                                                                                                                         |
+| user&#95;timeline:<br /><br />OAuth 1.0a User Context के साथ 15 मिनट में 900 अनुरोध<br /><br />OAuth 2.0 App-Only के साथ 15 मिनट में 1500 अनुरोध | User Posts timeline:<br /><br />OAuth 1.0a User Context के साथ 15-मिनट की विंडो में 900 अनुरोध<br /><br />OAuth 2.0 App-Only के साथ 15-मिनट की विंडो में 1500 अनुरोध |
+
+**since&#95;id का उपयोग करके रिफ्रेश polling**
+
+दोनों संस्करण since&#95;id का उपयोग करके हाल के results के लिए polling की अनुमति देते हैं।
+
+**पोस्ट IDs का उपयोग करके timelines को traverse करना**
+
+दोनों endpoints में पोस्ट ID &#39;timestamps&#39; का उपयोग करके timelines को traverse करने की क्षमता है, जो पोस्ट IDs के बनाए जाने के तरीके पर आधारित है। कार्यक्षमता आम तौर पर समान है, केवल निम्नलिखित अंतर हैं:
+
+|                                                            |                                                                                                     |
+| :--------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- |
+| **Standard timelines v1.1**                                | **timelines v2**                                                                                    |
+| since&#95;id (exclusive)<br /><br />max&#95;id (inclusive) | since&#95;id (exclusive)<br /><br />until&#95;id (यह भी exclusive है, जबकि max&#95;id inclusive था) |
+
+**रिस्पॉन्स फ़िल्टरिंग पैरामीटर**
+
+|                                                                                                                                                            |                                                                                                                                                                                                                                                                             |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Standard timelines v1.1**                                                                                                                                | **timelines v2**                                                                                                                                                                                                                                                            |
+| रिस्पॉन्स फ़िल्टरिंग पैरामीटर:<br /><br />* include&#95;rts<br />* exclude&#95;replies                                                                     | रिस्पॉन्स फ़िल्टरिंग पैरामीटर:<br /><br />* exclude=retweets,replies                                                                                                                                                                                                        |
+| उदाहरण <br /><br />https://api.x.com/1.1/statuses/user&#95;timeline.json?user&#95;id=2244994945&amp;include&#95;rts=0&amp;&amp;exclude&#95;replies=1       | उदाहरण:<br /><br />https://api.x.com/2/users/2244994945/tweets?max&#95;results=100&amp;exclude=retweets,replies                                                                                                                                                             |
+| टिप्पणियाँ:<br /><br />For user&#95;timeline:<br /><br />* include&#95;rts=0 का उपयोग करने से सबसे हाल के 3200 पोस्ट्स की संभावित ऐतिहासिक सीमा नहीं बदलती | टिप्पणियाँ:<br /><br />For user Posts timeline:<br /><br />* exclude=retweets का उपयोग करने से सबसे हाल के 3200 पोस्ट्स की संभावित ऐतिहासिक सीमा नहीं बदलती <br />* exclude=replies का उपयोग करने से संभावित ऐतिहासिक पोस्ट सीमा घटकर सबसे हाल की 800 replies तक रह जाती है |
+
+<div id="differences">
+  ### अंतर
+</div>
+
+**प्रमाणीकरण**
+
+**v1.1 `statuses/mentions_timeline` endpoint केवल [OAuth 1.0a User Context](https://developer-staging.x.com/resources/fundamentals/authentication) का समर्थन करता है। X API v2 user mention timeline endpoint [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication), [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#bearer-token-also-known-as-app-only), और [OAuth 2.0 Authorization Code with PKCE](/hi/resources/fundamentals/authenticationoauth-2-0/authorization-code "यह विधि किसी अधिकृत ऐप को उपयोगकर्ता की ओर से, उपयोगकर्ता के रूप में कार्य करने की अनुमति देती है। इसका उपयोग आमतौर पर किसी विशिष्ट उपयोगकर्ता के लिए सार्वजनिक जानकारी तक पहुँचने या उसे पोस्ट करने के लिए किया जाता है, और यह तब उपयोगी होती है जब आपके ऐप को उपयोगकर्ता और इस endpoint द्वारा लौटाए गए डेटा के बीच संबंध की जानकारी होनी चाहिए। OAuth 2.0 Authorization Code with PKCE के साथ प्रमाणीकरण करने का तरीका जानने के लिए क्लिक करें।") — तीनों का समर्थन करता है। **
+
+यदि आप X API v2 उपयोगकर्ता पोस्ट टाइमलाइन endpoint का उपयोग करके private या promoted metrics तक पहुँचने की सुविधा का लाभ उठाना चाहते हैं, तो आपको OAuth 1.0a User Context या OAuth 2.0 Authorization Code with PKCE का उपयोग करना होगा, और उस उपयोगकर्ता से संबंधित user access tokens पास करने होंगे जिसने वह पोस्ट किया है, जिसके metrics तक आप पहुँचना चाहते हैं।
+
+**Endpoint URLs**
+
+ध्यान दें कि X API v2 timelines endpoints में user ID के लिए :id path parameter आवश्यक है।
+
+* Standard v1.1 endpoints:
+  * https://api.x.com/1.1/statuses/home&#95;timeline
+  * https://api.x.com/1.1/statuses/user&#95;timeline
+  * https://api.x.com/1.1/statuses/mention&#95;timeline
+* X API v2 endpoint:
+  * https://api.x.com/2/users/:id/timelines/reverse&#95;chronological
+  * https://api.x.com/2/users/:id/tweets
+  * https://api.x.com/2/users/:id/mentions
+
+**ऐप और Project आवश्यकताएँ**
+
+X API v2 endpoints के लिए यह आवश्यक है कि आप अपने requests को प्रमाणित करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के credentials का उपयोग करें, जो किसी [Project](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 endpoints Apps के credentials या किसी project से संबद्ध Apps के credentials का उपयोग कर सकते हैं।
+
+**रेट लिमिट्स**
+
+|                                                                                                                                     |                                                                                                                                                                                                                              |
+| :---------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **mentions&#95;timeline:**<br /><br />OAuth 1.0a User Context के साथ प्रति 15 मिनट 75 requests                                      | **user mention timeline: **<br /><br />OAuth 1.0a User Context के साथ प्रति 15-मिनट विंडो 180 requests  <br />OAuth 2.0 बेयरर टोकन के साथ प्रति 15-मिनट विंडो 450 requests                                                   |
+| **home&#95;timelime:**<br /><br />प्रति 15 मिनट 15 requests  <br /><br />home timeline पर अधिकतम 800 पोस्ट्स प्राप्त की जा सकती हैं | **reverse chronological home timeline:**<br /><br />प्रति 15 मिनट 180 requests<br /><br />आप timeline पर पिछले 7 दिनों में बनाई गई हर पोस्ट, साथ ही निर्माण तिथि की परवाह किए बिना सबसे हाल की 800 पोस्ट्स भी लौटा सकते हैं। |
+
+**अनुरोध पैरामीटर**
+
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **स्टैंडर्ड टाइमलाइन्स v1.1**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | **timelines v2**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| आवश्यक: user&#95;id या screen&#95;name                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | आवश्यक: path parameter में विशिष्ट user ID दिया जाता है                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| वैकल्पिक:<br /><br />count - प्रति अनुरोध लौटाए जाने वाले अधिकतम परिणाम सेट करता है<br /><br />exclude&#95;replies - परिणामों से रिप्लाइ हटाता है<br /><br />Include&#95;rts - 0 पर सेट होने पर परिणामों से retweets हटाता है<br /><br />trim&#95;user - परिणामों से rehydrated user objects हटाता है<br /><br />tweet&#95;mode - परिणामों के लिए लौटाए जाने वाले डेटा फ़ॉर्मैट को सेट करता है; 140 से लंबे पोस्ट्स के लिए इसे extended पर सेट करें<br /><br />since&#95;id - परिणाम में सबसे शुरुआती पोस्ट ID सेट करता है (exclusive)<br /><br />max&#95;id - परिणाम में सबसे नवीनतम पोस्ट ID सेट करता है (inclusive) | वैकल्पिक:<br /><br />max&#95;results - प्रति अनुरोध लौटाए जाने वाले अधिकतम परिणाम सेट करता है<br /><br />exclude=retweets,replies - परिणामों से Retweets या replies हटाता है<br /><br />tweet.fields - लौटाए जाने वाले पोस्ट object फ़ील्ड्स सेट करता है<br /><br />user.fields - लौटाए जाने वाले User object फ़ील्ड्स सेट करता है<br /><br />place.fields - लौटाए जाने वाले place object फ़ील्ड्स सेट करता है<br /><br />media.fields - लौटाए जाने वाले media object फ़ील्ड्स सेट करता है<br /><br />poll.fields - लौटाए जाने वाले poll object फ़ील्ड्स सेट करता है<br /><br />expansions - लौटाए जाने वाले expanded फ़ील्ड्स और डेटा सेट करता है<br /><br />start&#95;time - परिणामों के लिए सबसे शुरुआती created&#95;at समय सेट करता है<br /><br />end&#95;time - परिणामों के लिए सबसे नवीनतम created&#95;at समय सेट करता है<br /><br />since&#95;id - परिणामों के लिए सबसे शुरुआती पोस्ट ID सेट करता है (exclusive)<br /><br />until&#95;id - परिणाम में सबसे नवीनतम पोस्ट ID सेट करता है (exclusive) |
+
+**प्रतिक्रिया डेटा प्रारूप**
+
+|                                                         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| :------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **स्टैंडर्ड सर्च v1.1**                                 | **पोस्ट्स खोजें v2**                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| [<br />    tweet object,<br />    tweet object<br />  ] | <br />  &quot;data&quot;: [id,text,id,text],<br />  &quot;meta&quot;: <br />    &quot;oldest&#95;id&quot;: &quot;1337085692623646724&quot;,<br />    &quot;newest&#95;id&quot;: &quot;1334183616172019713&quot;,<br />    &quot;previous&#95;token&quot;: &quot;77qpymm88g5h9vqkluldpw91lr0qzfz1sqydh841iz48k&quot;,<br />    &quot;result&#95;count&quot;: 10,<br />    &quot;next&#95;token&quot;: &quot;7140dibdnow9c7btw3w29gqolns6a1ipl3kzeae41vsxk&quot;<br />  <br /> |
+
+**X API v2 JSON फ़ॉर्मैट**
+
+X API v2, APIs द्वारा लौटाए जाने वाले objects के लिए नए JSON डिज़ाइन पेश कर रहा है, जिनमें [पोस्ट](/hi/x-api/fundamentals/data-dictionary#tweet) और [यूज़र](/hi/x-api/fundamentals/data-dictionary#user) objects शामिल हैं। X API v2 फ़ॉर्मैट के बारे में, फ़ील्ड्स और expansions का उपयोग कैसे करें, यह जानने के लिए हमारी [guide](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) देखें, और हमारी विस्तृत [data dictionary](/hi/x-api/fundamentals/data-dictionary) भी पढ़ें
+
+* JSON root स्तर पर, standard endpoints statuses array में पोस्ट objects लौटाते हैं, जबकि X API v2 data array लौटाता है।
+* Retweeted और Quoted &quot;statuses&quot; का संदर्भ देने के बजाय, X API v2 JSON Retweeted और Quoted Tweets का संदर्भ देता है। contributors और user.translator&#95;type जैसे कई legacy और deprecated फ़ील्ड्स हटाए जा रहे हैं।
+* Post object में favorites और user object में favorites — दोनों का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है।
+* X इस परंपरा को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, null), उन्हें payload में नहीं लिखा जाता। Post और user attributes केवल तभी शामिल किए जाते हैं, जब उनका मान non-null हो।
+
+स्टैंडर्ड v1.1 और X API v2 endpoint versions के बीच सबसे बड़े अंतर में से एक यह है कि आप कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें। स्टैंडर्ड endpoints के लिए, payload में कौन-से फ़ील्ड्स या फ़ील्ड्स के समूह लौटेंगे, यह तय करने के लिए कई parameters उपलब्ध थे, जबकि X API v2 version इन अलग-अलग parameters को सरल बनाकर [फ़ील्ड्स](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) में समाहित कर देता है।
+
+* fields: X API v2 एंडपॉइंट्स आपको यह चुनने की सुविधा देते हैं कि आपके payload में कौन-से फ़ील्ड्स शामिल किए जाएँ। उदाहरण के लिए, पोस्ट, user, Media, Place, और Poll ऑब्जेक्ट्स में ऐसे फ़ील्ड्स की सूची होती है जिन्हें response में लौटाया जा सकता है (या नहीं)।
+
+* expansions: पोस्ट JSON payloads में संदर्भित संबंधित ऑब्जेक्ट्स का विस्तार करने के लिए उपयोग किया जाता है। उदाहरण के लिए, सभी Retweets और Replies अन्य पोस्ट्स को संदर्भित करते हैं। expansions=referenced&#95;tweets.id सेट करने पर, ये अन्य पोस्ट ऑब्जेक्ट्स tweet.fields सेटिंग के अनुसार विस्तारित होकर लौटाए जाते हैं। users, polls, और media जैसे अन्य ऑब्जेक्ट्स का भी विस्तार किया जा सकता है।
+
+* conversation&#95;id
+
+* context और entities सहित दो नए [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स
+
+* कई नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स
+
+हमने एक [data format migration guide](/hi/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) तैयार की है, जो standard v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में आपकी मदद कर सकती है। यह guide आपको वह विशिष्ट expansion और field parameter भी बताएगी जिन्हें आपको अपनी v2 request के साथ पास करना होगा, ताकि खास फ़ील्ड्स लौटाए जा सकें।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="user-posts-timeline-v2">
+  ### उपयोगकर्ता की पोस्ट्स टाइमलाइन (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/tweets?max_results=100&tweet.fields=created_at,public_metrics&exclude=retweets,replies" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # उपयोगकर्ता की पोस्ट्स टाइमलाइन प्राप्त करें
+  for page in client.posts.get_user_posts(
+      "2244994945",
+      tweet_fields=["created_at", "public_metrics"],
+      exclude=["retweets", "replies"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // उपयोगकर्ता की पोस्ट्स टाइमलाइन प्राप्त करें
+  const paginator = client.posts.getUserPosts("2244994945", {
+    tweetFields: ["created_at", "public_metrics"],
+    exclude: ["retweets", "replies"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="user-mentions-timeline-v2">
+  ### उपयोगकर्ता उल्लेख टाइमलाइन (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?max_results=100&tweet.fields=created_at,author_id" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # उपयोगकर्ता के उल्लेख प्राप्त करें
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      tweet_fields=["created_at", "author_id"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"Mentioned by {post.author_id}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // उपयोगकर्ता के उल्लेख प्राप्त करें
+  const paginator = client.posts.getUserMentions("2244994945", {
+    tweetFields: ["created_at", "author_id"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`Mentioned by ${post.author_id}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+**अगले चरण**
+
+[X API v2 पोस्ट lookup की हमारी त्वरित शुरुआत मार्गदर्शिका देखें](/hi/x-api/posts/lookup/quickstart "X API v2 पोस्ट lookup की हमारी त्वरित शुरुआत मार्गदर्शिका देखें")
+
+[v2 पोस्ट lookup के लिए API संदर्भ देखें](/hi/x-api/posts/lookup/migrate/overview "v2 पोस्ट lookup के लिए API संदर्भ देखें")
+
+[टाइमलाइन endpoints के लिए हमारा sample code देखें](https://github.com/xdevplatform/Twitter-API-v2-sample-code "टाइमलाइन endpoints के लिए हमारा sample code देखें")

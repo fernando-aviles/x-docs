@@ -1,0 +1,184 @@
+---
+title: Guide d'intégration
+sidebarTitle: Guide d'intégration
+keywords: ["intégration pour la gestion des listes", "intégration de la gestion des listes", "guide d'intégration des listes", "configuration de la gestion des listes"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Cette page présente les outils et les concepts clés pour intégrer les endpoints des Listes.
+
+***
+
+<div id="helpful-tools">
+  ## Outils utiles
+</div>
+
+Avant d’aborder certains concepts clés qui vous aideront à intégrer cet endpoint, nous vous recommandons de vous familiariser avec :
+
+<div id="postman">
+  #### Postman
+</div>
+
+Postman est un excellent outil que vous pouvez utiliser pour tester un endpoint. Chaque requête Postman inclut tous les paramètres de chemin et de corps de la requête afin de vous aider à comprendre rapidement ce qui est à votre disposition. Pour en savoir plus sur nos collections Postman, consultez notre page [&quot;Utiliser Postman&quot;](/fr/tutorials/postman-getting-started).
+
+<div id="code-samples">
+  #### Exemples de code
+</div>
+
+Vous souhaitez mettre en place cet endpoint avec du code dans votre langage de programmation préféré ? Nous mettons à votre disposition plusieurs exemples de code que vous pouvez utiliser comme point de départ sur notre [page GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="third-party-libraries">
+  #### Bibliothèques tierces
+</div>
+
+Profitez de l&#39;une des [bibliothèques tierces](/fr/x-api/tools-and-libraries/overview) créées par notre communauté pour vous aider à vous lancer. Vous pouvez trouver une bibliothèque compatible avec les endpoints v2 en recherchant le tag de version approprié.
+
+<div id="key-concepts">
+  ### Concepts clés
+</div>
+
+<div id="authentication">
+  #### Authentification
+</div>
+
+Tous les endpoints de X API v2 exigent que vous authentifiiez vos requêtes à l’aide d’un ensemble d’identifiants, également appelés clés et jetons.
+
+Ces endpoints spécifiques nécessitent l’utilisation du [contexte utilisateur OAuth 1.0a](/fr/resources/fundamentals/authentication), ce qui signifie que vous devez utiliser un ensemble de clés d’API et de jetons d’accès utilisateur pour que la requête aboutisse. Les jetons d’accès doivent être associés à l’utilisateur pour le compte duquel vous effectuez la requête. Si vous souhaitez générer un ensemble de jetons d’accès pour un autre utilisateur, celui-ci doit autoriser ou authentifier votre App à l’aide du [flux OAuth en 3 étapes](/fr/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow).
+
+Veuillez noter qu’OAuth 1.0a peut être difficile à utiliser. Si vous n’êtes pas familiarisé avec cette méthode d’authentification, nous vous recommandons d’utiliser une [bibliothèque](/fr/x-api/tools-and-libraries/overview) ou un outil comme Postman pour authentifier correctement vos requêtes.
+
+<div id="developer-console-projects-and-developer-apps">
+  #### Console de développement, Projects et Apps développeur
+</div>
+
+Pour obtenir des identifiants d’authentification qui fonctionneront avec les endpoints de X API v2, vous devez [vous inscrire pour obtenir un compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info), configurer un [Project](/fr/resources/fundamentals/developer-apps) dans ce compte, puis créer une [App développeur](/fr/resources/fundamentals/developer-apps) au sein de ce Project. Vous pourrez ensuite consulter vos clés et jetons dans votre App développeur.
+
+<div id="rate-limits">
+  #### Limites de taux
+</div>
+
+Chaque jour, plusieurs milliers de développeurs envoient des requêtes à la X API. Pour aider à gérer l’important volume de ces requêtes, des [limites de taux](/fr/x-api/fundamentals/rate-limits) sont appliquées à chaque endpoint, ce qui limite le nombre de requêtes que vous pouvez effectuer au nom de votre application ou au nom d’un utilisateur authentifié.
+
+Ces endpoints sont soumis à des limites de taux au niveau de l’utilisateur, ce qui signifie que l’utilisateur authentifié pour lequel vous effectuez la requête ne peut appeler l’endpoint qu’un certain nombre de fois, quel que soit l’App de développeur.
+
+Le tableau ci-dessous présente les limites de taux pour chaque endpoint.
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Endpoint** | **Méthode HTTP** | **Limite de taux** |
+| /2/lists | POST | 300 requêtes par tranche de 15 minutes |
+| /2/lists/:id | DELETE / PUT | 300 requêtes par tranche de 15 minutes |
+
+***
+
+<div id="code-examples">
+  ### Exemples de code
+</div>
+
+<div id="create-a-list">
+  #### Créer une liste
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/lists" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "My List", "description": "A list of interesting accounts"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Créer une nouvelle liste
+  response = client.lists.create(
+      name="My List",
+      description="A list of interesting accounts"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Créer une nouvelle liste
+  const response = await client.lists.create({
+    name: "My List",
+    description: "A list of interesting accounts",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="update-a-list">
+  #### Mettre à jour une Liste
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/lists/123456789" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"name": "Updated List Name"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Mettre à jour une Liste
+  response = client.lists.update(
+      list_id="123456789",
+      name="Updated List Name"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Mettre à jour une Liste
+  const response = await client.lists.update("123456789", {
+    name: "Updated List Name",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>

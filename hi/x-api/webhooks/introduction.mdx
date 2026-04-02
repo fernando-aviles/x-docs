@@ -1,0 +1,133 @@
+---
+title: वेबहुक्स
+sidebarTitle: परिचय
+description: वेबहुक डिलीवरी के ज़रिए रीयल-टाइम डेटा प्राप्त करें
+keywords: ["वेबहुक्स", "वेबहुक API", "रीयल-टाइम वेबहुक्स", "वेबहुक डिलीवरी", "इवेंट वेबहुक्स"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+Webhooks आपके सर्वर पर रीयल-टाइम में डेटा पहुँचाना संभव बनाते हैं। अपडेट के लिए बार-बार पोलिंग करने के बजाय, इवेंट होते ही डेटा प्राप्त करें।
+
+<div id="overview">
+  ## अवलोकन
+</div>
+
+<CardGroup cols={2}>
+  <Card title="रियल-टाइम डिलीवरी" icon="bolt">
+    इवेंट तुरंत प्राप्त करें
+  </Card>
+
+  <Card title="पुश-आधारित" icon="arrow-right">
+    डेटा आपके सर्वर पर भेजा जाता है
+  </Card>
+
+  <Card title="कुशल" icon="gauge">
+    पोलिंग की ज़रूरत नहीं
+  </Card>
+
+  <Card title="विश्वसनीय" icon="shield">
+    रीट्राई और रिकवरी का समर्थन
+  </Card>
+</CardGroup>
+
+***
+
+<div id="webhook-types">
+  ## वेबहुक के प्रकार
+</div>
+
+| प्रकार                                                            | विवरण                                                  |
+| :---------------------------------------------------------------- | :----------------------------------------------------- |
+| [फ़िल्टर्ड स्ट्रीम वेबहुक्स](/hi/x-api/webhooks/stream/introduction) | वेबहुक के ज़रिए फ़िल्टर्ड स्ट्रीम पोस्ट्स प्राप्त करें |
+| [Account Activity API](/hi/x-api/account-activity/introduction)      | खाते की गतिविधि से जुड़ी इवेंट्स प्राप्त करें          |
+
+***
+
+<div id="how-webhooks-work">
+  ## वेबहुक कैसे काम करते हैं
+</div>
+
+```
+┌──────────┐      ┌──────────┐      ┌──────────┐
+│ X Event  │  →   │ X Server │  →   │ Your     │
+│ Occurs   │      │          │      │ Webhook  │
+└──────────┘      └──────────┘      └──────────┘
+```
+
+1. **इवेंट होता है** — कोई उपयोगकर्ता पोस्ट करता है, DM भेजता है, आदि।
+2. **X अनुरोध भेजता है** — आपके वेबहुक URL पर POST अनुरोध भेजता है
+3. **आप प्रोसेस करते हैं** — आपका सर्वर इवेंट को हैंडल करता है
+4. **200 के साथ जवाब दें** — पुष्टि के लिए 200 OK लौटाएँ
+
+***
+
+<div id="webhook-requirements">
+  ## वेबहुक आवश्यकताएँ
+</div>
+
+| आवश्यकता          | विवरण                                     |
+| :---------------- | :---------------------------------------- |
+| **HTTPS**         | वेबहुक URL में HTTPS का उपयोग होना चाहिए |
+| **Public**        | URL सार्वजनिक रूप से सुलभ होना चाहिए      |
+| **Fast response** | 10 सेकंड के भीतर रिस्पॉन्स दें            |
+| **200 OK**        | पुष्टि के लिए 200 स्टेटस लौटाएँ           |
+
+***
+
+<div id="security">
+  ## सुरक्षा
+</div>
+
+<div id="challenge-response-check-crc">
+  ### चैलेंज-रिस्पॉन्स चेक (CRC)
+</div>
+
+X आपके webhook को CRC अनुरोध भेजकर सत्यापित करता है। HMAC-SHA256 हैश के साथ उत्तर दें:
+
+```python
+import hmac
+import hashlib
+import base64
+
+def handle_crc(crc_token, consumer_secret):
+    sha256_hash = hmac.new(
+        consumer_secret.encode(),
+        crc_token.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    return {
+        "response_token": "sha256=" + base64.b64encode(sha256_hash).decode()
+    }
+```
+
+<div id="signature-verification">
+  ### हस्ताक्षर सत्यापन
+</div>
+
+`x-twitter-webhooks-signature` हेडर का उपयोग करके webhook की प्रामाणिकता की पुष्टि करें।
+
+***
+
+<div id="getting-started">
+  ## शुरुआत करना
+</div>
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  * एक स्वीकृत [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * डेवलपर कंसोल में एक [Project और ऐप](/hi/resources/fundamentals/developer-apps)
+  * सार्वजनिक रूप से सुलभ HTTPS एंडपॉइंट
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="फ़िल्टर्ड स्ट्रीम वेबहुक्स" icon="filter" href="/hi/x-api/webhooks/stream/introduction">
+    वेबहुक के ज़रिए फ़िल्टर की गई पोस्ट्स प्राप्त करें
+  </Card>
+
+  <Card title="Account Activity API" icon="bell" href="/hi/x-api/account-activity/introduction">
+    वेबहुक के ज़रिए खाते की गतिविधियों से जुड़े इवेंट प्राप्त करें
+  </Card>
+</CardGroup>

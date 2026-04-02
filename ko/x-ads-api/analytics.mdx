@@ -1,0 +1,1460 @@
+---
+title: 애널리틱스
+keywords: ["광고 분석", "광고 애널리틱스", "캠페인 분석", "광고 지표", "광고 성과 지표", "캠페인 성과"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+## 소개
+
+애널리틱스 지표는 파트너와 광고주가 X에서 프로모션하는 콘텐츠의 성과를 이해하는 데 도움을 줍니다. 여기에는 노출 수(impressions), 클릭 수(clicks), 동영상 조회수(video views), 집행 금액(spend)과 같은 정보가 포함됩니다. 또한 파트너와 광고주는 도달한 오디언스의 다양한 세그먼트별로 상세 지표를 조회할 수 있습니다.
+
+Ads API는 캠페인 성과 지표를 상세하게 조회하는 두 가지 방식을 지원합니다. 동기(synchronous) 방식과 비동기(asynchronous) 방식입니다. 동기 애널리틱스 호출에서는 요청한 지표가 응답에 바로 반환됩니다. 비동기 애널리틱스 엔드포인트에서는 관련 &quot;job&quot; 처리가 완료된 후, 요청한 지표를 다운로드 가능한 결과 파일에서 확인할 수 있습니다. 동기 엔드포인트는 짧은 기간 범위를 지원하며 실시간 캠페인 최적화에 적합합니다. 비동기 엔드포인트는 훨씬 긴 기간 범위를 지원하며, 훨씬 더 많은 데이터를 조회하는 용도로 설계되어 있어 리포트 생성이나 과거 데이터 백필에 이상적입니다.
+
+<div id="details">
+  ## 상세 정보
+</div>
+
+<div id="synchronous-vs-asynchronous">
+  ### 동기식 vs. 비동기식
+</div>
+
+동기식 및 비동기식 애널리틱스 엔드포인트 간의 차이점은 아래 표에 요약되어 있습니다. 이 정보는 개발자가 어떤 엔드포인트 집합을 사용할지 선택하는 데 도움이 되도록 제공됩니다.
+
+| Feature | Synchronous | Asynchronous |
+|:---------|:------------|:--------------|
+| Rate limiting | 사용자 수준: 15분당 요청 250건 | 계정 수준: 동시에 처리 중일 수 있는* 작업 최대 100건 |
+| Time range | 7일 | 90일(세분화 없음 기준)<br />45일(세분화 기준) |
+| Segmentation | 없음 | 있음 |
+| Response returns | 메트릭 데이터 | 작업의 처리 상태** |
+| Recommended use case | 실시간 최적화<br />사용자 인터페이스 요청 | 정기적인 동기화 작업<br />과거 데이터 백필(backfill) |
+
+<Note>
+  * 이는 어떤 시점에서든 처리 상태에 있을 수 있는 최대 작업 수를 의미합니다.
+
+  ** 작업이 성공적으로 처리를 완료하면 URL이 반환됩니다. 이 URL에서 압축된(gzip) 결과 파일을 다운로드할 수 있습니다.
+
+  이 외에는 두 엔드포인트가 제공하는 기능은 동일합니다.
+</Note>
+
+<div id="use-cases">
+  ### 사용 사례
+</div>
+
+주요 분석 사용 사례는 세 가지입니다.
+
+1. 실시간 최적화: 성과 지표를 사용해 진행 중인 캠페인을 업데이트
+2. 동기화: 정기적으로 실행되는 백그라운드 동기화
+3. 새 계정 온보딩: 과거 데이터 백필(backfilling)
+
+동기식 분석 엔드포인트는 실시간 최적화를 위해, 지난 5~15분 사이의 지표 변화에 따라 캠페인을 업데이트하는 데 사용할 수 있습니다. 분석 동기화에는 두 엔드포인트 중 어느 것이든 사용할 수 있습니다. 원하는 시간 범위와 세분화가 필요한지 여부에 따라 적절한 엔드포인트를 선택해야 한다는 점을 유의하세요. 새 계정 온보딩은 비동기식 분석 엔드포인트만 사용해야 합니다. (동기식 분석 엔드포인트는 대량의 데이터를 검색하는 용도로는 절대 사용해서는 안 됩니다.)
+
+비동기식 분석 엔드포인트는 지표를 백엔드 프로세스로 동기화하는 경우 대시보드 및 기타 UI 요소에 활용할 수 있습니다. 구현 시, 사용자 인터페이스 요청을 처리하기 위해 비동기식 분석 엔드포인트를 호출하는 방식은 피해야 합니다.
+
+<div id="request-options">
+  ### 요청 옵션
+</div>
+
+애널리틱스 요청은 광고 계정 단위로 범위가 지정되므로 리소스 경로에 계정 ID가 필요합니다. 아래에 나열된 요청 옵션은 쿼리 매개변수로 지정합니다. 다음 유형의 값이 필요합니다.
+
+* 엔터티: 엔터티 `type`과 애널리틱스를 조회하려는 최대 20개의 엔터티 `id`
+* 기간: ISO 8601 형식으로 표현된 시작 및 종료 시각
+  * **참고:** 반드시 정각(1시간 단위)으로 표현해야 합니다
+* 메트릭 그룹: 하나 이상의 관련 메트릭 집합(각 메트릭 그룹에 포함된 메트릭 목록은 Metrics and Segmentation을 참조)
+* 세분성(granularity): 메트릭이 반환되어야 하는 집계 수준을 지정
+* 노출 위치(placement): X 온플랫폼 또는 오프플랫폼에서 게재된 광고의 메트릭을 가져올지 여부를 결정
+  * **참고:** 요청당 하나의 placement 값만 지정할 수 있습니다
+
+`start_time` 및 `end_time` 요청 매개변수를 사용하여 기간을 지정합니다. 이 값들은 아래와 같이 지정한 granularity와 일치해야 합니다.
+
+1. `TOTAL`: 임의의 기간을 지정할 수 있음(엔드포인트 제한 범위 내)
+2. `DAY`: 시작 시각과 종료 시각 모두 계정 시간대 기준 자정에 맞춰야 함
+3. `HOUR`: 임의의 기간을 지정할 수 있음(엔드포인트 제한 범위 내)
+
+종료 시각(`end_time`)은 포함되지 않습니다(exclusive). 예를 들어, `start_time=2019-01-01T00:00:00Z` 및 `end_time=2019-01-02T00:00:00Z`로 요청하면, 이 기간은 정확히 24시간만 포함하므로 하루치 애널리틱스 메트릭만(이틀 분이 아닌) 반환됩니다.
+
+**세그멘테이션**
+
+비동기 애널리틱스 엔드포인트에서만 제공되는 세그멘테이션 기능을 사용하면, 파트너와 광고주는 특정 타게팅 값별로 분리된 메트릭을 조회할 수 있습니다. 세그먼트된 메트릭을 요청하려면 `segmentation_type` 요청 매개변수를 사용하세요. 세그멘테이션 옵션에 대한 자세한 내용은 [Metrics and Segmentation](/ko/x-ads-api/analytics#metrics-and-segmentation)을 참조하세요.
+
+<div id="faqs">
+  ## FAQs
+</div>
+
+왜 Ads API 수치가 X Ads UI에 표시되는 값과 일치하지 않나요?
+
+* `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, `TREND` 모든 게재 위치에 대한 데이터를 요청했는지 확인하세요.
+* Ads API에서 종료 시간은 배타적이지만, Ads UI에서는 포함된다는 점을 기억하세요.
+
+왜 데이터를 요청하는 시점에 따라 수치가 달라지나요?
+
+* 집계 지표가 사용 가능해지는 즉시 조회할 수 있으며, 거의 실시간으로 제공됩니다. 다만 이러한 초기 결과는 추정치이므로 이후 변경될 수 있습니다. 지표는 지출 데이터를 제외하고 24시간 후에 확정됩니다.
+* 지출(spend) 지표는 일반적으로 이벤트 발생 후 3일 이내에 확정됩니다. 하지만 청구 데이터는 (예: 스팸 필터링을 위해) 이벤트 발생일로부터 최대 14일까지 처리됩니다.
+
+특정 기간에 대해 어떤 엔티티 id를 요청해야 할지 어떻게 알 수 있나요?
+
+* [Active Entities endpoint](/ko/x-ads-api/analytics#active-entities-2)를 사용하세요.
+
+애널리틱스 응답의 모든 값이 `null`인 이유는 무엇인가요?
+
+* 요청한 기간 동안 캠페인이 집행되지 않았을 가능성이 큽니다.
+* 어떤 기간에 어떤 엔티티에 대해 애널리틱스를 조회해야 할지 결정하기 위해 [Active Entities endpoint](/ko/x-ads-api/analytics#active-entities-2)를 사용하세요.
+
+왜 API는 `null` 값을 표시하는데 UI는 0으로 표시하나요?
+
+* UI는 이러한 값을 0으로 표시하도록 선택했을 뿐이며, 실제로는 동일한 값을 나타냅니다.
+
+X 타임라인과 같이 세분화된 게재 위치와 연관된 지표는 어떻게 요청할 수 있나요?
+
+* 애널리틱스에서는 `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, `TREND`(즉, [X Audience Platform](/ko/x-ads-api/audiences))에 대한 게재 위치 값을 지원합니다.
+
+삭제되었거나 일시 중지된 엔티티에 대한 지표도 조회할 수 있나요?
+
+* 네. 엔티티의 상태는 애널리틱스 지표의 가용성에 영향을 주지 않습니다.
+
+분할(세그먼트)된 값이 비분할 값과 일치하지 않는 이유는 무엇인가요?
+
+* 이 정보가 산출되는 방식 때문에, 세그먼트된 데이터가 비세그먼트 데이터와 100% 합산되어 일치할 것으로 기대해서는 *안* 됩니다.
+
+여러 차원으로 분할된 데이터를 요청할 수 있나요?
+
+* 다중 세그먼트 요청은 지원하지 않습니다.
+
+<div id="best-practices">
+  ## 모범 사례
+</div>
+
+Ads API에서 [애널리틱스](/ko/x-ads-api/analytics) 데이터를 수집할 때 권장되는 모범 사례는 다음과 같습니다.
+
+<div id="rate-limiting-and-retries">
+  ### 속도 제한 및 재시도
+</div>
+
+* 속도 제한이 적용된 쿼리(HTTP 429 상태 코드를 반환하는 경우)에서는 `x-rate-limit-reset` 헤더를 확인하고, 해당 헤더에 표시된 시각에 도달했거나 그 이후에만 다시 시도해야 합니다.
+* HTTP 503 Service Unavailable 상태 코드를 반환하는 쿼리에서는 `retry-after` 헤더를 확인하고, 해당 헤더에 표시된 시간이 지난 이후에만 다시 시도해야 합니다.
+* 재시도와 관련하여 표시된 시간을 준수하지 않는 애플리케이션은 사전 통지 없이 Ads API에 대한 접근 권한이 취소되거나 제한될 수 있습니다.
+
+<div id="analytics-metrics-in-a-nutshell">
+  ### 애널리틱스 메트릭 요약
+</div>
+
+* `billed_charge_local_micro`를 제외한 모든 애널리틱스 메트릭은 24시간이 지나면 확정되며 이후에는 변경되지 않습니다.
+* `billed_charge_local_micro` 메트릭은 데이터가 반환된 시점부터 최대 3일 동안은 추정값입니다.
+* 24시간 이후에는 초과 집행(지정된 `end_time` 이후에 노출된 광고) 및 무효로 판정된 과금 가능 이벤트에 대한 크레딧으로 인해 이 메트릭이 감소할 수 있습니다. 이 메트릭은 24시간 이후에는 거의 변경되지 않습니다.
+* 자세한 내용은 [Analytics](/ko/x-ads-api/analytics) 문서를 참고하세요.
+
+<div id="fetching-real-time-non-segmented-data">
+  ### 실시간 비세그먼트 데이터 가져오기
+</div>
+
+* 항상 `start_time`과 `end_time`을 모두 제공하세요.
+* 7일보다 오래된 엔티티의 데이터는 조회하지 마세요.
+* 가능하면 `HOUR` 세분성으로 데이터를 요청하세요. 언제든지 집계하여 `DAY` 및 `TOTAL` 세분성으로 롤업할 수 있습니다.
+* 가능하면 `line_items` 및 `promoted_tweets` 수준에서 데이터를 요청하세요. 언제든지 이러한 메트릭을 집계하여 전체 광고 엔티티 계층(예: 캠페인, 자금 조달 수단 또는 계정 수준)에 대한 총합으로 롤업할 수 있습니다.
+* 분석 메트릭 값을 로컬에서 저장·보관하세요.
+* 30일보다 오래된 데이터는 반복해서 쿼리하지 마세요. 이 데이터는 변경되지 않으므로 로컬에 저장해 두어야 합니다.
+* 모든 비세그먼트 데이터는 실시간이며, 이벤트가 발생한 후 몇 초 이내에 데이터를 조회할 수 있습니다.
+* 전환(conversion) 메트릭과 비전환 메트릭은 별도의 요청으로 분리하세요.
+
+<div id="fetching-segmented-data">
+  ### 세분화된 데이터 가져오기
+</div>
+
+* 위의 “실시간 비세분화 데이터 가져오기”에 제공된 가이드라인을 참조하세요. 추가적인 안내는 아래 내용을 참고하세요.
+* 대부분의 세분화된 데이터 유형의 경우, 데이터가 최대 1시간 동안 완전히 수집되지 않을 수 있습니다. `INTERESTS` 기준으로 세분화된 데이터는 최대 12시간까지 지연될 수 있습니다.
+* 이 정보가 생성되는 방식 때문에, 세분화된 데이터를 모두 합산하더라도 비세분화 데이터와 100% 일치하지 않을 수 있습니다.
+
+<div id="fetching-historical-data">
+  ### 과거 데이터 가져오기
+</div>
+
+* 데이터를 보충할 때(예: 새 광고주 계정을 추가하는 경우), `start_time`과 `end_time`을 더 작은 구간으로 나눠 여러 번 요청해야 할 수 있습니다.
+* 조회 범위를 최대 30일 이내의 기간 단위로 제한하세요.
+* 이러한 요청으로 인해 요청 한도가 소진되지 않도록, 시간을 두고 분산시키고 요청 속도를 조절하세요.
+
+<div id="sample">
+  ### 예시
+</div>
+
+이러한 모범 사례 중 일부를 보여 주는 샘플 스크립트(`fetch_stats`)는 [ads-platform-tools GitHub](https://github.com/xdevplatform/ads-platform-tools) 리포지토리에서 확인할 수 있습니다.
+
+<div id="metrics-by-objective">
+  ## 목표별 지표
+</div>
+
+특정 엔티티에 어떤 지표가 적용되는지는 [캠페인 목표](/ko/x-ads-api/campaign-management)에 따라 달라집니다. 이 가이드를 참고해 각 목표 유형별로 가져와야 할 관련 지표 그룹을 결정하고, 추가로 파생 지표를 어떻게 계산할 수 있는지 확인하세요.
+
+### `ENGAGEMENTS`
+
+**관련 메트릭 그룹:** `ENGAGEMENT` 및 `BILLING`. 크리에이티브에 미디어가 사용된 경우 `MEDIA`도 적용됩니다.
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 노출 지표 계산식 |
+| 참여율 | `engagements/impressions` |
+| CPE | `billed_charge_local_micro/engagements` |
+| 미디어 조회율 | `media_views/impressions` |
+
+<div id="website_clicks-and-website_conversions">
+  ### `WEBSITE_CLICKS` 및 `WEBSITE_CONVERSIONS`
+</div>
+
+**관련 메트릭 그룹:** `ENGAGEMENT`, `BILLING`, `WEB_CONVERSION`. 크리에이티브에 미디어가 사용된 경우 `MEDIA`도 적용됩니다.
+
+|     |     |
+| :--- | :--- |
+| 파생 메트릭 | 노출 메트릭 계산식 |
+| CPM | `billed_charge_local_micro/impressions/1000` |
+| 클릭률 | `clicks/impressions` |
+| CPLC | `billed_charge_local_micro/clicks` |
+| 총 전환 수 | `conversion_custom` + `conversion_site_visits` + `conversion_sign_ups` + `conversion_downloads` + `conversion_purchases` |
+| 전환율 | 총 전환 수 / `impressions` |
+| CPA | `billed_charge_local_micro` / 총 전환 수 |
+
+<div id="app_installs-and-app_engagements">
+  ### `APP_INSTALLS` 및 `APP_ENGAGEMENTS`
+</div>
+
+**관련 지표 그룹:** `ENGAGEMENT`, `BILLING`, `MOBILE_CONVERSION`, `LIFE_TIME_VALUE_MOBILE_CONVERSION`. 크리에이티브에서 미디어 또는 비디오 앱 카드가 사용된 경우 `MEDIA` 및 `VIDEO`도 적용됩니다.
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 노출 지표의 계산식 |
+| CPM | `billed_charge_local_micro/impressions/1000` |
+| App 클릭률 | `app_clicks/impressions` |
+| CPAC | `billed_charge_local_micro/app_clicks` |
+| CPI | `billed_charge_local_micro/mobile_conversion_installs` |
+
+<div id="followers">
+  ### `FOLLOWERS`
+</div>
+
+**해당 메트릭 그룹:** `ENGAGEMENT` 및 `BILLING`. 크리에이티브에 미디어가 사용된 경우 `MEDIA`도 적용됩니다.
+
+|     |     |
+| :--- | :--- |
+| 파생 메트릭 | 표시 메트릭 계산식 |
+| CPM | `billed_charge_local_micro/impressions/1000` |
+| 팔로우율 | `follows/impressions` |
+| CPF | `billed_charge_local_micro/follows` |
+| 미디어 조회율 | `media_views/impressions` |
+
+<div id="lead_generation">
+  ### `LEAD_GENERATION`
+</div>
+
+**관련 지표 그룹:**`ENGAGEMENT` 및 `BILLING`. 크리에이티브에 미디어가 사용되는 경우 `MEDIA`도 적용됩니다.
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 제공 지표 계산식 |
+| CPM | `billed_charge_local_micro/impressions/1000` |
+| 리드(Leads) | `card_engagements` |
+| 리드율(Lead Rate) | `card_engagements/impressions` |
+| 리드당 비용(Cost Per Lead) | `billed_charge_local_micro/card_engagements` |
+
+<div id="video_views">
+  ### `VIDEO_VIEWS`
+</div>
+
+**관련 메트릭 그룹:** `ENGAGEMENT`, `BILLING`, `VIDEO`.
+
+|     |     |
+| :--- | :--- |
+| 파생 메트릭 | 표시 메트릭 계산식 |
+| CPM | `billed_charge_local_micro/impressions/1000` |
+| 동영상 재생 비율 | `video_total_views/impressions` |
+| 조회당 비용 | `billed_charge_local_micro/video_total_views` |
+
+<div id="video_views_preroll">
+  ### `VIDEO_VIEWS_PREROLL`
+</div>
+
+**관련 메트릭 그룹:** `ENGAGEMENT`, `BILLING`, `VIDEO`.
+
+|     |     |
+| :--- | :--- |
+| 파생 메트릭 | 표시 메트릭 계산식 |
+| CPM | `billed_charge_local_micro/impressions/1000` |
+| 동영상 재생률 | `video_total_views/impressions` |
+| 조회당 비용 | `billed_charge_local_micro/video_total_views` |
+
+<div id="metrics-and-segmentation">
+  ## 지표 및 세분화
+</div>
+
+이 문서는 각 엔터티 유형별로 [Analytics](/ko/x-ads-api/analytics)에서 제공되는 지표와, 각 지표에 대해 사용 가능한 세분화 옵션을 개괄적으로 설명합니다.
+
+|     |     |     |     |     |     |     |     |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+|     | 지표 그룹 |     |     |     |     |     |     |
+| 엔터티 | [`ENGAGEMENT`](#engagement) | [`BILLING`](#BILLING) | [`VIDEO`](#VIDEO) | [`MEDIA`](#MEDIA) | [`WEB_CONVERSION`](#WEB_CONVERSION) | [`MOBILE_CONVERSION`](#MOBILE_CONVERSION) | [`LIFE_TIME_VALUE_MOBILE_CONVERSION`](#LIFE_TIME_VALUE_MOBILE_CONVERSION) |
+| `ACCOUNT` | ✔*  |     |     |     |     |     |     |
+| `FUNDING_INSTRUMENT` | ✔*  | ✔   |     |     |     |     |     |
+| `CAMPAIGN` | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   |
+| `LINE_ITEM` | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   |
+| `PROMOTED_TWEET` | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   |
+| `MEDIA_CREATIVE` | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   | ✔   |
+| `ORGANIC_TWEET` | ✔   |     | ✔   |     |     |     |     |
+
+*`ENGAGEMENT` 지표 그룹의 일부 지표는 account 및 funding instrument 수준에서는 사용할 수 없습니다. 자세한 내용은 `ENGAGEMENT` 섹션을 참고하세요.
+
+<div id="available-metrics-by-metrics-group">
+  ### 메트릭 그룹별 제공 메트릭
+</div>
+
+<div id="engagement">
+  #### `ENGAGEMENT`
+</div>
+
+|     |     |     |     |     |
+| :--- | :--- | :--- | :--- | :--- |
+| Metric | Description | Segmentation Available | Data Type | Available for Account / Funding Instrument |
+| `engagements` | 총 참여 횟수 | ✔   | 정수 배열 | ✔   |
+| `impressions` | 총 노출 수 | ✔   | 정수 배열 | ✔   |
+| `retweets` | 총 리트윗 수 | ✔   | 정수 배열 | ✔   |
+| `replies` | 총 답글 수 | ✔   | 정수 배열 | ✔   |
+| `likes` | 총 좋아요 수 | ✔   | 정수 배열 | ✔   |
+| `follows` | 총 팔로우 수 | ✔   | 정수 배열 | ✔   |
+| `card_engagements` | 총 카드 참여 수 | ✔   | 정수 배열 |     |
+| `clicks` | 즐겨찾기 및 기타 참여를 포함한 총 클릭 수 | ✔   | 정수 배열 |     |
+| `app_clicks` | App 설치 또는 실행 시도 횟수 | ✔   | 정수 배열 |     |
+| url&#95;clicks | 프로모션 내 링크 또는 Website Card에 대한 총 클릭 수(획득 트래픽 포함) | ✔   | 정수 배열 |     |
+| `qualified_impressions` | 총 유효 노출 수 | ✔   | 정수 배열 |     |
+| `carousel_swipes` | Carousel 이미지 또는 동영상에 대한 총 스와이프 수 | ✔   | 정수 배열 |     |
+
+<div id="billing">
+  #### `BILLING`
+</div>
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| Metric | 설명 | 세분화 가능 여부 | Data Type |
+| `billed_engagements` | 청구된 참여의 총 수 | ✔   | 정수 배열 |
+| `billed_charge_local_micro` | 마이크로 단위의 총 지출 금액 | ✔   | 정수 배열 |
+
+<div id="video">
+  #### `VIDEO`
+</div>
+
+비디오 메트릭 정의 변경 안내:
+
+`VIDEO` 메트릭 그룹 내의 `video_total_views` 메트릭은 MRC 표준에 따라, 최소 2초 동안 화면의 50% 이상에 노출된 조회수를 집계합니다.
+
+기존 비디오 조회 정의인 “최소 3초 동안 100% 화면 노출”은 `VIDEO` 메트릭 그룹의 새로운 `video_3s100pct_views` 메트릭으로 계속 제공됩니다. 기존 조회 정의를 기준으로 입찰 및 과금하려면 새로 제공되는 `VIEW_3S_100PCT` bid&#95;unit을 사용하십시오.
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| Metric | Description | Segmentation Available | Data Type |
+| `video_total_views` | 비디오 조회수 합계 | ✔   | int 배열 |
+| `video_views_25` | 비디오의 최소 25%가 재생된 조회수 합계 | ✔   | int 배열 |
+| `video_views_50` | 비디오의 최소 50%가 재생된 조회수 합계 | ✔   | int 배열 |
+| `video_views_75` | 비디오의 최소 75%가 재생된 조회수 합계 | ✔   | int 배열 |
+| `video_views_100` | 비디오 전체가 재생된 조회수 합계 | ✔   | int 배열 |
+| `video_cta_clicks` | 콜투액션에 대한 클릭 수 합계 | ✔   | int 배열 |
+| `video_content_starts` | 비디오 재생 시작 횟수 합계 | ✔   | int 배열 |
+| `video_3s100pct_views` | 100% 화면 노출 상태에서 최소 3초 이상 재생된 조회수 합계 (레거시 `video_total_views`) | ✔   | int 배열 |
+| `video_6s_views` | 비디오의 최소 6초가 재생된 조회수 합계 | ✔   | int 배열 |
+| `video_15s_views` | 비디오의 최소 15초 또는 전체 재생 시간의 95%가 재생된 조회수 합계 | ✔   | int 배열 |
+
+<div id="media">
+  #### `MEDIA`
+</div>
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| 지표 | 설명 | 세분화 가능 여부 | 데이터 유형 |
+| `media_views` | 동영상, Vine, GIF, 이미지 전반에 걸친 미디어 조회 수 합계(자동 재생 및 클릭 포함). | ✔   | 정수 배열 |
+| `media_engagements` | 동영상, Vine, GIF, 이미지 전반에 걸친 미디어 클릭 수 합계. | ✔   | 정수 배열 |
+
+<div id="web_conversion">
+  #### `WEB_CONVERSION`
+</div>
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| Metric | Description | Segmentation Available | Data Type |
+| `conversion_purchases` | PURCHASE type의 전환 수 및 해당 매출액과 주문 수량 | `PLATFORMS`만 해당 | JSON object |
+| `conversion_sign_ups` | SIGN&#95;UP type의 전환 수 및 해당 매출액과 주문 수량 | `PLATFORMS`만 해당 | JSON object |
+| `conversion_site_visits` | SITE&#95;VISIT type의 전환 수 및 해당 매출액과 주문 수량 | `PLATFORMS`만 해당 | JSON object |
+| `conversion_downloads` | DOWNLOAD type의 전환 수 및 해당 매출액과 주문 수량 | `PLATFORMS`만 해당 | JSON object |
+| `conversion_custom` | CUSTOM type의 전환 수 및 해당 매출액과 주문 수량 | `PLATFORMS`만 해당 | JSON object |
+
+<div id="mobile_conversion">
+  #### `MOBILE_CONVERSION`
+</div>
+
+모바일 전환 지표는 MACT가 사용 설정된 광고주 계정에서만 제공됩니다.
+
+|                                            |                                                                                                                                              |           |         |
+| :----------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- | :-------- | :------ |
+| 지표                                         | 설명                                                                                                                                           | 세분화 가능 여부 | 데이터 유형  |
+| `mobile_conversion_spent_credits`          | SPENT&#95;CREDIT type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                     | ✔         | JSON 객체 |
+| `mobile_conversion_installs`               | INSTALL type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                              | ✔         | JSON 객체 |
+| `mobile_conversion_content_views`          | CONTENT&#95;VIEW type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                     | ✔         | JSON 객체 |
+| `mobile_conversion_add_to_wishlists`       | ADD&#95;TO&#95;WISHLIST type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값              | ✔         | JSON 객체 |
+| `mobile_conversion_checkouts_initiated`    | CHECKOUT&#95;INITIATED type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값               | ✔         | JSON 객체 |
+| `mobile_conversion_reservations`           | RESERVATION type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                          | ✔         | JSON 객체 |
+| `mobile_conversion_tutorials_completed`    | TUTORIAL&#95;COMPLETED type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값               | ✔         | JSON 객체 |
+| `mobile_conversion_achievements_unlocked`  | ACHIEVEMENT&#95;UNLOCKED type 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값             | ✔         | JSON 객체 |
+| `mobile_conversion_searches`               | 모바일 전환 중 type이 SEARCH인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                        | ✔         | JSON 객체 |
+| `mobile_conversion_add_to_carts`           | 모바일 전환 중 type이 ADD&#95;TO&#95;CART인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값           | ✔         | JSON 객체 |
+| `mobile_conversion_payment_info_additions` | 모바일 전환 중 type이 PAYMENT&#95;INFO&#95;ADDITION인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값 | ✔         | JSON 객체 |
+| `mobile_conversion_re_engages`             | 모바일 전환 중 type이 RE&#95;ENGAGE인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                 | ✔         | JSON 객체 |
+| `mobile_conversion_shares`                 | 모바일 전환 중 type이 SHARE인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                         | ✔         | JSON 객체 |
+| `mobile_conversion_rates`                  | 모바일 전환 중 type이 RATE인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                          | ✔         | JSON 객체 |
+| `mobile_conversion_logins`                 | 모바일 전환 중 type이 LOGIN인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                         | ✔         | JSON 객체 |
+| `mobile_conversion_updates`                | 모바일 전환 중 type이 UPDATE인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값                        | ✔         | JSON 객체 |
+| `mobile_conversion_levels_achieved`        | 모바일 전환 중 type이 LEVEL&#95;ACHIEVED인 항목을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 세분화한 값            | ✔         | JSON 객체 |
+| `mobile_conversion_invites`                | type가 INVITE인 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 구분한 값                              | ✔         | JSON 객체 |
+| `mobile_conversion_key_page_views`         | type가 KEY&#95;PAGE&#95;VIEW인 모바일 전환을 post&#95;view 및 post&#95;engagement별로 구분한 값                                                             | ✔         | JSON 객체 |
+| mobile&#95;conversion&#95;downloads        | type가 DOWNLOAD인 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 구분한 값                            | ✔         | JSON 객체 |
+| mobile&#95;conversion&#95;purchases        | type가 PURCHASE인 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 구분한 값                            | ✔         | JSON 객체 |
+| mobile&#95;conversion&#95;sign&#95;ups     | type가 SIGN&#95;UP인 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 구분한 값                         | ✔         | JSON 객체 |
+| mobile&#95;conversion&#95;site&#95;visits  | type가 SITE&#95;VISIT인 모바일 전환을 post&#95;view, post&#95;engagement, assisted, order&#95;quantity, sale&#95;amount별로 구분한 값                      | ✔         | JSON 객체 |
+
+<div id="life_time_value_mobile_conversion">
+  #### `LIFE_TIME_VALUE_MOBILE_CONVERSION`
+</div>
+
+누적 모바일 전환 통계는 MACT가 활성화된 광고주 계정에서만 제공됩니다.
+
+|     |     |     |     |
+| :--- | :--- | :--- | :--- |
+| Metric | Description | Segmentation Available | Data Type |
+| `mobile_conversion_lifetime_value_purchases` | `PURCHASE` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_sign_ups` | `SIGN_UP` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_updates` | `UPDATE` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_tutorials_completed` | `TUTORIAL_COMPLETED` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_reservations` | `RESERVATION` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_add_to_carts` | `ADD_TO_CART` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_add_to_wishlists` | `ADD_TO_WISHLIST` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_checkouts_initiated` | `CHECKOUT_INITIATED` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_levels_achieved` | `LEVEL_ACHIEVED` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_achievements_unlocked` | `ACHIEVEMENT_UNLOCKED` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_shares` | `SHARE` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_invites` | `INVITE` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_payment_info_additions` | `PAYMENT_INFO_ADDITION` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_spent_credits` | `SPENT_CREDIT` type 모바일 전환의 세부 내역 |     | JSON object |
+| `mobile_conversion_lifetime_value_rates` | `RATE` type 모바일 전환의 세부 내역 |     | JSON object |
+
+<div id="segmentation">
+  ### 세분화
+</div>
+
+세분화 보고를 사용하면 특정 타기팅 type의 값별로 분리된 지표를 조회할 수 있습니다. 세분화는 복잡도가 상당히 높기 때문에 [비동기 분석 쿼리](/ko/x-ads-api/analytics#asynchronous-analytics)를 통해서만 사용할 수 있습니다.
+
+세분화는 `MEDIA_CREATIVE` 또는 `ORGANIC_TWEET` 엔티티에는 지원되지 **않습니다**.
+
+일부 세분화 type은 추가 파라미터를 함께 전달해야 합니다. 이에 대해서는 아래에서 설명합니다.
+
+`CITIES` 또는 `POSTAL_CODES` 기준으로 세분화할 때, API는 타기팅된 위치만을 **반환**합니다. 지역(region) 및 대도시권(metro) 세분화는 타기팅된 위치와 타기팅되지 않은 위치를 모두 반환합니다.
+
+|     |     |     |
+| :--- | :--- | :--- |
+| 세분화 type | `country` 파라미터 필요 | `platform` 파라미터 필요 |
+| `AGE` |     |     |
+| `APP_STORE_CATEGORY` |     |     |
+| `AUDIENCES` |     |     |
+| `CITIES` | ✔   |     |
+| `CONVERSATIONS` |     |     |
+| `CONVERSION_TAGS` |     |     |
+| `DEVICES` |     | ✔   |
+| `EVENTS` |     |     |
+| `GENDER` |     |     |
+| `INTERESTS` |     |     |
+| `KEYWORDS` |     |     |
+| `LANGUAGES` |     |     |
+| `LOCATIONS` |     |     |
+| `METROS` | ✔   |     |
+| `PLATFORMS` |     |     |
+| `PLATFORM_VERSIONS` |     | ✔   |
+| `POSTAL_CODES` | ✔   |     |
+| `REGIONS` | ✔   |     |
+| `SLIDES` |     |     |
+| `SIMILAR_TO_FOLLOWERS_OF_USER` |     |     |
+| `TV_SHOWS` |     |     |
+
+<div id="derived-metrics">
+  ## 파생 지표
+</div>
+
+캠페인 지표는 [캠페인 목표](/ko/x-ads-api/campaign-management)에 따라 달라집니다. 이 가이드를 참고하여 설정된 목표에 따라 사용할 파생 지표를 어떻게 산출할지 결정하세요.
+
+중괄호가 없는 `metric`은 Ads API [analytics](/ko/x-ads-api/analytics#synchronous-analytics) 엔드포인트에서 반환되는 지표입니다. &#123;중괄호&#125;로 둘러싸인 모든 이름은 해당 카테고리의 파생 지표를 나타냅니다.
+
+<div id="engagements">
+  ### 참여(ENGAGEMENTS)
+</div>
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 공개 지표 계산식 |
+| {Impressions} | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| &#123;Total Engagements&#125; | `promoted_account_follows + promoted_tweet_search_engagements + promoted_tweet_timeline_engagements + promoted_tweet_profile_engagements` or `promoted_account_follows + promoted_tweet_search_clicks + promoted_tweet_search_replies + promoted_tweet_search_retweets + promoted_tweet_search_follows + promoted_tweet_timeline_clicks + promoted_tweet_timeline_replies + promoted_tweet_timeline_retweets + promoted_tweet_timeline_follows + promoted_tweet_profile_clicks + promoted_tweet_profile_replies + promoted_tweet_profile_retweets + promoted_tweet_profile_follows` |
+| &#123;Engagement Rate&#125; | `{Total Engagements} / {Impressions}` |
+| {CPE} | `billed_charge_local_micro / {Total Engagements}` |
+| &#123;Media Views&#125; | `promoted_tweet_timeline_media_views + promoted_tweet_search_media_views + promoted_tweet_profile_media_views` |
+| &#123;Media View Rate&#125; | `{Media Views} / {Impressions}` |
+
+<div id="website_clicks">
+  ### WEBSITE_CLICKS
+</div>
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 표시 지표 계산식 |
+| {Impressions} | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| &#123;Link Clicks&#125; | `promoted_tweet_search_url_clicks + promoted_tweet_timeline_url_clicks + promoted_tweet_profile_url_clicks` |
+| &#123;Click Rate&#125; | `{Link Clicks} / {Impressions}` |
+| {CPLC} | `billed_charge_local_micro / {Link Clicks}` |
+| {Conversion} | `conversion_site_visits` |
+| &#123;Conversion Rate&#125; | `conversion_site_visits / {Impressions}` |
+| {CPA} | `billed_charge_local_micro / conversion_site_visits` |
+
+### APP_INSTALLS 및 APP_ENGAGEMENTS
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 공개 지표 계산식 |
+| {Impressions} | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| &#123;App Clicks&#125; | `promoted_tweet_app_install_attempts + promoted_tweet_app_open_attempts + promoted_tweet_timeline_url_clicks + promoted_tweet_search_url_clicks` |
+| &#123;App Click Rate&#125; | `{App Clicks} / {Impressions}` |
+| {CPAC} | `billed_charge_local_micro / {App Clicks}` |
+| {CPI} | `billed_charge_local_micro / mobile_conversion_installs` |
+
+### 팔로워
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 표시 지표 계산식 |
+| {노출수} | `promoted_account_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| {Followers} | `promoted_account_follows` |
+| &#123;팔로우율&#125; | `promoted_account_follow_rate` |
+| {CPF} | `billed_charge_local_micro / promoted_account_follows` |
+| &#123;미디어 조회수&#125; | `promoted_tweet_timeline_media_views + promoted_tweet_search_media_views + promoted_tweet_profile_media_views` |
+| &#123;미디어 조회율&#125; | `{Media Views} / {Impressions}` |
+
+### LEAD_GENERATION
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 노출 지표 산식 |
+| {노출수} | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| {리드} | `promoted_tweet_search_card_engagements + promoted_tweet_timeline_card_engagements + promoted_tweet_profile_card_engagements` |
+| &#123;리드율&#125; | `{Leads} / {Impressions}` |
+| &#123;리드당 비용&#125; | `billed_charge_local_micro / {Leads}` |
+
+### VIDEO_VIEWS
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 노출 지표 기반 계산식 |
+| {Impressions} | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| &#123;Video Views&#125; | `promoted_video_total_views` |
+| &#123;Video Rate&#125; | `promoted_video_total_views / {Impressions}` |
+| &#123;Cost Per View&#125; | `billed_charge_local_micro / promoted_video_total_views` |
+
+<div id="qualified_impressions">
+  ### QUALIFIED_IMPRESSIONS
+</div>
+
+|     |     |
+| :--- | :--- |
+| 파생 지표 | 노출 지표 계산 |
+| {Impressions} | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM} | `billed_charge_local_micro / {Impressions} / 1000` |
+| &#123;Qualified Impressions&#125; | `promoted_tweet_timeline_qualified_impressions + promoted_tweet_search_qualified_impressions + promoted_tweet_profile_qualified_impressions` |
+| &#123;Qualified Impression Rate&#125; | `{Qualified Impressions} / {Impressions}` |
+| &#123;Cost Per 1000 Qualified Impressions &#125; | `billed_charge_local_micro / {Qualified Impressions} / 1000` |
+
+<div id="custom">
+  ### 커스텀
+</div>
+
+`placement_type`가 `PROMOTED_ACCOUNT`인 경우 위의 `FOLLOWERS` 목표를 참조하세요. 이 목표를 사용하는 그 외 모든 게재 위치의 경우, 해당 파생 지표에 대해서는 `ENGAGEMENTS`를 참조하세요.
+
+<div id="guides">
+  ## 가이드
+</div>
+
+<div id="active-entities">
+  ### 활동 중인 엔티티
+</div>
+
+<div id="introduction">
+  #### 소개
+</div>
+
+[Active Entities 엔드포인트](/ko/x-ads-api/analytics#get-stats-accounts-account-id-active-entities)는 어떤 캠페인에 대해 애널리틱스를 조회해야 하는지 알려 주므로, 당사의 [동기식](/ko/x-ads-api/analytics#get-stats-accounts-account-id) 및 [비동기식](/ko/x-ads-api/analytics#asynchronous-analytics) 애널리틱스 엔드포인트와 함께 사용하도록 설계되었습니다. 이 엔드포인트는 광고 엔티티와 해당 메트릭이 언제 변경되었는지에 대한 세부 정보를 반환함으로써 이를 제공합니다. 이 엔드포인트를 사용하면 코드와 애널리틱스 조회 로직을 크게 단순화할 수 있습니다.
+
+이 가이드는 엔드포인트와 그 데이터 소스에 대한 정보와 관련 맥락을 제공합니다. 또한 [사용 지침](#usage)과 일련의 [요청 예제](#example)를 통해 애널리틱스 엔드포인트와 함께 Active Entities를 사용하는 방법을 보여 줍니다. [요약 섹션](#summary)에서는 권장 접근 방식에 대한 개괄적인 설명을 제공합니다.
+
+<div id="data">
+  #### 데이터
+</div>
+
+광고 엔티티의 지표가 변경될 때마다 해당 변경에 대한 정보를 기록합니다. 이러한 변경 이벤트는 시간 단위 버킷에 저장되며, 엔티티에 대한 세부 정보뿐 아니라 해당 변경이 적용되는 시점에 대한 정보도 포함합니다. 변경 이벤트가 항상 기록된 시점과 일치하지는 않기 때문에 후자의 정보가 필요합니다. 과금 조정이 대표적인 이유이지만, 그 밖에도 다른 이유들이 있습니다.
+
+<div id="endpoint">
+  #### 엔드포인트
+</div>
+
+<div id="request">
+  ### Request
+</div>
+
+Active Entities 요청은 ads 계정 단위로 범위가 지정되며, 세 가지 필수 쿼리 매개변수인 `entity`, `start_time`, `end_time`이 필요합니다.
+
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=PROMOTED_TWEET&start_time=2019-03-05T00:00:00Z&end_time=2019-03-06T00:00:00Z"`
+
+지원되는 `entity` 값은 다음과 같습니다: `CAMPAIGN`, `FUNDING_INSTRUMENT`, `LINE_ITEM`, `MEDIA_CREATIVE`, `PROMOTED_ACCOUNT`, `PROMOTED_TWEET`. 이는 당사 분석 엔드포인트가 지원하는 엔티티 type을 반영한 것입니다.
+
+`start_time`과 `end_time` 값은 [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 지정해야 하며, 조회할 시간 단위 구간(hourly buckets)을 지정합니다. 이 값들은 반드시 정시 단위로만 지정해야 합니다.
+
+이 엔드포인트는 결과를 필터링하는 데 사용할 수 있는 세 가지 선택적 매개변수도 지원합니다: `funding_instrument_ids`, `campaign_ids`, `line_item_ids`. 이 매개변수들은 광고 계층 구조의 모든 레벨에서, 그리고 지정한 어떤 `entity` type과도 함께 사용할 수 있습니다.
+
+<div id="response">
+  ### 응답
+</div>
+
+위 요청에 대한 Active Entities 응답은 다음과 같습니다.
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "entity": "PROMOTED_TWEET",
+          "start_time": "2019-03-05T00:00:00Z",
+          "end_time": "2019-03-06T00:00:00Z"
+        }
+      },
+      "data": [
+        {
+          "entity_id": "2r0wxw",
+          "activity_start_time": "2019-03-04T20:55:20Z",
+          "activity_end_time": "2019-03-05T03:43:56Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        },
+        {
+          "entity_id": "2r30fn",
+          "activity_start_time": "2019-03-05T08:11:08Z",
+          "activity_end_time": "2019-03-05T14:40:59Z",
+          "placements": [
+            "ALL_ON_TWITTER",
+            "PUBLISHER_NETWORK"
+          ]
+        }
+      ]
+    }
+```
+
+`data` 배열에는 이후 분석 요청에 포함되어야 하는 각 엔티티마다 하나의 객체가 포함됩니다. 이 집합에 포함되지 않은 ID에 대해서는 분석을 요청해서는 안 됩니다.
+
+각 객체에는 네 개의 필드가 있습니다: `entity_id`, `activity_start_time`, `activity_end_time`, `placements`. activity 시작 및 종료 시각은 연관된 엔티티의 변경 이벤트가 적용되는 기간을 나타내며, 따라서 이후 분석 요청에서 지정해야 하는 날짜 범위를 결정합니다. `placements` 배열에는 `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, `TREND` 값을 포함할 수 있습니다. 이 값들은 해당 엔티티 ID에 대해 어떤 placement를 요청해야 하는지를 나타냅니다.
+
+<div id="usage">
+  #### 사용 방법
+</div>
+
+Active Entities 엔드포인트는 애널리틱스 요청 방식을 결정하는 기준이 되어야 합니다. 아래 사용 지침은 애널리틱스 동기화를 지원하여 파트너가 자신의 데이터 스토어를 Twitter와 동기화된 상태로 유지할 수 있도록 하기 위해 작성되었습니다. 다시 말해, 정기적인 백그라운드 동기화를 수행하는 방법을 설명합니다.
+
+개발자는 두 가지 결정을 내려야 합니다.
+
+1. 활성 엔티티 정보를 얼마나 자주 요청할지, 그리고 그에 따라 애널리틱스를 얼마나 자주 가져올지.
+2. 활동 시작 및 종료 시간을 어떻게 사용하여 애널리틱스 요청의 `start_time` 및 `end_time` 값을 결정할지.
+
+이 두 가지는 아래 요약 뒤에 나오는 두 개의 하위 섹션에서 각각 더 자세히 설명합니다.
+
+<div id="summary">
+  ### 요약
+</div>
+
+다음과 같은 방식으로 Active Entities 엔드포인트를 사용해 애널리틱스 요청 방식을 정의합니다. 활성 엔티티 정보를 얼마나 자주 요청할지, 따라서 애널리틱스를 얼마나 자주 수집할지 결정한 후에 이 절차를 따르세요.
+
+1. Active Entities 요청을 보냅니다.
+2. 응답을 placement 기준으로 분리합니다. `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, `TREND` 각각에 대해 하나의 그룹을 만듭니다.
+3. 각 placement 그룹에 대해 다음을 수행합니다.
+   1. 엔티티 id를 추출합니다.
+   2. 애널리틱스 `start_time` 및 `end_time` 값을 결정합니다.
+      * 최소 `activity_start_time`을 찾습니다. 이 값을 내림 처리합니다.
+      * 최대 `activity_end_time`을 찾습니다. 이 값을 올림 처리합니다.
+   3. 애널리틱스 요청을 보냅니다.
+      * 엔티티 id를 20개씩 배치로 그룹화합니다.
+      * #3b에서 정의한 `start_time` 및 `end_time` 값을 사용합니다.
+      * 적절한 `placement` 값을 지정합니다.
+   4. 데이터 저장소에 기록합니다.
+
+Python SDK를 사용하는 예제로 [active&#95;entities.py](https://github.com/xdevplatform/twitter-python-ads-sdk/blob/master/examples/active_entities.py)를 참고하세요.
+
+<div id="frequency">
+  ### 빈도
+</div>
+
+첫 번째 질문에 대한 답변이 Active Entities 요청에 사용해야 하는 시간 범위를 결정합니다. 예를 들어, 활성 엔티티 정보를 매시간 요청하는 경우 시간 범위는 1시간이어야 합니다. 활성 엔티티 정보를 하루에 한 번 요청하는 경우 시간 범위는 하루가 되어야 합니다. 즉, 현재 요청의 `start_time`이 이전 요청의 `end_time`과 같도록 시간 범위를 선택해야 합니다.
+
+<Note>
+  **Note**: 하나의 시간 구간(time window)은 한 번만 요청해야 합니다. 동일한 시간 구간을 두 번 이상 요청하면 불필요한 애널리틱스 요청이 발생합니다. (아래 예외 참고.)
+</Note>
+
+파트너가 *현재* 시간에 대해 한 시간 동안 여러 번 애널리틱스를 요청하려는 경우에도 동일한 패턴이 적용됩니다. 즉, 요청 빈도가 시간 범위를 결정합니다. 아래 표는 이 시나리오에서 Active Entities 요청에 대한 예시 `start_time` 및 `end_time` 타임스탬프를 보여줍니다.
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **요청 시각** | **`start_time` 타임스탬프** | **`end_time` 타임스탬프** |
+| 00:15:00 | 00:00:00 | 00:15:00 |
+| 00:30:00 | 00:15:00 | 00:30:00 |
+| 00:45:00 | 00:30:00 | 00:45:00 |
+| 01:00:00 | 00:45:00 | 01:00:00 |
+
+변경 이벤트가 저장되는 방식 때문에, 위 네 개의 Active Entities 요청은 모두 동일한 1시간 단위 버킷을 조회하게 되며, 이 사용 사례에서는 이것이 필요합니다. 그러나 해당 시간이 지난 뒤에는 이 시간별 버킷을 더 이상 조회해서는 안 됩니다.
+
+<div id="activity-times">
+  ### 활동 시간
+</div>
+
+활동 시작 및 종료 시간을 다룰 때는 다음과 같은 방식을 권장합니다. Active Entities 응답의 모든 객체에서 최소 `activity_start_time`과 최대 `activity_end_time`을 찾습니다. 그런 다음 최소 활동 시작 시간은 내림하고, 최대 활동 종료 시간은 올림합니다. 구체적으로 두 시각 모두 시, 분, 초를 0으로 설정하고 종료 시간에는 하루를 더합니다. 아래 표와 같습니다. 이렇게 도출된 값이 이후 분석 요청에서 지정해야 할 시작 및 종료 시간입니다.
+
+|     |     |
+| :--- | :--- |
+| **최소/최대 활동 시간** | **도출된 시간** |
+| 2019-03-04T20:55:20Z  <br />  <br />2019-03-05T14:40:59Z | 2019-03-04T00:00:00Z  <br />  <br />2019-03-06T00:00:00Z |
+
+**참고**: 시, 분, 초가 0으로 설정된 타임스탬프를 포함하는 것이 중요합니다. 그렇지 않고 날짜만 전달되면, 광고 계정의 표준 시간대에서 자정부터 자정까지의 분석을 요청한 것으로 간주되며, 이는 원치 않는 결과일 수 있습니다. 예를 들어, 최소 활동 시작 시간이 2019-02-28T01:30:07Z인데, 오프셋이 -08:00:00인 광고 계정에서 타임스탬프를 생략하면, 분석 요청에서는 01:30과 08:00 사이에 발생한 변경 사항을 놓치게 됩니다.
+
+또는, 전체 날짜로 확장하지 않고 반환된 활동 시간 구간에 대해서만 분석을 요청하길 원한다면, 그렇게 할 수도 있습니다. 이 접근 방식을 사용할 때 도출되는 시작 및 종료 시간은 각각 2019-03-04T20:00:00Z와 2019-03-05T15:00:00Z가 됩니다. (이처럼 하루 미만 길이의 범위는 분석 요청에서 `DAY` 단위를 지정한 경우에는 허용되지 않는다는 점에 유의하세요.)
+
+<div id="example">
+  #### 예제
+</div>
+
+이 섹션은 동기식 분석 엔드포인트와 함께 Active Entities를 사용하는 방법을 보여줍니다. (응답은 가독성을 위해 약간 수정되었습니다.) 이 예제에서는 Active Entities 엔드포인트를 매 시 정각마다 호출하며, 각 요청은 직전 한 시간을 대상으로 합니다. 해당 응답을 기반으로 동기식 분석 엔드포인트를 어떻게 사용할지 결정합니다.
+
+첫 번째 Active Entities 요청은 03:00:00에 전송됩니다. 응답은 line item dvcz7의 메트릭이 변경되었으며, 해당 변경 이벤트가 02:02:55부터 02:28:12 사이의 시간 구간에 적용된다는 것을 나타냅니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=LINE_ITEM&start_time=2019-02-11T02:00:00Z&end_time=2019-02-11T03:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": [
+        {
+          "entity_id": "dvcz7",
+          "activity_start_time": "2019-02-11T02:02:55Z",
+          "activity_end_time": "2019-02-11T02:58:12Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        }
+      ]
+    }
+```
+
+위에서 설명한 접근 방식을 사용하고 이러한 활동 시작 및 종료 시간을 기준으로 애널리틱스 `start_time` 및 `end_time` 값은 각각 2019-02-11T00:00:00Z와 2019-02-12T00:00:00Z로 설정됩니다. 아래의 각 metrics 배열에서 세 번째 요소가 활성 엔티티 정보를 바탕으로 예상했던 대로 0이 아닌 값임을 확인할 수 있습니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=dvcz7&start_time=2019-02-11T00:00:00Z&end_time=2019-02-12T00:00:00Z&granularity=HOUR&metric_groups=ENGAGEMENT,VIDEO&placement=ALL_ON_TWITTER"`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 24,
+      "data": [
+        {
+          "id": "dvcz7",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  0,0,2792,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "engagements": [
+                  0,0,60,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "video_total_views": [
+                  0,0,1326,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "request": {}
+    }
+```
+
+다음 Active Entities 요청은 04:00:00에 실행되며, 직전 1시간만을 조회합니다. 앞에서 언급했듯이 하나의 시간 구간(time window)은 한 번만 요청해야 합니다. 응답을 보면, 이 라인 아이템에 대한 변경 이벤트가 02:00:00과 03:00:00 *둘 다*에 적용됨을 알 수 있습니다. 이어지는 analytics 요청에서는 두 시간 모두에 대한 변경 사항이 포함되어 있을 것으로 예상합니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity= LINE_ITEM&start_time=2019-02-11T03:00:00Z&end_time=2019-02-11T04:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": [
+        {
+          "entity_id": "dvcz7",
+          "activity_start_time": "2019-02-11T02:07:17Z",
+          "activity_end_time": "2019-02-11T03:49:22Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        }
+      ]
+    }
+```
+
+03:00:00 시간대에 0이 아닌 지표가 표시되는 것뿐만 아니라, 노출 수, 지출액, MRC 동영상 조회수도 이전 값에서 업데이트된 것을 확인할 수 있습니다. 예를 들어 노출 수는 02:00:00 시간대에 대해 이전 2,792에서 2,995로 증가했습니다. 이는 03:00:00 시간대에 기록된 변경 이벤트가 02:00:00 시간대에 어떻게 적용되는지를 보여줍니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=dvcz7&start_time=2019-02-11T00:00:00Z&end_time=2019-02-12T00:00:00Z&granularity=HOUR&metric_groups=ENGAGEMENT,VIDEO&placement=ALL_ON_TWITTER"`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 24,
+      "data": [
+        {
+          "id": "dvcz7",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  0,0,2995,734,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "engagements": [
+                  0,0,65,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "video_total_views": [
+                  0,0,1449,342,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "request": {}
+    }
+```
+
+05:00:00에 수행한 Active Entities 요청에서 역시 직전 1시간만 살펴보면, 변경 이벤트는 03:00:00 한 시간 구간에만 적용된다는 것을 알 수 있습니다. 이후 요청에서 애널리틱스 메트릭의 변경 내용은 이를 반영합니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=LINE_ITEM&start_time=2019-02-11T04:00:00Z&end_time=2019-02-11T05:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": [
+        {
+          "entity_id": "dvcz7",
+          "activity_start_time": "2019-02-11T03:42:39Z",
+          "activity_end_time": "2019-02-11T03:48:48Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        }
+      ]
+    }
+```
+
+analytics 응답에서는 03:00:00 시점의 메트릭만 변경되었고, 02:00:00 시점의 값은 이전 analytics 요청 때와 동일합니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids= dvcz7&start_time=2019-02-11T00:00:00Z&end_time=2019-02-12T00:00:00Z&granularity=HOUR&metric_groups=ENGAGEMENT,VIDEO&placement=ALL_ON_TWITTER"`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 24,
+      "data": [
+        {
+          "id": "dvcz7",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  0,0,2995,753,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "engagements": [
+                  0,0,65,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "video_total_views": [
+                  0,0,1449,351,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "request": {}
+    }
+```
+
+마지막으로 06:00:00 시점에는 추가 변경 이벤트가 없음을 확인할 수 있습니다. **참고**: 하지만 그렇다고 해서 이 라인 아이템의 지표가 이후에 변경되지 *않는다는* 의미는 아닙니다.
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=LINE_ITEM&start_time=2019-02-11T05:00:00Z&end_time=2019-02-11T06:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": []
+    }
+```
+
+<div id="asynchronous-guide">
+  ### 비동기 처리 가이드
+</div>
+
+<div id="api-reference">
+  ## API 참조 문서
+</div>
+
+<div id="asynchronous-analytics">
+  ### 비동기 분석
+</div>
+
+<div id="introduction">
+  #### 소개
+</div>
+
+비동기 분석 엔드포인트를 사용하면 파트너와 광고주가 생성 요청을 제출하고, 서버가 메트릭 계산을 비동기적으로 처리하도록 할 수 있습니다. (이를 비동기 분석 &quot;작업(job)&quot;이라고 부릅니다.) 이 방식에서는 요청이 완료될 때까지 클라이언트 연결을 계속 열어 둘 필요가 없습니다.
+
+이 엔드포인트는 동기식 엔드포인트와 마찬가지로 파트너와 광고주가 캠페인 성과에 대한 상세 통계를 요청할 수 있도록 해 줍니다. 계정, 펀딩 인스트루먼트, 캠페인, 라인 아이템, 프로모션된 Tweet, 미디어 크리에이티브에 대한 데이터 요청을 지원합니다. 동기식 엔드포인트와의 차이점은 비동기 분석 엔드포인트가 최대 90일까지의 더 긴 기간뿐 아니라 세분화까지 지원한다는 점입니다. 두 방식 간 차이에 대한 추가 정보는 [Analytics 개요](/ko/x-ads-api/analytics) 페이지에서 확인할 수 있습니다.
+
+동기식 엔드포인트와 달리, rate limiting(요청 제한)은 특정 계정에 대해 동시에 실행 중인 작업 수를 기준으로 합니다. 다시 말해, 특정 시점에 처리 상태에 있을 수 있는 작업 수에 따라 결정됩니다. 이는 광고 계정 단위로 계산됩니다.
+
+<div id="usage">
+  #### 사용 방법
+</div>
+
+비동기 분석 엔드포인트를 사용해 캠페인 메트릭을 가져오려면 여러 단계를 거쳐야 합니다. 작업을 생성하고, 해당 작업의 처리가 완료되었는지 확인한 다음, 마지막으로 데이터를 다운로드하는 과정이 포함됩니다. 데이터 파일은 압축을 해제해야 합니다. 아래에 네 가지 구체적인 단계를 정리했습니다.
+
+1. [POST stats/jobs/accounts/:account&#95;id](/ko/x-ads-api/analytics#asynchronous-analytics) 엔드포인트를 사용해 작업을 생성합니다.
+2. 작업 처리가 완료되었는지 확인하기 위해, 일정한 간격으로 [GET stats/jobs/accounts/:account&#95;id](/ko/x-ads-api/analytics#asynchronous-analytics) 엔드포인트에 요청을 보냅니다.
+3. 작업 처리가 완료되면 데이터 파일을 다운로드합니다.
+4. 데이터 파일의 압축을 해제합니다.
+
+데이터 파일에서 반환되는 응답 객체(response object)는 동기식 분석 엔드포인트의 응답과 동일한 JSON 스키마를 사용합니다.
+
+세분화된 캠페인 메트릭은 비동기 분석 엔드포인트를 통해서만 제공합니다. 캠페인 메트릭은 위치, 성별, 관심사, 키워드 등으로 나누어 볼 수 있습니다. 사용 가능한 전체 옵션 목록은 [Metrics and Segmentation](/ko/x-ads-api/analytics#metrics-and-segmentation) 페이지를 참조하세요. 세분화된 메트릭을 요청하려면 작업을 생성할 때 `segmentation_type` 요청 파라미터를 사용하세요.
+
+#### 예시
+
+이 섹션에서는 비동기 분석 엔드포인트를 사용하는 방법을 보여줍니다.
+
+먼저 [POST stats/jobs/accounts/:account&#95;id](/ko/x-ads-api/analytics#asynchronous-analytics) 엔드포인트를 사용해 작업을 생성합니다. 아래 예시는 특정 라인 아이템에 대해 일주일 동안의 노출 수, 좋아요, 클릭 수 등과 같은 참여 지표를 요청합니다. (요청한 시간 범위의 타임스탬프가 자정으로 설정되어 있기 때문에, 3월 20일은 포함되지 않고 그 직전 시점까지만 포함된다는 점에 유의하세요.)
+
+```
+$ twurl -X POST -H ads-api.x.com "/9/stats/jobs/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=el32n&start_time=2019-03-12T00:00:00Z&end_time=2019-03-20T00:00:00Z&granularity=TOTAL&placement=ALL_ON_TWITTER&metric_groups=ENGAGEMENT"
+```
+
+```json
+    {
+      "request": {
+        "params": {
+          "start_time": "2019-03-12T00:00:00Z",
+          "entity_ids": [
+            "el32n"
+          ],
+          "end_time": "2019-03-20T00:00:00Z",
+          "placement": "ALL_ON_TWITTER",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      },
+      "data": {
+        "start_time": "2019-03-12T00:00:00Z",
+        "segmentation_type": null,
+        "url": null,
+        "id_str": "1120829647711653888",
+        "entity_ids": [
+          "el32n"
+        ],
+        "end_time": "2019-03-20T00:00:00Z",
+        "country": null,
+        "placement": "ALL_ON_TWITTER",
+        "id": 1120829647711653888,
+        "expires_at": null,
+        "account_id": "18ce54d4x5t",
+        "status": "PROCESSING",
+        "granularity": "TOTAL",
+        "entity": "LINE_ITEM",
+        "created_at": "2019-04-23T23:19:46Z",
+        "platform": null,
+        "updated_at": "2019-04-23T23:19:46Z",
+        "metric_groups": [
+          "ENGAGEMENT"
+        ]
+      }
+    }
+```
+
+이 응답에는 라인 아이템 메트릭이 포함되지 않습니다. 방금 생성한 작업에 대한 정보만 제공합니다. 작업 상태를 확인하려면 작업 ID가 필요합니다. 이 ID는 응답의 `id` 및 `id_str` 속성 모두에 표시됩니다.
+
+다음으로, 이전 응답에서 받은 `id_str`를 사용해 생성한 작업이 응답에서 `"status": "SUCCESS"`로 표시된 것처럼 처리가 완료되었는지 확인해야 합니다. 이는 데이터를 다운로드할 준비가 되었다는 의미입니다. `url` 필드에는 다운로드 링크가 포함되어 있습니다.
+
+```
+$ twurl -H ads-api.x.com "/9/stats/jobs/accounts/18ce54d4x5t?job_ids=1120829647711653888"
+```
+
+```json
+    {
+      "request": {
+        "params": {
+          "job_ids": [
+            1120829647711653888
+          ]
+        }
+      },
+      "next_cursor": "1120828505715920896",
+      "data": [
+        {
+          "start_time": "2019-03-12T00:00:00Z",
+          "segmentation_type": null,
+          "url": "https://ton.twimg.com/advertiser-api-async-analytics/zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz",
+          "id_str": "1120829647711653888",
+          "entity_ids": [
+            "el32n"
+          ],
+          "end_time": "2019-03-20T00:00:00Z",
+          "country": null,
+          "placement": "ALL_ON_TWITTER",
+          "id": 1120829647711653900,
+          "expires_at": "2019-04-25T23:19:48Z",
+          "account_id": "18ce54d4x5t",
+          "status": "SUCCESS",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "created_at": "2019-04-23T23:19:46Z",
+          "platform": null,
+          "updated_at": "2019-04-23T23:19:48Z",
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      ]
+    }
+```
+
+위 예시에서는 단일 작업 ID만 전달하고 있지만, 실제로는 `job_ids` 파라미터를 사용해 최대 200개의 작업 ID를 지정하여 여러 작업의 상태를 한 번에 확인하는 것이 좋습니다.
+
+다음으로, 나열된 `url` 값을 사용해 데이터 파일을 다운로드합니다.
+
+```
+    $ wget https://ton.twimg.com/advertiser-api-async-analytics/zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz
+    --2019-04-23 17:52:12--  https://ton.twimg.com/advertiser-api-async-analytics/zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz
+    Resolving ton.twimg.com (ton.twimg.com)... 72.21.91.70
+    Connecting to ton.twimg.com (ton.twimg.com)|72.21.91.70|:443... connected.
+    HTTP request sent, awaiting response... 200 OK
+    Length: 381 [application/gzip]
+    Saving to: 'zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz'
+
+    zBkuuPeEVx-5OygDVcZpqNtwt51Z5 100%[=================================================>]     381  --.-KB/s    in 0s
+
+    2019-04-23 17:52:12 (5.27 MB/s) - 'zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz' saved [381/381]
+```
+
+마지막으로 파일 압축을 해제합니다.
+
+```
+`$ gunzip zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz`
+```
+
+파일 내용은 아래와 같습니다.
+
+```json
+`$ cat zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 1,
+      "data": [
+        {
+          "id": "el32n",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  3482
+                ],
+                "tweets_send": null,
+                "qualified_impressions": null,
+                "follows": null,
+                "app_clicks": null,
+                "retweets": [
+                  102
+                ],
+                "unfollows": null,
+                "likes": [
+                  15
+                ],
+                "engagements": [
+                  171
+                ],
+                "clicks": [
+                  30
+                ],
+                "card_engagements": null,
+                "poll_card_vote": null,
+                "replies": null,
+                "carousel_swipes": null
+              }
+            }
+          ]
+        }
+      ],
+      "request": {
+        "params": {
+          "start_time": "2019-03-12T00:00:00Z",
+          "segmentation_type": null,
+          "entity_ids": [
+            "el32n"
+          ],
+          "end_time": "2019-03-20T00:00:00Z",
+          "country": null,
+          "placement": "ALL_ON_TWITTER",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "platform": null,
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      }
+    }
+```
+
+<div id="reach-and-average-frequency">
+  ### 도달률 및 평균 노출 빈도
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman에서 실행하기
+</Button>
+
+<div id="get-statsaccountsaccount_idreachcampaigns">
+  #### GET stats/accounts/:account_id/reach/campaigns[](#get-stats-accounts-account-id-reach-campaigns "이 제목의 고유 링크")
+</div>
+
+지정한 캠페인에 대한 도달 범위 및 평균 노출 빈도 분석을 조회합니다.
+
+<div id="resource-url">
+  ### 리소스 URL[](#resource-url "Permalink to this headline")
+</div>
+
+`https://ads-api.x.com/stats/accounts/:account_id/reach/campaigns`
+
+### 파라미터[](#parameters "Permalink to this headline")
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | 레버리지드 계정(leveraged account)의 식별자입니다. 리소스의 경로(path)에 포함되며, [GET accounts](/ko/x-ads-api/campaign-management#accounts)를 제외한 모든 Advertiser API 요청에서 일반적으로 필수 파라미터입니다. 지정된 계정은 인증된 사용자와 연관(associated)되어 있어야 합니다.<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| campaign&#95;ids  <br />*required* | 쉼표로 구분된 식별자 리스트를 지정하여, 응답 범위를 원하는 캠페인으로만 한정합니다. 최대 20개의 ID를 제공할 수 있습니다.<br /><br />**Note**: 최대 20개의 campaign ID를 제공할 수 있습니다.<br /><br />Type: string<br /><br />Example: `8fgzf` |
+| end&#95;time  <br />*required* | 조회되는 데이터를 지정된 종료 시각까지의 범위로 한정하며, [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현합니다.<br /><br />**Note**: 반드시 정시(0분 0초) 단위로 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z` |
+| start&#95;time  <br />*required* | 조회되는 데이터를 지정된 시작 시각부터의 범위로 한정하며, [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현합니다.<br /><br />**Note**: 반드시 정시(0분 0초) 단위로 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z` |
+
+<div id="example-request">
+  ### 예제 요청[](#example-request "이 제목에 대한 고유 링크")
+</div>
+
+`GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t/reach/campaigns?campaign_ids=8fgzf&start_time=2017-05-19&end_time=2017-05-26`
+
+### 응답 예시[](#example-response "이 제목의 고유 링크")
+
+```json
+    {
+      "request": {
+        "params": {
+          "campaign_ids": [
+            "8fgzf"
+          ],
+          "start_time": "2017-05-19T00:00:00Z",
+          "end_time": "2017-05-26T00:00:00Z",
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data_type": "reach",
+      "data": [
+        {
+          "id": "8fgzf",
+          "total_audience_reach": 1217,
+          "average_frequency": 1.01
+        }
+      ]
+    }
+```
+
+<div id="get-statsaccountsaccount_idreachfunding_instruments">
+  #### GET stats/accounts/:account_id/reach/funding_instruments[](#get-stats-accounts-account-id-reach-funding-instruments "Permalink to this headline")
+</div>
+
+지정한 funding instruments에 대한 도달 범위(reach)와 평균 노출 빈도 분석 지표를 조회합니다.
+
+### 리소스 URL[](#resource-url "이 제목에 대한 영구 링크")
+
+`https://ads-api.x.com/stats/accounts/:account_id/reach/funding_instruments`
+
+<div id="parameters">
+  ### Parameters[](#parameters "Permalink to this headline")
+</div>
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | 레버리지 계정의 식별자입니다. 리소스의 경로에 포함되며, [GET accounts](/ko/x-ads-api/campaign-management#accounts)를 제외한 모든 Advertiser API 요청에서 일반적으로 필수 매개변수입니다. 지정된 계정은 인증된 사용자와 연계되어 있어야 합니다.<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| funding&#95;instrument&#95;ids  <br />*required* | 쉼표로 구분된 식별자 목록을 지정하여, 응답을 원하는 펀딩 인스트루먼트로만 제한합니다. 최대 20개의 ID를 제공할 수 있습니다.<br /><br />**Note**: 최대 20개의 펀딩 인스트루먼트 ID를 제공할 수 있습니다.<br /><br />Type: string<br /><br />Example: `lygyi` |
+| end&#95;time  <br />*required* | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현된 지정된 종료 시각까지로, 조회되는 데이터를 제한합니다.<br /><br />**Note**: 반드시 정시(0분 0초) 단위로 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z` |
+| start&#95;time  <br />*required* | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현된 지정된 시작 시각부터로, 조회되는 데이터를 제한합니다.<br /><br />**Note**: 반드시 정시(0분 0초) 단위로 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z` |
+
+### 요청 예시[](#example-request "이 제목에 대한 고유 링크")
+
+```
+GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t/reach/funding_instruments?funding_instrument_ids=lygyi&start_time=2017-05-19&end_time=2017-05-26
+```
+
+### 응답 예시[](#example-response "Permalink to this headline")
+
+```json
+    {
+      "request": {
+        "params": {
+          "funding_instrument_ids": [
+            "lygyi"
+          ],
+          "start_time": "2017-05-19T00:00:00Z",
+          "end_time": "2017-05-26T00:00:00Z",
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data_type": "reach",
+      "data": [
+        {
+          "id": "lygyi",
+          "total_audience_reach": 1217,
+          "average_frequency": 1.01
+        }
+      ]
+    }
+```
+
+<div id="synchronous-analytics">
+  ### 동기식 분석
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman에서 실행
+</Button>
+
+<div id="get-statsaccountsaccount_id">
+  #### GET stats/accounts/:account_id[](#get-stats-accounts-account-id "Permalink to this headline")
+</div>
+
+현재 계정에 대한 동기식 분석 데이터를 조회합니다. 허용되는 최대 조회 기간(`end_time` - `start_time`)은 7일입니다.
+
+### 리소스 URL[](#resource-url "이 제목에 대한 고유 링크")
+
+`https://ads-api.x.com/12/stats/accounts/:account_id`
+
+### 매개변수[](#parameters "Permalink to this headline")
+
+| Name | Description |
+| :--- | :--- |
+| account&#95;id  <br />*required* | 레버리지 계정의 식별자입니다. 리소스 경로에 포함되며, [GET accounts](/ko/x-ads-api/campaign-management#accounts)를 제외한 모든 Advertiser API 요청에서 일반적으로 필수 매개변수입니다. 지정된 계정은 인증된 사용자와 연결되어 있어야 합니다.<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| end&#95;time  <br />*required* | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현된 지정 종료 시각까지로 조회된 데이터의 범위를 제한합니다.<br /><br />**Note**: 분과 초가 0인 정시 단위로만 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z` |
+| entity  <br />*required* | 데이터를 조회할 엔티티 유형입니다.<br /><br />Type: enum<br /><br />Possible values: `ACCOUNT`, `CAMPAIGN`, `FUNDING_INSTRUMENT`, `LINE_ITEM`, `ORGANIC_TWEET`, `PROMOTED_ACCOUNT`, `PROMOTED_TWEET`, `MEDIA_CREATIVE` |
+| entity&#95;ids  <br />*required* | 데이터를 조회할 개별 엔티티입니다. 쉼표로 구분한 엔티티 ID 목록을 지정합니다.<br /><br />**Note**: 최대 20개의 엔티티 ID를 제공할 수 있습니다.<br /><br />Type: string<br /><br />Example: `8u94t` |
+| granularity  <br />*required* | 조회된 데이터의 세분화 수준을 지정합니다.<br /><br />Type: enum<br /><br />Possible values: `DAY`, `HOUR`, `TOTAL` |
+| metric&#95;groups  <br />*required* | 반환할 메트릭을 지정합니다. 쉼표로 구분한 메트릭 그룹 목록을 지정하세요. 자세한 내용은 [Metrics and Segmentation](/ko/x-ads-api/analytics#metrics-and-segmentation)을 참조하세요.<br /><br />**Note**: `MOBILE_CONVERSION` 데이터는 별도로 요청해야 합니다.<br /><br />Type: enum<br /><br />Possible values: `BILLING`, `ENGAGEMENT`, `LIFE_TIME_VALUE_MOBILE_CONVERSION`, `MEDIA`, `MOBILE_CONVERSION`, `VIDEO`, `WEB_CONVERSION` |
+| placement  <br />*required* | 조회된 데이터를 특정 placement로 제한합니다.<br /><br />**Note**: 요청당 하나의 값만 허용됩니다. X와 X Audience Platform 둘 다에 placement가 있는 엔티티의 경우, 각 placement 값마다 별도의 요청이 필요합니다.<br /><br />Type: enum<br /><br />Possible values: `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, `TREND` |
+| start&#95;time  <br />*required* | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현된 지정 시작 시각부터로 조회된 데이터의 범위를 제한합니다.<br /><br />**Note**: 분과 초가 0인 정시 단위로만 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z` |
+
+### 요청 예시[](#example-request "이 제목의 고유 링크")
+
+```
+GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=8u94t&start_time=2017-05-19&end_time=2017-05-26&granularity=TOTAL&placement=ALL_ON_TWITTER&metric_groups=ENGAGEMENT
+```
+
+<div id="example-response">
+  ### 예시 응답[](#example-response "이 제목에 대한 퍼머링크")
+</div>
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 1,
+      "data": [
+        {
+          "id": "8u94t",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  1233
+                ],
+                "tweets_send": null,
+                "qualified_impressions": null,
+                "follows": null,
+                "app_clicks": null,
+                "retweets": null,
+                "likes": [
+                  1
+                ],
+                "engagements": [
+                  58
+                ],
+                "clicks": [
+                  58
+                ],
+                "card_engagements": null,
+                "poll_card_vote": null,
+                "replies": null,
+                "carousel_swipes": null
+              }
+            }
+          ]
+        }
+      ],
+      "request": {
+        "params": {
+          "start_time": "2017-05-19T07:00:00Z",
+          "segmentation_type": null,
+          "entity_ids": [
+            "8u94t"
+          ],
+          "end_time": "2017-05-26T07:00:00Z",
+          "country": null,
+          "placement": "ALL_ON_TWITTER",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "platform": null,
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      }
+    }
+```
+
+### 활성 엔티티
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman에서 실행
+</Button>
+
+<div id="get-statsaccountsaccount_idactive_entities">
+  #### GET stats/accounts/:account_id/active_entities[](#get-stats-accounts-account-id-active-entities "Permalink to this headline")
+</div>
+
+지정된 기간 동안 어떤 엔티티의 분석 지표가 변경되었는지에 대한 세부 정보를 조회합니다.
+
+이 엔드포인트는 애널리틱스 엔드포인트와 함께 사용해야 합니다. 이 엔드포인트의 결과는 어떤 광고 엔티티에 대해 애널리틱스를 요청해야 하는지를 나타냅니다. 사용 방법에 대해서는 [Active Entities Guide](/ko/x-ads-api/analytics#active-entities)를 참조하세요.
+
+변경 이벤트는 1시간 단위의 버킷으로 제공됩니다.
+
+* `start_time` 및 `end_time` 값은 조회할 시간별 버킷을 지정합니다.
+* 반환되는 `data` 배열에는 이후 애널리틱스 요청에 포함해야 하는 각 엔티티에 대한 객체가 포함됩니다.
+* **중요**: 이후 애널리틱스 요청에서 지정해야 하는 날짜는 `activity_start_time` 및 `activity_end_time` 값을 기준으로 결정해야 합니다.
+  * 이 값들은 저장된 변경 이벤트가 *적용되는* 시간 범위를 나타냅니다. 이는 엔티티별로 반환됩니다.
+
+**참고**: 허용되는 최대 시간 범위(`end_time` - `start_time`)는 90일입니다.
+
+<div id="resource-url">
+  ### 리소스 URL[](#resource-url "Permalink to this headline")
+</div>
+
+`https://ads-api.x.com/12/stats/accounts/:account_id/active_entities`
+
+### 매개변수[](#parameters "Permalink to this headline")
+
+| 이름 | 설명 |
+| :--- | :--- |
+| account&#95;id  <br />*필수* | 레버리지 계정의 식별자입니다. 리소스 경로에 포함되며, [GET accounts](/ko/x-ads-api/campaign-management#accounts)를 제외한 모든 Advertiser API 요청에 일반적으로 필요한 매개변수입니다. 지정한 계정은 인증된 사용자와 연관되어 있어야 합니다.<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| end&#95;time  <br />*필수* | 가져오는 데이터를 지정한 종료 시각으로 범위 제한합니다. [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현됩니다.<br /><br />**참고**: 반드시 정시(0분 0초)로 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z` |
+| entity  <br />*필수* | 데이터를 조회할 엔터티 유형입니다.<br /><br />Type: enum<br /><br />가능한 값: `CAMPAIGN`, `FUNDING_INSTRUMENT`, `LINE_ITEM`, `MEDIA_CREATIVE`, `PROMOTED_ACCOUNT`, `PROMOTED_TWEET` |
+| start&#95;time  <br />*필수* | 가져오는 데이터를 지정한 시작 시각으로 범위 제한합니다. [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) 형식으로 표현됩니다.<br /><br />**참고**: 반드시 정시(0분 0초)로 표현해야 합니다.<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z` |
+| campaign&#95;ids  <br />*선택* | 쉼표로 구분된 식별자 목록을 지정하여, 원하는 캠페인과 연관된 엔터티만 응답에 포함되도록 범위를 제한합니다. 최대 200개의 ID를 제공할 수 있습니다.<br /><br />**참고**: `funding_instrument_ids` 및 `line_item_ids`와 상호 배타적입니다.<br /><br />Type: string<br /><br />Example: `8wku2` |
+| funding&#95;instrument&#95;ids  <br />*선택* | 쉼표로 구분된 식별자 목록을 지정하여, 원하는 펀딩 인스트루먼트와 연관된 엔터티만 응답에 포함되도록 범위를 제한합니다. 최대 200개의 ID를 제공할 수 있습니다.<br /><br />**참고**: `campaign_ids` 및 `line_item_ids`와 상호 배타적입니다.<br /><br />Type: string<br /><br />Example: `lygyi` |
+| line&#95;item&#95;ids  <br />*선택* | 쉼표로 구분된 식별자 목록을 지정하여, 원하는 라인 아이템과 연관된 엔터티만 응답에 포함되도록 범위를 제한합니다. 최대 200개의 ID를 제공할 수 있습니다.<br /><br />**참고**: `campaign_ids` 및 `line_item_ids`와 상호 배타적입니다.<br /><br />Type: string<br /><br />Example: `8v7jo` |
+
+### 예제 요청[](#example-request "이 제목의 고유 링크")
+
+`GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t/active_entities?entity=PROMOTED_TWEET&start_time=2019-02-28&end_time=2019-03-01`
+
+### 예시 응답[](#example-response "이 제목의 고유 링크")
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "entity": "PROMOTED_TWEET",
+          "start_time": "2019-02-28T08:00:00Z",
+          "end_time": "2019-03-01T08:00:00Z"
+        }
+      },
+      "data": [
+        {
+          "entity_id": "2mvb28",
+          "activity_start_time": "2019-02-28T01:30:07Z",
+          "activity_end_time": "2019-03-01T07:42:55Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        },
+        {
+          "entity_id": "2mvb29",
+          "activity_start_time": "2019-02-27T11:30:07Z",
+          "activity_end_time": "2019-03-01T07:42:50Z",
+          "placements": [
+            "ALL_ON_TWITTER",
+            "PUBLISHER_NETWORK"
+          ]
+        },
+        {
+          "entity_id": "2mvfan",
+          "activity_start_time": "2019-02-27T09:00:05Z",
+          "activity_end_time": "2019-03-01T06:06:36Z",
+          "placements": [
+            "PUBLISHER_NETWORK"
+          ]
+        },
+        {
+          "entity_id": "2n17dx",
+          "activity_start_time": "2019-02-28T02:02:26Z",
+          "activity_end_time": "2019-03-01T07:52:44Z",
+          "placements": [
+            "ALL_ON_TWITTER",
+            "PUBLISHER_NETWORK"
+          ]
+        }
+      ]
+    }
+```

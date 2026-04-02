@@ -1,0 +1,169 @@
+---
+title: 概要
+sidebarTitle: 概要
+keywords: ["search migration", "search migrate", "v1.1 to v2 search", "search migration guide", "migrate search", "enterprise to v2"]
+---
+
+<div id="comparing-x-apis-search-posts-endpoints">
+  ## X API の Search Posts エンドポイントの比較
+</div>
+
+v2 Search Tweets エンドポイントは、最終的に [standard v1.1 search/posts](/ja/x-api/posts/search/introduction) エンドポイントおよび [enterprise Search API](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api) を置き換える予定です。コードや App、ツールで古いバージョンの X の検索エンドポイントを使用していて、新しい X API v2 エンドポイントへの移行を検討している場合は、このガイドが役立ちます。
+
+***
+
+<div id="recent-search-comparison">
+  ## 最近検索の比較
+</div>
+
+次の表は、さまざまな種類の最近検索エンドポイントを比較したものです。
+
+| **説明** | **Standard v1.1** | **X API v2** |
+| :--- | :--- | :--- |
+| ホストドメイン | https://api.x.com | https://api.x.com |
+| エンドポイントパス | /1.1/search/tweets.json | /2/tweets/search/recent |
+| [認証](/ja/resources/fundamentals/authentication) | OAuth 1.0a User Context  <br />OAuth 2.0 App-Only | OAuth 1.0a User Context<br /><br />OAuth 2.0 Authorization Code with PKCE<br /><br />OAuth 2.0 App-Only |
+| タイムスタンプ形式 | YYYYMMDD | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 返される投稿の最長経過期間 | 7 days | 7 days |
+| 対応している HTTP メソッド | GET | GET |
+| デフォルトのリクエストのレート制限 | OAuth 1.0a User Context で 15 分あたり 180 リクエスト<br /><br />OAuth 2.0 App-Only で 15 分あたり 450 リクエスト | **セルフサービス:**<br /><br />OAuth 2.0 App-Only で 15 分あたり 60 リクエスト<br /><br />OAuth 1.0a User Context で 15 分あたり 60 リクエスト<br /><br />OAuth 2.0 Authorization Code with PKCE で 15 分あたり 60 リクエスト |
+| 完全に展開された URL を提供 |     | ✔   |
+| レスポンスごとの最大投稿数 (デフォルト) | 100 (15) | 100 (10) |
+| 投稿の JSON 形式 | Standard v1.1 形式 | [X API v2 形式](/ja/x-api/fundamentals/data-dictionary) (`fields` と `expansions` リクエストパラメータによって決まり、v1.1 形式との後方互換性はありません) <br /><br />Standard v1.1 形式から X API v2 形式への移行方法については、[データ形式移行ガイド](/ja/x-api/migrate/data-format-migration)をご覧ください。 |
+| ペイロードにどの [fields](/ja/x-api/fundamentals/fields) を含めるかを選択可能 |     | ✔   |
+| [annotations](/ja/x-api/fundamentals/post-annotations) のリクエストと受信に対応 |     | ✔   |
+| 投稿オブジェクト内で特定の [metrics](/ja/x-api/fundamentals/metrics) をリクエストすることに対応 |     | ✔   |
+| [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) 演算子とフィールドに対応 |     | ✔   |
+| 投稿の編集履歴を提供 | ✔   | ✔   |
+| 投稿データ配列の JSON キー名 | statuses | data |
+| ページネーション用 JSON キー名 | search&#95;metadata.next&#95;results | meta.next&#95;token |
+| 時間範囲によるアーカイブのナビゲーションをサポート | ✔   | ✔   |
+| 時間ベースのリクエストの時間解像度 | day | second |
+| タイムゾーン | UTC | UTC |
+| 時間でナビゲーションするためのリクエストパラメータ | until | start&#95;time  <br />end&#95;time |
+| 投稿 ID でナビゲーションするためのリクエストパラメータ | since&#95;id   <br />max&#95;id | since&#95;id   <br />until&#95;id |
+| ページネーション用のリクエストパラメータ | URL エンコード済みクエリを返す | next&#95;token |
+| [Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報の使用が必要 |     | ✔   |
+
+<div id="full-archive-search-comparison">
+  ### 全履歴検索の比較
+</div>
+
+次の表では、さまざまな種類の全履歴検索エンドポイントを比較します。
+
+| **説明** | **Enterprise** | **X API v2** |
+| :--- | :--- | :--- |
+| ホストドメイン | https://gnip-api.x.com | https://api.x.com |
+| エンドポイントパス | /search/fullarchive/accounts/:account&#95;name/:label | /2/tweets/search/all |
+| [認証](/ja/resources/fundamentals/authentication) | Basic auth | OAuth 2.0 App-Only |
+| タイムスタンプ形式 | YYYYMMDDHHMM | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 返されるポストの最も古い日時 | 2006年3月以降の全履歴 | 2006年3月以降の全履歴 |
+| 対応している HTTP メソッド | GET  <br />POST | GET |
+| デフォルトのリクエストレート制限 | 1分あたりのレート制限は、契約で指定されたとおりパートナーごとに異なります。<br /><br />Basic auth で 1 秒あたり 20 リクエスト | OAuth 2.0 App-Only で 15 分あたり 300 リクエスト<br /><br />OAuth 2.0 App-Only で 1 秒あたり 1 リクエスト |
+| 完全に展開された URL を返す | ✔   | ✔   |
+| レスポンスあたりの投稿数 | 最大: 500  <br />デフォルト: 100 | 最大: 500  <br />デフォルト: 10 |
+| ポスト JSON 形式 | [Native Enriched または Activity Streams](/ja/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) 形式 | [X API v2](/ja/x-api/fundamentals/data-dictionary) 形式 (fields と expansions のリクエストパラメータによって決定)  |
+| ペイロード内で返す[フィールド](/ja/x-api/fundamentals/fields)を選択可能 |     | ✔   |
+| [annotations](/ja/x-api/fundamentals/post-annotations) のリクエストおよび受信をサポート |     | ✔   |
+| ポストオブジェクト内で特定の[metrics](/ja/x-api/fundamentals/metrics)をリクエストすることをサポート |     | ✔   |
+| [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) 演算子とフィールドをサポート |     | ✔   |
+| ポスト編集履歴を提供 | ✔   | ✔   |
+| ポストデータ配列の JSON キー名 | results | data |
+| ページネーション用 JSON キー名 | **next** | meta.next&#95;token |
+| 時間ベースのリクエストの時間分解能 | 秒 | 秒 |
+| タイムゾーン | UTC | UTC |
+| ポスト ID によるアーカイブのナビゲーションをサポート |     | ✔   |
+| 時刻によるナビゲーション用リクエストパラメータ | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| ポスト ID によるナビゲーション用リクエストパラメータ |     | since&#95;id   <br />until&#95;id |
+| ページネーション用リクエストパラメータ | next&#95;token | next&#95;token |
+| Academic Research アクセスを持つ [Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報の使用が必須 |     | ✔   |
+
+**フィルタリング演算子の比較**
+
+ポスト検索の 4 つのバージョン (standard、enterprise、v2) は、利用可能な演算子が異なり、さらに各バージョン内でも演算子の利用レベルが異なります。これらについては以下で説明します。
+
+Enterprise
+
+* Enterprise 演算子にサブレベルはありません
+
+X API v2
+
+* **Self-serve:** 任意の Project を使用している場合に利用可能
+* **Enterprise:** Project を使用している場合に利用可能
+
+これらそれぞれの演算子セットの詳細は、対応するガイドで確認できます。
+
+* [Enterprise operators](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators)
+* [X API v2 operators](/ja/x-api/posts/search/integrate/build-a-query#operators)
+
+X API v2 内の異なる演算子レベルを理解したところで、ポスト検索における演算子の利用可否をマッピングした次の表を見ていきます (セルが空白の場合、その演算子は利用できません) 。
+
+| 検索演算子 | Standard | Enterprise | v2  |
+| :--- | :--- | :--- | :--- |
+| keyword | 利用可能  <br />q:keyword | 利用可能 | 利用可能 |
+| emoji | 利用可能  <br />q:😄 | 利用可能 | 利用可能 |
+| &quot;exact phrase&quot; | 利用可能 | 利用可能 | 利用可能 |
+| #   | 利用可能 | 利用可能 | 利用可能 |
+| $   | 利用可能 | 利用可能 | 利用可能 |
+| @   | 利用可能 | 利用可能 | 利用可能 |
+| from: | 利用可能 | 利用可能 | 利用可能 |
+| to: | 利用可能 | 利用可能 | 利用可能 |
+| url: | 利用可能 | 利用可能 | 利用可能 |
+| retweets&#95;of: |     | 利用可能 | 利用可能 |
+| context: |     |     | 利用可能 |
+| entity: |     |     | セルフサービス - recent search でのみ利用可能 |
+| conversation&#95;id: |     |     | 利用可能 |
+| place: |     | 利用可能 | 利用可能 |
+| place&#95;country: |     | 利用可能 | 利用可能 |
+| point&#95;radius: | geocode パラメーター | 利用可能 | 利用可能 |
+| bounding&#95;box: |     | 利用可能 | 利用可能 |
+| is:retweet | filter:retweets | 利用可能 | 利用可能 |
+| is:reply |     | 利用可能 | 利用可能 |
+| is:quote |     | 利用可能 | 利用可能 |
+| is:verified |     | 利用可能 | 利用可能 |
+| -is:nullcast |     | 利用可能 | 利用可能 |
+| has:hashtags |     | 利用可能 | 利用可能 |
+| has:cashtags |     | 利用可能 | 利用可能 |
+| has:links | filter:links | 利用可能 | 利用可能 |
+| has:mentions |     | 利用可能 | 利用可能 |
+| has:media | filter:media | 利用可能 | 利用可能 |
+| has:images | filter:images, filter:twimg | 利用可能 | 利用可能 |
+| has:videos | filter:videos  <br />filter:native&#95;video | 利用可能 | 利用可能 |
+| has:geo |     | 利用可能 | 利用可能 |
+| lang: | lang - オペレーターまたはパラメーターとして使用可能 | 利用可能 | 利用可能 |
+| has:profile&#95;geo |     | 利用可能 |     |
+| profile&#95;country |     | 利用可能 |     |
+| profile&#95;locality |     | 利用可能 |     |
+| profile&#95;region |     | 利用可能 |     |
+| proximity |     | 利用可能 |     |
+| :(  | 利用可能 |     |     |
+| :)  | 利用可能 |     |     |
+| ?   | 利用可能 |     |     |
+| filter:periscope | 利用可能 |     |     |
+| list: | 利用可能 |     | 利用可能 |
+| filter:replies | 利用可能 |     |     |
+| filter:pro&#95;video | 利用可能 |     |     |
+| filter:social | 利用可能 |     |     |
+| filter:trusted | 利用可能 |     |     |
+| filter:follows | 利用可能 |     |     |
+| filter:has&#95;engagement | 利用可能 |     |     |
+| include:antisocial | 利用可能 |     |     |
+| include:offensive&#95;user | 利用可能 |     |     |
+| include:antisocial&#95;offensive&#95;user | 利用可能 |     |     |
+| include:sensitive&#95;content | 利用可能 |     |     |
+| source: | 利用可能 |     |     |
+| min&#95;replies: | 利用可能 |     |     |
+| min&#95;retweets: | 利用可能 |     |     |
+| min&#95;faves: | 利用可能 |     |     |
+| card&#95;name: | 利用可能 |     |     |
+| card&#95;domain: | 利用可能 |     |     |
+
+**その他の移行リソース**
+
+[X API 移行ハブ](/ja/x-api/migrate/overview)
+
+[これらのエンドポイントのサンプルコードを確認する](https://github.com/xdevplatform/Twitter-API-v2-sample-code "これらのエンドポイントのサンプルコードを確認する")
+
+[投稿検索: Standard v1.1 から X API v2 への移行](/ja/x-api/posts/search/migrate/standard-to-twitter-api-v2)
+
+[投稿検索: Enterprise から X API v2 への移行](/ja/x-api/posts/search/migrate/enterprise-to-twitter-api-v2)

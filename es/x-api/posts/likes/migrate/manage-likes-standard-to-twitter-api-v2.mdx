@@ -1,0 +1,190 @@
+---
+title: Gestionar Me gusta
+sidebarTitle: Gestionar Me gusta
+keywords: ["migración de gestión de Me gusta", "de v1.1 a v2 gestión de Me gusta", "migrar gestión de Me gusta", "estándar a v2 Me gusta", "migración de Me gusta"]
+---
+
+<div id="manage-likes-standard-v11-compared-to-x-api-v2">
+  ### Administrar Me gusta: Standard v1.1 en comparación con X API v2
+</div>
+
+Si has estado trabajando con los endpoints estándar v1.1 [POST favorites/create](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-favorites-create) y [POST favorites/destroy](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-favorites-destroy), el objetivo de esta guía es ayudarte a comprender las similitudes y diferencias entre los endpoints estándar v1.1 y los endpoints de administración de Me gusta de X API v2.
+
+* **Similitudes**
+  * Contexto de usuario OAuth 1.0a
+* **Diferencias**
+  * URLs de endpoints y métodos HTTP
+  * Requisitos de App y de proyecto
+  * Parámetros de solicitud
+
+<div id="similarities">
+  #### Similitudes
+</div>
+
+**Método de autenticación con OAuth 1.0a User Context**
+
+Ambas versiones del endpoint admiten [OAuth 1.0a User Context](/es/resources/fundamentals/authentication#oauth-1-0a-2). Por lo tanto, si antes utilizabas alguno de los endpoints estándar de v1.1 para administrar favoritos, puedes seguir utilizando el mismo método de autenticación al migrar a la versión de X API v2.
+
+<div id="differences">
+  #### Diferencias
+</div>
+
+**URLs de endpoint y métodos HTTP**
+
+* Endpoints estándar v1.1:
+  * POST https://api.x.com/1.1/favorites/create.json
+    (indicar Me gusta en una Publicación)
+  * POST https://api.x.com/1.1/favorites/destroy.json
+    (quitar Me gusta de una Publicación)
+* Endpoint de X API v2:
+  * POST https://api.x.com/2/tweets/:id/likes
+    (indicar Me gusta en una Publicación)
+  * DELETE https://api.x.com/2/tweets/:id/likes/:tweet&#95;id
+    (quitar Me gusta de una Publicación) 
+
+**Requisitos de App y Project**
+
+Los endpoints de X API v2 requieren que utilices credenciales de una [developer App](/es/resources/fundamentals/developer-apps) que esté asociada a un [Project](/es/resources/fundamentals/developer-apps) al autenticar tus solicitudes. Todos los endpoints de X API v1.1 pueden usar credenciales de Apps independientes o Apps asociadas a un Project.
+
+**Parámetros de la solicitud**
+
+Los siguientes parámetros de solicitud estándar v1.1 tienen equivalentes en X API v2:
+
+| Estándar v1.1 | X API v2 |
+| :--- | :--- |
+| id  | id  |
+| includes&#95;entities | Sin equivalente |
+
+Ten en cuenta que los parámetros estándar v1.1 se pasan como parámetros de consulta, mientras que los parámetros de X API v2 se pasan como parámetros en el cuerpo para el endpoint POST o como parámetros de ruta para el endpoint DELETE.
+
+Además, no se requiere un id del usuario que indica Me gusta en una Publicación cuando se utilizan los endpoints estándar v1.1, ya que los [Access Tokens](/es/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) que se pasan con el [OAuth 1.0a User Context](/es/resources/fundamentals/authentication) permiten determinar qué usuario está iniciando la acción de indicar o quitar el Me gusta.
+
+***
+
+<div id="code-examples">
+  ## Ejemplos de código
+</div>
+
+<div id="like-a-post-v2">
+  ### Dar &quot;Me gusta&quot; a una Publicación (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/likes" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python
+  # Requiere autenticación con contexto de usuario mediante OAuth 1.0a
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/likes"
+  response = requests.post(url, auth=auth, json={"tweet_id": "1234567890"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Dar "Me gusta" a una Publicación
+  response = client.posts.like(user_id="123456789", tweet_id="1234567890")
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Dar "Me gusta" a una Publicación
+  const response = await client.posts.like("123456789", { tweetId: "1234567890" });
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>
+
+<div id="unlike-a-post-v2">
+  ### Quitar el Me gusta de una Publicación (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/likes/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # Requiere autenticación OAuth 1.0a en el contexto de usuario (User Context)
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/likes/1234567890"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Quitar el Me gusta de una Publicación
+  response = client.posts.unlike(user_id="123456789", tweet_id="1234567890")
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Quitar el Me gusta de una Publicación
+  const response = await client.posts.unlike("123456789", "1234567890");
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>

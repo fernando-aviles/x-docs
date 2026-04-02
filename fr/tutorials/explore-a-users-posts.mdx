@@ -1,0 +1,174 @@
+---
+title: Explorer les Publications et les mentions d’un utilisateur avec X API v2
+description: "Les endpoints de la timeline des Publications d’un utilisateur et de la timeline de ses mentions permettent aux développeurs de récupérer les Publications publiques qu’il a rédigées ou dans lesquelles il est mentionné."
+sidebarTitle: Explorer les Publications d’un utilisateur
+mode: wide
+keywords: ["timeline de l’utilisateur", "mentions de l’utilisateur", "timeline des Tweets", "timeline des mentions", "publications de l’utilisateur", "tutoriel", "tutoriel API", "Tweets de l’utilisateur"]
+---
+
+<div id="introduction">
+  ## Introduction
+</div>
+
+Alors que le [recent search endpoint](/fr/x-api/posts/search/introduction) vous permet uniquement de récupérer des Publications publiées au cours des 7 derniers jours, les endpoints de fil de Publications utilisateur et de fil de mentions utilisateur vous permettent de récupérer, pour un utilisateur autorisé (à l’aide de son id), des Publications et des mentions plus anciennes que les 7 derniers jours. Les développeurs peuvent utiliser ces endpoints pour étudier les sujets, les entités et le sentiment des Publications du fil ou des mentions d’un utilisateur. Dans ce tutoriel, nous allons vous montrer comment explorer les Publications et les mentions d’un utilisateur à l’aide des endpoints de fil de Tweets utilisateur et de fil de mentions utilisateur.
+ 
+
+<div id="prerequisites">
+  ## Conditions préalables
+</div>
+
+* Pour utiliser les endpoints de timeline des Tweets d’utilisateur et des mentions d’utilisateur, vous devez disposer d’un compte développeur valide. 
+* Vous devez également disposer d’un [Project](/fr/resources/fundamentals/developer-apps) créé.
+* Vous devez vous être [inscrit](https://developer.x.com/en/portal/petition/essential/basic-info) pour obtenir un compte développeur et avoir activé la [nouvelle expérience de la Console de développement](https://developer.x.com/en/portal/opt-in.html). 
+* L’accès est possible avec des clés et des jetons actifs pour une App développeur rattachée à un [Project](/fr/resources/fundamentals/developer-apps) créé dans la [Console de développement](/fr/resources/fundamentals/developer-portal).
+* Un Jeton Bearer provenant de votre App dans la [Console de développement X](/fr/resources/fundamentals/developer-portal).
+* Si vous n’avez pas de compte développeur approuvé, vous pouvez [en faire la demande](https://developer.x.com/en/apply-for-access).
+
+<div id="approved-developer-account">
+  ## Compte développeur approuvé
+</div>
+
+Si vous n&#39;en avez pas encore, vous pouvez [en faire la demande](https://developer.x.com/en/apply-for-access).
+
+<div id="create-a-project-and-connect-an-app">
+  ## Créer un projet et connecter une App
+</div>
+
+Dans la [Console de développement](https://developer.x.com/en/portal/dashboard), cliquez sur « Create a new App ».
+
+<Frame>
+  <img src="/images/projects.png.twimg.1920.png" />
+</Frame>
+
+Donnez-lui un nom, sélectionnez le cas d’utilisation approprié et fournissez une description du projet. Ensuite, vous pouvez soit créer une nouvelle App, soit connecter une [App](/fr/resources/fundamentals/developer-apps) existante (une App est un conteneur pour vos clés d’API dont vous avez besoin pour effectuer une requête HTTP vers X API).
+
+<Frame>
+  <img src="/images/add-your-app.png.twimg.1920.png" />
+</Frame>
+
+Cliquez sur « create a new App instead » et donnez un nom à votre App afin de créer une nouvelle App.
+
+<Frame>
+  <img src="/images/last-step-name-your-app.png.twimg.1920.png" />
+</Frame>
+
+Une fois que vous aurez cliqué sur « Complete », vous obtiendrez vos clés d’API et le Jeton Bearer que vous pourrez ensuite utiliser pour vous connecter aux nouveaux endpoints dans X API v2.
+
+<Frame>
+  <img src="/images/here-are-your-keys.png.twimg.1920.png" />
+</Frame>
+
+Cliquez sur le (+) à côté de API key, API secret key et Bearer token et copiez ces valeurs dans un endroit sûr sur votre machine locale. Vous en aurez besoin pour effectuer les appels d’API à l’étape suivante.
+
+Remarque : les clés dans la capture d’écran ci-dessus sont masquées, mais dans votre propre Console de développement, vous pourrez voir les valeurs réelles pour l’API key, l’API secret key et le Jeton Bearer.
+ 
+
+<div id="how-to-get-the-user-id-for-a-user-to-use-in-the-user-tweet-timeline-and-user-mention-timeline-endpoints">
+  ## Comment obtenir l’ID utilisateur d’un utilisateur à utiliser avec les endpoints de timeline de Tweets utilisateur et de mentions utilisateur
+</div>
+
+Les endpoints de timeline de Tweets utilisateur et de mentions utilisateur vous permettent d’obtenir des Publications à l’aide de l’ID utilisateur. Pour obtenir l’ID utilisateur à partir d’un nom d’utilisateur, vous pouvez utiliser le nouveau [user lookup endpoint v2](/fr/x-api/users/lookup/quickstart/user-lookup). Remplacez USER&#95;NAME par le nom d’utilisateur de votre choix et XXXX par votre propre Jeton Bearer que vous avez obtenu ci-dessus.
+
+```bash
+  curl --request GET 'https://api.x.com/2/users/by/username/USER_NAME --header 'Authorization: Bearer XXXXXX'
+```
+
+Vous verrez l’identifiant de l’utilisateur dans la réponse, comme ci-dessous :
+
+```json
+{
+   "data": {
+       "id": "2244994945",
+       "name": "Developers",
+       "username": "XDevelopers"
+   }
+}
+```
+
+<div id="connecting-to-the-user-tweet-timeline-and-user-mention-timeline-endpoints">
+  ## Connexion aux points de terminaison des timelines de Tweets de l’utilisateur et des mentions de l’utilisateur
+</div>
+
+Pour obtenir la timeline des Tweets d’un utilisateur, exécutez la commande curl suivante dans votre terminal (assurez-vous de remplacer USER&#95;ID par l’id utilisateur de votre choix et XXXX par votre propre Jeton Bearer obtenu ci-dessus)
+
+```bash
+curl --request GET 'https://api.x.com/2/users/USER_ID/tweets' --header 'Authorization: Bearer XXXXXX'
+```
+
+Vous verrez que la réponse JSON à ces requêtes contient par défaut le champ <code>id</code> et le texte des Publications (voir l’exemple ci-dessous).
+
+```yaml
+{
+   "id": "1334200897081987072",
+   "text": "👀 If you are new to the X API v2, check out this step-by-step guide to making your first request https://t.co/4rZqThpSbp"
+}
+```
+
+Si vous souhaitez que des champs supplémentaires soient inclus dans la réponse (tels que des informations sur l’utilisateur, des champs de Tweet supplémentaires comme les annotations de contexte, etc.), vous devrez spécifier explicitement ces champs dans votre requête. Découvrez comment procéder dans le [guide sur l’utilisation des champs et des expansions](/fr/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions).
+
+Vous pouvez également récupérer ces Publications avec le langage de programmation de votre choix. Consultez nos exemples de code en Python, Node (JavaScript), Java et Ruby pour les endpoints de timeline des Tweets d’un utilisateur et de timeline des mentions d’un utilisateur dans notre [dépôt GitHub](https://github.com/xdevplatform/Twitter-API-v2-sample-code).
+
+<div id="exploring-the-users-posts">
+  ## Explorer les Publications de l’utilisateur
+</div>
+
+Une fois que vous savez comment obtenir des Publications à l’aide des endpoints de la chronologie des Tweets de l’utilisateur et de la chronologie de ses mentions, vous pouvez commencer à explorer ses Publications. Par exemple, si vous voulez identifier les entités nommées courantes présentes dans les mentions d’un utilisateur, vous pouvez procéder comme suit :
+
+Dans la requête API, indiquez que vous souhaitez que l’objet context&#95;annotations soit renvoyé dans les réponses de Tweets :
+
+```bash
+curl --request GET 'https://api.x.com/2/users/USER_ID/mentions?tweet.fields=context_annotations' --header 'Authorization: Bearer XXXXXX'
+```
+
+Dans la réponse, vous verrez si des entités nommées existent dans les mentions. Voici un exemple :
+
+```json
+{
+   "domain": {
+       "id": "47",
+       "name": "Brand",
+       "description": "Marques et sociétés"
+   },
+   "entity": {
+       "id": "783214",
+       "name": "X"
+   }
+}
+```
+
+Si vous souhaitez voir quelles entités populaires apparaissent dans vos mentions, vous pouvez compter ces entités populaires en analysant chaque Tweet dans les mentions.
+
+Si vous souhaitez explorer l’URL de l’image d’aperçu pour toutes les Publications de votre fil qui contiennent des médias, vous pouvez procéder comme suit :
+
+Dans la requête API, spécifiez que vous voulez preview&#95;image&#95;url dans les champs tweet.media et les expansions attachments.media&#95;keys
+
+```bash
+curl --request GET 'https://api.x.com/2/users/2244994945/mentions?max_results=100&media.fields=preview_image_url&expansions=attachments.media_keys' --header 'Authorization: Bearer XXXXXX'
+```
+
+Dans la réponse, vous verrez le champ preview&#95;image&#95;url dans l&#39;objet includes, comme indiqué ci-dessous :
+
+```json
+{
+   "includes": {
+       "media": [
+           {
+               "media_key": "16_1334657439640121344",
+               "preview_image_url": "https://pbs.twimg.com/tweet_video_thumb/EoWn3rqU8AAtFWL.jpg",
+               "type": "animated_gif"
+           }
+       ]
+   }
+}
+```
+
+Une fois que vous avez compris comment parcourir les Publications d’un utilisateur, vous pouvez également utiliser d’autres API et services pour exploiter davantage ces Publications. Vous trouverez ci-dessous quelques ressources à garder sous la main lorsque vous utilisez les endpoints de la chronologie des Tweets d’un utilisateur et de la chronologie de ses mentions.
+
+<div id="resources">
+  ## Ressources
+</div>
+
+* Pour en savoir plus, consultez la page sur les [endpoints de timeline des Tweets et des mentions d’un utilisateur](/fr/x-api/posts/timelines/introduction).
+* Consultez la [Référence de l’API pour l’endpoint de timeline des Tweets d’un utilisateur](/fr/x-api/posts/user-posts-timeline-by-user-id) pour découvrir toutes les options disponibles.
+* Consultez la [Référence de l’API pour l’endpoint de timeline des mentions d’un utilisateur](/fr/x-api/posts/user-mention-timeline-by-user-id) pour découvrir toutes les options disponibles.
+* Inspirez-vous en lisant nos autres [tutoriels](/fr/tutorials).

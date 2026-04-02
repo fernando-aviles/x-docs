@@ -1,0 +1,276 @@
+---
+title: 전체 아카이브 검색 빠른 시작
+sidebarTitle: 전체 아카이브 검색
+description: 2006년까지 거슬러 올라가는 전체 게시물 아카이브에서 검색합니다
+keywords: ["전체 아카이브 검색", "아카이브 검색 빠른 시작", "과거 검색", "전체 아카이브 튜토리얼", "아카이브 검색 가이드"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 2006년 3월까지 거슬러 올라가는 X 전체 아카이브에서 포스트를 찾을 수 있도록, 첫 전체 아카이브 검색 요청을 만드는 과정을 단계별로 설명합니다.
+
+<Warning>
+  전체 아카이브 검색은 [Self-serve](/ko/x-api/getting-started/about-x-api) 또는 [Enterprise](/ko/x-api/getting-started/about-x-api) 액세스가 필요합니다. 이 엔드포인트를 사용하려면 [액세스 권한을 업그레이드](https://developer.x.com/en/portal/products)하세요.
+</Warning>
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다:
+
+  * [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 개발자 콘솔의 &quot;Keys and tokens&quot; 섹션에서 확인할 수 있는 App의 Bearer 토큰
+</Note>
+
+***
+
+<div id="step-1-build-a-query">
+  ## 1단계: 쿼리 작성
+</div>
+
+전체 아카이브 검색에서는 모든 쿼리 연산자를 지원합니다. 최근 검색과 동일한 방식으로 쿼리를 작성하세요:
+
+```
+from:XDevelopers lang:en
+```
+
+<Tip>
+  전체 아카이브 검색은 길이 1,024자까지의 쿼리(Enterprise의 경우 4,096자까지)를 지원합니다.
+</Tip>
+
+***
+
+<div id="step-2-set-a-time-range">
+  ## 2단계: 시간 범위 설정
+</div>
+
+기본적으로 검색 결과에는 지난 30일 이내의 포스트만 포함됩니다. 특정 기간을 검색하려면 `start_time`과 `end_time`을 사용하세요:
+
+| Parameter | Format | Example |
+|:----------|:-------|:--------|
+| `start_time` | ISO 8601 | `2020-01-01T00:00:00Z` |
+| `end_time` | ISO 8601 | `2020-12-31T23:59:59Z` |
+
+***
+
+<div id="step-3-make-a-request">
+  ## 3단계: 요청 보내기
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/all?\
+  query=from%3AXDevelopers&\
+  start_time=2020-01-01T00%3A00%3A00Z&\
+  end_time=2020-12-31T23%3A59%3A59Z&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 페이지네이션을 사용한 전체 아카이브 검색
+  for page in client.posts.search_all(
+      query="from:XDevelopers",
+      start_time="2020-01-01T00:00:00Z",
+      end_time="2020-12-31T23:59:59Z",
+      max_results=100
+  ):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 페이지네이션을 사용한 전체 아카이브 검색
+  const paginator = client.posts.searchAll({
+    query: "from:XDevelopers",
+    startTime: "2020-01-01T00:00:00Z",
+    endTime: "2020-12-31T23:59:59Z",
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-4-review-the-response">
+  ## 4단계: 응답 검토하기
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1271111223220809728",
+      "text": "Tune in tonight and watch as @jessicagarson takes us through...",
+      "edit_history_tweet_ids": ["1271111223220809728"]
+    },
+    {
+      "id": "1270799243071062016",
+      "text": "As we work towards building the new Twitter API...",
+      "edit_history_tweet_ids": ["1270799243071062016"]
+    }
+  ],
+  "meta": {
+    "newest_id": "1271111223220809728",
+    "oldest_id": "1270799243071062016",
+    "result_count": 2
+  }
+}
+```
+
+<Note>
+  편집 기능이 2022년 9월에 도입되기 전에 생성된 게시물에는 `edit_history_tweet_ids` 필드가 포함되지 않습니다.
+</Note>
+
+***
+
+<div id="step-5-add-fields-and-expansions">
+  ## 5단계: fields 및 expansions 추가
+</div>
+
+쿼리 매개변수를 사용해 추가 데이터를 요청합니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/all?\
+  query=from%3AXDevelopers&\
+  start_time=2020-01-01T00%3A00%3A00Z&\
+  end_time=2020-12-31T23%3A59%3A59Z&\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id&\
+  user.fields=username,description&\
+  max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # fields 및 expansions를 사용해 검색
+  for page in client.posts.search_all(
+      query="from:XDevelopers",
+      start_time="2020-01-01T00:00:00Z",
+      end_time="2020-12-31T23:59:59Z",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "description"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // fields 및 expansions를 사용해 검색
+  const paginator = client.posts.searchAll({
+    query: "from:XDevelopers",
+    startTime: "2020-01-01T00:00:00Z",
+    endTime: "2020-12-31T23:59:59Z",
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "description"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="step-6-paginate-through-results">
+  ## 6단계: 결과를 페이지 단위로 조회하기
+</div>
+
+SDK들은 페이지네이션을 자동으로 처리합니다. cURL을 사용할 때는 응답에 포함된 `next_token` 값을 사용하세요:
+
+```bash
+curl "https://api.x.com/2/tweets/search/all?\
+query=from%3AXDevelopers&\
+max_results=500&\
+next_token=b26v89c19zqg8o3fo7gesq314yb9l2l4ptqy" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+<Card title="페이지네이션 가이드" icon="arrow-right" href="/ko/x-api/posts/search/integrate/paginate">
+  대규모 결과를 효율적으로 탐색하는 방법을 알아보세요
+</Card>
+
+***
+
+<div id="key-differences-from-recent-search">
+  ## 최근 검색과의 주요 차이점
+</div>
+
+| 기능 | 최근 검색 | 전체 아카이브 검색 |
+|:--------|:--------------|:--------------------|
+| 시간 범위 | 최근 7일 | 2006년 3월부터 현재까지 |
+| 필요한 액세스 권한 | 모든 개발자 | 사용량 기반 과금, Enterprise |
+| 요청당 최대 결과 수 | 100 | 500 |
+| 쿼리 길이 | 512자 | 1,024자 |
+| 요청 한도 | 450 / 15분 | 300 / 15분, 1 /초 |
+| 인증 방식 | App-Only, User Context | App-Only만 |
+
+***
+
+<div id="common-parameters">
+  ## 공통 매개변수
+</div>
+
+| Parameter | Description | Default |
+|:----------|:------------|:--------|
+| `query` | 검색 쿼리 (필수) | — |
+| `max_results` | 페이지당 포스트 수 (10-500) | 10 |
+| `start_time` | 가장 오래된 게시물의 타임스탬프 | 30일 전 |
+| `end_time` | 가장 최신 게시물의 타임스탬프 | 현재 |
+| `next_token` | 페이지네이션 토큰 | — |
+| `tweet.fields` | 추가 게시물 필드 | `id`, `text` |
+| `expansions` | 포함할 관련 객체 | — |
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="쿼리 작성" icon="magnifying-glass" href="/ko/x-api/posts/search/integrate/build-a-query">
+    쿼리 구문과 연산자 이해하기
+  </Card>
+
+  <Card title="연산자 참조" icon="list-check" href="/ko/x-api/posts/search/integrate/operators">
+    사용 가능한 모든 연산자 보기
+  </Card>
+
+  <Card title="페이지네이션 가이드" icon="arrow-right" href="/ko/x-api/posts/search/integrate/paginate">
+    대량 결과 집합 처리하기
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/full-archive-search">
+    전체 endpoint 문서 확인하기
+  </Card>
+</CardGroup>

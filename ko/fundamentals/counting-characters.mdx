@@ -1,0 +1,139 @@
+---
+title: 문자 수 계산
+sidebarTitle: 문자 수 계산
+icon: text-size
+description: X 포스트에서 문자 수를 계산하는 방법
+keywords: ["문자 수 계산", "트윗 길이", "280자", "문자 수 제한", "Unicode", "이모지 문자", "URL 길이", "트윗 작성"]
+---
+
+X의 포스트에는 최대 **280자**까지 입력할 수 있습니다. 그러나 모든 문자가 동일하게 계산되지는 않습니다—이모지, URL, 특정 Unicode 범위에는 특별한 계산 규칙이 적용됩니다.
+
+---
+
+<div id="character-weights">
+  ## 문자 가중치
+</div>
+
+X는 문자 수를 가중치로 계산하는 시스템을 사용합니다. 대부분의 문자는 1로 계산되지만, 일부 문자는 2로 계산됩니다:
+
+| 문자 유형 | 가중치 | 최대 문자 수 |
+|:---------------|:-------|:---------------|
+| 라틴 문자, 문장 부호, 일반 기호 | 1 | 280 |
+| 이모지 | 2 | 이모지 140개 |
+| CJK(중국어, 일본어, 한국어) | 2 | 140자 |
+| 기타 유니코드 | 2 (기본값) | 상황에 따라 다름 |
+
+<Tip>
+오픈 소스인 [twitter-text](https://github.com/twitter/twitter-text) 라이브러리를 사용해 App에서 문자를 정확하게 계산하세요.
+</Tip>
+
+---
+
+<div id="emoji-counting">
+  ## 이모지 계산
+</div>
+
+모든 이모지는 복잡도와 관계없이 **2자**로 계산됩니다.
+
+| Emoji | Display | Character count | Unicode |
+|:------|:--------|:----------------|:--------|
+| 👾 | 단일 이모지 | 2 | U+1F47E |
+| 🙋🏽 | 피부 톤 포함 | 2 | 🙋 + 🏽 수정자(modifier) |
+| 👨‍🎤 | ZWJ로 결합 | 2 | 👨 + ZWJ + 🎤 |
+| 👨‍👩‍👧‍👦 | 가족 시퀀스 | 2 | 이모지 4개 + ZWJ 3개 |
+
+Zero Width Joiner(ZWJ)는 이모지를 시각적으로만 결합하며, 문자 수에는 영향을 주지 않습니다.
+
+---
+
+<div id="url-handling">
+  ## URL 처리
+</div>
+
+모든 URL은 `t.co` 단축 서비스로 처리되며, 원래 길이와 관계없이 **23자**로 계산됩니다:
+
+```
+https://example.com                    → 23자
+https://example.com/very/long/path     → 23자
+```
+
+<Note>
+  이는 게시물 본문에서 감지되는 모든 유효한 URL에 적용됩니다.
+</Note>
+
+***
+
+
+<div id="special-cases">
+  ## 특수 사례
+</div>
+
+| 콘텐츠 | 계산 규칙 |
+|:--------|:--------------|
+| **답글의 @멘션** | 답글 시작 부분에 자동으로 추가되는 @멘션은 문자 수에 포함되지 않습니다 |
+| **새 @멘션** | 수동으로 추가한 @멘션은 일반적으로 문자 수에 포함됩니다 |
+| **미디어** | 공식 클라이언트를 통해 첨부된 미디어는 0자로 계산됩니다 |
+| **해시태그** | 일반 규칙대로 계산됩니다 (# + 태그 텍스트) |
+
+---
+
+<div id="text-encoding">
+  ## 텍스트 인코딩
+</div>
+
+X API는 **UTF-8** 인코딩을 사용해야 합니다. 문자 길이는 Unicode 정규화 형식 C(NFC)를 사용해 계산됩니다.
+
+`café` 예시:
+
+| Form | Bytes | Characters |
+|:-----|:------|:-----------|
+| NFC (composed) | `c a f é` | 4 |
+| NFD (decomposed) | `c a f e ́` | 5 |
+
+X는 NFC로 정규화하므로, 두 경우 모두 4개의 문자로 취급됩니다.
+
+---
+
+<div id="implementation">
+  ## 구현
+</div>
+
+정확한 문자 수 계산을 위해 공식 [twitter-text](https://github.com/twitter/twitter-text) 라이브러리를 사용하세요:
+
+<Tabs>
+  <Tab title="JavaScript">
+```javascript
+import { parseTweet } from 'twitter-text';
+
+const result = parseTweet('Hello, world! 👋');
+console.log(result.weightedLength); // 16
+console.log(result.valid);          // true
+```
+  </Tab>
+  <Tab title="Python">
+```python
+from twitter_text import parse_tweet
+
+result = parse_tweet('Hello, world! 👋')
+print(result.weightedLength)  # 16
+print(result.valid)           # True
+```
+  </Tab>
+</Tabs>
+
+이 라이브러리는 이모지 시퀀스, URL 감지, Unicode 정규화 등을 포함한 모든 엣지 케이스를 처리합니다.
+
+---
+
+<div id="resources">
+  ## 리소스
+</div>
+
+<CardGroup cols={2}>
+  <Card title="twitter-text 라이브러리" icon="github" href="https://github.com/twitter/twitter-text">
+    텍스트 파싱을 위한 공식 오픈 소스 라이브러리입니다.
+  </Card>
+  <Card title="구성 파일" icon="file-code" href="https://github.com/twitter/twitter-text/tree/master/config">
+    문자 가중치 정의 및 유니코드 범위를 제공합니다.
+  </Card>
+</CardGroup>

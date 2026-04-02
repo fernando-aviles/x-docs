@@ -1,0 +1,197 @@
+---
+title: 북마크 조회
+sidebarTitle: 북마크 조회
+description: 북마크한 포스트 가져오기
+keywords: ["북마크 조회 빠른 시작", "북마크 조회 빠른 시작", "북마크 조회 튜토리얼", "북마크 조회 가이드"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 X API를 사용하여 북마크한 포스트를 가져오는 방법을 단계별로 설명합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다:
+
+  * 승인된 App이 있는 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * `bookmark.read` 범위를 가진 User Access Token(OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-bookmarks">
+  ## 내 북마크 가져오기
+</div>
+
+<Steps>
+  <Step title="내 사용자 ID 가져오기">
+    인증된 사용자 ID가 필요합니다. `/2/users/me` 엔드포인트를 사용하거나 [사용자 조회 엔드포인트](/ko/x-api/users/lookup/introduction)에서 확인할 수 있습니다.
+  </Step>
+
+  <Step title="북마크 요청하기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/bookmarks?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      max_results=10" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # 페이지네이션을 사용해 북마크한 포스트 가져오기
+      for page in client.bookmarks.get(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // 페이지네이션을 사용해 북마크한 포스트 가져오기
+      const paginator = client.bookmarks.get("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답 확인하기">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1501258597237342208",
+          "text": "X API로 만든 프로젝트를 커뮤니티와 공유하고 싶으신가요? 여러분의 이야기를 듣고 싶습니다!",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 15,
+            "reply_count": 8,
+            "like_count": 89,
+            "quote_count": 3
+          }
+        },
+        {
+          "id": "1501258542258348032",
+          "text": "이것은 개발자의 혁신이 X를 더 나은 공간으로 만드는 많은 방법 중 하나일 뿐입니다...",
+          "created_at": "2024-01-15T09:15:00.000Z",
+          "author_id": "2244994945",
+          "public_metrics": {
+            "retweet_count": 22,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 7
+          }
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw4539n0vybdnx19ylpayqf16fjt4l"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-author-information">
+  ## 작성자 정보 포함
+</div>
+
+게시물 작성자 데이터를 가져오려면 expansions를 사용하세요:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/bookmarks?\
+  tweet.fields=created_at,author_id&\
+  expansions=author_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # 작성자 정보가 포함된 북마크 가져오기
+  for page in client.bookmarks.get(
+      "2244994945",
+      tweet_fields=["created_at", "author_id"],
+      expansions=["author_id"],
+      user_fields=["username", "verified"]
+  ):
+      for post in page.data:
+          print(f"{post.text[:50]}...")
+      # 작성자 정보는 page.includes.users에 포함되어 있습니다.
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // 작성자 정보가 포함된 북마크 가져오기
+  const paginator = client.bookmarks.get("2244994945", {
+    tweetFields: ["created_at", "author_id"],
+    expansions: ["author_id"],
+    userFields: ["username", "verified"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text?.slice(0, 50)}...`);
+    });
+    // 작성자 정보는 page.includes?.users에 포함되어 있습니다.
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="required-scopes">
+  ## 필수 scope
+</div>
+
+OAuth 2.0 PKCE를 사용할 때 액세스 토큰에는 다음 scope가 포함되어야 합니다:
+
+| Scope | Description |
+|:------|:------------|
+| `bookmark.read` | 북마크 읽기 |
+| `tweet.read` | 게시물 데이터 읽기 |
+| `users.read` | 사용자 데이터 읽기 (expansions용) |
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="북마크 관리" icon="bookmark" href="/ko/x-api/posts/bookmarks/quickstart/manage-bookmarks">
+    북마크 추가 및 제거
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/get-users-bookmarks">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

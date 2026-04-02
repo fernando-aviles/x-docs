@@ -1,0 +1,141 @@
+---
+title: Récupération des Listes épinglées
+sidebarTitle: Récupération des Listes épinglées
+description: Récupérer les Listes épinglées d'un utilisateur
+keywords: ["Démarrage rapide récupération Listes épinglées", "recherche Listes épinglées", "Démarrage rapide Listes épinglées", "Démarrage rapide recherche Listes"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer les Listes épinglées d’un utilisateur.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D’un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) avec une App approuvée
+  * D’un jeton d’accès utilisateur (OAuth 1.0a ou OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-pinned-lists">
+  ## Récupérer les listes épinglées
+</div>
+
+<Steps>
+  <Step title="Obtenir votre ID utilisateur">
+    Vous avez besoin de l’ID de l’utilisateur authentifié. Vous pouvez le trouver à l’aide de l’[endpoint de recherche d’utilisateur](/fr/x-api/users/lookup/introduction) ou dans votre jeton d’accès (Access Token) : la partie numérique correspond à votre ID utilisateur.
+  </Step>
+
+  <Step title="Effectuer une requête pour les listes épinglées">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/pinned_lists?\
+      list.fields=follower_count,member_count,owner_id&\
+      expansions=owner_id&\
+      user.fields=created_at,username" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python SDK Python
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # Récupérer les listes épinglées
+      response = client.lists.get_pinned(
+          "2244994945",
+          list_fields=["follower_count", "member_count", "owner_id"],
+          expansions=["owner_id"],
+          user_fields=["created_at", "username"]
+      )
+
+      for lst in response.data:
+          print(f"{lst.name} - {lst.follower_count} followers")
+      ```
+
+      ```javascript SDK JavaScript
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // Récupérer les listes épinglées
+      const response = await client.lists.getPinned("2244994945", {
+        listFields: ["follower_count", "member_count", "owner_id"],
+        expansions: ["owner_id"],
+        userFields: ["created_at", "username"],
+      });
+
+      response.data?.forEach((lst) => {
+        console.log(`${lst.name} - ${lst.follower_count} followers`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1454155907651158017",
+          "name": "Tech News",
+          "follower_count": 150,
+          "member_count": 25,
+          "owner_id": "2244994945"
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "name": "X Developers",
+            "created_at": "2013-12-14T04:35:55.000Z"
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="available-list-fields">
+  ## Champs de Liste disponibles
+</div>
+
+| Champ | Description |
+|:------|:------------|
+| `description` | Description de la Liste |
+| `owner_id` | ID utilisateur du propriétaire |
+| `private` | Indique si la Liste est privée |
+| `member_count` | Nombre de membres |
+| `follower_count` | Nombre d’abonnés |
+| `created_at` | Date de création de la Liste |
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gérer les listes épinglées" icon="thumbtack" href="/fr/x-api/lists/pinned-lists/quickstart/manage-pinned-lists">
+    Épingler et désépingler des listes
+  </Card>
+
+  <Card title="Recherche de liste" icon="list" href="/fr/x-api/lists/list-lookup/quickstart">
+    Obtenir les détails d’une liste
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/lists/get-users-pinned-lists">
+    Documentation complète du point de terminaison
+  </Card>
+</CardGroup>

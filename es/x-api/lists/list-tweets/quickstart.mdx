@@ -1,0 +1,156 @@
+---
+title: Inicio rápido
+sidebarTitle: Inicio rápido
+description: Obtén publicaciones de la cronología de una Lista
+keywords: ["inicio rápido de Tweets de Lista", "inicio rápido de cronología de Lista", "tutorial para obtener publicaciones de Lista"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te muestra cómo recuperar Publicaciones de la cronología de una Lista.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitas:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info) con una App aprobada
+  * El Bearer Token de tu App
+</Note>
+
+***
+
+<Steps>
+  <Step title="Buscar el ID de una Lista" icon="list">
+    Puedes encontrar el ID de una Lista en la URL cuando ves una Lista en x.com:
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── Este es el ID de la Lista
+    ```
+  </Step>
+
+  <Step title="Solicitar la cronología de la Lista" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/tweets?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Obtener Publicaciones de una Lista con paginación
+      for page in client.lists.get_tweets(
+          "84839422",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Obtener Publicaciones de una Lista con paginación
+      const paginator = client.lists.getTweets("84839422", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Revisar la respuesta" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1458172421115101189",
+          "text": "Check out our latest announcement...",
+          "author_id": "4172587277",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 42,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 3
+          },
+          "edit_history_tweet_ids": ["1458172421115101189"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "4172587277",
+            "username": "TechNews",
+            "verified": true
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Paginar los resultados" icon="arrow-right">
+    Los SDK gestionan la paginación automáticamente. Para cURL, utiliza el `next_token` de la respuesta para obtener más Publicaciones:
+
+    ```bash
+    curl "https://api.x.com/2/lists/84839422/tweets?\
+    max_results=10&\
+    pagination_token=7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Este endpoint devuelve hasta 800 de las Publicaciones más recientes de la Lista.
+</Note>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Consulta de listas" icon="list" href="/es/x-api/lists/list-lookup/quickstart">
+    Obtener detalles de la lista
+  </Card>
+
+  <Card title="Miembros de la lista" icon="users" href="/es/x-api/lists/list-members/introduction">
+    Obtener miembros de la lista
+  </Card>
+
+  <Card title="Guía de integración" icon="book" href="/es/x-api/lists/list-tweets/integrate">
+    Conceptos clave y prácticas recomendadas
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/lists/get-list-tweets">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

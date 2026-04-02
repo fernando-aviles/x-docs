@@ -1,0 +1,165 @@
+---
+title: "पेजिनेशन"
+sidebarTitle: "पेजिनेशन"
+---
+
+SDK सामान्य paginator यूटिलिटीज़ प्रदान करता है, जिनका उपयोग आप किसी भी ऐसे endpoint के साथ कर सकते हैं जो paginated response लौटाता है। मेथड साधारण response लौटाती हैं; आप उन्हें paginator में रैप करते हैं।
+
+<div id="basic-pagination">
+  ### बुनियादी पेजिनेशन
+</div>
+
+<CodeGroup dropdown>
+  ```typescript quick-start.ts theme={null}
+  import { Client, UserPaginator, PaginatedResponse, Schemas } from '@xdevplatform/xdk';
+
+  const client: Client = new Client({ bearerToken: 'your-bearer-token' });
+
+  // किसी भी सूची endpoint को सही typing के साथ रैप करें
+  const followers: UserPaginator = new UserPaginator(
+    async (token?: string): Promise<PaginatedResponse<Schemas.User>> => {
+      const res = await client.users.getFollowers('<userId>', {
+        maxResults: 100,
+        paginationToken: token,
+        userFields: ['id','name','username'],
+      });
+      return { 
+        data: res.data ?? [], 
+        meta: res.meta, 
+        includes: res.includes, 
+        errors: res.errors 
+      };
+    }
+  );
+  ```
+
+  ```javascript quick-start.js theme={null}
+  import { Client } from '@xdevplatform/xdk';
+  import { UserPaginator } from '@xdevplatform/xdk';
+
+  const client = new Client({ bearerToken: 'your-bearer-token' });
+
+  const followers = new UserPaginator(async (token) => {
+    const res = await client.users.getFollowers('<userId>', {
+      maxResults: 100,
+      paginationToken: token,
+      userFields: ['id','name','username'],
+    });
+    return { data: res.data ?? [], meta: res.meta, includes: res.includes, errors: res.errors };
+  });
+  ```
+</CodeGroup>
+
+<div id="manual-paging">
+  ### मैन्युअल पेजिंग
+</div>
+
+<CodeGroup>
+  ```typescript manual.ts theme={null}
+  import { UserPaginator, Schemas } from '@xdevplatform/xdk';
+
+  await followers.fetchNext();          // पहला पेज
+  while (!followers.done) {
+    await followers.fetchNext();        // बाद के पेज
+  }
+
+  const userCount: number = followers.users.length;  // फ़ेच किए गए सभी उपयोगकर्ता
+  const firstUser: Schemas.User | undefined = followers.users[0];
+  const nextToken: string | undefined = followers.meta?.nextToken;
+  ```
+
+  ```javascript manual.js theme={null}
+  await followers.fetchNext();
+  while (!followers.done) await followers.fetchNext();
+  console.log(followers.items.length);
+  ```
+</CodeGroup>
+
+<div id="async-iteration">
+  ### Async iteration
+</div>
+
+<CodeGroup>
+  ```typescript async.ts theme={null}
+  import { Schemas } from '@xdevplatform/xdk';
+
+  for await (const user of followers) {
+    const typedUser: Schemas.User = user;
+    console.log(typedUser.username);  // पूरी तरह typed access
+  }
+  ```
+
+  ```javascript async.js theme={null}
+  for await (const user of followers) {
+    console.log(user.username);
+  }
+  ```
+</CodeGroup>
+
+<div id="next-page-as-a-new-instance">
+  ### नए instance के रूप में अगला पेज
+</div>
+
+<CodeGroup>
+  ```typescript next.ts theme={null}
+  import { UserPaginator } from '@xdevplatform/xdk';
+
+  await followers.fetchNext();
+  if (!followers.done) {
+    const page2: UserPaginator = await followers.next(); // अगले पेज से शुरू होने वाला स्वतंत्र paginator
+    await page2.fetchNext();
+    console.log(page2.users.length);  // दूसरे पेज के आइटम
+  }
+  ```
+
+  ```javascript next.js theme={null}
+  await followers.fetchNext();
+  if (!followers.done) {
+    const page2 = await followers.next();
+    await page2.fetchNext();
+  }
+  ```
+</CodeGroup>
+
+<div id="error-handling-and-rate-limits">
+  ### त्रुटि प्रबंधन और रेट लिमिट्स
+</div>
+
+<CodeGroup>
+  ```typescript errors.ts theme={null}
+  import { UserPaginator, Schemas } from '@xdevplatform/xdk';
+
+  try {
+    for await (const item of followers) {
+      const user: Schemas.User = item;
+      // उपयोगकर्ता को प्रोसेस करें...
+    }
+  } catch (err: unknown) {
+    if (followers.rateLimited) {
+      console.error('Rate limited, backoff required');
+      // backoff करें / बाद में फिर से प्रयास करें
+    } else {
+      console.error('Pagination error:', err);
+      throw err;
+    }
+  }
+  ```
+
+  ```javascript errors.js theme={null}
+  try {
+    for await (const item of followers) {
+      // ...
+    }
+  } catch (err) {
+    if (followers.rateLimited) {
+      // backoff करें / बाद में फिर से प्रयास करें
+    } else {
+      throw err;
+    }
+  }
+  ```
+</CodeGroup>
+
+<Info>
+  JavaScript/TypeScript XDK का उपयोग करने वाले विस्तृत कोड उदाहरणों के लिए, हमारे [code samples GitHub repo](https://github.com/xdevplatform/samples/tree/main/javascript) को देखें।
+</Info>

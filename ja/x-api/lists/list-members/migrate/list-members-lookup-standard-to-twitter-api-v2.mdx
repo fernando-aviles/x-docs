@@ -1,0 +1,139 @@
+---
+title: リストメンバーの取得
+sidebarTitle: リストメンバーの取得
+keywords: ["リストメンバー取得の移行", "v1.1 から v2 へのリストメンバー取得", "リストメンバー取得の移行方法", "Standard v1.1 から v2 のリストメンバーへ", "リストメンバー移行"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+<div id="list-members-lookup-standard-v11-compared-to-x-api-v2">
+  ### リストメンバーのルックアップ: Standard v1.1 と X API v2 の比較
+</div>
+
+standard v1.1 の [GET lists/members](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-members) および [GET lists/memberships](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-memberships) エンドポイントを使用している場合、このガイドは、standard v1.1 と X API v2 のリストメンバー用エンドポイントの共通点と相違点を理解するのに役立ちます。
+
+* **共通点**
+  * 認証方法
+* **相違点**
+  * エンドポイント URL
+  * レート制限
+  * App および Project の要件
+  * 1 リクエストあたりのデータオブジェクト数の上限
+  * レスポンスデータ形式
+  * リクエストパラメータ
+
+<div id="similarities">
+  #### 類似点
+</div>
+
+**認証**
+
+どちらのバージョンのエンドポイントも、[OAuth 1.0a User Context](/ja/resources/fundamentals/authentication#oauth-1-0a-2) と [App only](/ja/resources/fundamentals/authentication#oauth-2-0) の両方をサポートしています。したがって、これまで標準 v1.1 の List メンバーエンドポイントのいずれかを利用していた場合でも、X API v2 版へ移行しても同じ認証方法をそのまま使い続けることができます。
+
+利用している認証ライブラリ／パッケージにもよりますが、App only 認証はおそらく最も簡単に使い始められる方法であり、シンプルなリクエストヘッダーを設定するだけで利用できます。App only Access Token の生成方法については、[この App only ガイド](/ja/resources/fundamentals/authentication#bearer-token-also-known-as-app-only)を参照してください。
+
+<div id="differences">
+  #### 違い
+</div>
+
+**エンドポイント URL**
+
+* 標準 v1.1 エンドポイント:
+  * GET https://api.x.com/1.1/lists/members.json
+    (指定したリストのメンバーを取得)
+  * GET https://api.x.com/1.1/lists/memberships.json
+    (ユーザーがメンバーになっているリストを取得)
+* X API v2 エンドポイント:
+  * GET https://api.x.com/2/lists/:id/members
+    (指定したリストのメンバーを取得)
+
+  * GET https://api.x.com/2/users/:id/list&#95;memberships
+    (ユーザーがメンバーになっているリストを取得)
+
+**レート制限**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| /1.1/lists/members.json<br /><br />OAuth 1.0a User Context 利用時、15 分間に 900 リクエスト<br /><br />App のみ利用時、15 分間に 15 リクエスト | /2/lists/:id/members<br /><br />OAuth 1.0a User Context 利用時、15 分間に 900 リクエスト<br /><br />OAuth 2.0 Authorization Code with PKCE 利用時、15 分間に 900 リクエスト<br /><br />App のみ利用時、15 分間に 900 リクエスト |
+| /1.1/lists/memberships.json<br /><br />OAuth 1.0a User Context 利用時、15 分間に 15 リクエスト<br /><br />App のみ利用時、15 分間に 15 リクエスト | /2/users/:id/list&#95;memberships<br /><br />OAuth 1.0a User Context 利用時、15 分間に 15 リクエスト<br /><br />OAuth 2.0 Authorization Code with PKCE 利用時、15 分間に 15 リクエスト<br /><br />App のみ利用時、15 分間に 15 リクエスト |
+
+**App と Project の要件**
+
+X API v2 エンドポイントでは、リクエストの認証時に [developer App](/ja/resources/fundamentals/developer-apps) の認証情報を使用する必要があり、その App は [Project](/ja/resources/fundamentals/developer-apps) に関連付けられている必要があります。すべての X API v1.1 エンドポイントは、Project に関連付けられていない App と Project に関連付けられた App のいずれの認証情報も使用できます。
+
+**1 リクエストあたりのデータオブジェクトの上限**
+
+標準 v1.1 の /1.1/lists/members エンドポイントでは、1 リクエストあたり最大 5000 ユーザーを返すことができます。新しい v2 エンドポイントでは、1 リクエストあたり最大 100 ユーザーを返すことができます。デフォルトでは 100 個のユーザーオブジェクトが返されます。結果数を変更するには、クエリパラメーター max&#95;results= に 1〜100 の数値を指定する必要があります。その後、レスポンスペイロードで返される next&#95;token を次のリクエストの pagination&#95;token クエリパラメーターに渡すことでページネーションを行えます。
+
+さらに、/1.1/lists/memberships エンドポイントでは、1 リクエストあたり最大 1000 件のリストを返すことができます。v2 の代替エンドポイントでは、1 リクエストあたり最大 100 件のリストを返すことができます。デフォルトでは 100 件のリストオブジェクトが返されます。結果数を変更するには、/1.1/lists/members と同様に、クエリパラメーター max&#95;results= と pagination&#95;token を使用してください。
+
+**レスポンスデータの形式**
+
+標準 v1.1 と X API v2 のエンドポイントバージョンの最大の違いの 1 つは、ペイロードにどのフィールドを含めるかの選択方法です。
+
+標準エンドポイントでは、多くのレスポンスフィールドがデフォルトで返され、さらにどの追加フィールドやフィールドセットをペイロードに含めるかをパラメーターで指定できます。
+
+X API v2 バージョンの /users/:id/list&#95;memberships では、デフォルトでリストの id と name フィールドが返されます。追加のフィールドやオブジェクトをリクエストするには、[fields](/ja/x-api/fundamentals/fields) および [expansions](/ja/x-api/fundamentals/expansions) パラメーターを使用する必要があります。このエンドポイントからリクエストしたリストのフィールドは、プライマリのリストオブジェクト内に返されます。展開されたオブジェクトとフィールドは、レスポンス内の includes オブジェクト内に返されます。その後、プライマリオブジェクトと展開されたオブジェクトの両方に含まれる ID を照合することで、展開されたオブジェクトをプライマリのリストオブジェクトに対応付けることができます。 
+
+以下は、取得可能なリストのフィールドと expansions の例です:
+
+* created&#95;at
+
+* follower&#95;count
+
+* member&#95;count
+
+* owner&#95;id
+
+* description
+
+* private
+
+|     |     |
+| :--- | :--- |
+| **Endpoint** | **Expansion** |
+| /2/lists/:id/members | pinned&#95;tweet&#95;id |
+| /2/users/:id/list&#95;memberships | owner&#95;id |
+
+これらの新しいパラメーターについては、それぞれのガイド、または [fields と expansions の使用方法](/ja/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) に関するガイドを参照して、詳しく確認することをおすすめします。 
+
+標準 v1.1 のフィールドを新しい v2 のフィールドにマッピングするのに役立つ [データ形式移行ガイド](/ja/x-api/migrate/data-format-migration) も用意しています。このガイドでは、特定のフィールドを返すために v2 リクエストと併せて指定する必要がある、具体的な expansion および field パラメータについても説明しています。 
+
+特定のフィールドのリクエスト方法の変更に加えて、X API v2 では、[Post](/ja/x-api/fundamentals/data-dictionary#tweet) オブジェクトや [user](/ja/x-api/fundamentals/data-dictionary#user) オブジェクトを含む、API が返すオブジェクトに対して新しい JSON 設計も導入しています。
+
+* JSON のルートレベルでは、標準 v1.1 のエンドポイントは Post オブジェクトを `statuses` 配列で返しますが、X API v2 では `data` 配列で返します。 
+
+* Retweeted および Quoted の「statuses」を参照する代わりに、X API v2 の JSON では Retweeted および Quoted Tweets を参照します。contributors や user.translator&#95;type など、多くのレガシーおよび非推奨フィールドは削除されます。 
+
+* Post オブジェクトでの `favorites` と user オブジェクトでの `favourites` の両方を使用する代わりに、X API v2 では `like` という用語を使用します。 
+
+* X では、値を持たない JSON 値 (たとえば null) はペイロードに書き込まないという規約を採用しています。Post および user の属性は、非 null の値を持つ場合にのみ含まれます。
+
+**リクエストパラメータ**
+
+次の Standard v1.1 のリクエストパラメータには、X API v2 での対応があります。
+
+**List メンバー取得**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| list&#95;id | id  |
+| slug | 対応なし |
+| owner&#95;screen&#95;name | 対応なし |
+| owner&#95;id | 対応なし |
+| count | max&#95;results |
+| cursor | pagination&#95;token |
+| include&#95;entities | 対応なし |
+| skip&#95;status | 対応なし |
+
+**List メンバーシップ取得**
+
+|     |     |
+| :--- | :--- |
+| **Standard v1.1** | **X API v2** |
+| user&#95;id | id  |
+| screen&#95;name | 対応なし |
+| count | max&#95;results |
+| cursor | pagination&#95;token |

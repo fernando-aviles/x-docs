@@ -1,0 +1,80 @@
+---
+title: Guide de migration
+sidebarTitle: Guide de migration
+keywords: ["migration de la gestion des messages privés (DM)", "migration de la gestion des DM", "v1.1 vers v2 gestion des DM", "guide de migration des DM", "migration de la gestion des DM"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+<div id="comparing-v11-and-v2-manage-direct-message-endpoints">
+  ## Comparaison des endpoints de gestion des Messages privés entre v1.1 et v2
+</div>
+
+Les versions v1.1 et v2 des endpoints de Messages privés fournissent toutes deux des méthodes pour créer des Messages privés. Ce guide a pour but d’aider à comprendre les différences et de fournir des informations pour migrer vers v2. 
+
+Une différence majeure entre les deux versions est que v1.1 ne prend en charge que les conversations un‑à‑un, tandis que v2 introduit la prise en charge des conversations de groupe. L’une des conséquences de cela est que v1.1 ne prend en charge que les événements de « création de message », tandis que v2 prend également en charge les événements associés aux participants qui rejoignent et quittent des conversations. En fait, une mise à jour fondamentale de v2 est l’établissement de dm&#95;conversations comme objet d’API fondamental.   
+
+Avec v1.1, il existe deux endpoints pour gérer les Messages privés :
+
+* POST direct&#95;messages/events/new - Crée un Message privé un‑à‑un. Cet endpoint v1.1 ne peut créer que des messages un‑à‑un et ne prend pas en charge les messages de groupe.  
+
+* DELETE direct&#95;messages/events/destroy - Supprime un message un‑à‑un de la vue de l’utilisateur authentifié. 
+
+Avec cette version v2, il existe trois méthodes POST pour créer des Messages privés : 
+
+* **POST /2/dm&#95;conversations/with/:participant&#95;id/messages** - Crée un Message privé un‑à‑un. Cette méthode ajoute soit le message à une conversation un‑à‑un existante, soit en crée une nouvelle. Le paramètre de chemin :participant&#95;id est l’`id` utilisateur du compte qui reçoit le message. 
+
+* **POST /2/dm&#95;conversations** - Crée une nouvelle conversation de groupe et y ajoute un Message privé. Ces requêtes nécessitent une liste de participants à la conversation. Notez que vous pouvez créer plusieurs conversations avec la même liste de participants. Ces requêtes renverront toujours un nouvel `id` de conversation. 
+
+* **POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages** - Crée un Message privé et l’ajoute à une conversation existante. Le paramètre de chemin :dm&#95;conversation&#95;id est l’`id` de la conversation à laquelle le message sera ajouté. 
+
+Un détail important est que les `id` de conversation et d’événement sont partagés entre les versions v1.1 et v2 de la plateforme X. Cela signifie que les deux versions peuvent être utilisées ensemble. Par exemple, les endpoints v1.1 de Messages privés fournissent des méthodes pour renvoyer un seul événement et pour supprimer des événements, des méthodes qui ne sont pas encore disponibles avec v2. Étant donné que les `id` sont communs à v1.1 et v2, vous pouvez effectuer des requêtes v1.1 à partir des `id` fournis par v2, ou en vous basant sur les `id` de conversation affichés dans les URL de conversation de l’application X.
+
+Le tableau suivant compare les aspects fondamentaux des endpoints v1.1 et v2 de gestion des Messages privés. Les caractéristiques de X API v2 présentées ici sont communes à tous les endpoints de recherche de Messages privés.
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Domaine d’hébergement | https://api.x.com | https://api.x.com |
+| Chemin racine de l’endpoint | [/1.1/direct&#95;messages](https://api.x.com/1.1/direct_messages) | [/2/dm&#95;conversations](https://api.x.com/2/users/:id/dm_conversations)<br /><br />Les conversations de Messages privés sont introduites comme objet d’API fondamental.   <br /><br />Ces endpoints récupèrent les événements MessageCreate, ParticipantsJoin et ParticipantLeave. |
+| Méthodes HTTP prises en charge | POST | POST |
+| Prend en charge les Messages privés de groupe |     | ✔   |
+| Types d’événements pris en charge | message&#95;create | MessageCreate, ParticipantsJoin, ParticipantsLeave |
+| [Authentification](/fr/resources/fundamentals/authentication) | OAuth 1.0a User Context | OAuth 1.0a User Context<br /><br />OAuth 2 User Context (scopes : dm.read, dm.write) |
+| Nécessite l’utilisation d’identifiants provenant d’une [App développeur](/fr/resources/fundamentals/authentication) associée à un [Project](/fr/resources/fundamentals/developer-apps) X API v2 |     | ✔   |
+| [Limites de taux](/fr/x-api/fundamentals/rate-limits) de requête par défaut*  <br />*Toutes les requêtes nécessitent des jetons utilisateur | 1000 requêtes par utilisateur par 24 heures  <br />15000 requêtes par app par 24 heures | 200 requêtes par tranche de 15 minutes et par utilisateur<br /><br />1000 requêtes par utilisateur par 24 heures<br /><br />15000 requêtes par app par 24 heures<br /><br />Ces limites de taux sont partagées entre tous les endpoints POST dm&#95;conversations. |
+
+Les tableaux suivants comparent les méthodes POST v2 avec la version v1.1. Notez que ces fonctionnalités v2 étendent les capacités disponibles en prenant en charge les conversations de groupe. 
+
+**Créer un nouveau Message privé un‑à‑un**
+
+Chemin : POST /2/dm&#95;conversations/with/:participant&#95;id/messages
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Chemin d’endpoint | POST direct&#95;messages/events/new (message&#95;create) | POST /2/dm&#95;conversations/with/:participant&#95;id/messages |
+| Limites de taux de requêtes par défaut [limites de taux](/fr/x-api/fundamentals/rate-limits) | 1000 requêtes par utilisateur sur 24 heures  <br />15000 requêtes par application sur 24 heures | 200 requêtes toutes les 15 minutes par utilisateur<br /><br />1000 requêtes par utilisateur sur 24 heures<br /><br />15000 requêtes par application sur 24 heures<br /><br />Ces limites de taux sont partagées par tous les endpoints POST dm&#95;conversations. |
+| Prend en charge les Messages privés de groupe |     | ✔   |
+
+**Créer une nouvelle conversation de groupe de Messages privés et y ajouter un message**
+
+Chemin : POST /2/dm&#95;conversations
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Chemin d’endpoint | Non pris en charge | POST /2/dm&#95;conversations |
+| Limites de taux de requêtes par défaut [limites de taux](/fr/x-api/fundamentals/rate-limits) |     | 200 requêtes toutes les 15 minutes par utilisateur<br /><br />1000 requêtes par utilisateur sur 24 heures<br /><br />15000 requêtes par application sur 24 heures<br /><br />Ces limites de taux sont partagées par tous les endpoints POST dm&#95;conversations. |
+| Prend en charge les Messages privés de groupe |     | ✔   |
+
+**Ajouter un Message privé à une conversation existante à partir de son ID**
+
+Chemin : POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages
+
+|     |     |     |
+| :--- | :--- | :--- |
+| **Description** | **Standard v1.1** | **X API v2** |
+| Chemin d’endpoint | Non pris en charge | POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages |
+| Limites de taux de requêtes par défaut [limites de taux](/fr/x-api/fundamentals/rate-limits) |     | 200 requêtes toutes les 15 minutes par utilisateur<br /><br />1000 requêtes par utilisateur sur 24 heures<br /><br />15000 requêtes par application sur 24 heures<br /><br />Ces limites de taux sont partagées par tous les endpoints POST dm&#95;conversations. |
+| Prend en charge les Messages privés de groupe |     | ✔   |

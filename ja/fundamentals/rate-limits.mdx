@@ -1,0 +1,116 @@
+---
+title: レート制限
+sidebarTitle: レート制限
+icon: gauge-high
+description: X の開発者向けプロダクト全体における API レート制限について理解する
+keywords: ["レート制限", "API レート制限", "リクエスト数の制限", "API スロットリング", "レート制限の適用"]
+---
+
+レート制限は、一定期間内に実行できる API リクエスト数を制御します。これにより、プラットフォーム全体での公平な利用とシステムの安定性が保たれます。
+
+***
+
+<div id="rate-limits-by-product">
+  ## プロダクトごとのレート制限
+</div>
+
+各 X API プロダクトには、それぞれ独自のレート制限ポリシーがあります。
+
+<CardGroup cols={3}>
+  <Card title="X API v2" icon="square-x-twitter" href="/ja/x-api/fundamentals/rate-limits">
+    15 分ごとの時間枠に基づくエンドポイント単位の制限。詳細な一覧表や復旧のためのヒントを確認できます。
+  </Card>
+
+  <Card title="Enterprise API" icon="building" href="/ja/x-api/enterprise-gnip-2.0/fundamentals/rate-limits">
+    お客様のエンタープライズ契約およびデータパッケージに基づくカスタム制限。
+  </Card>
+
+  <Card title="X Ads API" icon="rectangle-ad" href="/ja/x-ads-api/fundamentals/rate-limiting">
+    広告管理およびアナリティクス関連エンドポイントに固有の制限。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="how-rate-limits-work">
+  ## レート制限の仕組み
+</div>
+
+| 概念 | 説明 |
+|:--------|:------------|
+| **時間枠** | ほとんどのレート制限は 15 分ごとにリセットされます |
+| **ユーザー単位の制限** | OAuth 1.0a または OAuth 2.0 のユーザートークンを使用する場合に適用されます |
+| **アプリ単位の制限** | ベアラートークン (app-only) 認証を使用する場合に適用されます |
+| **エンドポイントごとの制限** | 各エンドポイントごとに個別の制限があります |
+
+***
+
+<div id="checking-your-limits">
+  ## レート制限の確認
+</div>
+
+すべての API レスポンスには、現在のレート制限状況を示すヘッダーが含まれています。
+
+```
+x-rate-limit-limit: 900
+x-rate-limit-remaining: 847
+x-rate-limit-reset: 1705420800
+```
+
+| Header                   | Description               |
+| :----------------------- | :------------------------ |
+| `x-rate-limit-limit`     | 現在のウィンドウ内で許可されている最大リクエスト数 |
+| `x-rate-limit-remaining` | 現在のウィンドウ内での残りリクエスト数       |
+| `x-rate-limit-reset`     | 制限がリセットされる Unix タイムスタンプ   |
+
+***
+
+<div id="rate-limit-errors">
+  ## レート制限エラー
+</div>
+
+レート制限を超過すると、**429 Too Many Requests** レスポンスが返されます。
+
+```json
+{
+  "errors": [{
+    "code": 88,
+    "message": "Rate limit exceeded"
+  }]
+}
+```
+
+***
+
+<div id="best-practices">
+  ## ベストプラクティス
+</div>
+
+<CardGroup cols={2}>
+  <Card title="レスポンスをキャッシュする" icon="database">
+    同じデータに対する重複リクエストを減らすため、API レスポンスをローカルに保存します。
+  </Card>
+
+  <Card title="指数バックオフを使う" icon="clock-rotate-left">
+    レート制限が発生した場合は、リトライする前に待機し、リトライのたびに待機時間を 2 倍にします。
+  </Card>
+
+  <Card title="ヘッダーを確認する" icon="list-check">
+    レート制限に達することを防ぐため、レート制限ヘッダーを継続的に監視します。
+  </Card>
+
+  <Card title="ストリーミングを使う" icon="signal-stream">
+    リアルタイムデータには、検索エンドポイントをポーリングする代わりに filtered stream を使用します。
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+エンドポイントごとの詳細なレート制限一覧は、お使いの各 API のレート制限ページを参照してください。
+
+* [X API v2 のレート制限](/ja/x-api/fundamentals/rate-limits)
+* [X Ads API のレート制限](/ja/x-ads-api/fundamentals/rate-limiting)

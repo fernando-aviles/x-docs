@@ -1,0 +1,259 @@
+---
+title: 첫 요청 보내기
+sidebarTitle: 첫 요청 보내기
+description: 몇 분 만에 X API를 바로 사용해 보세요
+keywords: ["첫 요청", "시작하기", "API 빠른 시작", "API 요청 보내기", "cURL", "API 예제", "샘플 코드"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 X API에 처음으로 요청을 보내는 과정을 단계별로 안내합니다. 시작하기 전에 [App 자격 증명이 있는 개발자 계정](/ko/x-api/getting-started/getting-access)이 필요합니다.
+
+***
+
+<div id="quick-start-with-curl">
+  ## cURL로 빠르게 시작하기
+</div>
+
+API를 테스트하는 가장 빠른 방법은 cURL을 사용하는 것입니다. 사용자 정보를 한 번 조회해 보겠습니다:
+
+```bash
+curl "https://api.x.com/2/users/by/username/xdevelopers" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+`$BEARER_TOKEN`을(를) 실제 Bearer 토큰 값으로 교체하세요. 그러면 다음과 같은 응답을 받게 됩니다:
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "xdevelopers"
+  }
+}
+```
+
+***
+
+<div id="step-by-step-guide">
+  ## 단계별 가이드
+</div>
+
+<Steps>
+  <Step title="Bearer 토큰 가져오기">
+    [개발자 콘솔](https://console.x.com)에서 App으로 이동한 다음 Bearer 토큰을 복사합니다.
+  </Step>
+
+  <Step title="엔드포인트 선택">
+    다음과 같은 초보자에게 친숙한 엔드포인트 중 하나로 시작하세요:
+
+    | Endpoint | 기능 |
+    |:---------|:-------------|
+    | [User lookup](/ko/x-api/users/lookup/introduction) | 사용자 이름 또는 ID로 사용자 프로필 가져오기 |
+    | [Post lookup](/ko/x-api/posts/lookup/introduction) | ID로 게시물 가져오기 |
+    | [Recent search](/ko/x-api/posts/search/introduction) | 최근 7일 동안의 포스트 검색 |
+  </Step>
+
+  <Step title="요청 보내기">
+    cURL, Postman 또는 선호하는 HTTP 클라이언트를 사용하세요:
+
+    ```bash
+    # 사용자 이름으로 사용자 조회
+    curl "https://api.x.com/2/users/by/username/xdevelopers" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Step>
+
+  <Step title="응답 파싱">
+    응답은 JSON 형식입니다. 주요 데이터는 `data` 필드에 있습니다:
+
+    ```json
+    {
+      "data": {
+        "id": "2244994945",
+        "name": "X Developers",
+        "username": "xdevelopers"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="request-more-data-with-fields">
+  ## 필드를 사용해 더 많은 데이터 요청하기
+</div>
+
+기본적으로 엔드포인트는 최소한의 필드만 반환합니다. 추가 데이터를 요청하려면 `fields` 파라미터를 사용하세요:
+
+```bash
+curl "https://api.x.com/2/users/by/username/xdevelopers?user.fields=created_at,description,public_metrics" \
+  -H "Authorization: Bearer $BEARER_TOKEN"
+```
+
+응답:
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "xdevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "description": "X Developer Platform의 목소리",
+    "public_metrics": {
+      "followers_count": 570842,
+      "following_count": 2048,
+      "tweet_count": 14052,
+      "listed_count": 1672
+    }
+  }
+}
+```
+
+[필드에 대해 자세히 알아보기 →](/ko/x-api/fundamentals/fields)
+
+***
+
+<div id="more-examples">
+  ## 추가 예제
+</div>
+
+<Tabs>
+  <Tab title="게시물 조회">
+    ```bash
+    curl "https://api.x.com/2/tweets/1460323737035677698?tweet.fields=created_at,public_metrics" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Tab>
+
+  <Tab title="최근 포스트 검색">
+    ```bash
+    curl "https://api.x.com/2/tweets/search/recent?query=from:xdevelopers&tweet.fields=created_at" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Tab>
+
+  <Tab title="사용자의 포스트 가져오기">
+    ```bash
+    curl "https://api.x.com/2/users/2244994945/tweets?max_results=5" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="using-code-instead-of-curl">
+  ## cURL 대신 코드 사용하기
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    bearer_token = "YOUR_BEARER_TOKEN"
+    url = "https://api.x.com/2/users/by/username/xdevelopers"
+
+    headers = {"Authorization": f"Bearer {bearer_token}"}
+    response = requests.get(url, headers=headers)
+
+    print(response.json())
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const bearerToken = "YOUR_BEARER_TOKEN";
+    const url = "https://api.x.com/2/users/by/username/xdevelopers";
+
+    fetch(url, {
+      headers: { Authorization: `Bearer ${bearerToken}` }
+    })
+      .then(res => res.json())
+      .then(data => console.log(data));
+    ```
+  </Tab>
+
+  <Tab title="Official SDKs">
+    실서비스(프로덕션) 환경에서는 공식 SDK 사용을 권장합니다:
+
+    * [Python SDK](/ko/xdks/python/overview)
+    * [TypeScript SDK](/ko/xdks/typescript/overview)
+
+    공식 SDK는 인증, 페이지네이션, 요청 속도 제한(rate limiting)을 자동으로 처리합니다.
+  </Tab>
+</Tabs>
+
+***
+
+<div id="tools-for-testing">
+  ## 테스트용 도구
+</div>
+
+<CardGroup cols={3}>
+  <Card title="Postman" icon="server" href="/ko/tutorials/postman-getting-started">
+    제공하는 컬렉션을 사용해 API를 시각적으로 테스트할 수 있습니다.
+  </Card>
+
+  <Card title="샘플 코드" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    여러 언어로 된 예제 코드를 제공합니다.
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/lookup/introduction">
+    엔드포인트에 대한 전체 문서를 제공합니다.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="troubleshooting">
+  ## 문제 해결
+</div>
+
+<Accordion title="401 Unauthorized">
+  * Bearer 토큰이 올바른지 확인하세요
+  * 토큰이 재발급되거나 변경되지 않았는지 확인하세요
+  * `Authorization` 헤더 형식을 확인하세요: `Bearer YOUR_TOKEN`
+</Accordion>
+
+<Accordion title="403 Forbidden">
+  * App이 이 엔드포인트에 대한 액세스 권한이 없을 수 있습니다
+  * 일부 엔드포인트는 사용자 컨텍스트 인증(OAuth 1.0a 또는 2.0)을 요구합니다
+  * 개발자 콘솔에서 App의 권한을 확인하세요
+</Accordion>
+
+<Accordion title="429 Too Many Requests">
+  * 요청 한도(rate limit)에 도달했습니다
+  * 다시 시도할 시점을 확인하려면 `x-rate-limit-reset` 헤더를 확인하세요
+  * 코드에서 지수 백오프를 구현하세요
+</Accordion>
+
+[전체 오류 참조 →](/ko/x-api/fundamentals/response-codes-and-errors)
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="인증 알아보기" icon="key" href="/ko/resources/fundamentals/authentication/overview">
+    사용자 컨텍스트 요청에 사용하는 OAuth를 이해하세요.
+  </Card>
+
+  <Card title="엔드포인트 살펴보기" icon="compass" href="/ko/x-api/posts/search/introduction">
+    무엇을 구축할 수 있는지 알아보세요.
+  </Card>
+
+  <Card title="SDK 사용하기" icon="cube" href="/ko/xdks/overview">
+    공식 라이브러리로 더 빠르게 개발하세요.
+  </Card>
+
+  <Card title="무언가 만들어 보기" icon="hammer" href="/ko/x-api/what-to-build">
+    무엇을 만들지에 대한 아이디어를 얻어보세요.
+  </Card>
+</CardGroup>

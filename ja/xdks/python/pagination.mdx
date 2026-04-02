@@ -1,0 +1,75 @@
+---
+title: ページネーション
+sidebarTitle: ページネーション
+---
+
+X API は、タイムラインや検索など、複数ページにわたる結果を返すエンドポイントに対してページネーションを使用します。各 API 呼び出しのレスポンスには、`result_count`、`previous_token`、`next_token` を含む `meta` オブジェクトが含まれます。XDK は `next_token` を使って複数回の API 呼び出しを自動で処理するため、開発者は複数回リクエストを送ることなく、必要なデータ量だけを指定できます。
+SDK はこれを次のように簡素化します:
+
+- **組み込みイテレーター**: ジェネレーター関数を使って、複数ページにまたがるデータ取得をシームレスに行えます。
+- **明示的なトークン処理**: `pagination_token` を渡すことで、必要に応じた柔軟な手動制御が可能です。
+- **最大取得件数の遵守**: 各呼び出しごとに `max_results`（API の上限まで。例: 検索の場合は 100）を遵守します。
+
+<div id="automatic-pagination-recommended">
+  ## 自動ページネーション（推奨）
+</div>
+
+ページネーション対応のレスポンスに対して `iterate()` メソッドを使用し、すべての結果を遅延的に取得します。
+**例: ページネーション付き検索**
+
+```python
+from xdk import Client
+client = Client(bearer_token="your_bearer_token")
+# Search with automatic pagination
+all_posts = []
+for page in client.posts.search_recent(
+    query="python",
+    max_results=100,  # Per page
+    tweet_fields=["created_at", "author_id"]  # オプションの拡張
+):
+    all_posts.extend(page.data)
+    print(f"Fetched {len(page.data)} Posts (total: {len(all_posts)})")
+print(f"Total tweets: {len(all_posts)}")
+```
+
+* イテレータは `next_token` を自動的に処理します。
+* `next_token` が存在しない場合に停止します。
+* 429 エラーを回避するためのレート制限バックオフをサポートします。
+
+
+<div id="manual-pagination">
+  ## 手動でのページネーション
+</div>
+
+カスタムロジック（例：ページ単位の処理）で結果の取得を制御したい場合は、`next_token` を使用して、以下のように手動でページネーションを行うこともできます。
+
+```python
+# 最初のページを取得 - search_recentはIteratorを返します
+first_page = next(client.posts.search_recent(
+    query="xdk python sdk",
+    max_results=100,
+    pagination_token=None  # 最初のページ
+))
+print(f"最初のページ: {len(first_page.data) if first_page.data else 0} 件のポスト")
+# metaからnext_tokenを抽出
+next_token = None
+if hasattr(first_page, 'meta') and first_page.meta:
+    if hasattr(first_page.meta, 'next_token'):
+        next_token = first_page.meta.next_token
+    elif isinstance(first_page.meta, dict):
+        next_token = first_page.meta.get('next_token')
+if next_token:
+    second_page = next(client.posts.search_recent(
+        query="xdk python sdk",
+        max_results=100,
+        pagination_token=next_token
+    ))
+    print(f"2ページ目: {len(second_page.data) if second_page.data else 0} 件のポスト")
+```
+
+**ヒント**:
+
+* エンドポイントごとに既定値が異なるため、`max_results` を必ず指定してチューニングしてください。
+* デバッグのために `meta.result_count` をモニタリングしてください。
+* 非常に大きなクエリの場合は、処理のブロッキングを避けるために非同期イテレーションの利用を検討してください。
+  Python XDK を使用した詳細なコード例については、[コードサンプルの GitHub リポジトリ](https://github.com/xdevplatform/samples/tree/main/python) を参照してください。

@@ -1,0 +1,182 @@
+---
+title: Recherche des membres d’une Liste
+sidebarTitle: Recherche des membres d’une Liste
+description: Récupérer les membres d’une Liste
+keywords: ["démarrage rapide recherche des membres de Liste", "recherche des membres de Liste", "démarrage rapide obtenir les membres d’une Liste", "recherche d’appartenance à une Liste"]
+---
+
+import { Button } from '/snippets/fr/button.mdx';
+
+Ce guide vous explique comment récupérer les membres d&#39;une Liste.
+
+<Note>
+  **Prérequis**
+
+  Avant de commencer, vous aurez besoin :
+
+  * D&#39;un [compte développeur](https://developer.x.com/en/portal/petition/essential/basic-info) disposant d&#39;une App approuvée
+  * Du Jeton Bearer associé à votre App
+</Note>
+
+***
+
+<div id="get-list-members">
+  ## Obtenir les membres d’une Liste
+</div>
+
+<Steps>
+  <Step title="Trouver l’ID de la Liste">
+    Vous pouvez trouver l’ID de la Liste dans l’URL lorsque vous consultez une Liste :
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── Il s’agit de l’ID de la Liste
+    ```
+  </Step>
+
+  <Step title="Récupérer les membres de la Liste">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/members?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Récupérer les membres de la Liste avec pagination
+      for page in client.lists.get_members(
+          "84839422",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Inscription : {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Récupérer les membres de la Liste avec pagination
+      const paginator = client.lists.getMembers("84839422", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Inscription : ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Examiner la réponse">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1319036828964454402",
+          "name": "Birdwatch",
+          "username": "birdwatch",
+          "created_at": "2020-10-21T22:04:47.000Z",
+          "verified": true
+        },
+        {
+          "id": "1065249714214457345",
+          "name": "Spaces",
+          "username": "TwitterSpaces",
+          "created_at": "2018-11-21T14:24:58.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "5349804505549807616"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## Inclure des données supplémentaires
+</div>
+
+Utilisez le paramètre expansions pour obtenir des données associées, comme les Publications épinglées :
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422/members?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # Récupérer les membres de la Liste avec expansions
+  for page in client.lists.get_members(
+      "84839422",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # Les Publications épinglées se trouvent dans page.includes.tweets
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // Récupérer les membres de la Liste avec expansions
+  const paginator = client.lists.getMembers("84839422", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // Les Publications épinglées se trouvent dans page.includes?.tweets
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Gérer les membres de la liste" icon="user-plus" href="/fr/x-api/lists/list-members/quickstart/manage-list-members">
+    Ajouter et supprimer des membres
+  </Card>
+
+  <Card title="Recherche de liste" icon="list" href="/fr/x-api/lists/list-lookup/quickstart">
+    Obtenir les détails de la liste
+  </Card>
+
+  <Card title="Référence de l’API" icon="code" href="/fr/x-api/lists/get-list-members">
+    Documentation complète de l’endpoint
+  </Card>
+</CardGroup>

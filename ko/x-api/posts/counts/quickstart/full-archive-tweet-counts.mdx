@@ -1,0 +1,252 @@
+---
+title: 전체 아카이브 게시물 수
+sidebarTitle: 전체 아카이브 게시물 수
+description: 2006년까지의 게시물 수를 조회합니다
+keywords: ["전체 아카이브 게시물 개수 빠른 시작", "아카이브 개수 빠른 시작", "과거 개수 빠른 시작", "전체 아카이브 개수"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 2006년 3월까지의 과거 게시물 개수를 조회하는 방법을 단계별로 안내합니다.
+
+<Warning>
+  전체 아카이브 게시물 개수를 사용하려면 [Self-serve](/ko/x-api/getting-started/about-x-api) 또는 [Enterprise](/ko/x-api/getting-started/about-x-api) 액세스 권한이 필요합니다.
+</Warning>
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * Self-serve 또는 Enterprise 액세스 권한이 있는 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App의 Bearer 토큰
+</Note>
+
+***
+
+<div id="get-full-archive-post-counts">
+  ## 전체 보관소 게시물 개수 가져오기
+</div>
+
+<Steps>
+  <Step title="쿼리 작성">
+    전체 보관소 검색과 동일한 쿼리 구문을 사용합니다. 예를 들어 @XDevelopers 계정의 게시물 개수를 확인하려면 다음과 같이 입력합니다:
+
+    ```
+    from:XDevelopers
+    ```
+  </Step>
+
+  <Step title="시간 범위 설정">
+    특정 과거 기간을 검색하려면 `start_time`과 `end_time`을 지정합니다:
+
+    | Parameter | Format | Example |
+    |:----------|:-------|:--------|
+    | `start_time` | ISO 8601 | `2020-01-01T00:00:00Z` |
+    | `end_time` | ISO 8601 | `2020-12-31T23:59:59Z` |
+  </Step>
+
+  <Step title="요청 보내기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/counts/all?\
+      query=from%3AXDevelopers&\
+      start_time=2020-01-01T00%3A00%3A00Z&\
+      end_time=2020-12-31T23%3A59%3A59Z&\
+      granularity=day" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # 전체 보관소 게시물 개수 가져오기
+      response = client.posts.count_all(
+          query="from:XDevelopers",
+          start_time="2020-01-01T00:00:00Z",
+          end_time="2020-12-31T23:59:59Z",
+          granularity="day"
+      )
+
+      for bucket in response.data:
+          print(f"{bucket.start}: {bucket.tweet_count} Posts")
+
+      print(f"Total: {response.meta.total_tweet_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // 전체 보관소 게시물 개수 가져오기
+      const response = await client.posts.countAll({
+        query: "from:XDevelopers",
+        startTime: "2020-01-01T00:00:00Z",
+        endTime: "2020-12-31T23:59:59Z",
+        granularity: "day",
+      });
+
+      response.data?.forEach((bucket) => {
+        console.log(`${bucket.start}: ${bucket.tweet_count} Posts`);
+      });
+
+      console.log(`Total: ${response.meta?.total_tweet_count}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답 검토">
+    ```json
+    {
+      "data": [
+        {
+          "end": "2020-01-02T00:00:00.000Z",
+          "start": "2020-01-01T00:00:00.000Z",
+          "tweet_count": 3
+        },
+        {
+          "end": "2020-01-03T00:00:00.000Z",
+          "start": "2020-01-02T00:00:00.000Z",
+          "tweet_count": 5
+        }
+      ],
+      "meta": {
+        "total_tweet_count": 8
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="granularity-options">
+  ## 세분성 옵션
+</div>
+
+집계 단위(그룹화 기준)를 제어합니다:
+
+| Granularity | 설명 |
+|:------------|:------------|
+| `minute` | 분 단위 집계 수 |
+| `hour` | 시간 단위 집계 수 (기본값) |
+| `day` | 일 단위 집계 수 |
+
+***
+
+<div id="paginate-through-results">
+  ## 결과를 페이지 단위로 조회하기
+</div>
+
+기간 범위가 클 때는 응답에 포함된 `next_token`을 사용하세요:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/counts/all?\
+  query=from%3AXDevelopers&\
+  start_time=2015-01-01T00%3A00%3A00Z&\
+  end_time=2020-12-31T23%3A59%3A59Z&\
+  granularity=day&\
+  next_token=abc123" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # 페이지네이션을 사용해 개수 가져오기
+  next_token = None
+
+  while True:
+      response = client.posts.count_all(
+          query="from:XDevelopers",
+          start_time="2015-01-01T00:00:00Z",
+          end_time="2020-12-31T23:59:59Z",
+          granularity="day",
+          next_token=next_token
+      )
+      
+      for bucket in response.data:
+          print(f"{bucket.start}: {bucket.tweet_count}")
+      
+      next_token = response.meta.next_token
+      if not next_token:
+          break
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // 페이지네이션을 사용해 개수 가져오기
+  let nextToken = undefined;
+
+  do {
+    const response = await client.posts.countAll({
+      query: "from:XDevelopers",
+      startTime: "2015-01-01T00:00:00Z",
+      endTime: "2020-12-31T23:59:59Z",
+      granularity: "day",
+      nextToken,
+    });
+
+    response.data?.forEach((bucket) => {
+      console.log(`${bucket.start}: ${bucket.tweet_count}`);
+    });
+
+    nextToken = response.meta?.next_token;
+  } while (nextToken);
+  ```
+</CodeGroup>
+
+***
+
+<div id="key-differences-from-recent-counts">
+  ## 최근 카운트와의 주요 차이점
+</div>
+
+| 기능 | 최근 카운트 | 전체 아카이브 카운트 |
+|:--------|:--------------|:--------------------|
+| 시간 범위 | 최근 7일 | 2006년 3월부터 현재까지 |
+| 필요한 접근 권한 | 모든 개발자 | 사용량 기반 과금, Enterprise |
+| 기본 시간 범위 | 최근 7일 | 최근 30일 |
+
+***
+
+<div id="common-parameters">
+  ## 공통 매개변수
+</div>
+
+| Parameter | Description | Default |
+|:----------|:------------|:--------|
+| `query` | 검색 쿼리 (필수) | — |
+| `granularity` | 시간 단위 | `hour` |
+| `start_time` | 가장 이른 타임스탬프 (ISO 8601) | 30일 전 |
+| `end_time` | 가장 최근 타임스탬프 (ISO 8601) | 현재 |
+| `next_token` | 페이지네이션 토큰 | — |
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="최근 집계" icon="clock" href="/ko/x-api/posts/counts/quickstart/recent-tweet-counts">
+    최근 게시물 개수 가져오기
+  </Card>
+
+  <Card title="쿼리 작성" icon="magnifying-glass" href="/ko/x-api/posts/counts/integrate/build-a-query">
+    쿼리 구문 익히기
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/full-archive-post-count">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

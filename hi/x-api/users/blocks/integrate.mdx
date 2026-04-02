@@ -1,0 +1,216 @@
+---
+title: एकीकरण गाइड
+sidebarTitle: एकीकरण गाइड
+description: blocks एंडपॉइंट्स के एकीकरण के लिए मुख्य अवधारणाएँ और सर्वोत्तम प्रथाएँ
+keywords: ["ब्लॉक्स एकीकरण", "उपयोगकर्ताओं को ब्लॉक करने का एकीकरण", "ब्लॉक्स गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका उन मुख्य अवधारणाओं के बारे में बताती है जिनकी आपको blocks एंडपॉइंट्स को अपने ऐप में एकीकृत करने के लिए आवश्यकता है।
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+ब्लॉक्स एंडपॉइंट्स के लिए उपयोगकर्ता प्रमाणीकरण आवश्यक है:
+
+| विधि                                                                                                                             | विवरण                        |
+| :------------------------------------------------------------------------------------------------------------------------------- | :--------------------------- |
+| [PKCE के साथ OAuth 2.0 Authorization Code](/hi/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | नए एप्लिकेशन के लिए अनुशंसित |
+| [OAuth 1.0a उपयोगकर्ता संदर्भ](/hi/resources/fundamentals/authentication)                                                           | लीगेसी समर्थन                |
+
+<Warning>
+  App-Only प्रमाणीकरण समर्थित नहीं है। आपको किसी उपयोगकर्ता की ओर से प्रमाणीकरण करना होगा।
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### आवश्यक स्कोप (OAuth 2.0)
+</div>
+
+| Scope         | के लिए आवश्यक                      |
+| :------------ | :--------------------------------- |
+| `block.read`  | ब्लॉक किए गए खातों को प्राप्त करना |
+| `block.write` | खातों को ब्लॉक और अनब्लॉक करना     |
+| `users.read`  | block scopes के साथ आवश्यक         |
+
+***
+
+<div id="endpoints-overview">
+  ## एंडपॉइंट्स का अवलोकन
+</div>
+
+| मेथड   | एंडपॉइंट                                            | विवरण                                   |
+| :----- | :-------------------------------------------------- | :-------------------------------------- |
+| GET    | `/2/users/:id/blocking`                             | ब्लॉक किए गए खातों की सूची प्राप्त करें |
+| POST   | `/2/users/:id/blocking`                             | किसी खाते को ब्लॉक करें                 |
+| DELETE | `/2/users/:source_user_id/blocking/:target_user_id` | किसी खाते को अनब्लॉक करें               |
+
+***
+
+<div id="fields-and-expansions">
+  ## फ़ील्ड्स और expansions
+</div>
+
+<div id="default-response">
+  ### डिफ़ॉल्ट रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "name": "Example User",
+      "username": "example"
+    }
+  ]
+}
+```
+
+<div id="available-fields">
+  ### उपलब्ध फ़ील्ड्स
+</div>
+
+<Accordion title="user.fields">
+  | फ़ील्ड              | विवरण                      |
+  | :------------------ | :------------------------- |
+  | `created_at`        | खाता बनाए जाने की तारीख    |
+  | `description`       | उपयोगकर्ता का परिचय        |
+  | `profile_image_url` | अवतार URL                  |
+  | `public_metrics`    | फ़ॉलोअर/फ़ॉलोइंग की संख्या |
+  | `verified`          | सत्यापन की स्थिति          |
+</Accordion>
+
+<Accordion title="expansions">
+  | विस्तार           | विवरण                         |
+  | :---------------- | :---------------------------- |
+  | `pinned_tweet_id` | उपयोगकर्ता की पिन की गई पोस्ट |
+</Accordion>
+
+***
+
+<div id="what-happens-when-you-block">
+  ## जब आप किसी को ब्लॉक करते हैं, तो क्या होता है
+</div>
+
+<CardGroup cols={2}>
+  <Card title="वे नहीं कर पाएंगे" icon="xmark">
+    * आपकी पोस्ट्स नहीं देख पाएंगे (जब तक वे लॉग आउट न हों)
+    * आपको फ़ॉलो नहीं कर पाएंगे
+    * आपको DM नहीं भेज पाएंगे
+    * आपको सूचियों में नहीं जोड़ पाएंगे
+    * फ़ोटो में आपको टैग नहीं कर पाएंगे
+  </Card>
+
+  <Card title="आप नहीं कर पाएंगे" icon="xmark">
+    * उनकी पोस्ट्स नहीं देख पाएंगे
+    * उन्हें फ़ॉलो नहीं कर पाएंगे
+    * उन्हें DM नहीं भेज पाएंगे
+  </Card>
+</CardGroup>
+
+<Note>
+  जब आप किसी ऐसे व्यक्ति को ब्लॉक करते हैं जो आपको फ़ॉलो करता है, तो वह अपने-आप आपको फ़ॉलो करना बंद कर देता है।
+</Note>
+
+***
+
+<div id="pagination">
+  ## पैजिनेशन
+</div>
+
+जिन उपयोगकर्ताओं की ब्लॉक सूची बड़ी होती है, उनके परिणाम पेजों में विभाजित होकर लौटाए जाते हैं:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # पहला अनुरोध
+  curl "https://api.x.com/2/users/123/blocking?max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+
+  # पैजिनेशन टोकन के साथ अगला अनुरोध
+  curl "https://api.x.com/2/users/123/blocking?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  # OAuth 2.0 उपयोगकर्ता एक्सेस टोकन का उपयोग करें
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # SDK पैजिनेशन को अपने आप संभालता है
+  all_blocked = []
+
+  for page in client.users.get_blocking(user_id="123", max_results=100):
+      if page.data:
+          all_blocked.extend(page.data)
+
+  print(f"Blocked {len(all_blocked)} users")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  async function getAllBlockedUsers(userId) {
+    const allBlocked = [];
+
+    // SDK पैजिनेशन को अपने आप संभालता है
+    const paginator = client.users.getBlocking(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allBlocked.push(...page.data);
+      }
+    }
+
+    return allBlocked;
+  }
+
+  // उपयोग
+  const blocked = await getAllBlockedUsers("123");
+  console.log(`Blocked ${blocked.length} users`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="error-handling">
+  ## त्रुटि प्रबंधन
+</div>
+
+| Status | Error            | Solution                             |
+| :----- | :--------------- | :----------------------------------- |
+| 400    | अमान्य अनुरोध    | उपयोगकर्ता id का प्रारूप जाँचें      |
+| 401    | अनधिकृत          | access token सत्यापित करें           |
+| 403    | निषिद्ध          | स्कोप और permissions जाँचें          |
+| 404    | नहीं मिला        | उपयोगकर्ता मौजूद नहीं है             |
+| 429    | बहुत अधिक अनुरोध | प्रतीक्षा करें और फिर से प्रयास करें |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="त्वरित शुरुआत" icon="rocket" href="/hi/x-api/users/blocks/quickstart">
+    ब्लॉक करने का अपना पहला अनुरोध भेजें
+  </Card>
+
+  <Card title="म्यूट" icon="volume-xmark" href="/hi/x-api/users/mutes/introduction">
+    ब्लॉक करने के बजाय उपयोगकर्ताओं को म्यूट करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/users/get-blocking">
+    एंडपॉइंट का पूर्ण दस्तावेज़ीकरण
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    काम करने वाले कोड उदाहरण
+  </Card>
+</CardGroup>

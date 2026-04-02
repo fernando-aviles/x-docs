@@ -1,0 +1,231 @@
+---
+title: पोस्ट्स संपादित करें
+sidebarTitle: पोस्ट्स संपादित करें
+description: X API में संपादित पोस्ट्स के साथ काम करना
+keywords: ["पोस्ट्स संपादित करें", "ट्वीट्स संपादित करें", "संपादन इतिहास", "पोस्ट संपादन", "संपादन मेटाडेटा", "संपादन विंडो"]
+---
+
+X पर पोस्ट करने के 30 मिनट के भीतर, पोस्ट्स को अधिकतम 5 बार संपादित किया जा सकता है। X API संपादन इतिहास और मेटाडेटा तक पूरी पहुँच प्रदान करता है।
+
+***
+
+<div id="edit-rules">
+  ## संपादन नियम
+</div>
+
+| नियम              | विवरण                                                |
+| :---------------- | :--------------------------------------------------- |
+| **समय सीमा**      | मूल पोस्ट के 30 मिनट के भीतर                         |
+| **संपादन सीमा**   | अधिकतम 5 संपादन                                      |
+| **ID का व्यवहार** | प्रत्येक संपादन पर नई पोस्ट ID बनती है               |
+| **हटाना**         | किसी भी संस्करण को हटाने पर पूरी श्रृंखला हट जाती है |
+
+***
+
+<div id="what-cant-be-edited">
+  ## क्या संपादित नहीं किया जा सकता
+</div>
+
+कुछ पोस्ट प्रकार संपादित नहीं किए जा सकते:
+
+* प्रमोट किए गए पोस्ट्स (विज्ञापन)
+* पोल वाले पोस्ट्स
+* दूसरों को दिए गए जवाब (अपने थ्रेड के बाहर)
+* रीपोस्ट्स (कोट पोस्ट्स *संपादित किए जा सकते हैं*)
+* कम्युनिटी पोस्ट्स
+* सहयोगी पोस्ट्स
+* शेड्यूल किए गए पोस्ट्स
+
+***
+
+<div id="edit-data-in-responses">
+  ## रिस्पॉन्स में डेटा को संपादित करें
+</div>
+
+<div id="default-fields">
+  ### डिफ़ॉल्ट फ़ील्ड्स
+</div>
+
+सभी पोस्ट रिस्पॉन्स में `edit_history_tweet_ids` डिफ़ॉल्ट रूप से शामिल होता है:
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"]
+  }
+}
+```
+
+* एक ID = कभी संपादित नहीं किया गया
+* कई ID = संपादन इतिहास (सबसे पुराना पहले)
+
+<div id="edit-controls">
+  ### संपादन नियंत्रण
+</div>
+
+संपादन की स्थिति के लिए `edit_controls` का अनुरोध करें:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=edit_controls" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  }
+}
+```
+
+| फ़ील्ड             | विवरण                                         |
+| :----------------- | :-------------------------------------------- |
+| `is_edit_eligible` | क्या पोस्ट को संपादित किया जा सकता है         |
+| `editable_until`   | वह टाइमस्टैम्प जब संपादन की विंडो बंद होती है |
+| `edits_remaining`  | शेष संपादनों की संख्या (0-5)                  |
+
+***
+
+<div id="getting-edit-history">
+  ## संपादन इतिहास प्राप्त करना
+</div>
+
+सभी संस्करणों के पूर्ण पोस्ट ऑब्जेक्ट प्राप्त करने के लिए `edit_history_tweet_ids` expansion का उपयोग करें:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?\
+tweet.fields=edit_controls&\
+expansions=edit_history_tweet_ids" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  },
+  "includes": {
+    "tweets": [{
+      "id": "1234567890",
+      "text": "Original text (with typo)",
+      "edit_history_tweet_ids": ["1234567890", "1234567891"],
+      "edit_controls": {
+        "is_edit_eligible": true,
+        "editable_until": "2024-01-15T12:30:00.000Z",
+        "edits_remaining": 3
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="which-version-is-returned">
+  ## कौन-सा संस्करण लौटाया जाता है?
+</div>
+
+डिफ़ॉल्ट रूप से, API किसी संपादित पोस्ट का **सबसे नया संस्करण** लौटाता है।
+
+किसी खास संस्करण को प्राप्त करने के लिए, उसके पोस्ट ID का सीधे अनुरोध करें:
+
+```bash
+# मूल संस्करण प्राप्त करें
+curl "https://api.x.com/2/tweets/1234567890" -H "Authorization: Bearer $TOKEN"
+
+# संपादित संस्करण प्राप्त करें  
+curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="metrics-for-edited-posts">
+  ## संपादित पोस्ट्स के लिए मेट्रिक्स
+</div>
+
+संपादित पोस्ट के हर संस्करण के अपने अलग एंगेजमेंट मेट्रिक्स होते हैं। मेट्रिक्स उसी संस्करण को दिए जाते हैं जो एंगेजमेंट होने के समय दिखाई दे रहा था।
+
+***
+
+<div id="availability">
+  ## उपलब्धता
+</div>
+
+संपादन मेटाडेटा उपलब्ध है:
+
+* 29 सितंबर, 2022 से बनाए गए सभी पोस्ट्स के लिए
+* उन सभी v2 endpoints पर जो पोस्ट्स लौटाते हैं
+* search, timelines, stream, और लुकअप सहित
+
+इस तारीख से पहले बनाए गए पोस्ट्स के लिए संपादन मेटाडेटा उपलब्ध नहीं है।
+
+***
+
+<div id="use-cases">
+  ## उपयोग के परिदृश्य
+</div>
+
+<Tabs>
+  <Tab title="परिवर्तनों को ट्रैक करें">
+    पोस्ट्स में हुए संपादनों पर नज़र रखें और अंतर लॉग करें:
+
+    ```python
+    def check_for_edits(post):
+        history = post.get("edit_history_tweet_ids", [])
+        if len(history) > 1:
+            print(f"Post {post['id']} has been edited {len(history) - 1} times")
+    ```
+  </Tab>
+
+  <Tab title="संपादन संकेतक दिखाएँ">
+    अपने UI में &quot;संपादित&quot; बैज दिखाएँ:
+
+    ```javascript
+    const isEdited = post.edit_history_tweet_ids?.length > 1;
+    if (isEdited) {
+      showEditedBadge();
+    }
+    ```
+  </Tab>
+
+  <Tab title="मूल सामग्री प्राप्त करें">
+    संपादित पोस्ट का मूल संस्करण प्राप्त करें:
+
+    ```python
+    original_id = post["edit_history_tweet_ids"][0]
+    original = api.get_tweet(original_id)
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="next-steps">
+  ## आगे के चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="पोस्ट लुकअप" icon="magnifying-glass" href="/hi/x-api/posts/lookup/introduction">
+    संपादन इतिहास सहित पोस्ट्स प्राप्त करें।
+  </Card>
+
+  <Card title="डेटा शब्दकोश" icon="book" href="/hi/x-api/fundamentals/data-dictionary">
+    पोस्ट ऑब्जेक्ट का संपूर्ण संदर्भ।
+  </Card>
+</CardGroup>

@@ -1,0 +1,63 @@
+---
+title: OAuth 1.0a
+sidebarTitle: Vue d’ensemble
+keywords: ["OAuth 1.0a", "OAuth 1.0", "authentification OAuth 1.0a", "contexte utilisateur OAuth 1.0a", "OAuth à trois étapes", "flux OAuth 1.0a"]
+---
+
+import { Button } from "/snippets/fr/button.mdx";
+
+<div id="oauth-10a">
+  ## OAuth 1.0a
+</div>
+
+De nombreux endpoints sur la plateforme développeur X utilisent la méthode OAuth 1.0a pour agir, ou effectuer des requêtes API, au nom d’un compte X. Par exemple, si vous avez une App développeur X, vous pouvez effectuer des requêtes API au nom de n’importe quel compte X, tant que cet utilisateur authentifie votre App.
+
+Remarque : si vous n’êtes pas familier avec des concepts tels que HMAC-SHA1 et l’encodage pourcent, nous vous recommandons de consulter la section « outils utiles » ci-dessous, qui répertorie certains clients API qui simplifient grandement le processus d’authentification.
+
+<div id="key-concepts">
+  ### Notions clés
+</div>
+
+<div id="signing-a-request-with-keys-and-tokens">
+  #### Signer une requête avec des clés et des jetons
+</div>
+
+Vous devez signer chaque requête API en transmettant plusieurs clés et jetons générés dans un en-tête d’autorisation. Pour commencer, vous pouvez générer plusieurs clés et jetons sur la page de détails de votre [App développeur X](/fr/resources/fundamentals/developer-apps), notamment les éléments suivants :
+
+|     |     |
+| :--- | :--- |
+| Clé API et secret :<br /><br />`oauth_consumer_key`<br /><br />`oauth_consumer_secret` | Considérez ces valeurs comme le nom d’utilisateur et le mot de passe qui représentent votre App développeur X lors de l’envoi de requêtes API. |
+| Jeton d’accès et secret :<br /><br />`oauth_token`<br /><br />`oauth_token_secret` | Un jeton d’accès et un secret de jeton d’accès sont des identifiants spécifiques à un utilisateur utilisés pour authentifier les requêtes API OAuth 1.0a. Ils indiquent le compte X pour le compte duquel la requête est effectuée.<br /><br />Vous pouvez générer votre propre jeton d’accès et secret de jeton d’accès si vous souhaitez que votre App effectue des requêtes pour le même compte X que celui associé à votre compte développeur sur la page de détails de votre [App développeur X](/fr/resources/fundamentals/developer-apps).<br /><br />Si vous souhaitez générer des jetons d’accès pour un autre utilisateur, consultez « Effectuer des requêtes pour le compte d’utilisateurs » ci-dessous. |
+
+<div id="making-requests-on-behalf-of-users">
+  #### Effectuer des requêtes pour le compte des utilisateurs
+</div>
+
+Lorsque vous créez une signature, vous avez besoin d’un ensemble de jetons d’accès qui représentent l’utilisateur pour le compte duquel vous allez effectuer une requête.
+
+Vous pouvez générer un ensemble de jetons d’accès qui représente le compte X propriétaire de l’App développeur X à partir de la [page de détails de l’App,](https://developer.x.com/content/developer-twitter/en/apps) mais si vous souhaitez effectuer une requête pour le compte d’un autre compte X, le propriétaire de ce compte doit vous accorder l’accès en se connectant à son compte dans le cadre du [flux OAuth à 3 étapes](/fr/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow). Le résultat de ce processus est un ensemble de jetons d’accès (oauth&#95;token et oauth&#95;token&#95;secret) qui peuvent être utilisés pour effectuer une requête OAuth 1.0a.
+
+Une fois que vous disposez de ces clés et jetons, vous pouvez [créer une signature](/fr/resources/fundamentals/authentication#creating-a-signature) à partir de zéro. Nous ne le recommandons pas, sauf si vous savez exactement ce que vous faites, ou si vous utilisez l’un des outils mentionnés ci‑dessous pour effectuer une requête vers un endpoint qui nécessite OAuth 1.0a.
+
+À titre de référence, voici un exemple de requête cURL signée, dans laquelle tous les jetons générés sont transmis dans un en-tête Authorization :
+
+```bash
+curl --request POST \
+  --url 'https://api.x.com/1.1/statuses/update.json?status=Hello%20world' \
+  --header 'authorization: OAuth oauth_consumer_key="CONSUMER_API_KEY", oauth_nonce="OAUTH_NONCE", oauth_signature="OAUTH_SIGNATURE", oauth_signature_method="HMAC-SHA1", oauth_timestamp="OAUTH_TIMESTAMP", oauth_token="ACCESS_TOKEN", oauth_version="1.0"' \
+```
+
+<Note>
+  **Remarque :** Les jetons d’accès utilisateur sont sensibles et doivent être protégés avec le plus grand soin. Lorsqu’ils sont générés, l’utilisateur qu’ils représentent fait confiance à votre application pour les conserver en sécurité. Si la sécurité des clés d’API et des jetons d’accès utilisateur est compromise, votre application pourrait potentiellement donner accès à des informations privées et à des fonctionnalités de compte. Nous vous encourageons à en savoir plus sur [la sécurisation des clés et des jetons d’accès](/fr/resources/fundamentals/developer-apps).
+</Note>
+
+<div id="useful-tools">
+  ### Outils utiles
+</div>
+
+Le processus de [signature d’une requête](/fr/resources/fundamentals/authentication#creating-a-signature) est complexe. Nous vous recommandons d’utiliser une bibliothèque cliente d’API qui génère automatiquement une grande partie du jeton d’authentification :
+
+|     |     |
+| :--- | :--- |
+| [Postman](https://www.getpostman.com/) | Un client d’API qui vous permet de créer et d’envoyer des requêtes d’API REST. Lisez notre tutoriel « [Premiers pas avec Postman](/fr/tutorials/postman-getting-started) » pour en savoir plus sur cet outil. |
+| [Insomnia](https://insomnia.rest/) | Insomnia est un client d’API REST avec gestion des cookies, variables d’environnement, génération de code et authentification pour macOS, Windows et Linux. |

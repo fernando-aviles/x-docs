@@ -1,0 +1,1478 @@
+---
+title: एनालिटिक्स
+keywords: ["विज्ञापन एनालिटिक्स", "ऐड्स एनालिटिक्स", "अभियान एनालिटिक्स", "विज्ञापन मेट्रिक्स", "विज्ञापन मेट्रिक्स", "अभियान प्रदर्शन"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+## परिचय
+
+एनालिटिक्स मेट्रिक्स भागीदारों और विज्ञापनदाताओं को यह समझने में मदद करते हैं कि वे X पर जिन सामग्रियों का प्रचार करते हैं, उनका प्रदर्शन कैसा है। इसमें impressions, clicks, video views और spend जैसी जानकारी शामिल होती है। इसके अलावा, भागीदार और विज्ञापनदाता उन विभिन्न audience segments के लिए भी विस्तृत मेट्रिक्स प्राप्त कर सकते हैं, जिन तक वे पहुँचते हैं।
+
+Ads API, विस्तृत campaign performance metrics प्राप्त करने के दो तरीकों का समर्थन करता है: synchronously और asynchronously। synchronous analytics calls में, अनुरोधित मेट्रिक्स रिस्पॉन्स में वापस मिल जाते हैं। asynchronous analytics एंडपॉइंट्स में, अनुरोधित मेट्रिक्स संबंधित &quot;job&quot; की processing पूरी होने के बाद डाउनलोड की जा सकने वाली results file में उपलब्ध होते हैं। synchronous endpoint छोटे time ranges का समर्थन करता है और real-time campaign optimization के लिए आदर्श है। वहीं, asynchronous एंडपॉइंट्स बहुत लंबे time ranges का समर्थन करते हैं और इसलिए कहीं अधिक डेटा प्राप्त करने के लिए बनाए गए हैं, जो reporting या historical backfills तैयार करने के लिए आदर्श है।
+
+<div id="details">
+  ## विवरण
+</div>
+
+<div id="synchronous-vs-asynchronous">
+  ### समकालिक बनाम असमकालिक
+</div>
+
+समकालिक और असमकालिक एनालिटिक्स एंडपॉइंट्स के बीच के अंतर नीचे दी गई तालिका में संक्षेप में दिए गए हैं। यह जानकारी डेवलपर्स को यह तय करने में मदद करने के लिए है कि एंडपॉइंट्स के किस सेट का उपयोग किया जाए।
+
+| Feature                    | Synchronous                                  | Asynchronous                                                             |
+| :------------------------- | :------------------------------------------- | :----------------------------------------------------------------------- |
+| रेट लिमिटिंग               | उपयोगकर्ता-स्तर: 15 मिनट में 250 अनुरोध      | खाता-स्तर: 100 समवर्ती* jobs                                             |
+| समय सीमा                   | 7 दिन                                        | 90 दिन (गैर-खंडित)<br />45 दिन (खंडित)                                   |
+| विभाजन                     | नहीं                                         | हाँ                                                                      |
+| रिटर्न होने वाला रिस्पॉन्स | मेट्रिक्स डेटा                               | job** की प्रोसेसिंग स्थिति                                               |
+| अनुशंसित उपयोग का मामला    | रीयल-टाइम अनुकूलन<br />यूज़र इंटरफ़ेस अनुरोध | नियमित रूप से शेड्यूल किया गया syncing<br />ऐतिहासिक डेटा का backfilling |
+
+<Note>
+  * इसका आशय उन jobs की अधिकतम संख्या से है जो किसी भी समय प्रोसेसिंग स्थिति में हो सकती हैं।
+
+  ** job की प्रोसेसिंग सफलतापूर्वक पूरी हो जाने पर, एक URL रिटर्न किया जाता है। यहीं से संपीड़ित (gzip) results फ़ाइल डाउनलोड की जा सकती है।
+
+  इसके अलावा, एंडपॉइंट्स समान कार्यक्षमता प्रदान करते हैं।
+</Note>
+
+<div id="use-cases">
+  ### उपयोग के मामले
+</div>
+
+एनालिटिक्स के तीन प्रमुख उपयोग के मामले हैं।
+
+1. रीयल-टाइम ऑप्टिमाइज़ेशन: परफ़ॉर्मेंस मेट्रिक्स का उपयोग करके सक्रिय अभियानों को अपडेट करना
+2. सिंक्रोनाइज़ेशन: नियमित रूप से निर्धारित बैकग्राउंड सिंक
+3. नए खाते का ऑन-बोर्डिंग: पुराने डेटा को बैकफ़िल करना
+
+पिछले 5 से 15 मिनट के भीतर मेट्रिक्स में हुए बदलावों के आधार पर अभियानों को अपडेट करने के लिए, रीयल-टाइम ऑप्टिमाइज़ेशन में सिंक्रोनस एनालिटिक्स एंडपॉइंट का उपयोग किया जा सकता है। एनालिटिक्स सिंक्रोनाइज़ेशन के लिए किसी भी एंडपॉइंट का उपयोग किया जा सकता है। ध्यान रखें कि वांछित समय-सीमा और सेगमेंटेशन की आवश्यकता है या नहीं, इसी से तय होगा कि किस एंडपॉइंट का उपयोग करना है। नए खाते का ऑन-boarding केवल एसिंक्रोनस एनालिटिक्स एंडपॉइंट्स का उपयोग करके ही किया जाना चाहिए। (बड़ी मात्रा में डेटा प्राप्त करने के लिए सिंक्रोनस एनालिटिक्स एंडपॉइंट का कभी भी उपयोग नहीं करना चाहिए।)
+
+यदि मेट्रिक्स को किसी बैकएंड प्रक्रिया के साथ सिंक किया गया हो, तो एसिंक्रोनस एनालिटिक्स एंडपॉइंट्स डैशबोर्ड और अन्य UI एलिमेंट्स को सपोर्ट कर सकते हैं। आपके इम्प्लीमेंटेशन को यूज़र इंटरफ़ेस अनुरोधों को पूरा करने के लिए एसिंक्रोनस एनालिटिक्स एंडपॉइंट्स को कॉल करने से बचना चाहिए।
+
+<div id="request-options">
+  ### अनुरोध विकल्प
+</div>
+
+एनालिटिक्स अनुरोध ads accounts के दायरे में होते हैं और इसलिए resource path में account ID आवश्यक होती है। नीचे सूचीबद्ध अनुरोध विकल्प query parameters के रूप में निर्दिष्ट किए जाते हैं। निम्न प्रकार के मान आवश्यक हैं।
+
+* Entities: entity type के साथ अधिकतम 20 entity IDs, जिनके लिए आप analytics का अनुरोध करना चाहते हैं
+* Time range: आरंभ और समाप्ति समय, जिन्हें ISO 8601 में व्यक्त किया जाता है
+  * **नोट:** इन्हें पूरे घंटों में व्यक्त किया जाना चाहिए
+* Metric groups: संबंधित metrics के एक या अधिक सेट (हर metric group के metrics की सूची के लिए Metrics and Segmentation देखें)
+* Granularity: aggregation के उस स्तर को निर्दिष्ट करता है जिस पर metrics लौटाए जाने चाहिए
+* Placement: यह निर्धारित करता है कि metrics उन ads के लिए निकाले जाएँ जो X पर या X के बाहर serve हुए
+  * **नोट:** हर अनुरोध में केवल एक placement value निर्दिष्ट की जा सकती है
+
+समय सीमा निर्दिष्ट करने के लिए `start_time` और `end_time` अनुरोध पैरामीटर का उपयोग करें। इन मानों को नीचे बताए गए तरीके से निर्दिष्ट granularity के अनुरूप होना चाहिए।
+
+1. `TOTAL`: कोई भी समय सीमा निर्दिष्ट करें (endpoint की सीमाओं के भीतर)
+2. `DAY`: start time और end time, दोनों के मान account के time zone में मध्यरात्रि के अनुरूप होने चाहिए
+3. `HOUR`: कोई भी समय सीमा निर्दिष्ट करें (endpoint की सीमाओं के भीतर)
+
+समाप्ति समय exclusive होता है। उदाहरण के लिए, `start_time=2019-01-01T00:00:00Z` और `end_time=2019-01-02T00:00:00Z` वाला अनुरोध analytics metrics का केवल एक दिन का डेटा लौटाएगा (दो दिन का नहीं), क्योंकि यह समय सीमा केवल 24 घंटे की अवधि को कवर करती है।
+
+**विभाजन**
+
+यह केवल हमारे asynchronous analytics एंडपॉइंट्स के माध्यम से उपलब्ध है। सेगमेंटेशन partners और advertisers को metrics को विशिष्ट targeting values के अनुसार विभाजित रूप में प्राप्त करने की सुविधा देता है। Segmented metrics का अनुरोध करने के लिए `segmentation_type` अनुरोध पैरामीटर का उपयोग करें। Segmentation विकल्पों के बारे में अधिक जानकारी के लिए, [Metrics and Segmentation](/hi/x-ads-api/analytics#metrics-and-segmentation) देखें।
+
+<div id="faqs">
+  ## अक्सर पूछे जाने वाले सवाल
+</div>
+
+Ads API के आंकड़े X Ads UI में दिखने वाले आंकड़ों से मेल क्यों नहीं खाते?
+
+* सुनिश्चित करें कि आपने दोनों placements के लिए डेटा अनुरोध किया है: `ALL_ON_TWITTER` और `PUBLISHER_NETWORK`, `SPOTLIGHT`, और `TREND`.
+* ध्यान रखें कि Ads API में end times exclusive होते हैं; जबकि Ads UI में वे inclusive होते हैं
+
+मैं डेटा कब अनुरोध करता हूँ, इसके आधार पर आंकड़े क्यों बदलते हैं?
+
+* जैसे ही reporting metrics उपलब्ध होते हैं, आप उन्हें प्राप्त कर सकते हैं। वे लगभग real-time में उपलब्ध होते हैं। हालांकि, ये शुरुआती नतीजे केवल अनुमान होते हैं, इसलिए इनमें बदलाव होना स्वाभाविक है। Spend डेटा को छोड़कर, metrics 24 घंटे बाद अंतिम रूप ले लेते हैं।
+* Spend metrics आम तौर पर event के 3 दिनों के भीतर अंतिम हो जाते हैं। हालांकि, हम event की तारीख से 14 दिनों तक billing डेटा प्रोसेस करते हैं (उदाहरण के लिए, spam filtering के लिए)।
+
+मैं यह कैसे निर्धारित करूँ कि किसी खास समयावधि के लिए किन entity IDs का अनुरोध करना है?
+
+* [Active Entities endpoint](/hi/x-ads-api/analytics#active-entities-2) का उपयोग करें
+
+एनालिटिक्स रिस्पॉन्स में सभी मान `null` क्यों हैं?
+
+* संभव है कि campaign ने अनुरोधित समयावधि के दौरान serve न किया हो
+* यह तय करने के लिए कि analytics किन entities के लिए और किस समयावधि के लिए प्राप्त करना है, [Active Entities endpoint](/hi/x-ads-api/analytics#active-entities-2) का उपयोग करें
+
+जब UI में 0s दिखते हैं, तब API `null` मान क्यों दिखाता है?
+
+* UI इन मानों को 0s के रूप में दिखाता है, लेकिन दोनों मान समतुल्य हैं
+
+मैं X timeline जैसे granular placement से जुड़े metrics का अनुरोध कैसे कर सकता हूँ?
+
+* analytics में हम निम्नलिखित placement values का समर्थन करते हैं: `ALL_ON_TWITTER` और `PUBLISHER_NETWORK`, `SPOTLIGHT`, और `TREND` (यानी, [X Audience Platform](/hi/x-ads-api/audiences))
+
+क्या deleted या paused entities के लिए metrics प्राप्त करना संभव है?
+
+* हाँ। Entity की status analytics metrics की उपलब्धता को प्रभावित नहीं करती।
+
+Segmented मान non-segmented मानों से मेल क्यों नहीं खाते?
+
+* यह अपेक्षित *नहीं* है कि Segmented डेटा 100% non-segmented डेटा तक roll-up हो, क्योंकि यह जानकारी जिस तरीके से निकाली जाती है, उसके कारण।
+
+क्या कई dimensions के आधार पर segmented डेटा का अनुरोध करना संभव है?
+
+* हम multi-segmentation का समर्थन नहीं करते।
+
+<div id="best-practices">
+  ## सर्वोत्तम प्रथाएँ
+</div>
+
+Ads API से [एनालिटिक्स](/hi/x-ads-api/analytics) डेटा एकत्र करते समय अपनाई जाने वाली कुछ सर्वोत्तम प्रथाएँ।
+
+<div id="rate-limiting-and-retries">
+  ### रेट लिमिटिंग और पुनर्प्रयास
+</div>
+
+* जिन क्वेरियों पर रेट लिमिट लागू होती है (यानी जो `HTTP 429` स्टेटस कोड लौटाती हैं), उनमें आपको `x-rate-limit-reset` हेडर की जांच करनी चाहिए और केवल बताए गए समय पर या उसके बाद ही पुनर्प्रयास करना चाहिए।
+* जिन क्वेरियों के परिणामस्वरूप HTTP 503 Service Unavailable स्टेटस कोड मिलता है, उनमें आपको `retry-after` हेडर की जांच करनी चाहिए और केवल बताए गए समय के बाद ही पुनर्प्रयास करना चाहिए।
+* जो एप्लिकेशन पुनर्प्रयास के लिए बताए गए समय का पालन नहीं करते, उनकी Ads API तक पहुंच बिना किसी सूचना के रद्द की जा सकती है या सीमित की जा सकती है।
+
+<div id="analytics-metrics-in-a-nutshell">
+  ### संक्षेप में एनालिटिक्स मेट्रिक्स
+</div>
+
+* `billed_charge_local_micro` को छोड़कर, सभी analytics मेट्रिक्स 24 घंटे बाद स्थिर हो जाते हैं और फिर उनमें कोई बदलाव नहीं होता।
+* `billed_charge_local_micro` मेट्रिक, डेटा लौटाए जाने के बाद अधिकतम 3 दिनों तक एक अनुमानित मान होता है।
+* 24 घंटे बाद, यह मेट्रिक ज़्यादा खर्च के लिए दिए गए क्रेडिट (दिए गए `end_time` के बाद सर्व किए गए ads) और ऐसे billable events के कारण घट सकता है जिन्हें junk माना जाता है। 24 घंटे बाद इस मेट्रिक में बहुत कम बदलाव होता है।
+* अधिक जानकारी के लिए, कृपया [एनालिटिक्स](/hi/x-ads-api/analytics) देखें।
+
+<div id="fetching-real-time-non-segmented-data">
+  ### रीयल-टाइम, गैर-सेगमेंटेड डेटा फ़ेच करना
+</div>
+
+* हमेशा `start_time` और `end_time` दोनों दें।
+* 7 दिनों से अधिक पुरानी किसी भी एंटिटी का डेटा न खींचें।
+* डेटा का अनुरोध (आदर्श रूप से) `HOUR` ग्रैन्युलैरिटी के साथ करें, क्योंकि आप मेट्रिक्स को हमेशा एग्रीगेट और रोल-अप करके `DAY` और `TOTAL` ग्रैन्युलैरिटी प्राप्त कर सकते हैं।
+* डेटा का अनुरोध (आदर्श रूप से) `line_items` और `promoted_tweets` स्तर पर करें, क्योंकि आप इन मेट्रिक्स को हमेशा एग्रीगेट और रोल-अप करके पूरे ads एंटिटी हाइरार्की में कुल मान प्राप्त कर सकते हैं (यानी campaign, funding instrument, या account स्तरों पर)।
+* analytics मेट्रिक्स के मान अपनी तरफ़ (लोकल रूप से) सहेजें और संग्रहित करें।
+* 30 दिनों से अधिक पुराने डेटा के लिए बार-बार क्वेरी न करें। यह डेटा नहीं बदलेगा और इसे लोकल रूप से संग्रहित किया जाना चाहिए।
+* सभी गैर-सेगमेंटेड डेटा रीयल-टाइम होता है और किसी इवेंट के होने के कुछ सेकंड के भीतर उपलब्ध हो जाना चाहिए।
+* conversion मेट्रिक्स और non-conversion मेट्रिक्स को अलग-अलग अनुरोधों में समूहित करें।
+
+<div id="fetching-segmented-data">
+  ### सेगमेंटेड डेटा प्राप्त करना
+</div>
+
+* ऊपर दिए गए “Fetching Real-time, Non-segmented Data” के लिए दिए गए दिशानिर्देश देखें। अतिरिक्त सलाह नीचे दी गई है।
+* अधिकांश सेगमेंटेड डेटा प्रकारों में, कभी-कभी डेटा को पूरा होने में 1 घंटे तक लग सकता है। `INTERESTS` के आधार पर सेगमेंट किए गए डेटा में 12 घंटे तक की देरी हो सकती है।
+* यह अपेक्षित नहीं है कि सेगमेंटेड डेटा, इस जानकारी के निकाले जाने के तरीके के कारण, गैर-सेगमेंटेड डेटा से 100% मेल खाए।
+
+<div id="fetching-historical-data">
+  ### ऐतिहासिक डेटा फ़ेच करना
+</div>
+
+* डेटा को बैकफ़िल करते समय (यानी, कोई नया विज्ञापनदाता खाता जोड़ते समय), आपको `start_time` और `end_time` के छोटे-छोटे खंडों में कई अनुरोध करने पड़ सकते हैं।
+* अपने फ़ेच को 30-दिन की तिथि-विंडो तक सीमित रखें।
+* इन अनुरोधों को थ्रॉटल करें और इन्हें समय के साथ फैलाकर भेजें, ताकि इन फ़ेच के लिए आपकी रेट लिमिट्स समाप्त न हों।
+
+<div id="sample">
+  ### उदाहरण
+</div>
+
+आप हमारे [ads-platform-tools github](https://github.com/xdevplatform/ads-platform-tools) रिपॉज़िटरी में एक नमूना स्क्रिप्ट (`fetch_stats`) देख सकते हैं, जो इन सर्वोत्तम प्रथाओं में से कुछ को दर्शाती है।
+
+<div id="metrics-by-objective">
+  ## उद्देश्य के अनुसार मेट्रिक्स
+</div>
+
+किसी इकाई पर कौन-से मेट्रिक्स लागू होंगे, यह [campaign objective](/hi/x-ads-api/campaign-management) पर निर्भर करता है। इस गाइड का उपयोग करके तय करें कि प्रत्येक उद्देश्य प्रकार के लिए कौन-से प्रासंगिक मेट्रिक समूह फ़ेच करने हैं, और अतिरिक्त व्युत्पन्न मेट्रिक्स की गणना कैसे की जा सकती है।
+
+<div id="engagements">
+  ### `ENGAGEMENTS`
+</div>
+
+**प्रासंगिक मेट्रिक समूह:** `ENGAGEMENT` और `BILLING`। अगर क्रिएटिव में मीडिया का उपयोग किया गया है, तो `MEDIA` भी लागू है।
+
+|                    |                                         |
+| :----------------- | :-------------------------------------- |
+| व्युत्पन्न मेट्रिक | प्रदर्शित मेट्रिक की गणना                  |
+| एंगेजमेंट दर       | `engagements/impressions`               |
+| CPE                | `billed_charge_local_micro/engagements` |
+| मीडिया व्यू दर     | `media_views/impressions`               |
+
+<div id="website_clicks-and-website_conversions">
+  ### `WEBSITE_CLICKS` और `WEBSITE_CONVERSIONS`
+</div>
+
+**प्रासंगिक मीट्रिक समूह:**`ENGAGEMENT`, `BILLING`, और `WEB_CONVERSION`। अगर क्रिएटिव में मीडिया का उपयोग किया गया है, तो `MEDIA` भी लागू होता है।
+
+|                    |                                                                                                                          |
+| :----------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मीट्रिक | प्रदर्शित मेट्रिक की गणना                                                                                                |
+| CPM                | `billed_charge_local_micro/impressions/1000`                                                                             |
+| क्लिक दर           | `clicks/impressions`                                                                                                     |
+| CPLC               | `billed_charge_local_micro/clicks`                                                                                       |
+| कुल कन्वर्ज़न      | `conversion_custom` + `conversion_site_visits` + `conversion_sign_ups` + `conversion_downloads` + `conversion_purchases` |
+| कन्वर्ज़न दर       | कुल कन्वर्ज़न / `impressions`                                                                                            |
+| CPA                | `billed_charge_local_micro` / कुल कन्वर्ज़न                                                                              |
+
+<div id="app_installs-and-app_engagements">
+  ### `APP_INSTALLS` और `APP_ENGAGEMENTS`
+</div>
+
+**संबंधित मेट्रिक समूह:**`ENGAGEMENT`, `BILLING`, `MOBILE_CONVERSION`, और `LIFE_TIME_VALUE_MOBILE_CONVERSION`। अगर क्रिएटिव्स में मीडिया या वीडियो ऐप कार्ड का इस्तेमाल किया गया है, तो `MEDIA` और `VIDEO` भी लागू हैं।
+
+|                    |                                                        |
+| :----------------- | :----------------------------------------------------- |
+| व्युत्पन्न मेट्रिक | प्रदर्शित मेट्रिक की गणना                              |
+| CPM                | `billed_charge_local_micro/impressions/1000`           |
+| ऐप क्लिक दर        | `app_clicks/impressions`                               |
+| CPAC               | `billed_charge_local_micro/app_clicks`                 |
+| CPI                | `billed_charge_local_micro/mobile_conversion_installs` |
+
+<div id="followers">
+  ### `FOLLOWERS`
+</div>
+
+**प्रासंगिक मेट्रिक समूह:**`ENGAGEMENT` और `BILLING`। अगर क्रिएटिव्स में मीडिया का उपयोग किया गया है, तो `MEDIA` भी लागू है।
+
+|                    |                                              |
+| :----------------- | :------------------------------------------- |
+| व्युत्पन्न मेट्रिक | प्रदर्शित मेट्रिक की गणना                    |
+| CPM                | `billed_charge_local_micro/impressions/1000` |
+| फ़ॉलो दर           | `follows/impressions`                        |
+| CPF                | `billed_charge_local_micro/follows`          |
+| मीडिया व्यू दर     | `media_views/impressions`                    |
+
+<div id="lead_generation">
+  ### `LEAD_GENERATION`
+</div>
+
+**संबंधित मेट्रिक समूह:** `ENGAGEMENT` और `BILLING`। अगर क्रिएटिव्स में मीडिया का उपयोग किया जाता है, तो `MEDIA` भी लागू है।
+
+|                    |                                              |
+| :----------------- | :------------------------------------------- |
+| व्युत्पन्न मेट्रिक | प्रदर्शित मेट्रिक की गणना                   |
+| CPM                | `billed_charge_local_micro/impressions/1000` |
+| लीड्स              | `card_engagements`                           |
+| लीड रेट            | `card_engagements/impressions`               |
+| प्रति लीड लागत     | `billed_charge_local_micro/card_engagements` |
+
+<div id="video_views">
+  ### `VIDEO_VIEWS`
+</div>
+
+**प्रासंगिक मेट्रिक समूह:**`ENGAGEMENT`, `BILLING`, और `VIDEO`.
+
+|                    |                                               |
+| :----------------- | :-------------------------------------------- |
+| व्युत्पन्न मेट्रिक | प्रदर्शित मेट्रिक की गणना                     |
+| CPM                | `billed_charge_local_micro/impressions/1000`  |
+| वीडियो दर          | `video_total_views/impressions`               |
+| प्रति दृश्य लागत   | `billed_charge_local_micro/video_total_views` |
+
+<div id="video_views_preroll">
+  ### `VIDEO_VIEWS_PREROLL`
+</div>
+
+**संबंधित मेट्रिक समूह:** `ENGAGEMENT`, `BILLING`, और `VIDEO`.
+
+|                    |                                               |
+| :----------------- | :-------------------------------------------- |
+| व्युत्पन्न मेट्रिक | प्रदर्शित मेट्रिक की गणना                     |
+| CPM                | `billed_charge_local_micro/impressions/1000`  |
+| वीडियो दर          | `video_total_views/impressions`               |
+| प्रति व्यू लागत    | `billed_charge_local_micro/video_total_views` |
+
+<div id="metrics-and-segmentation">
+  ## मेट्रिक्स और सेगमेंटेशन
+</div>
+
+यह दस्तावेज़ प्रत्येक इकाई प्रकार के लिए हमारे [Analytics](/hi/x-ads-api/analytics) में उपलब्ध मेट्रिक्स का एक अवलोकन है, साथ ही प्रत्येक मेट्रिक के लिए उपलब्ध सेगमेंटेशन का भी।
+
+|                      |                             |                       |                   |                   |                                     |                                           |                                                                           |
+| :------------------- | :-------------------------- | :-------------------- | :---------------- | :---------------- | :---------------------------------- | :---------------------------------------- | :------------------------------------------------------------------------ |
+|                      | मेट्रिक्स समूह              |                       |                   |                   |                                     |                                           |                                                                           |
+| इकाई                 | [`ENGAGEMENT`](#engagement) | [`BILLING`](#BILLING) | [`VIDEO`](#VIDEO) | [`MEDIA`](#MEDIA) | [`WEB_CONVERSION`](#WEB_CONVERSION) | [`MOBILE_CONVERSION`](#MOBILE_CONVERSION) | [`LIFE_TIME_VALUE_MOBILE_CONVERSION`](#LIFE_TIME_VALUE_MOBILE_CONVERSION) |
+| `ACCOUNT`            | ✔*                          |                       |                   |                   |                                     |                                           |                                                                           |
+| `FUNDING_INSTRUMENT` | ✔*                          | ✔                     |                   |                   |                                     |                                           |                                                                           |
+| `CAMPAIGN`           | ✔                           | ✔                     | ✔                 | ✔                 | ✔                                   | ✔                                         | ✔                                                                         |
+| `LINE_ITEM`          | ✔                           | ✔                     | ✔                 | ✔                 | ✔                                   | ✔                                         | ✔                                                                         |
+| `PROMOTED_TWEET`     | ✔                           | ✔                     | ✔                 | ✔                 | ✔                                   | ✔                                         | ✔                                                                         |
+| `MEDIA_CREATIVE`     | ✔                           | ✔                     | ✔                 | ✔                 | ✔                                   | ✔                                         | ✔                                                                         |
+| `ORGANIC_TWEET`      | ✔                           |                       | ✔                 |                   |                                     |                                           |                                                                           |
+
+*`ENGAGEMENT` मेट्रिक्स परिवार के कुछ मेट्रिक्स account और funding instrument स्तर पर उपलब्ध नहीं हैं। विवरण के लिए `ENGAGEMENT` अनुभाग देखें।
+
+<div id="available-metrics-by-metrics-group">
+  ### मेट्रिक्स समूह के अनुसार उपलब्ध मेट्रिक्स
+</div>
+
+<div id="engagement">
+  #### `ENGAGEMENT`
+</div>
+
+|                         |                                                                             |                   |                    |                                            |
+| :---------------------- | :-------------------------------------------------------------------------- | :---------------- | :----------------- | :----------------------------------------- |
+| मेट्रिक                 | विवरण                                                                       | उपलब्ध सेगमेंटेशन | डेटा प्रकार          | अकाउंट / फंडिंग इंस्ट्रूमेंट के लिए उपलब्ध |
+| `engagements`           | एंगेजमेंट्स की कुल संख्या                                                   | ✔                 | पूर्णांकों की सरणी | ✔                                          |
+| `impressions`           | इम्प्रेशन्स की कुल संख्या                                                   | ✔                 | पूर्णांकों की सरणी | ✔                                          |
+| `retweets`              | रीट्वीट्स की कुल संख्या                                                     | ✔                 | पूर्णांकों की सरणी | ✔                                          |
+| `replies`               | जवाबों की कुल संख्या                                                        | ✔                 | पूर्णांकों की सरणी | ✔                                          |
+| `likes`                 | लाइक्स की कुल संख्या                                                        | ✔                 | पूर्णांकों की सरणी | ✔                                          |
+| `follows`               | फ़ॉलोज़ की कुल संख्या                                                       | ✔                 | पूर्णांकों की सरणी | ✔                                          |
+| `card_engagements`      | कार्ड एंगेजमेंट्स की कुल संख्या                                             | ✔                 | पूर्णांकों की सरणी |                                            |
+| `clicks`                | क्लिकों की कुल संख्या, जिसमें फ़ेवरेट्स और अन्य एंगेजमेंट्स शामिल हैं       | ✔                 | पूर्णांकों की सरणी |                                            |
+| `app_clicks`            | ऐप इंस्टॉल या ऐप खोलने के प्रयासों की संख्या                                | ✔                 | पूर्णांकों की सरणी |                                            |
+| url&#95;clicks          | विज्ञापन में लिंक या Website Card पर कुल क्लिक, जिनमें earned भी शामिल हैं। | ✔                 | पूर्णांकों की सरणी |                                            |
+| `qualified_impressions` | योग्य इम्प्रेशन्स की कुल संख्या                                             | ✔                 | पूर्णांकों की सरणी |                                            |
+| `carousel_swipes`       | Carousel इमेज या वीडियो पर कुल स्वाइप्स                                     | ✔                 | पूर्णांकों की सरणी |                                            |
+
+<div id="billing">
+  #### `BILLING`
+</div>
+
+|                             |                                      |                   |               |
+| :-------------------------- | :----------------------------------- | :---------------- | :------------ |
+| मेट्रिक                     | विवरण                                | उपलब्ध सेगमेंटेशन | डेटा प्रकार     |
+| `billed_engagements`        | बिल किए गए एंगेजमेंट्स की कुल संख्या | ✔                 | ints का Array |
+| `billed_charge_local_micro` | माइक्रो में कुल खर्च                 | ✔                 | ints का Array |
+
+<div id="video">
+  #### `VIDEO`
+</div>
+
+वीडियो मेट्रिक्स की परिभाषा में बदलाव के बारे में सूचना:
+
+`VIDEO` metrics group के भीतर `video_total_views` मेट्रिक उन सभी views की रिपोर्ट करेगा जो MRC मानक के अनुसार कम से कम 2 सेकंड तक कम से कम 50% in-view रहे हों।
+
+कम से कम 3 सेकंड तक 100% in view वाली हमारी मूल video view परिभाषा `VIDEO` metrics group में नए `video_3s100pct_views` मेट्रिक के रूप में उपलब्ध रहेगी। मूल view परिभाषा के आधार पर बोली लगाना जारी रखने और उसी आधार पर शुल्क लिया जाने के लिए, नए उपलब्ध `VIEW_3S_100PCT` bid&#95;unit का उपयोग करें।
+
+|                        |                                                                                                             |                   |              |
+| :--------------------- | :---------------------------------------------------------------------------------------------------------- | :---------------- | :----------- |
+| मेट्रिक                | विवरण                                                                                                       | सेगमेंटेशन उपलब्ध | डेटा प्रकार  |
+| `video_total_views`    | वीडियो views की कुल संख्या                                                                                  | ✔                 | ints की सरणी |
+| `video_views_25`       | views की कुल संख्या, जिनमें वीडियो का कम से कम 25% देखा गया।                                                | ✔                 | ints की सरणी |
+| `video_views_50`       | views की कुल संख्या, जिनमें वीडियो का कम से कम 50% देखा गया।                                                | ✔                 | ints की सरणी |
+| `video_views_75`       | views की कुल संख्या, जिनमें वीडियो का कम से कम 75% देखा गया।                                                | ✔                 | ints की सरणी |
+| `video_views_100`      | views की कुल संख्या, जिनमें वीडियो का 100% देखा गया।                                                        | ✔                 | ints की सरणी |
+| `video_cta_clicks`     | call to action पर कुल clicks                                                                                | ✔                 | ints की सरणी |
+| `video_content_starts` | वीडियो playback starts की कुल संख्या                                                                        | ✔                 | ints की सरणी |
+| `video_3s100pct_views` | views की कुल संख्या, जिनमें वीडियो कम से कम 3 सेकंड तक चला और 100% in view रहा (पुराना `video_total_views`) | ✔                 | ints की सरणी |
+| `video_6s_views`       | views की कुल संख्या, जिनमें वीडियो के कम से कम 6 सेकंड देखे गए                                              | ✔                 | ints की सरणी |
+| `video_15s_views`      | views की कुल संख्या, जिनमें वीडियो के कम से कम 15 सेकंड या कुल अवधि का 95% देखा गया                         | ✔                 | ints की सरणी |
+
+<div id="media">
+  #### `MEDIA`
+</div>
+
+|                     |                                                                             |                   |                    |
+| :------------------ | :-------------------------------------------------------------------------- | :---------------- | :----------------- |
+| मीट्रिक             | विवरण                                                                       | उपलब्ध सेगमेंटेशन | डेटा प्रकार        |
+| `media_views`       | Videos, Vines, GIFs, और Images में मीडिया के कुल व्यूज़ (ऑटोप्ले और क्लिक)। | ✔                 | पूर्णांकों की सरणी |
+| `media_engagements` | Videos, Vines, GIFs, और Images में मीडिया पर कुल क्लिक की संख्या।           | ✔                 | पूर्णांकों की सरणी |
+
+<div id="web_conversion">
+  #### `WEB_CONVERSION`
+</div>
+
+|                          |                                                                                            |                   |             |
+| :----------------------- | :----------------------------------------------------------------------------------------- | :---------------- | :---------- |
+| मेट्रिक                  | विवरण                                                                                      | उपलब्ध सेगमेंटेशन | डेटा प्रकार   |
+| `conversion_purchases`   | PURCHASE type के कन्वर्ज़न की संख्या और उससे संबंधित बिक्री राशि तथा ऑर्डर की मात्रा       | केवल `PLATFORMS`  | JSON object |
+| `conversion_sign_ups`    | SIGN&#95;UP type के कन्वर्ज़न की संख्या और उससे संबंधित बिक्री राशि तथा ऑर्डर की मात्रा    | केवल `PLATFORMS`  | JSON object |
+| `conversion_site_visits` | SITE&#95;VISIT type के कन्वर्ज़न की संख्या और उससे संबंधित बिक्री राशि तथा ऑर्डर की मात्रा | केवल `PLATFORMS`  | JSON object |
+| `conversion_downloads`   | DOWNLOAD type के कन्वर्ज़न की संख्या और उससे संबंधित बिक्री राशि तथा ऑर्डर की मात्रा       | केवल `PLATFORMS`  | JSON object |
+| `conversion_custom`      | CUSTOM type के कन्वर्ज़न की संख्या और उससे संबंधित बिक्री राशि तथा ऑर्डर की मात्रा         | केवल `PLATFORMS`  | JSON object |
+
+<div id="mobile_conversion">
+  #### `MOBILE_CONVERSION`
+</div>
+
+मोबाइल कन्वर्ज़न के आँकड़े केवल उन विज्ञापनदाता खातों के लिए उपलब्ध हैं जिनमें MACT सक्षम है।
+
+|                                            |                                                                                                                                                                 |               |               |
+| :----------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------ | :------------ |
+| मीट्रिक                                    | विवरण                                                                                                                                                           | उपलब्ध विभाजन | डेटा type     |
+| `mobile_conversion_spent_credits`          | post&#95;view, post&#95;engagement, assisted, order&#95;quantity, और sale&#95;amount के अनुसार SPENT&#95;CREDIT type के मोबाइल रूपांतरणों का विभाजन             | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_installs`               | type INSTALL के मोबाइल conversion का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के आधार पर विभाजन                      | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_content_views`          | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार CONTENT&#95;VIEW type के मोबाइल कन्वर्ज़न का विभाजन               | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_add_to_wishlists`       | ADD&#95;TO&#95;WISHLIST type के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विवरण         | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_checkouts_initiated`    | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार CHECKOUT&#95;INITIATED type के मोबाइल कन्वर्ज़न का विभाजन         | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_reservations`           | post&#95;view, post&#95;engagement, assisted, order&#95;quantity, और sale&#95;amount के अनुसार RESERVATION type के मोबाइल कन्वर्ज़न का विभाजन                   | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_tutorials_completed`    | TUTORIAL&#95;COMPLETED type के mobile conversions का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन       | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_achievements_unlocked`  | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के आधार पर ACHIEVEMENT&#95;UNLOCKED type के मोबाइल रूपांतरणों का विभाजन     | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_searches`               | type SEARCH के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन                         | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_add_to_carts`           | type ADD&#95;TO&#95;CART के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन            | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_payment_info_additions` | type PAYMENT&#95;INFO&#95;ADDITION के मोबाइल रूपांतरणों का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_re_engages`             | RE&#95;ENGAGE type के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विवरण                   | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_shares`                 | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार SHARE type वाले मोबाइल कन्वर्ज़न का विवरण                         | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_rates`                  | type RATE के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन                           | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_logins`                 | type LOGIN के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन                          | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_updates`                | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के आधार पर UPDATE type के मोबाइल रूपांतरणों का विभाजन                       | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_levels_achieved`        | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार LEVEL&#95;ACHIEVED type के मोबाइल रूपांतरणों का वर्गीकरण          | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_invites`                | post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार type INVITE के मोबाइल कन्वर्ज़न का विभाजन                         | ✔             | JSON ऑब्जेक्ट |
+| `mobile_conversion_key_page_views`         | post&#95;view और post&#95;engagement के अनुसार type KEY&#95;PAGE&#95;VIEW के मोबाइल कन्वर्ज़न का विभाजन                                                         | ✔             | JSON ऑब्जेक्ट |
+| mobile&#95;conversion&#95;downloads        | post&#95;view, post&#95;engagement, assisted, order&#95;quantity, और sale&#95;amount के अनुसार DOWNLOAD type के मोबाइल कन्वर्ज़न का विवरण                       | ✔             | JSON ऑब्जेक्ट |
+| mobile&#95;conversion&#95;purchases        | type PURCHASE के मोबाइल रूपांतरणों का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन                      | ✔             | JSON ऑब्जेक्ट |
+| mobile&#95;conversion&#95;sign&#95;ups     | type SIGN&#95;UP के मोबाइल कन्वर्ज़न का post&#95;view, post&#95;engagement, assisted, order&#95;quantity और sale&#95;amount के अनुसार विभाजन                    | ✔             | JSON ऑब्जेक्ट |
+| mobile&#95;conversion&#95;site&#95;visits  | type SITE&#95;VISIT के mobile conversions का post&#95;view, post&#95;engagement, assisted, order&#95;quantity, और sale&#95;amount के आधार पर विवरण              | ✔             | JSON ऑब्जेक्ट |
+
+<div id="life_time_value_mobile_conversion">
+  #### `LIFE_TIME_VALUE_MOBILE_CONVERSION`
+</div>
+
+लाइफटाइम मोबाइल कन्वर्ज़न आँकड़े केवल उन विज्ञापनदाता खातों के लिए उपलब्ध हैं जिनके लिए MACT सक्षम है।
+
+|                                                           |                                                                 |                   |             |
+| :-------------------------------------------------------- | :-------------------------------------------------------------- | :---------------- | :---------- |
+| मेट्रिक                                                   | विवरण                                                           | उपलब्ध सेगमेंटेशन | डेटा प्रकार   |
+| `mobile_conversion_lifetime_value_purchases`              | PURCHASE type के मोबाइल कन्वर्ज़न का विवरण                      |                   | JSON object |
+| `mobile_conversion_lifetime_value_sign_ups`               | SIGN&#95;UP type के मोबाइल कन्वर्ज़न का विवरण                   |                   | JSON object |
+| `mobile_conversion_lifetime_value_updates`                | UPDATE type के मोबाइल कन्वर्ज़न का विवरण                        |                   | JSON object |
+| `mobile_conversion_lifetime_value_tutorials_completed`    | TUTORIAL&#95;COMPLETED type के मोबाइल कन्वर्ज़न का विवरण        |                   | JSON object |
+| `mobile_conversion_lifetime_value_reservations`           | RESERVATION type के मोबाइल कन्वर्ज़न का विवरण                   |                   | JSON object |
+| `mobile_conversion_lifetime_value_add_to_carts`           | ADD&#95;TO&#95;CART type के मोबाइल कन्वर्ज़न का विवरण           |                   | JSON object |
+| `mobile_conversion_lifetime_value_add_to_wishlists`       | ADD&#95;TO&#95;WISHLIST type के मोबाइल कन्वर्ज़न का विवरण       |                   | JSON object |
+| `mobile_conversion_lifetime_value_checkouts_initiated`    | CHECKOUT&#95;INITIATED type के मोबाइल कन्वर्ज़न का विवरण        |                   | JSON object |
+| `mobile_conversion_lifetime_value_levels_achieved`        | LEVEL&#95;ACHIEVED type के मोबाइल कन्वर्ज़न का विवरण            |                   | JSON object |
+| `mobile_conversion_lifetime_value_achievements_unlocked`  | ACHIEVEMENT&#95;UNLOCKED type के मोबाइल कन्वर्ज़न का विवरण      |                   | JSON object |
+| `mobile_conversion_lifetime_value_shares`                 | SHARE type के मोबाइल कन्वर्ज़न का विवरण                         |                   | JSON object |
+| `mobile_conversion_lifetime_value_invites`                | INVITE type के मोबाइल कन्वर्ज़न का विवरण                        |                   | JSON object |
+| `mobile_conversion_lifetime_value_payment_info_additions` | PAYMENT&#95;INFO&#95;ADDITION type के मोबाइल कन्वर्ज़न का विवरण |                   | JSON object |
+| `mobile_conversion_lifetime_value_spent_credits`          | SPENT&#95;CREDIT type के मोबाइल कन्वर्ज़न का विवरण              |                   | JSON object |
+| `mobile_conversion_lifetime_value_rates`                  | RATE type के मोबाइल कन्वर्ज़न का विवरण                          |                   | JSON object |
+
+<div id="segmentation">
+  ### विभाजन
+</div>
+
+विभाजन रिपोर्टिंग से किसी दिए गए targeting type के मानों के आधार पर विभाजित मेट्रिक्स प्राप्त किए जा सकते हैं। इसकी अतिरिक्त जटिलता के कारण विभाजन केवल [asynchronous analytics queries](/hi/x-ads-api/analytics#asynchronous-analytics) के माध्यम से उपलब्ध है।
+
+`MEDIA_CREATIVE` या `ORGANIC_TWEET` entities के लिए विभाजन **समर्थित नहीं** है।
+
+कुछ सेगमेंटेशन types के लिए अतिरिक्त पैरामीटर पास करने होते हैं। उनका दस्तावेज़ीकरण नीचे दिया गया है।
+
+`CITIES` या `POSTAL_CODES` के आधार पर विभाजन करते समय, API **केवल** targeted locations लौटाएगा। Region और metro सेगमेंटेशन targeted और non-targeted, दोनों locations लौटाएगा।
+
+|                                |                        |                         |
+| :----------------------------- | :--------------------- | :---------------------- |
+| विभाजन प्रकार                  | `country` param आवश्यक | `platform` param आवश्यक |
+| `AGE`                          |                        |                         |
+| `APP_STORE_CATEGORY`           |                        |                         |
+| `AUDIENCES`                    |                        |                         |
+| `CITIES`                       | ✔                      |                         |
+| `CONVERSATIONS`                |                        |                         |
+| `CONVERSION_TAGS`              |                        |                         |
+| `DEVICES`                      |                        | ✔                       |
+| `EVENTS`                       |                        |                         |
+| `GENDER`                       |                        |                         |
+| `INTERESTS`                    |                        |                         |
+| `KEYWORDS`                     |                        |                         |
+| `LANGUAGES`                    |                        |                         |
+| `LOCATIONS`                    |                        |                         |
+| `METROS`                       | ✔                      |                         |
+| `PLATFORMS`                    |                        |                         |
+| `PLATFORM_VERSIONS`            |                        | ✔                       |
+| `POSTAL_CODES`                 | ✔                      |                         |
+| `REGIONS`                      | ✔                      |                         |
+| `SLIDES`                       |                        |                         |
+| `SIMILAR_TO_FOLLOWERS_OF_USER` |                        |                         |
+| `TV_SHOWS`                     |                        |                         |
+
+<div id="derived-metrics">
+  ## व्युत्पन्न मेट्रिक्स
+</div>
+
+कैंपेन मेट्रिक्स उनके [कैंपेन उद्देश्यों](/hi/x-ads-api/campaign-management) पर निर्भर करते हैं। लागू उद्देश्यों के आधार पर उपयोग के लिए व्युत्पन्न मेट्रिक्स की गणना कैसे की जाए, यह तय करने हेतु इस गाइड का उपयोग करें।
+
+कोई भी `metric` जिसके साथ कर्ली ब्रैकेट्स नहीं हैं, वह Ads API के [analytics](/hi/x-ads-api/analytics#synchronous-analytics) endpoints द्वारा लौटाया जाता है। &#123;कर्ली ब्रैकेट्स&#125; से घिरा कोई भी नाम उस श्रेणी के लिए एक व्युत्पन्न मेट्रिक को दर्शाता है।
+
+### एंगेजमेंट्स
+
+|                             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मेट्रिक          | प्रदर्शित मेट्रिक की गणना                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| {इम्प्रेशन्स}               | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| {CPM}                       | `billed_charge_local_micro / {Impressions} / 1000`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| &#123;कुल एंगेजमेंट्स&#125; | `promoted_account_follows + promoted_tweet_search_engagements + promoted_tweet_timeline_engagements + promoted_tweet_profile_engagements` or `promoted_account_follows + promoted_tweet_search_clicks + promoted_tweet_search_replies + promoted_tweet_search_retweets + promoted_tweet_search_follows + promoted_tweet_timeline_clicks + promoted_tweet_timeline_replies + promoted_tweet_timeline_retweets + promoted_tweet_timeline_follows + promoted_tweet_profile_clicks + promoted_tweet_profile_replies + promoted_tweet_profile_retweets + promoted_tweet_profile_follows` |
+| &#123;एंगेजमेंट दर&#125;    | `{Total Engagements} / {Impressions}`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| {CPE}                       | `billed_charge_local_micro / {Total Engagements}`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| &#123;मीडिया व्यूज़&#125;   | `promoted_tweet_timeline_media_views + promoted_tweet_search_media_views + promoted_tweet_profile_media_views`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| &#123;मीडिया व्यू दर&#125;  | `{Media Views} / {Impressions}`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+<div id="website_clicks">
+  ### WEBSITE_CLICKS
+</div>
+
+|                          |                                                                                                                |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मेट्रिक       | प्रदर्शित मेट्रिक की गणना                                                                                     |
+| {इंप्रेशन}               | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM}                    | `billed_charge_local_micro / {Impressions} / 1000`                                                             |
+| &#123;लिंक क्लिक&#125;   | `promoted_tweet_search_url_clicks + promoted_tweet_timeline_url_clicks + promoted_tweet_profile_url_clicks`    |
+| &#123;क्लिक दर&#125;     | `{Link Clicks} / {Impressions}`                                                                                |
+| {CPLC}                   | `billed_charge_local_micro / {Link Clicks}`                                                                    |
+| {कन्वर्ज़न}              | `conversion_site_visits`                                                                                       |
+| &#123;कन्वर्ज़न दर&#125; | `conversion_site_visits / {Impressions}`                                                                       |
+| {CPA}                    | `billed_charge_local_micro / conversion_site_visits`                                                           |
+
+### APP_INSTALLS और APP_ENGAGEMENTS
+
+|                         |                                                                                                                                                  |
+| :---------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मेट्रिक      | प्रदर्शित मेट्रिक की गणना                                                                                                                        |
+| {इंप्रेशन}              | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions`                                                                        |
+| {CPM}                   | `billed_charge_local_micro / {Impressions} / 1000`                                                                                               |
+| &#123;ऐप क्लिक&#125;    | `promoted_tweet_app_install_attempts + promoted_tweet_app_open_attempts + promoted_tweet_timeline_url_clicks + promoted_tweet_search_url_clicks` |
+| &#123;ऐप क्लिक दर&#125; | `{App Clicks} / {Impressions}`                                                                                                                   |
+| {CPAC}                  | `billed_charge_local_micro / {App Clicks}`                                                                                                       |
+| {CPI}                   | `billed_charge_local_micro / mobile_conversion_installs`                                                                                         |
+
+### फ़ॉलोअर्स
+
+|                             |                                                                                                                |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मीट्रिक          | प्रदर्शित मेट्रिक की गणना                                                                                         |
+| {Impressions}               | `promoted_account_impressions`                                                                                 |
+| {CPM}                       | `billed_charge_local_micro / {Impressions} / 1000`                                                             |
+| {फ़ॉलोअर्स}                 | `promoted_account_follows`                                                                                     |
+| &#123;फ़ॉलो रेट&#125;       | `promoted_account_follow_rate`                                                                                 |
+| {CPF}                       | `billed_charge_local_micro / promoted_account_follows`                                                         |
+| &#123;मीडिया व्यूज़&#125;   | `promoted_tweet_timeline_media_views + promoted_tweet_search_media_views + promoted_tweet_profile_media_views` |
+| &#123;मीडिया व्यू रेट&#125; | `{Media Views} / {Impressions}`                                                                                |
+
+### LEAD_GENERATION
+
+|                            |                                                                                                                               |
+| :------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मेट्रिक         | प्रदर्शित मेट्रिक की गणना                                                                                                    |
+| {इम्प्रेशन्स}              | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions`                |
+| {CPM}                      | `billed_charge_local_micro / {इम्प्रेशन्स} / 1000`                                                                            |
+| {लीड्स}                    | `promoted_tweet_search_card_engagements + promoted_tweet_timeline_card_engagements + promoted_tweet_profile_card_engagements` |
+| &#123;लीड रेट&#125;        | `{लीड्स} / {इम्प्रेशन्स}`                                                                                                     |
+| &#123;प्रति लीड लागत&#125; | `billed_charge_local_micro / {लीड्स}`                                                                                         |
+
+### VIDEO_VIEWS
+
+|                             |                                                                                                                |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मेट्रिक          | प्रदर्शित मेट्रिक की गणना                                                                                      |
+| {Impressions}               | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions` |
+| {CPM}                       | `billed_charge_local_micro / {Impressions} / 1000`                                                             |
+| &#123;वीडियो व्यू&#125;     | `promoted_video_total_views`                                                                                   |
+| &#123;वीडियो दर&#125;       | `promoted_video_total_views / {Impressions}`                                                                   |
+| &#123;प्रति व्यू लागत&#125; | `billed_charge_local_micro / promoted_video_total_views`                                                       |
+
+<div id="qualified_impressions">
+  ### QUALIFIED_IMPRESSIONS
+</div>
+
+|                                                  |                                                                                                                                              |
+| :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| व्युत्पन्न मेट्रिक                               | प्रदर्शित मेट्रिक की गणना                                                                                                                   |
+| {Impressions}                                    | `promoted_tweet_search_impressions + promoted_tweet_timeline_impressions + promoted_tweet_profile_impressions`                               |
+| {CPM}                                            | `billed_charge_local_micro / {Impressions} / 1000`                                                                                           |
+| &#123;Qualified Impressions&#125;                | `promoted_tweet_timeline_qualified_impressions + promoted_tweet_search_qualified_impressions + promoted_tweet_profile_qualified_impressions` |
+| &#123;Qualified Impression Rate&#125;            | `{Qualified Impressions} / {Impressions}`                                                                                                    |
+| &#123;Cost Per 1000 Qualified Impressions &#125; | `billed_charge_local_micro / {Qualified Impressions} / 1000`                                                                                 |
+
+<div id="custom">
+  ### कस्टम
+</div>
+
+`PROMOTED_ACCOUNT` के `placement_type` के लिए ऊपर दिए गए `FOLLOWERS` ऑब्जेक्टिव को देखें। इस ऑब्जेक्टिव के साथ अन्य सभी प्लेसमेंट के लिए, संबंधित डेराइव्ड मेट्रिक्स हेतु `ENGAGEMENTS` देखें।
+
+<div id="guides">
+  ## मार्गदर्शिकाएँ
+</div>
+
+<div id="active-entities">
+  ### सक्रिय एंटिटीज़
+</div>
+
+<div id="introduction">
+  #### परिचय
+</div>
+
+[Active Entities endpoint](/hi/x-ads-api/analytics#get-stats-accounts-account-id-active-entities) को हमारे [synchronous](/hi/x-ads-api/analytics#get-stats-accounts-account-id) और [asynchronous](/hi/x-ads-api/analytics#asynchronous-analytics) एनालिटिक्स एंडपॉइंट्स के साथ उपयोग करने के लिए डिज़ाइन किया गया है, क्योंकि यह बताता है कि analytics का अनुरोध किन campaigns के लिए किया जाना चाहिए। यह ads entities का विवरण और उनकी metrics में बदलाव कब हुआ, यह लौटाकर ऐसा करता है। इस endpoint का उपयोग करने से आपका code और analytics फ़ेच करने का logic काफ़ी सरल हो जाएगा।
+
+इस guide में endpoint और उसके data source के बारे में जानकारी और संदर्भ शामिल हैं। यह [उपयोग दिशानिर्देश](#usage) और [उदाहरण अनुरोधों](#example) की एक श्रृंखला भी प्रदान करता है, जो दिखाती है कि हमारे analytics एंडपॉइंट्स के साथ Active Entities का उपयोग कैसे किया जाए। [सारांश अनुभाग](#summary) अनुशंसित दृष्टिकोण का उच्च-स्तरीय विवरण देता है।
+
+<div id="data">
+  #### डेटा
+</div>
+
+जब भी किसी ads entity metric में बदलाव होता है, हम उस बदलाव की जानकारी दर्ज करते हैं। इन परिवर्तन इवेंट्स को हर घंटे के बकेट में संग्रहीत किया जाता है और इनमें entity का विवरण, साथ ही वह समय भी शामिल होता है जिस पर बदलाव लागू होता है। यह दूसरा हिस्सा ज़रूरी है, क्योंकि परिवर्तन इवेंट्स हमेशा उस समय से मेल नहीं खाते जब उन्हें दर्ज किया गया था। इसका एक सामान्य कारण billing adjustments है, लेकिन इसके अलावा भी अन्य कारण हो सकते हैं।
+
+<div id="endpoint">
+  #### एंडपॉइंट
+</div>
+
+<div id="request">
+  ### अनुरोध
+</div>
+
+Active Entities अनुरोध ads accounts के अंतर्गत आते हैं और इनमें तीन आवश्यक query पैरामीटर होते हैं: `entity`, `start_time`, और `end_time`।
+
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=PROMOTED_TWEET&start_time=2019-03-05T00:00:00Z&end_time=2019-03-06T00:00:00Z"`
+
+निम्न `entity` मान समर्थित हैं: `CAMPAIGN`, `FUNDING_INSTRUMENT`, `LINE_ITEM`, `MEDIA_CREATIVE`, `PROMOTED_ACCOUNT`, और `PROMOTED_TWEET`। यह उन entity type को दर्शाता है जिन्हें हमारे एनालिटिक्स एंडपॉइंट्स समर्थन करते हैं।
+
+`start_time` और `end_time` मान [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में होने चाहिए और यह निर्दिष्ट करते हैं कि किन hourly buckets के लिए query की जानी है। इन्हें पूरे घंटों में व्यक्त किया जाना चाहिए।
+
+यह एंडपॉइंट तीन वैकल्पिक पैरामीटर का भी समर्थन करता है, जिनका उपयोग नतीजों को फ़िल्टर करने के लिए किया जा सकता है: `funding_instrument_ids`, `campaign_ids`, और `line_item_ids`। ये ads hierarchy के सभी स्तरों पर और किसी भी निर्दिष्ट `entity` type के साथ काम करते हैं।
+
+<div id="response">
+  ### रिस्पॉन्स
+</div>
+
+ऊपर दिए गए अनुरोध के लिए Active Entities रिस्पॉन्स नीचे दर्शाया गया है।
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "entity": "PROMOTED_TWEET",
+          "start_time": "2019-03-05T00:00:00Z",
+          "end_time": "2019-03-06T00:00:00Z"
+        }
+      },
+      "data": [
+        {
+          "entity_id": "2r0wxw",
+          "activity_start_time": "2019-03-04T20:55:20Z",
+          "activity_end_time": "2019-03-05T03:43:56Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        },
+        {
+          "entity_id": "2r30fn",
+          "activity_start_time": "2019-03-05T08:11:08Z",
+          "activity_end_time": "2019-03-05T14:40:59Z",
+          "placements": [
+            "ALL_ON_TWITTER",
+            "PUBLISHER_NETWORK"
+          ]
+        }
+      ]
+    }
+```
+
+`data` ऐरे में हर उस इकाई के लिए एक ऑब्जेक्ट शामिल होता है जिसे बाद के एनालिटिक्स अनुरोध में शामिल किया जाना चाहिए। आपको इस सेट से बाहर के IDs के लिए एनालिटिक्स का अनुरोध नहीं करना चाहिए।
+
+हर ऑब्जेक्ट में चार फ़ील्ड्स होते हैं: `entity_id`, `activity_start_time`, `activity_end_time`, और `placements`। गतिविधि के आरंभ और समाप्ति समय उस समय-सीमा को दर्शाते हैं, जिस पर संबंधित इकाई की परिवर्तन इवेंट लागू होती हैं, और इसी आधार पर यह तय होता है कि बाद के एनालिटिक्स अनुरोधों में कौन-सी तारीखें निर्दिष्ट की जानी चाहिए। `placements` ऐरे में निम्नलिखित मान हो सकते हैं: `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, और `TREND`। यह बताता है कि दिए गए entity ID के लिए किन placements का अनुरोध किया जाना चाहिए।
+
+<div id="usage">
+  #### उपयोग
+</div>
+
+एनालिटिक्स अनुरोध कैसे किए जाएँ, यह Active Entities एंडपॉइंट से निर्धारित होना चाहिए। नीचे दिए गए उपयोग दिशानिर्देश एनालिटिक्स synchronization का समर्थन करने के लिए लिखे गए हैं, ताकि पार्टनर अपने data store को Twitter के साथ सिंक में रख सकें। दूसरे शब्दों में, यह बताता है कि नियमित रूप से शेड्यूल किए गए background syncs कैसे चलाए जाएँ।
+
+डेवलपर को दो निर्णय लेने होते हैं।
+
+1. Active Entities information का अनुरोध कितनी बार किया जाए और, इस प्रकार, एनालिटिक्स को कितनी बार pull किया जाए।
+2. एनालिटिक्स अनुरोध के `start_time` और `end_time` मान तय करने के लिए activity के start और end time का उपयोग कैसे किया जाए।
+
+इन दोनों विषयों पर सारांश के बाद नीचे दिए गए दो उपखंडों में अधिक विस्तार से चर्चा की गई है।
+
+<div id="summary">
+  ### सारांश
+</div>
+
+एनालिटिक्स अनुरोध किस तरह किए जाएँ, यह निर्धारित करने के लिए Active Entities एंडपॉइंट का उपयोग नीचे दिए गए तरीके से करें। यह प्रक्रिया तब अपनाएँ जब आप तय कर लें कि active entities की जानकारी कितनी बार प्राप्त करनी है और उसके आधार पर एनालिटिक्स कितनी बार पुल करना है।
+
+1. Active Entities अनुरोध करें।
+2. रिस्पॉन्स को placement के अनुसार विभाजित करें। `ALL_ON_TWITTER` के लिए एक समूह, `PUBLISHER_NETWORK` के लिए एक, `SPOTLIGHT` के लिए एक, और `TREND` के लिए एक।
+3. प्रत्येक placement समूह के लिए, निम्न कार्य करें।
+   1. entity IDs निकालें।
+   2. एनालिटिक्स के `start_time` और `end_time` मान निर्धारित करें।
+      * न्यूनतम `activity_start_time` ढूँढें। इस मान को नीचे की ओर round करें।
+      * अधिकतम `activity_end_time` ढूँढें। इस मान को ऊपर की ओर round करें।
+   3. एनालिटिक्स अनुरोध करें।
+      * entity IDs को 20 के बैच में समूहित करें।
+      * #3b के `start_time` और `end_time` मानों का उपयोग करें।
+      * उपयुक्त `placement` मान निर्दिष्ट करें।
+   4. अपने data store में लिखें।
+
+Python SDK का उपयोग करने वाले उदाहरण के लिए [active&#95;entities.py](https://github.com/xdevplatform/twitter-python-ads-sdk/blob/master/examples/active_entities.py) देखें।
+
+<div id="frequency">
+  ### आवृत्ति
+</div>
+
+पहले प्रश्न का उत्तर यह निर्धारित करता है कि Active Entities अनुरोधों में किस समय-सीमा का उपयोग किया जाना चाहिए। उदाहरण के लिए, यदि Active Entities की जानकारी हर घंटे मांगी जा रही है, तो समय-सीमा एक घंटे की होनी चाहिए। यदि Active Entities की जानकारी दिन में एक बार मांगी जा रही है, तो समय-सीमा एक दिन की होनी चाहिए। दूसरे शब्दों में, समय-सीमाएँ इस तरह चुनी जानी चाहिए कि मौजूदा अनुरोध का `start_time`, पिछले अनुरोध के `end_time` के बराबर हो।
+
+<Note>
+  **नोट**: किसी समय-विंडो का अनुरोध केवल एक बार किया जाना चाहिए। किसी समय-विंडो का एक से अधिक बार अनुरोध करने से अनावश्यक एनालिटिक्स अनुरोध होंगे। (अपवाद नीचे दिया गया है।)
+</Note>
+
+जो पार्टनर *मौजूदा* घंटे के लिए एक घंटे में कई बार एनालिटिक्स का अनुरोध करना चाहते हैं, उनके लिए भी यही पैटर्न लागू होता है—आवृत्ति ही समय-सीमा निर्धारित करती है। नीचे दी गई तालिका इस परिदृश्य के लिए Active Entities के `start_time` और `end_time` टाइमस्टैम्प के उदाहरण दिखाती है।
+
+|                |                              |                            |
+| :------------- | :--------------------------- | :------------------------- |
+| **अनुरोध समय** | **`start_time` टाइमस्टैम्प** | **`end_time` टाइमस्टैम्प** |
+| 00:15:00       | 00:00:00                     | 00:15:00                   |
+| 00:30:00       | 00:15:00                     | 00:30:00                   |
+| 00:45:00       | 00:30:00                     | 00:45:00                   |
+| 01:00:00       | 00:45:00                     | 01:00:00                   |
+
+परिवर्तन इवेंट्स को जिस तरह संग्रहीत किया जाता है, उसके कारण ऊपर दिए गए सभी चार Active Entities अनुरोध उसी प्रति-घंटा बकेट को क्वेरी करते हैं, जो इस उपयोग के मामले के लिए आवश्यक है। हालांकि, मौजूदा घंटे के बाद इस प्रति-घंटा बकेट को फिर क्वेरी नहीं किया जाना चाहिए।
+
+<div id="activity-times">
+  ### गतिविधि समय
+</div>
+
+हम गतिविधि के शुरू और खत्म होने के समय के साथ काम करने के लिए निम्नलिखित तरीका सुझाते हैं। Active Entities रिस्पॉन्स में मौजूद सभी ऑब्जेक्ट्स में `activity_start_time` का न्यूनतम मान और `activity_end_time` का अधिकतम मान ढूंढें। फिर इन मानों को इस तरह संशोधित करें कि न्यूनतम गतिविधि आरंभ समय को नीचे की ओर राउंड किया जाए और अधिकतम गतिविधि समाप्ति समय को ऊपर की ओर राउंड किया जाए। विशेष रूप से, दोनों टाइमस्टैम्प में घंटे, मिनट और सेकंड को शून्य पर सेट करें और समाप्ति समय में एक दिन जोड़ दें, जैसा कि नीचे दी गई तालिका में दिखाया गया है। बाद के एनालिटिक्स अनुरोधों में यही आरंभ और समाप्ति समय निर्दिष्ट किए जाने चाहिए।
+
+|                                                          |                                                          |
+| :------------------------------------------------------- | :------------------------------------------------------- |
+| **न्यूनतम और अधिकतम गतिविधि समय**                        | **व्युत्पन्न समय**                                       |
+| 2019-03-04T20:55:20Z  <br />  <br />2019-03-05T14:40:59Z | 2019-03-04T00:00:00Z  <br />  <br />2019-03-06T00:00:00Z |
+
+**नोट**: यह महत्वपूर्ण है कि टाइमस्टैम्प में घंटे, मिनट और सेकंड शून्य पर सेट करके शामिल किए जाएँ। अन्यथा, अगर केवल तारीख भेजी जाती है, तो हम मान लेंगे कि आप ads account के timezone में मध्यरात्रि से शुरू होकर मध्यरात्रि पर समाप्त होने वाले एनालिटिक्स का अनुरोध कर रहे हैं, जो शायद वांछनीय न हो। उदाहरण के लिए, अगर न्यूनतम गतिविधि आरंभ समय 2019-02-28T01:30:07Z है और -08:00:00 ऑफ़सेट वाले किसी ads account के लिए टाइमस्टैम्प छोड़ दिया जाता है, तो एनालिटिक्स अनुरोध 01:30 और 08:00 के बीच हुए बदलावों को शामिल नहीं करेगा।
+
+वैकल्पिक रूप से, अगर आप पूरे दिनों तक विस्तार किए बिना केवल लौटाई गई गतिविधि समय विंडो के लिए एनालिटिक्स का अनुरोध करना चाहते हैं, तो ऐसा कर सकते हैं। इस तरीके का उपयोग करने पर, व्युत्पन्न आरंभ और समाप्ति समय क्रमशः 2019-03-04T20:00:00Z और 2019-03-05T15:00:00Z होंगे। (ध्यान दें कि अगर आप एनालिटिक्स अनुरोध में `DAY` granularity निर्दिष्ट करते हैं, तो इस तरह की ranges स्वीकार नहीं की जाती हैं।)
+
+<div id="example">
+  #### उदाहरण
+</div>
+
+यह अनुभाग दिखाता है कि सिंक्रोनस एनालिटिक्स एंडपॉइंट के साथ Active Entities का उपयोग कैसे किया जाता है। (पठनीयता के लिए रिस्पॉन्स में थोड़ा-सा बदलाव किया गया है।) इस उदाहरण में, Active Entities एंडपॉइंट को हर घंटे की शुरुआत में कॉल किया जाता है, और हर अनुरोध पिछले घंटे को देखता है। रिस्पॉन्स यह तय करता है कि सिंक्रोनस एनालिटिक्स एंडपॉइंट का उपयोग कैसे किया जाए।
+
+पहला Active Entities अनुरोध 03:00:00 पर किया जाता है। रिस्पॉन्स से पता चलता है कि line item dvcz7 के metrics बदल गए हैं और ये परिवर्तन इवेंट 02:02:55 से 02:28:12 के बीच की विंडो पर लागू होते हैं।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=LINE_ITEM&start_time=2019-02-11T02:00:00Z&end_time=2019-02-11T03:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": [
+        {
+          "entity_id": "dvcz7",
+          "activity_start_time": "2019-02-11T02:02:55Z",
+          "activity_end_time": "2019-02-11T02:58:12Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        }
+      ]
+    }
+```
+
+इन गतिविधियों के आरंभ और समाप्ति समयों के आधार पर, और ऊपर वर्णित पद्धति का उपयोग करते हुए, एनालिटिक्स `start_time` और `end_time` मान क्रमशः 2019-02-11T00:00:00Z और 2019-02-12T00:00:00Z पर सेट किए जाते हैं। हम देखते हैं कि नीचे दिए गए प्रत्येक metrics array में तीसरा तत्व शून्य नहीं है, जैसा कि सक्रिय entities की जानकारी के आधार पर अपेक्षित था।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=dvcz7&start_time=2019-02-11T00:00:00Z&end_time=2019-02-12T00:00:00Z&granularity=HOUR&metric_groups=ENGAGEMENT,VIDEO&placement=ALL_ON_TWITTER"`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 24,
+      "data": [
+        {
+          "id": "dvcz7",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  0,0,2792,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "engagements": [
+                  0,0,60,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "video_total_views": [
+                  0,0,1326,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "request": {}
+    }
+```
+
+अगला Active Entities अनुरोध 04:00:00 पर होता है और केवल पिछले एक घंटे को देखता है। जैसा कि ऊपर बताया गया है, किसी समय विंडो का अनुरोध केवल एक बार ही किया जाना चाहिए। रिस्पॉन्स के आधार पर, हम देखते हैं कि इस line item के लिए परिवर्तन इवेंट *दोनों* 02:00:00 और 03:00:00 पर लागू होते हैं। इसके बाद के एनालिटिक्स अनुरोध में, हमें दोनों घंटों के लिए परिवर्तन दिखाई देने की अपेक्षा है।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity= LINE_ITEM&start_time=2019-02-11T03:00:00Z&end_time=2019-02-11T04:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": [
+        {
+          "entity_id": "dvcz7",
+          "activity_start_time": "2019-02-11T02:07:17Z",
+          "activity_end_time": "2019-02-11T03:49:22Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        }
+      ]
+    }
+```
+
+03:00:00 के लिए शून्य से अधिक मेट्रिक्स दिखने के अलावा, हम यह भी देखते हैं कि impressions, spend, और MRC वीडियो views को उनके पिछले मानों से अपडेट किया गया है। उदाहरण के लिए, 02:00:00 घंटे के लिए impressions अब 2,792 से बढ़कर 2,995 हो गए हैं। यह दर्शाता है कि 03:00:00 घंटे के दौरान रिकॉर्ड की गई परिवर्तन इवेंट 02:00:00 घंटे पर लागू होती हैं।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=dvcz7&start_time=2019-02-11T00:00:00Z&end_time=2019-02-12T00:00:00Z&granularity=HOUR&metric_groups=ENGAGEMENT,VIDEO&placement=ALL_ON_TWITTER"`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 24,
+      "data": [
+        {
+          "id": "dvcz7",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  0,0,2995,734,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "engagements": [
+                  0,0,65,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "video_total_views": [
+                  0,0,1449,342,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "request": {}
+    }
+```
+
+05:00:00 पर किया गया Active Entities अनुरोध, फिर से केवल पिछले घंटे को देखते हुए, यह दिखाता है कि परिवर्तन ईवेंट केवल 03:00:00 वाले घंटे पर लागू होते हैं। इसके बाद के अनुरोध में एनालिटिक्स metrics में हुए बदलाव इसी को दर्शाते हैं।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=LINE_ITEM&start_time=2019-02-11T04:00:00Z&end_time=2019-02-11T05:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": [
+        {
+          "entity_id": "dvcz7",
+          "activity_start_time": "2019-02-11T03:42:39Z",
+          "activity_end_time": "2019-02-11T03:48:48Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        }
+      ]
+    }
+```
+
+एनालिटिक्स रिस्पॉन्स से पता चलता है कि केवल 03:00:00 घंटे के मेट्रिक्स बदले हैं; 02:00:00 घंटे के मान वही हैं जो पिछले एनालिटिक्स अनुरोध के दौरान थे।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids= dvcz7&start_time=2019-02-11T00:00:00Z&end_time=2019-02-12T00:00:00Z&granularity=HOUR&metric_groups=ENGAGEMENT,VIDEO&placement=ALL_ON_TWITTER"`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 24,
+      "data": [
+        {
+          "id": "dvcz7",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  0,0,2995,753,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "engagements": [
+                  0,0,65,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ],
+                "video_total_views": [
+                  0,0,1449,351,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "request": {}
+    }
+```
+
+अंत में, 06:00:00 पर हम देखते हैं कि कोई अतिरिक्त परिवर्तन इवेंट नहीं हैं। **ध्यान दें**: हालांकि, इसका यह *मतलब नहीं* है कि इस line item के मेट्रिक्स भविष्य में नहीं बदल सकते।
+
+```
+`twurl -H ads-api.x.com "/11/stats/accounts/18ce54d4x5t/active_entities?entity=LINE_ITEM&start_time=2019-02-11T05:00:00Z&end_time=2019-02-11T06:00:00Z"`
+```
+
+```json
+    {
+      "request": {},
+      "data": []
+    }
+```
+
+<div id="asynchronous-guide">
+  ### असमकालिक मार्गदर्शिका
+</div>
+
+<div id="api-reference">
+  ## API संदर्भ
+</div>
+
+<div id="asynchronous-analytics">
+  ### असमकालिक एनालिटिक्स
+</div>
+
+<div id="introduction">
+  #### परिचय
+</div>
+
+असमकालिक एनालिटिक्स एंडपॉइंट्स भागीदारों और विज्ञापनदाताओं को create request सबमिट करके metrics का अनुरोध करने की सुविधा देते हैं, जिन्हें सर्वर असमकालिक रूप से प्रोसेस करता है। (हम इन्हें असमकालिक एनालिटिक्स &quot;jobs&quot; कहते हैं।) इस तरीके में, अनुरोध पूरा होने तक क्लाइंट का connection खुला रखने की आवश्यकता नहीं होती।
+
+ये एंडपॉइंट्स, अपने सिंक्रोनस समकक्षों की तरह, भागीदारों और विज्ञापनदाताओं को campaign performance के बारे में विस्तृत statistics का अनुरोध करने की अनुमति देते हैं। ये accounts, funding instruments, campaigns, line items, promoted Tweets, और media creatives के लिए data का अनुरोध करने का समर्थन करते हैं। इन और सिंक्रोनस एंडपॉइंट के बीच अंतर यह है कि असमकालिक एनालिटिक्स एंडपॉइंट्स लंबी date ranges, अधिकतम 90 दिनों तक, और segmentation का भी समर्थन करते हैं। दोनों के बीच के अंतरों के बारे में अतिरिक्त जानकारी हमारे [Analytics Overview](/hi/x-ads-api/analytics) पेज पर मिल सकती है।
+
+हमारे सिंक्रोनस एंडपॉइंट्स के विपरीत, rate limiting किसी दिए गए account के लिए concurrent jobs की संख्या के आधार पर तय की जाती है। दूसरे शब्दों में, यह उन jobs की संख्या पर आधारित है जो किसी भी समय processing state में हो सकती हैं। हम इसकी गणना ads account स्तर पर करते हैं।
+
+<div id="usage">
+  #### उपयोग
+</div>
+
+असमकालिक एनालिटिक्स एंडपॉइंट्स का उपयोग करके अभियान मेट्रिक्स प्राप्त करना एक बहु-चरणीय प्रक्रिया है। इसमें एक जॉब बनाना, यह जांचना कि जॉब की प्रोसेसिंग पूरी हुई है या नहीं, और अंत में डेटा डाउनलोड करना शामिल है। डेटा फ़ाइल को अनज़िप करना आवश्यक है। नीचे चार चरण दिए गए हैं।
+
+1. [POST stats/jobs/accounts/:account&#95;id](/hi/x-ads-api/analytics#asynchronous-analytics) एंडपॉइंट का उपयोग करके जॉब बनाएं।
+2. यह पता लगाने के लिए कि जॉब की प्रोसेसिंग पूरी हुई है या नहीं, [GET stats/jobs/accounts/:account&#95;id](/hi/x-ads-api/analytics#asynchronous-analytics) एंडपॉइंट पर नियमित अंतराल पर अनुरोध करें।
+3. जॉब की प्रोसेसिंग पूरी हो जाने पर, डेटा फ़ाइल डाउनलोड करें।
+4. डेटा फ़ाइल को अनज़िप करें।
+
+डेटा फ़ाइल में लौटाए गए रिस्पॉन्स ऑब्जेक्ट का JSON स्कीमा सिंक्रोनस एनालिटिक्स एंडपॉइंट के रिस्पॉन्स के JSON स्कीमा जैसा ही होता है।
+
+सेगमेंट किए गए अभियान मेट्रिक्स केवल असमकालिक एनालिटिक्स एंडपॉइंट्स के माध्यम से उपलब्ध हैं। अभियान मेट्रिक्स को स्थान, लिंग, रुचि, कीवर्ड आदि के आधार पर विभाजित किया जा सकता है। विकल्पों की पूरी सूची के लिए, [Metrics and Segmentation](/hi/x-ads-api/analytics#metrics-and-segmentation) पेज देखें। सेगमेंट किए गए मेट्रिक्स का अनुरोध करने के लिए, जॉब बनाते समय `segmentation_type` अनुरोध पैरामीटर का उपयोग करें।
+
+<div id="example">
+  #### उदाहरण
+</div>
+
+यह अनुभाग दिखाता है कि असमकालिक एनालिटिक्स एंडपॉइंट्स का उपयोग कैसे करें।
+
+[POST stats/jobs/accounts/:account&#95;id](/hi/x-ads-api/analytics#asynchronous-analytics) एंडपॉइंट का उपयोग करके job बनाकर शुरुआत करें। नीचे दिया गया उदाहरण एक सप्ताह की अवधि के लिए किसी विशिष्ट line item के engagement metrics—जैसे impressions, likes, clicks आदि—का अनुरोध करता है। (ध्यान दें कि अनुरोधित समय-सीमा 20 मार्च तक जाती है, लेकिन उसमें 20 मार्च शामिल नहीं है, क्योंकि timestamp मध्यरात्रि पर सेट है।)
+
+```
+$ twurl -X POST -H ads-api.x.com "/9/stats/jobs/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=el32n&start_time=2019-03-12T00:00:00Z&end_time=2019-03-20T00:00:00Z&granularity=TOTAL&placement=ALL_ON_TWITTER&metric_groups=ENGAGEMENT"
+```
+
+```json
+    {
+      "request": {
+        "params": {
+          "start_time": "2019-03-12T00:00:00Z",
+          "entity_ids": [
+            "el32n"
+          ],
+          "end_time": "2019-03-20T00:00:00Z",
+          "placement": "ALL_ON_TWITTER",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      },
+      "data": {
+        "start_time": "2019-03-12T00:00:00Z",
+        "segmentation_type": null,
+        "url": null,
+        "id_str": "1120829647711653888",
+        "entity_ids": [
+          "el32n"
+        ],
+        "end_time": "2019-03-20T00:00:00Z",
+        "country": null,
+        "placement": "ALL_ON_TWITTER",
+        "id": 1120829647711653888,
+        "expires_at": null,
+        "account_id": "18ce54d4x5t",
+        "status": "PROCESSING",
+        "granularity": "TOTAL",
+        "entity": "LINE_ITEM",
+        "created_at": "2019-04-23T23:19:46Z",
+        "platform": null,
+        "updated_at": "2019-04-23T23:19:46Z",
+        "metric_groups": [
+          "ENGAGEMENT"
+        ]
+      }
+    }
+```
+
+यह रिस्पॉन्स line item metrics नहीं लौटाता। यह सिर्फ उस job के बारे में जानकारी देता है जिसे आपने अभी बनाया है। job की स्थिति जांचने के लिए Job ID आवश्यक है। यह `id` और `id_str` दोनों रिस्पॉन्स attributes में दिखता है।
+
+इसके बाद, आपको यह जांचना होगा कि पिछले रिस्पॉन्स के `id_str` का उपयोग करके बनाया गया job प्रोसेसिंग पूरी कर चुका है या नहीं, जैसा कि रिस्पॉन्स में `"status": "SUCCESS"` से पता चलता है। इसका मतलब है कि डेटा डाउनलोड के लिए तैयार है। `url` field में डाउनलोड लिंक होता है।
+
+```
+$ twurl -H ads-api.x.com "/9/stats/jobs/accounts/18ce54d4x5t?job_ids=1120829647711653888"
+```
+
+```json
+    {
+      "request": {
+        "params": {
+          "job_ids": [
+            1120829647711653888
+          ]
+        }
+      },
+      "next_cursor": "1120828505715920896",
+      "data": [
+        {
+          "start_time": "2019-03-12T00:00:00Z",
+          "segmentation_type": null,
+          "url": "https://ton.twimg.com/advertiser-api-async-analytics/zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz",
+          "id_str": "1120829647711653888",
+          "entity_ids": [
+            "el32n"
+          ],
+          "end_time": "2019-03-20T00:00:00Z",
+          "country": null,
+          "placement": "ALL_ON_TWITTER",
+          "id": 1120829647711653900,
+          "expires_at": "2019-04-25T23:19:48Z",
+          "account_id": "18ce54d4x5t",
+          "status": "SUCCESS",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "created_at": "2019-04-23T23:19:46Z",
+          "platform": null,
+          "updated_at": "2019-04-23T23:19:48Z",
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      ]
+    }
+```
+
+हालाँकि ऊपर दिए गए उदाहरण में हम केवल एक job ID पास कर रहे हैं, व्यवहार में आप एक बार में कई jobs की स्थिति जाँचने के लिए `job_ids` पैरामीटर का उपयोग करेंगे, जिसमें अधिकतम 200 job IDs निर्दिष्ट की जा सकती हैं।
+
+इसके बाद, सूचीबद्ध `url` मान का उपयोग करके डेटा फ़ाइल डाउनलोड करें।
+
+```
+    $ wget https://ton.twimg.com/advertiser-api-async-analytics/zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz
+    --2019-04-23 17:52:12--  https://ton.twimg.com/advertiser-api-async-analytics/zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz
+    Resolving ton.twimg.com (ton.twimg.com)... 72.21.91.70
+    Connecting to ton.twimg.com (ton.twimg.com)|72.21.91.70|:443... connected.
+    HTTP request sent, awaiting response... 200 OK
+    Length: 381 [application/gzip]
+    Saving to: 'zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz'
+
+    zBkuuPeEVx-5OygDVcZpqNtwt51Z5 100%[=================================================>]     381  --.-KB/s    in 0s
+
+    2019-04-23 17:52:12 (5.27 MB/s) - 'zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz' saved [381/381]
+```
+
+अंत में, फ़ाइल को एक्सट्रैक्ट करें।
+
+```
+`$ gunzip zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json.gz`
+```
+
+फ़ाइल की सामग्री नीचे दिखाई गई है।
+
+```json
+`$ cat zBkuuPeEVx-5OygDVcZpqNtwt51Z5X9d-_AXNRcyhBlhBOgOfi6UDmGBvUFJAKnHY9ABN8z9f9V3Wn4l3OmF4KzJDmTUjNCikq9JwBUYm2AP8pRRoV-kPUgR0PaIqAb4.json`
+```
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 1,
+      "data": [
+        {
+          "id": "el32n",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  3482
+                ],
+                "tweets_send": null,
+                "qualified_impressions": null,
+                "follows": null,
+                "app_clicks": null,
+                "retweets": [
+                  102
+                ],
+                "unfollows": null,
+                "likes": [
+                  15
+                ],
+                "engagements": [
+                  171
+                ],
+                "clicks": [
+                  30
+                ],
+                "card_engagements": null,
+                "poll_card_vote": null,
+                "replies": null,
+                "carousel_swipes": null
+              }
+            }
+          ]
+        }
+      ],
+      "request": {
+        "params": {
+          "start_time": "2019-03-12T00:00:00Z",
+          "segmentation_type": null,
+          "entity_ids": [
+            "el32n"
+          ],
+          "end_time": "2019-03-20T00:00:00Z",
+          "country": null,
+          "placement": "ALL_ON_TWITTER",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "platform": null,
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      }
+    }
+```
+
+<div id="reach-and-average-frequency">
+  ### रीच और औसत आवृत्ति
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman में चलाएँ
+</Button>
+
+<div id="get-statsaccountsaccount_idreachcampaigns">
+  #### GET stats/accounts/:account_id/reach/campaigns[](#get-stats-accounts-account-id-reach-campaigns "इस शीर्षक का स्थायी लिंक")
+</div>
+
+निर्दिष्ट अभियानों के लिए रीच और औसत आवृत्ति एनालिटिक्स प्राप्त करें।
+
+<div id="resource-url">
+  ### संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")
+</div>
+
+`https://ads-api.x.com/stats/accounts/:account_id/reach/campaigns`
+
+<div id="parameters">
+  ### पैरामीटर[](#parameters "इस शीर्षक का स्थायी लिंक")
+</div>
+
+| Name                               | Description                                                                                                                                                                                                                                                                                                                                |
+| :--------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account&#95;id  <br />*required*   | लीवरेज्ड खाते का पहचानकर्ता। यह रिसोर्स के पाथ में दिखाई देता है और आम तौर पर [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API अनुरोधों के लिए आवश्यक पैरामीटर होता है। निर्दिष्ट अकाउंट प्रमाणित उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| campaign&#95;ids  <br />*required* | अल्पविराम से अलग की गई पहचानकर्ताओं की सूची देकर रिस्पॉन्स को केवल वांछित अभियानों तक सीमित करें। अधिकतम 20 IDs दी जा सकती हैं।<br /><br />**Note**: अधिकतम 20 campaign IDs दी जा सकती हैं।<br /><br />Type: string<br /><br />Example: `8fgzf`                                                                                            |
+| end&#95;time  <br />*required*     | प्राप्त किए गए डेटा को निर्दिष्ट समाप्ति समय तक सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त किया जाता है।<br /><br />**Note**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z`                                     |
+| start&#95;time  <br />*required*   | प्राप्त किए गए डेटा को निर्दिष्ट प्रारंभ समय तक सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त किया जाता है।<br /><br />**Note**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z`                                     |
+
+<div id="example-request">
+  ### अनुरोध का उदाहरण[](#example-request "इस शीर्षक का स्थायी लिंक")
+</div>
+
+`GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t/reach/campaigns?campaign_ids=8fgzf&start_time=2017-05-19&end_time=2017-05-26`
+
+<div id="example-response">
+  ### रिस्पॉन्स का उदाहरण[](#example-response "इस शीर्षक का स्थायी लिंक")
+</div>
+
+```json
+    {
+      "request": {
+        "params": {
+          "campaign_ids": [
+            "8fgzf"
+          ],
+          "start_time": "2017-05-19T00:00:00Z",
+          "end_time": "2017-05-26T00:00:00Z",
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data_type": "reach",
+      "data": [
+        {
+          "id": "8fgzf",
+          "total_audience_reach": 1217,
+          "average_frequency": 1.01
+        }
+      ]
+    }
+```
+
+<div id="get-statsaccountsaccount_idreachfunding_instruments">
+  #### GET stats/accounts/:account_id/reach/funding_instruments[](#get-stats-accounts-account-id-reach-funding-instruments "इस शीर्षक का स्थायी लिंक")
+</div>
+
+निर्दिष्ट funding instruments के लिए रीच और औसत फ़्रीक्वेंसी एनालिटिक्स प्राप्त करें।
+
+<div id="resource-url">
+  ### संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")
+</div>
+
+`https://ads-api.x.com/stats/accounts/:account_id/reach/funding_instruments`
+
+<div id="parameters">
+  ### पैरामीटर[](#parameters "इस शीर्षक का स्थायी लिंक")
+</div>
+
+| Name                                             | Description                                                                                                                                                                                                                                                                                                                          |
+| :----------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account&#95;id  <br />*required*                 | लीवरेज्ड खाते का पहचानकर्ता। यह resource के path में दिखाई देता है और आम तौर पर [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API अनुरोधों के लिए एक आवश्यक पैरामीटर होता है। निर्दिष्ट खाता प्रमाणीकृत उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />उदाहरण: `18ce54d4x5t` |
+| funding&#95;instrument&#95;ids  <br />*required* | अल्पविराम से अलग की गई पहचानकर्ताओं की सूची देकर रिस्पॉन्स को केवल इच्छित funding instruments तक सीमित करें। अधिकतम 20 IDs दिए जा सकते हैं।<br /><br />**नोट**: अधिकतम 20 funding instrument IDs दिए जा सकते हैं।<br /><br />Type: string<br /><br />उदाहरण: `lygyi`                                                                 |
+| end&#95;time  <br />*required*                   | पुनर्प्राप्त डेटा को निर्दिष्ट end time तक सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त किया जाता है।<br /><br />**नोट**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />उदाहरण: `2017-05-26T07:00:00Z`                                      |
+| start&#95;time  <br />*required*                 | पुनर्प्राप्त डेटा को निर्दिष्ट start time से सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त किया जाता है।<br /><br />**नोट**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />उदाहरण: `2017-05-19T07:00:00Z`                                    |
+
+<div id="example-request">
+  ### अनुरोध का उदाहरण[](#example-request "इस शीर्षक का स्थायी लिंक")
+</div>
+
+```
+GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t/reach/funding_instruments?funding_instrument_ids=lygyi&start_time=2017-05-19&end_time=2017-05-26
+```
+
+### उदाहरण रिस्पॉन्स[](#example-response "इस शीर्षक का स्थायी लिंक")
+
+```json
+    {
+      "request": {
+        "params": {
+          "funding_instrument_ids": [
+            "lygyi"
+          ],
+          "start_time": "2017-05-19T00:00:00Z",
+          "end_time": "2017-05-26T00:00:00Z",
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data_type": "reach",
+      "data": [
+        {
+          "id": "lygyi",
+          "total_audience_reach": 1217,
+          "average_frequency": 1.01
+        }
+      ]
+    }
+```
+
+<div id="synchronous-analytics">
+  ### समकालिक एनालिटिक्स
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman में चलाएँ
+</Button>
+
+<div id="get-statsaccountsaccount_id">
+  #### GET stats/accounts/:account_id[](#get-stats-accounts-account-id "इस शीर्षक का स्थायी लिंक")
+</div>
+
+वर्तमान खाते के लिए समकालिक एनालिटिक्स प्राप्त करें। अधिकतम 7 दिनों की समयावधि (`end_time` - `start_time`) अनुमत है।
+
+<div id="resource-url">
+  ### संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")
+</div>
+
+`https://ads-api.x.com/12/stats/accounts/:account_id`
+
+<div id="parameters">
+  ### पैरामीटर[](#parameters "इस शीर्षक का स्थायी लिंक")
+</div>
+
+| Name                                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| account&#95;id  <br />*required*    | लीवरेज्ड खाते का पहचानकर्ता। यह रिसोर्स के पथ में दिखाई देता है और आम तौर पर [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API अनुरोधों के लिए एक आवश्यक पैरामीटर होता है। निर्दिष्ट खाता प्रमाणीकृत उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />Example: `18ce54d4x5t`                                                                                                                      |
+| end&#95;time  <br />*required*      | प्राप्त किए गए डेटा को निर्दिष्ट समाप्ति समय तक सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) के अनुसार व्यक्त किया जाता है।<br /><br />**नोट**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z`                                                                                                                                             |
+| entity  <br />*required*            | उस इकाई का type जिसके लिए डेटा प्राप्त करना है।<br /><br />Type: enum<br /><br />Possible values: `ACCOUNT`, `CAMPAIGN`, `FUNDING_INSTRUMENT`, `LINE_ITEM`, `ORGANIC_TWEET`, `PROMOTED_ACCOUNT`, `PROMOTED_TWEET`, `MEDIA_CREATIVE`                                                                                                                                                                                                                     |
+| entity&#95;ids  <br />*required*    | वे विशिष्ट इकाइयाँ जिनके लिए डेटा प्राप्त करना है। entity IDs की अल्पविराम से अलग की गई सूची दें।<br /><br />**नोट**: अधिकतम 20 entity IDs दिए जा सकते हैं।<br /><br />Type: string<br /><br />Example: `8u94t`                                                                                                                                                                                                                                         |
+| granularity  <br />*required*       | निर्दिष्ट करें कि प्राप्त किया गया डेटा कितने सूक्ष्म स्तर का होना चाहिए।<br /><br />Type: enum<br /><br />Possible values: `DAY`, `HOUR`, `TOTAL`                                                                                                                                                                                                                                                                                                      |
+| metric&#95;groups  <br />*required* | वे विशिष्ट मेट्रिक्स जो लौटाए जाने चाहिए। metric groups की अल्पविराम से अलग की गई सूची दें। अधिक जानकारी के लिए [Metrics and Segmentation](/hi/x-ads-api/analytics#metrics-and-segmentation) देखें।<br /><br />**नोट**: `MOBILE_CONVERSION` डेटा का अनुरोध अलग से किया जाना चाहिए।<br /><br />Type: enum<br /><br />Possible values: `BILLING`, `ENGAGEMENT`, `LIFE_TIME_VALUE_MOBILE_CONVERSION`, `MEDIA`, `MOBILE_CONVERSION`, `VIDEO`, `WEB_CONVERSION` |
+| placement  <br />*required*         | प्राप्त किए गए डेटा को किसी खास placement तक सीमित करता है।<br /><br />**नोट**: प्रत्येक अनुरोध में केवल एक मान स्वीकार किया जाता है। जिन इकाइयों के लिए X और X Audience Platform, दोनों placement उपलब्ध हों, उनके लिए अलग-अलग अनुरोध आवश्यक हैं — प्रत्येक placement मान के लिए एक।<br /><br />Type: enum<br /><br />Possible values: `ALL_ON_TWITTER`, `PUBLISHER_NETWORK`, `SPOTLIGHT`, `TREND`                                                     |
+| start&#95;time  <br />*required*    | प्राप्त किए गए डेटा को निर्दिष्ट प्रारंभ समय से सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) के अनुसार व्यक्त किया जाता है।<br /><br />**नोट**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z`                                                                                                                                             |
+
+<div id="example-request">
+  ### अनुरोध का उदाहरण[](#example-request "इस शीर्षक का स्थायी लिंक")
+</div>
+
+```
+GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t?entity=LINE_ITEM&entity_ids=8u94t&start_time=2017-05-19&end_time=2017-05-26&granularity=TOTAL&placement=ALL_ON_TWITTER&metric_groups=ENGAGEMENT
+```
+
+### उदाहरण रिस्पॉन्स[](#example-response "इस शीर्षक का स्थायी लिंक")
+
+```json
+    {
+      "data_type": "stats",
+      "time_series_length": 1,
+      "data": [
+        {
+          "id": "8u94t",
+          "id_data": [
+            {
+              "segment": null,
+              "metrics": {
+                "impressions": [
+                  1233
+                ],
+                "tweets_send": null,
+                "qualified_impressions": null,
+                "follows": null,
+                "app_clicks": null,
+                "retweets": null,
+                "likes": [
+                  1
+                ],
+                "engagements": [
+                  58
+                ],
+                "clicks": [
+                  58
+                ],
+                "card_engagements": null,
+                "poll_card_vote": null,
+                "replies": null,
+                "carousel_swipes": null
+              }
+            }
+          ]
+        }
+      ],
+      "request": {
+        "params": {
+          "start_time": "2017-05-19T07:00:00Z",
+          "segmentation_type": null,
+          "entity_ids": [
+            "8u94t"
+          ],
+          "end_time": "2017-05-26T07:00:00Z",
+          "country": null,
+          "placement": "ALL_ON_TWITTER",
+          "granularity": "TOTAL",
+          "entity": "LINE_ITEM",
+          "platform": null,
+          "metric_groups": [
+            "ENGAGEMENT"
+          ]
+        }
+      }
+    }
+```
+
+<div id="active-entities">
+  ### सक्रिय एंटिटीज़
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman में चलाएँ
+</Button>
+
+<div id="get-statsaccountsaccount_idactive_entities">
+  #### GET stats/accounts/:account_id/active_entities[](#get-stats-accounts-account-id-active-entities "इस शीर्षक का स्थायी लिंक")
+</div>
+
+किसी निर्दिष्ट समय-अवधि में किन entities के analytics metrics में बदलाव हुआ है, इसका विवरण प्राप्त करें।
+
+इस endpoint का उपयोग हमारे analytics endpoints के साथ किया जाना चाहिए। इस endpoint के परिणाम बताते हैं कि analytics के लिए किन ads entities का अनुरोध करना है। उपयोग संबंधी दिशानिर्देशों के लिए हमारी [Active Entities Guide](/hi/x-ads-api/analytics#active-entities) देखें।
+
+परिवर्तन events घंटेवार buckets में उपलब्ध हैं।
+
+* `start_time` और `end_time` मान यह निर्दिष्ट करते हैं कि किन घंटेवार buckets को query करना है।
+* लौटाई गई `data` array में हर उस entity के लिए एक object शामिल होगा जिसे बाद के analytics अनुरोधों में शामिल किया जाना चाहिए।
+* **महत्वपूर्ण**: बाद के analytics अनुरोधों में जिन तिथियों को निर्दिष्ट किया जाना चाहिए, उनका निर्धारण `activity_start_time` और `activity_end_time` मानों के आधार पर किया जाना चाहिए।
+  * ये मान उन समय-सीमाओं को दर्शाते हैं जिन पर संग्रहीत change events *लागू होते हैं*। यह प्रत्येक entity के लिए लौटाया जाता है।
+
+**नोट**: अधिकतम 90 दिनों की समय-अवधि (`end_time` - `start_time`) की अनुमति है।
+
+<div id="resource-url">
+  ### संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")
+</div>
+
+`https://ads-api.x.com/12/stats/accounts/:account_id/active_entities`
+
+<div id="parameters">
+  ### पैरामीटर[](#parameters "इस शीर्षक का स्थायी लिंक")
+</div>
+
+| Name                                             | Description                                                                                                                                                                                                                                                                                                                                 |
+| :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| account&#95;id  <br />*required*                 | लीवरेज्ड खाता का पहचानकर्ता। यह resource के path में दिखाई देता है और आमतौर पर [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API requests के लिए एक आवश्यक पैरामीटर होता है। निर्दिष्ट account प्रमाणीकृत उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />Example: `18ce54d4x5t` |
+| end&#95;time  <br />*required*                   | प्राप्त किए गए डेटा को निर्दिष्ट end time तक सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त किया जाता है।<br /><br />**नोट**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />Example: `2017-05-26T07:00:00Z`                                          |
+| entity  <br />*required*                         | उस इकाई type को निर्दिष्ट करता है जिसके लिए डेटा प्राप्त करना है।<br /><br />Type: enum<br /><br />Possible values: `CAMPAIGN`, `FUNDING_INSTRUMENT`, `LINE_ITEM`, `MEDIA_CREATIVE`, `PROMOTED_ACCOUNT`, `PROMOTED_TWEET`                                                                                                                 |
+| start&#95;time  <br />*required*                 | प्राप्त किए गए डेटा को निर्दिष्ट start time से सीमित करता है, जिसे [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त किया जाता है।<br /><br />**नोट**: इसे पूरे घंटों में व्यक्त किया जाना चाहिए (0 मिनट और 0 सेकंड)।<br /><br />Type: string<br /><br />Example: `2017-05-19T07:00:00Z`                                        |
+| campaign&#95;ids  <br />*optional*               | अल्पविराम से अलग की गई पहचानकर्ताओं की सूची देकर रिस्पॉन्स को केवल वांछित campaigns से संबद्ध entities तक सीमित करता है। अधिकतम 200 IDs दिए जा सकते हैं।<br /><br />**नोट**: `funding_instrument_ids` और `line_item_ids` के साथ अनन्य।<br /><br />Type: string<br /><br />Example: `8wku2`                                                  |
+| funding&#95;instrument&#95;ids  <br />*optional* | अल्पविराम से अलग की गई पहचानकर्ताओं की सूची देकर रिस्पॉन्स को केवल वांछित funding instruments से संबद्ध entities तक सीमित करता है। अधिकतम 200 IDs दिए जा सकते हैं।<br /><br />**नोट**: `campaign_ids` और `line_item_ids` के साथ अनन्य।<br /><br />Type: string<br /><br />Example: `lygyi`                                                  |
+| line&#95;item&#95;ids  <br />*optional*          | अल्पविराम से अलग की गई पहचानकर्ताओं की सूची देकर रिस्पॉन्स को केवल वांछित line items से संबद्ध entities तक सीमित करता है। अधिकतम 200 IDs दिए जा सकते हैं।<br /><br />**नोट**: `campaign_ids` और `line_item_ids` के साथ अनन्य।<br /><br />Type: string<br /><br />Example: `8v7jo`                                                           |
+
+### उदाहरण अनुरोध[](#example-request "इस शीर्षक का स्थायी लिंक")
+
+`GET https://ads-api.x.com/12/stats/accounts/18ce54d4x5t/active_entities?entity=PROMOTED_TWEET&start_time=2019-02-28&end_time=2019-03-01`
+
+### उदाहरण रिस्पॉन्स[](#example-response "इस शीर्षक का स्थायी लिंक")
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t",
+          "entity": "PROMOTED_TWEET",
+          "start_time": "2019-02-28T08:00:00Z",
+          "end_time": "2019-03-01T08:00:00Z"
+        }
+      },
+      "data": [
+        {
+          "entity_id": "2mvb28",
+          "activity_start_time": "2019-02-28T01:30:07Z",
+          "activity_end_time": "2019-03-01T07:42:55Z",
+          "placements": [
+            "ALL_ON_TWITTER"
+          ]
+        },
+        {
+          "entity_id": "2mvb29",
+          "activity_start_time": "2019-02-27T11:30:07Z",
+          "activity_end_time": "2019-03-01T07:42:50Z",
+          "placements": [
+            "ALL_ON_TWITTER",
+            "PUBLISHER_NETWORK"
+          ]
+        },
+        {
+          "entity_id": "2mvfan",
+          "activity_start_time": "2019-02-27T09:00:05Z",
+          "activity_end_time": "2019-03-01T06:06:36Z",
+          "placements": [
+            "PUBLISHER_NETWORK"
+          ]
+        },
+        {
+          "entity_id": "2n17dx",
+          "activity_start_time": "2019-02-28T02:02:26Z",
+          "activity_end_time": "2019-03-01T07:52:44Z",
+          "placements": [
+            "ALL_ON_TWITTER",
+            "PUBLISHER_NETWORK"
+          ]
+        }
+      ]
+    }
+```

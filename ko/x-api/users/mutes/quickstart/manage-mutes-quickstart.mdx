@@ -1,0 +1,197 @@
+---
+title: 뮤트 관리
+sidebarTitle: 뮤트 관리
+description: X API를 사용하여 사용자를 뮤트하거나 뮤트 해제합니다.
+keywords: ["뮤트 관리 빠른 시작", "사용자 뮤트 빠른 시작", "뮤트 관리 튜토리얼", "뮤트 가이드", "뮤트 빠른 시작"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 X API를 사용해 사용자를 뮤트하고 뮤트 해제하는 방법을 안내합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * 승인된 App이 있는 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 사용자 액세스 토큰(OAuth 1.0a 또는 OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="mute-a-user">
+  ## 사용자 뮤트하기
+</div>
+
+<Steps>
+  <Step title="내 사용자 ID 가져오기">
+    인증된 사용자 ID가 필요합니다. [user lookup endpoint](/ko/x-api/users/lookup/introduction)를 사용하거나 액세스 토큰에서 확인할 수 있습니다(숫자 부분이 사용자 ID입니다).
+  </Step>
+
+  <Step title="대상 사용자 ID 가져오기">
+    [user lookup endpoint](/ko/x-api/users/lookup/introduction)를 사용하여 뮤트하려는 계정의 사용자 ID를 확인합니다.
+  </Step>
+
+  <Step title="뮤트 요청 보내기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/muting" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"target_user_id": "9876543210"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # Mute a user
+      response = client.users.mute(
+          source_user_id="123456789",
+          target_user_id="9876543210"
+      )
+
+      print(f"Muting: {response.data.muting}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // Mute a user
+      const response = await client.users.mute("123456789", {
+        targetUserId: "9876543210",
+      });
+
+      console.log(`Muting: ${response.data?.muting}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답 확인하기">
+    ```json
+    {
+      "data": {
+        "muting": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="unmute-a-user">
+  ## 사용자 음소거 해제
+</div>
+
+사용자에 대한 음소거를 해제합니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/muting/9876543210" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 사용자 음소거 해제
+  response = client.users.unmute(
+      source_user_id="123456789",
+      target_user_id="9876543210"
+  )
+
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 사용자 음소거 해제
+  const response = await client.users.unmute("123456789", "9876543210");
+
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>
+
+**응답:**
+
+```json
+{
+  "data": {
+    "muting": false
+  }
+}
+```
+
+***
+
+<div id="mute-vs-block">
+  ## 뮤트 vs 차단
+</div>
+
+| 기능 | 뮤트 | 차단 |
+|:--------|:-----|:------|
+| 그들의 포스트를 볼 수 있음 | 아니요 | 아니요 |
+| 그들이 당신의 포스트를 볼 수 있음 | 예 | 아니요 |
+| 그들이 당신을 팔로우할 수 있음 | 예 | 아니요 |
+| 그들이 당신에게 DM을 보낼 수 있음 | 예 | 아니요 |
+| 그들이 알 수 있음 | 아니요 | 예 |
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="뮤트 조회" icon="volume-xmark" href="/ko/x-api/users/mutes/quickstart/mutes-lookup">
+    뮤트한 사용자 목록을 가져오세요
+  </Card>
+
+  <Card title="차단" icon="ban" href="/ko/x-api/users/blocks/quickstart">
+    대신 사용자를 차단하세요
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/users/mute-user-by-user-id">
+    전체 엔드포인트 문서를 확인하세요
+  </Card>
+</CardGroup>

@@ -1,0 +1,258 @@
+---
+title: उपयोगकर्ता मेंशन की टाइमलाइन
+sidebarTitle: उपयोगकर्ता मेंशन
+description: किसी विशिष्ट उपयोगकर्ता का मेंशन करने वाली पोस्ट्स प्राप्त करें
+keywords: ["उपयोगकर्ता मेंशन", "मेंशन टाइमलाइन", "मेंशन की त्वरित शुरुआत", "मेंशन ट्यूटोरियल", "मेंशन टाइमलाइन", "मेंशन प्राप्त करें"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको किसी विशिष्ट उपयोगकर्ता का मेंशन करने वाली पोस्ट्स प्राप्त करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इन चीज़ों की आवश्यकता होगी:
+
+  * एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info) जिसमें स्वीकृत App हो
+  * आपके App का बेयरर टोकन (सार्वजनिक डेटा के लिए) या User Access Token (निजी मेट्रिक्स के लिए)
+</Note>
+
+***
+
+<div id="get-user-mentions">
+  ## उपयोगकर्ता के मेंशंस प्राप्त करें
+</div>
+
+<Steps>
+  <Step title="उपयोगकर्ता ID प्राप्त करें">
+    [user lookup endpoint](/hi/x-api/users/lookup/introduction) का उपयोग करके उपयोगकर्ता ID पता करें। उदाहरण के लिए, @XDevelopers की user ID `2244994945` है।
+  </Step>
+
+  <Step title="मेंशंस टाइमलाइन का अनुरोध करें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/2244994945/mentions?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # पेजिनेशन के साथ मेंशंस टाइमलाइन प्राप्त करें
+      for page in client.posts.get_user_mentions(
+          "2244994945",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"@{post.author_id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // पेजिनेशन के साथ मेंशंस टाइमलाइन प्राप्त करें
+      const paginator = client.posts.getUserMentions("2244994945", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`@${post.author_id}: ${post.text?.slice(0, 50)}...`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1301573587187331074",
+          "text": "Hey @XDevelopers, love the new API!",
+          "author_id": "1234567890",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          }
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "1234567890",
+            "username": "developer",
+            "name": "Dev Person",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "newest_id": "1301573587187331074",
+        "oldest_id": "1301573587187331074",
+        "result_count": 1,
+        "next_token": "t3buvdr5pujq9g7bggsnf3ep2ha28"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="filter-mentions">
+  ## मेंशन फ़िल्टर करें
+</div>
+
+<div id="exclude-replies">
+  ### जवाब शामिल न करें
+</div>
+
+केवल वे मूल पोस्ट्स प्राप्त करें जिनमें उपयोगकर्ता का उल्लेख हो:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?\
+  exclude=replies&\
+  max_results=10" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # जवाब शामिल किए बिना मेंशन्स प्राप्त करें
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      exclude=["replies"],
+      max_results=10
+  ):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // जवाब शामिल किए बिना मेंशन्स प्राप्त करें
+  const paginator = client.posts.getUserMentions("2244994945", {
+    exclude: ["replies"],
+    maxResults: 10,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(post.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="get-mentions-in-a-time-range">
+  ### किसी समय सीमा के भीतर मेंशन्स प्राप्त करें
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/2244994945/mentions?\
+  start_time=2024-01-01T00%3A00%3A00Z&\
+  end_time=2024-01-31T23%3A59%3A59Z" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # किसी समय सीमा के भीतर मेंशन्स प्राप्त करें
+  for page in client.posts.get_user_mentions(
+      "2244994945",
+      start_time="2024-01-01T00:00:00Z",
+      end_time="2024-01-31T23:59:59Z"
+  ):
+      for post in page.data:
+          print(f"{post.created_at}: {post.text[:50]}...")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // किसी समय सीमा के भीतर मेंशन्स प्राप्त करें
+  const paginator = client.posts.getUserMentions("2244994945", {
+    startTime: "2024-01-01T00:00:00Z",
+    endTime: "2024-01-31T23:59:59Z",
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.created_at}: ${post.text?.slice(0, 50)}...`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="common-parameters">
+  ## सामान्य पैरामीटर
+</div>
+
+| पैरामीटर           | विवरण                                          | डिफ़ॉल्ट |
+| :----------------- | :--------------------------------------------- | :------- |
+| `max_results`      | प्रति पृष्ठ परिणाम (1-100)                     | 10       |
+| `start_time`       | सबसे पुराने पोस्ट का टाइमस्टैम्प (ISO 8601)    | —        |
+| `end_time`         | सबसे नए पोस्ट का टाइमस्टैम्प (ISO 8601)        | —        |
+| `since_id`         | इस ID के बाद के पोस्ट्स लौटाएँ                 | —        |
+| `until_id`         | इस ID से पहले के पोस्ट्स लौटाएँ                | —        |
+| `exclude`          | `retweets`, `replies` या दोनों को शामिल न करें | —        |
+| `pagination_token` | अगले पृष्ठ के लिए टोकन                         | —        |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="होम टाइमलाइन" icon="house" href="/hi/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
+    उपयोगकर्ता की होम टाइमलाइन प्राप्त करें
+  </Card>
+
+  <Card title="इंटीग्रेशन गाइड" icon="book" href="/hi/x-api/posts/timelines/integrate">
+    मुख्य अवधारणाएँ और सर्वोत्तम प्रक्रियाएँ
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/user-mention-timeline-by-user-id">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+
+  <Card title="पेजिनेशन गाइड" icon="arrow-right" href="/hi/x-api/fundamentals/pagination">
+    बड़े परिणाम सेटों में नेविगेट करें
+  </Card>
+</CardGroup>

@@ -1,0 +1,156 @@
+---
+title: "クイックスタート"
+sidebarTitle: "クイックスタート"
+description: リストのタイムラインから投稿を取得する
+keywords: ["リスト ツイート クイックスタート", "リスト タイムライン クイックスタート", "リスト投稿取得 チュートリアル"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+このガイドでは、リストタイムラインから投稿を取得する手順を説明します。
+
+<Note>
+  **前提条件**
+
+  開始する前に、次のものが必要です。
+
+  * 承認済みの App を持つ[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * App のベアラートークン
+</Note>
+
+***
+
+<Steps>
+  <Step title="リスト ID を見つける" icon="list">
+    x.com 上でリストを表示しているとき、その URL からリスト ID を確認できます。
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── ここがリスト ID です
+    ```
+  </Step>
+
+  <Step title="リストタイムラインをリクエストする" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/tweets?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ページネーションを使ってリストから投稿を取得する
+      for page in client.lists.get_tweets(
+          "84839422",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // ページネーションを使ってリストから投稿を取得する
+      const paginator = client.lists.getTweets("84839422", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="レスポンスを確認する" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1458172421115101189",
+          "text": "最新の発表内容をご覧ください...",
+          "author_id": "4172587277",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 42,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 3
+          },
+          "edit_history_tweet_ids": ["1458172421115101189"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "4172587277",
+            "username": "TechNews",
+            "verified": true
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="結果をページングする" icon="arrow-right">
+    SDK はページネーションを自動的に処理します。cURL を使う場合は、レスポンスに含まれる `next_token` を指定して、さらに投稿を取得します。
+
+    ```bash
+    curl "https://api.x.com/2/lists/84839422/tweets?\
+    max_results=10&\
+    pagination_token=7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  このエンドポイントは、指定したリストから最新の投稿を最大 800 件まで返します。
+</Note>
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="リスト検索" icon="list" href="/ja/x-api/lists/list-lookup/quickstart">
+    リストの詳細を取得する
+  </Card>
+
+  <Card title="リストメンバー" icon="users" href="/ja/x-api/lists/list-members/introduction">
+    リストメンバーを取得する
+  </Card>
+
+  <Card title="連携ガイド" icon="book" href="/ja/x-api/lists/list-tweets/integrate">
+    主要な概念とベストプラクティス
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/lists/get-list-tweets">
+    エンドポイントの詳細ドキュメント
+  </Card>
+</CardGroup>

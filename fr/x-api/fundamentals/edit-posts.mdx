@@ -1,0 +1,231 @@
+---
+title: Modifier des Publications
+sidebarTitle: Modifier des Publications
+description: Utilisation des publications modifiées avec l'API X
+keywords: ["modifier des publications", "modifier des Tweets", "historique des modifications", "modifications de publications", "métadonnées de modification", "fenêtre d'édition"]
+---
+
+Les Publications sur X peuvent être modifiées dans les 30 minutes suivant leur publication, jusqu&#39;à 5 fois. L&#39;API X offre un accès complet à l&#39;historique des modifications et aux métadonnées.
+
+***
+
+<div id="edit-rules">
+  ## Règles de modification
+</div>
+
+| Règle | Détails |
+|:-----|:--------|
+| **Fenêtre de modification** | 30 minutes à partir de la publication initiale |
+| **Limite de modifications** | 5 modifications maximum |
+| **Comportement de l’ID** | Chaque modification crée un nouvel ID de publication |
+| **Suppression** | La suppression de n’importe quelle version supprime toute la chaîne |
+
+***
+
+<div id="what-cant-be-edited">
+  ## Ce qui ne peut pas être modifié
+</div>
+
+Certains types de Publications ne sont pas modifiables :
+
+* Publications sponsorisées (annonces)
+* Publications contenant un sondage
+* Réponses à d&#39;autres personnes (hors fil personnel)
+* Reposts (les Publications citées *peuvent* être modifiées)
+* Publications de communauté
+* Publications collaboratives
+* Publications programmées
+
+***
+
+<div id="edit-data-in-responses">
+  ## Modifier les données des réponses
+</div>
+
+<div id="default-fields">
+  ### Champs par défaut
+</div>
+
+Toutes les réponses de l’API pour les Publications contiennent `edit_history_tweet_ids` par défaut :
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"]
+  }
+}
+```
+
+* Un seul id = jamais modifié
+* Plusieurs id = historique des modifications (de la plus ancienne à la plus récente)
+
+<div id="edit-controls">
+  ### Contrôles de modification
+</div>
+
+Demandez `edit_controls` pour obtenir le statut de modification :
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=edit_controls" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  }
+}
+```
+
+| Field              | Description                                         |
+| :----------------- | :-------------------------------------------------- |
+| `is_edit_eligible` | Indique si la publication peut être modifiée        |
+| `editable_until`   | Horodatage indiquant la fin de la fenêtre d’édition |
+| `edits_remaining`  | Nombre de modifications restantes (0-5)             |
+
+***
+
+<div id="getting-edit-history">
+  ## Récupérer l’historique des modifications
+</div>
+
+Utilisez l’extension `edit_history_tweet_ids` pour obtenir des objets de type Publication complets pour toutes les versions :
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?\
+tweet.fields=edit_controls&\
+expansions=edit_history_tweet_ids" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "Updated text (edited)",
+    "edit_history_tweet_ids": ["1234567890", "1234567891"],
+    "edit_controls": {
+      "is_edit_eligible": true,
+      "editable_until": "2024-01-15T12:30:00.000Z",
+      "edits_remaining": 3
+    }
+  },
+  "includes": {
+    "tweets": [{
+      "id": "1234567890",
+      "text": "Original text (with typo)",
+      "edit_history_tweet_ids": ["1234567890", "1234567891"],
+      "edit_controls": {
+        "is_edit_eligible": true,
+        "editable_until": "2024-01-15T12:30:00.000Z",
+        "edits_remaining": 3
+      }
+    }]
+  }
+}
+```
+
+***
+
+<div id="which-version-is-returned">
+  ## Quelle version est renvoyée ?
+</div>
+
+Par défaut, l’API renvoie la **version la plus récente** d’une publication modifiée.
+
+Pour obtenir une version spécifique, demandez-la directement à partir de son ID de publication :
+
+```bash
+# Obtenir la version d'origine
+curl "https://api.x.com/2/tweets/1234567890" -H "Authorization: Bearer $TOKEN"
+
+# Get edited version  
+curl "https://api.x.com/2/tweets/1234567891" -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="metrics-for-edited-posts">
+  ## Métriques pour les Publications modifiées
+</div>
+
+Chaque version d’une Publication modifiée possède ses propres métriques d’engagement. Les métriques sont attribuées à la version qui était visible au moment de l’engagement.
+
+***
+
+<div id="availability">
+  ## Disponibilité
+</div>
+
+Les métadonnées de modification sont disponibles :
+
+* Pour toutes les Publications créées depuis le 29 septembre 2022
+* Sur tous les endpoints v2 qui renvoient des Publications
+* Y compris la recherche, les chronologies, les flux et les recherches par identifiant
+
+Les Publications créées avant cette date ne disposent pas de métadonnées de modification.
+
+***
+
+<div id="use-cases">
+  ## Cas d’utilisation
+</div>
+
+<Tabs>
+  <Tab title="Suivre les modifications">
+    Surveillez les publications afin de détecter les modifications et consignez les différences :
+
+    ```python
+    def check_for_edits(post):
+        history = post.get("edit_history_tweet_ids", [])
+        if len(history) > 1:
+            print(f"Post {post['id']} has been edited {len(history) - 1} times")
+    ```
+  </Tab>
+
+  <Tab title="Afficher un indicateur de modification">
+    Affichez un badge « Modifié » dans votre interface utilisateur :
+
+    ```javascript
+    const isEdited = post.edit_history_tweet_ids?.length > 1;
+    if (isEdited) {
+      showEditedBadge();
+    }
+    ```
+  </Tab>
+
+  <Tab title="Récupérer le contenu d’origine">
+    Récupérez la version d’origine d’une publication modifiée :
+
+    ```python
+    original_id = post["edit_history_tweet_ids"][0]
+    original = api.get_tweet(original_id)
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Recherche de publications" icon="magnifying-glass" href="/fr/x-api/posts/lookup/introduction">
+    Récupérez des publications avec leur historique des modifications.
+  </Card>
+
+  <Card title="Dictionnaire de données" icon="book" href="/fr/x-api/fundamentals/data-dictionary">
+    Référence complète de l’objet Publication.
+  </Card>
+</CardGroup>

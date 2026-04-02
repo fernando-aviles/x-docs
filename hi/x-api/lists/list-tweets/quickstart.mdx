@@ -1,0 +1,156 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: सूची की टाइमलाइन से पोस्ट्स प्राप्त करें
+keywords: ["सूची पोस्ट्स त्वरित शुरुआत", "सूची टाइमलाइन त्वरित शुरुआत", "सूची पोस्ट्स प्राप्त करने का ट्यूटोरियल"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको किसी सूची की टाइमलाइन से पोस्ट्स प्राप्त करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * एक स्वीकृत App के साथ [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके App का बेयरर टोकन
+</Note>
+
+***
+
+<Steps>
+  <Step title="सूची ID ढूँढें" icon="list">
+    x.com पर किसी सूची को देखते समय, आप URL में उसकी सूची ID देख सकते हैं:
+
+    ```
+    https://x.com/i/lists/84839422
+                          └── यह सूची ID है
+    ```
+  </Step>
+
+  <Step title="सूची टाइमलाइन का अनुरोध करें" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/lists/84839422/tweets?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # पेजिनेशन के साथ किसी सूची से पोस्ट्स प्राप्त करें
+      for page in client.lists.get_tweets(
+          "84839422",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - Likes: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // पेजिनेशन के साथ किसी सूची से पोस्ट्स प्राप्त करें
+      const paginator = client.lists.getTweets("84839422", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - Likes: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1458172421115101189",
+          "text": "Check out our latest announcement...",
+          "author_id": "4172587277",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "public_metrics": {
+            "retweet_count": 42,
+            "reply_count": 5,
+            "like_count": 156,
+            "quote_count": 3
+          },
+          "edit_history_tweet_ids": ["1458172421115101189"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "4172587277",
+            "username": "TechNews",
+            "verified": true
+          }
+        ]
+      },
+      "meta": {
+        "result_count": 1,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="परिणामों को पेजिनेट करें" icon="arrow-right">
+    SDKs पेजिनेशन को अपने-आप संभाल लेते हैं। cURL के लिए, और पोस्ट्स प्राप्त करने हेतु रिस्पॉन्स से `next_token` का उपयोग करें:
+
+    ```bash
+    curl "https://api.x.com/2/lists/84839422/tweets?\
+    max_results=10&\
+    pagination_token=7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  यह एंडपॉइंट सूची से सबसे हाल की अधिकतम 800 पोस्ट्स रिटर्न करता है।
+</Note>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="सूची विवरण" icon="list" href="/hi/x-api/lists/list-lookup/quickstart">
+    सूची का विवरण प्राप्त करें
+  </Card>
+
+  <Card title="सूची सदस्य" icon="users" href="/hi/x-api/lists/list-members/introduction">
+    सूची के सदस्य प्राप्त करें
+  </Card>
+
+  <Card title="एकीकरण मार्गदर्शिका" icon="book" href="/hi/x-api/lists/list-tweets/integrate">
+    मुख्य अवधारणाएँ और सर्वोत्तम प्रथाएँ
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/lists/get-list-tweets">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+</CardGroup>

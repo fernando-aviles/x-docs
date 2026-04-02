@@ -1,0 +1,108 @@
+---
+title: "स्ट्रीमिंग"
+sidebarTitle: "स्ट्रीमिंग"
+---
+
+TypeScript SDK लाइव डेटा फ़ीड के लिए रीयल-टाइम स्ट्रीमिंग सुविधाएँ प्रदान करता है।
+
+<div id="basic-streaming">
+  ## बुनियादी स्ट्रीमिंग
+</div>
+
+रीयल-टाइम में सैंपल किए गए पोस्ट्स से कनेक्ट करें:
+
+<CodeGroup>
+  ```typescript stream.ts theme={null}
+  import { Client } from '@xdevplatform/xdk';
+
+  const client: Client = new Client({ bearerToken: 'your-bearer-token' });
+
+  // सार्वजनिक पोस्ट्स का 1% सैंपल
+  const stream = await client.stream.postsSample({
+    tweetFields: ['id','text','created_at'],
+    expansions: ['author_id'],
+    userFields: ['id','username','name']
+  });
+
+  // इवेंट्स को सुनें
+  stream.on('data', (event) => {
+    // event पार्स की गई JSON लाइन है (data/includes/matching_rules)
+    console.log('New data:', event);
+  });
+
+  stream.on('error', (e) => console.error('Stream error:', e));
+  stream.on('close', () => console.log('Stream closed'));
+  ```
+
+  ```javascript stream.js theme={null}
+  import { Client } from '@xdevplatform/xdk';
+
+  const client = new Client({ bearerToken: 'your-bearer-token' });
+  const stream = await client.stream.postsSample({ tweetFields: ['id','text'] });
+
+  stream.on('data', (event) => {
+    console.log('New data:', event);
+  });
+  stream.on('error', (e) => console.error('Stream error:', e));
+  stream.on('close', () => console.log('Stream closed'));
+  ```
+</CodeGroup>
+
+<div id="async-iteration">
+  ## असिंक्रोनस इटरेशन
+</div>
+
+असिंक्रोनस इटरेशन के साथ स्ट्रीम को प्रोसेस करें:
+
+<CodeGroup>
+  ```typescript async.ts theme={null}
+  const stream = await client.stream.postsSample();
+  for await (const event of stream) {
+    // हर event एक पार्स की गई JSON लाइन है (data/includes/matching_rules)
+    console.log(event);
+  }
+  ```
+
+  ```javascript async.js theme={null}
+  const stream = await client.stream.postsSample();
+  for await (const event of stream) {
+    console.log(event);
+  }
+  ```
+</CodeGroup>
+
+<div id="stream-management">
+  ## स्ट्रीम प्रबंधन
+</div>
+
+इवेंट-ड्रिवन स्ट्रीम के माध्यम से लाइफसाइकल को नियंत्रित करें:
+
+```typescript
+// स्ट्रीम बंद करें
+stream.close();
+
+// ऑटो-रीकनेक्ट (यदि आपके wrapper द्वारा सक्षम किया गया हो)
+// डिफ़ॉल्ट EventDrivenStream बुनियादी reconnect hooks को एक्सपोज़ करता है
+```
+
+
+<div id="error-handling">
+  ## त्रुटि प्रबंधन
+</div>
+
+स्ट्रीमिंग त्रुटियों और पुनःकनेक्शन को संभालें:
+
+```typescript
+stream.on('error', (event) => {
+  const err = event.error || event;
+  console.error('Stream error:', err);
+});
+
+stream.on('keepAlive', () => {
+  // हार्टबीट इवेंट
+});
+```
+
+<Info>
+  Javascript/TypeScript XDK का उपयोग करने वाले विस्तृत कोड उदाहरणों के लिए, हमारे [code samples GitHub repo](https://github.com/xdevplatform/samples/tree/main/javascript) पर जाएँ।
+</Info>

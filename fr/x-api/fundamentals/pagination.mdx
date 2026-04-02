@@ -1,0 +1,220 @@
+---
+title: Pagination
+sidebarTitle: Pagination
+description: Parcourir de grands ensembles de résultats
+keywords: ["pagination", "jetons de pagination", "jeton suivant", "parcourir les résultats", "pagination par curseur"]
+---
+
+Lorsqu&#39;une réponse d&#39;API contient plus de résultats qu&#39;il n&#39;est possible d&#39;en renvoyer en une seule fois, utilisez la pagination pour récupérer l&#39;ensemble des pages de données.
+
+***
+
+<div id="how-pagination-works">
+  ## Fonctionnement de la pagination
+</div>
+
+1. Effectuez votre requête initiale avec `max_results`
+2. Vérifiez la présence d’un `next_token` dans l’objet `meta` de la réponse
+3. S’il est présent, effectuez une autre requête en utilisant ce jeton comme valeur de `pagination_token`
+4. Répétez jusqu’à ce qu’aucun `next_token` ne soit renvoyé
+
+```bash
+# Requête initiale
+curl "https://api.x.com/2/users/12345/tweets?max_results=100" \
+  -H "Authorization: Bearer $TOKEN"
+
+# La réponse inclut next_token
+# {"data": [...], "meta": {"next_token": "abc123", ...}}
+
+# Page suivante
+curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=abc123" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="pagination-tokens">
+  ## Jetons de pagination
+</div>
+
+| Jeton | Description |
+|:------|:------------|
+| `next_token` | Dans le champ `meta` de la réponse. Utilisez-le pour obtenir la page suivante. |
+| `previous_token` | Dans le champ `meta` de la réponse. Utilisez-le pour revenir à la page précédente. |
+| `pagination_token` | Paramètre de la requête. Définissez-le sur la valeur de `next_token` ou `previous_token`. |
+
+***
+
+<div id="response-structure">
+  ## Structure de la réponse
+</div>
+
+```json
+{
+  "data": [
+    {"id": "1234", "text": "..."},
+    {"id": "1235", "text": "..."}
+  ],
+  "meta": {
+    "result_count": 100,
+    "next_token": "7140w9gefhslx3",
+    "previous_token": "77qp89slxjd"
+  }
+}
+```
+
+Lorsqu’il n’y a plus de résultats, le paramètre `next_token` est omis :
+
+```json
+{
+  "data": [...],
+  "meta": {
+    "result_count": 42,
+    "previous_token": "77qp89abc"
+  }
+}
+```
+
+***
+
+<div id="pagination-parameters">
+  ## Paramètres de pagination
+</div>
+
+| Paramètre | Description | Valeur par défaut |
+|:----------|:------------|:------------------|
+| `max_results` | Résultats par page | Spécifique à l’endpoint |
+| `pagination_token` | Jeton issu de la réponse précédente | Aucune |
+
+Consultez la Référence de l’API de chaque endpoint pour connaître les limites spécifiques de `max_results`.
+
+***
+
+<div id="example-paginating-through-all-results">
+  ## Exemple : parcourir tous les résultats avec la pagination
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    def get_all_tweets(user_id, bearer_token):
+        url = f"https://api.x.com/2/users/{user_id}/tweets"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        params = {"max_results": 100}
+        
+        all_tweets = []
+        
+        while True:
+            response = requests.get(url, headers=headers, params=params)
+            data = response.json()
+            
+            if "data" in data:
+                all_tweets.extend(data["data"])
+            
+            # Vérifier s'il existe une page suivante
+            next_token = data.get("meta", {}).get("next_token")
+            if not next_token:
+                break
+                
+            params["pagination_token"] = next_token
+        
+        return all_tweets
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllTweets(userId, bearerToken) {
+      const url = `https://api.x.com/2/users/${userId}/tweets`;
+      const headers = { Authorization: `Bearer ${bearerToken}` };
+      
+      let allTweets = [];
+      let paginationToken = null;
+      
+      do {
+        const params = new URLSearchParams({ max_results: 100 });
+        if (paginationToken) {
+          params.set("pagination_token", paginationToken);
+        }
+        
+        const response = await fetch(`${url}?${params}`, { headers });
+        const data = await response.json();
+        
+        if (data.data) {
+          allTweets.push(...data.data);
+        }
+        
+        paginationToken = data.meta?.next_token;
+      } while (paginationToken);
+      
+      return allTweets;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="best-practices">
+  ## Bonnes pratiques
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Utilisez max_results" icon="arrow-up-1-9">
+    Demandez la valeur maximale possible pour `max_results` afin de réduire le nombre d&#39;appels à l&#39;API.
+  </Card>
+
+  <Card title="Gérez les pages partielles" icon="square-check">
+    La dernière page peut contenir moins de résultats que `max_results`.
+  </Card>
+
+  <Card title="Stockez les jetons" icon="database">
+    Enregistrez `next_token` si vous devez reprendre la pagination plus tard.
+  </Card>
+
+  <Card title="N'effectuez pas de polling avec la pagination" icon="clock">
+    Pour obtenir de nouvelles données, utilisez `since_id` plutôt que de paginer en boucle.
+  </Card>
+</CardGroup>
+
+***
+
+<div id="result-ordering">
+  ## Ordre des résultats
+</div>
+
+Les résultats sont renvoyés dans l’**ordre chronologique inverse** :
+
+* Premier résultat de la première page = le plus récent
+* Dernier résultat de la dernière page = le plus ancien
+
+Cela s’applique sur chaque page et entre les pages.
+
+***
+
+<div id="notes">
+  ## Remarques
+</div>
+
+* Les jetons de pagination sont des chaînes opaques : ne cherchez pas à les analyser ni à les modifier
+* Les jetons peuvent expirer après un certain temps
+* Si vous obtenez moins de résultats que `max_results`, il peut encore rester des résultats (poursuivez jusqu&#39;à ce qu&#39;il n&#39;y ait plus de `next_token`)
+* Utilisez les [SDK](/fr/x-api/tools-and-libraries/sdks) pour gérer automatiquement la pagination
+
+***
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Limites de taux" icon="gauge-high" href="/fr/x-api/fundamentals/rate-limits">
+    Comprendre les limites de taux applicables à la pagination.
+  </Card>
+
+  <Card title="SDKs" icon="cube" href="/fr/x-api/tools-and-libraries/sdks">
+    Bibliothèques avec pagination intégrée.
+  </Card>
+</CardGroup>

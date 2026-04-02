@@ -1,0 +1,200 @@
+---
+title: 投稿数
+sidebarTitle: 概要
+description: 投稿本体を取得することなく、クエリに対する投稿ボリュームデータを取得します
+keywords: ["ツイート数", "投稿数", "count エンドポイント", "ボリュームカウント", "検索ボリューム", "ツイートボリューム", "count API"]
+---
+
+import { Button } from '/snippets/ja/button.mdx';
+
+Post カウントエンドポイントは、クエリにマッチする投稿の件数を、投稿自体を返さずに時間の経過に沿った推移として返します。これらのエンドポイントを使用して、トレンドを分析し、会話の規模を把握し、検索を実行する前にクエリを調整してください。
+
+<div id="overview">
+  ## 概要
+</div>
+
+<CardGroup cols={2}>
+  <Card title="ボリューム分析" icon="chart-line">
+    時系列で投稿数のトレンドラインや可視化を作成します
+  </Card>
+
+  <Card title="クエリの絞り込み" icon="filter">
+    完全な検索クエリを実行する前に結果件数を見積もります
+  </Card>
+
+  <Card title="イベント検出" icon="calendar">
+    イベントに関連する会話がピークに達したタイミングを特定します
+  </Card>
+
+  <Card title="効率的な調査" icon="gauge-high">
+    すべての投稿を取得せずに会話規模を把握します
+  </Card>
+</CardGroup>
+
+***
+
+<div id="endpoints">
+  ## エンドポイント
+</div>
+
+| Endpoint | 説明 | アクセス |
+|:---------|:------------|:-------|
+| GET [`/2/tweets/counts/recent`](/ja/x-api/posts/get-count-of-recent-posts) | 直近7日間の投稿数を取得 | すべての開発者 |
+| GET [`/2/tweets/counts/all`](/ja/x-api/posts/get-count-of-all-posts) | 全アーカイブの投稿数を取得 | 従量課金制、Enterprise |
+
+***
+
+<div id="granularity-options">
+  ## 粒度オプション
+</div>
+
+`granularity` パラメータを使用して、カウントの集計単位を指定します。
+
+| Granularity | 説明 | ユースケース |
+|:------------|:------------|:---------|
+| `minute` | 1分ごとのカウント | リアルタイム監視 |
+| `hour` | 1時間ごとのカウント (デフォルト)  | 日次分析 |
+| `day` | 1日ごとのカウント | 長期トレンド分析 |
+
+***
+
+<div id="recent-counts">
+  ## 直近の件数
+</div>
+
+**直近7日間**の投稿数を集計します。すべての開発者が利用できます。
+
+<div id="features">
+  ### 機能
+</div>
+
+* 分単位、時間単位、日単位での件数集計
+* Recent search と同じクエリ演算子
+* クエリ長は最大 512 文字
+
+<div id="example-response">
+  ### レスポンス例
+</div>
+
+```json
+{
+  "data": [
+    { "start": "2024-01-15T00:00:00.000Z", "end": "2024-01-15T01:00:00.000Z", "tweet_count": 1523 },
+    { "start": "2024-01-15T01:00:00.000Z", "end": "2024-01-15T02:00:00.000Z", "tweet_count": 1247 },
+    { "start": "2024-01-15T02:00:00.000Z", "end": "2024-01-15T03:00:00.000Z", "tweet_count": 892 }
+  ],
+  "meta": {
+    "total_tweet_count": 3662
+  }
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/posts/counts/quickstart/recent-tweet-counts">
+    最初の recent counts リクエストを送信する
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/recent-post-counts">
+    エンドポイントの詳細ドキュメント
+  </Card>
+</CardGroup>
+
+***
+
+<div id="full-archive-counts">
+  ## フルアーカイブカウント
+</div>
+
+2006年までさかのぼり、**アーカイブ全体**から投稿数をカウントします。
+
+<Note>
+  フルアーカイブカウントは、従量課金制プランと Enterprise のお客様が利用可能です。
+</Note>
+
+<div id="features">
+  ### 機能
+</div>
+
+* 任意の期間の過去のポスト数をカウント
+* すべてのクエリ演算子が利用可能
+* クエリ長は 1,024 文字 (Enterprise では 4,096 文字) 
+
+<div id="pagination">
+  ### ページネーション
+</div>
+
+結果はレスポンスごとに31日分ずつページネーションされます：
+
+* **日単位の粒度**: 1ページあたり31日分
+* **時間単位の粒度**: 1ページあたり744時間分 (31日分) 
+* **分単位の粒度**: 1ページあたり44,640分 (31日分) 
+
+<CardGroup cols={2}>
+  <Card title="クイックスタート" icon="rocket" href="/ja/x-api/posts/counts/quickstart/full-archive-tweet-counts">
+    最初のフルアーカイブ件数リクエストを行う
+  </Card>
+
+  <Card title="APIリファレンス" icon="code" href="/ja/x-api/posts/full-archive-post-counts">
+    エンドポイントの詳細なドキュメント
+  </Card>
+</CardGroup>
+
+***
+
+<div id="query-operators">
+  ## クエリ演算子
+</div>
+
+ポスト数は検索エンドポイントと同じクエリ構文を使用します。
+
+```
+python lang:en -is:retweet
+```
+
+<Card title="クエリを作成する" icon="magnifying-glass" href="/ja/x-api/posts/counts/integrate/build-a-query">
+  クエリの構文と演算子を学ぶ
+</Card>
+
+***
+
+<div id="important-notes">
+  ## 重要な注意事項
+</div>
+
+<Note>
+  **件数と検索結果の違い**
+
+  件数は検索結果と完全には一致しない場合があります。検索エンドポイントでは、件数エンドポイントでは実行されない追加のコンプライアンス・フィルタリングが適用されます。
+</Note>
+
+***
+
+<div id="getting-started">
+  ## はじめに
+</div>
+
+<Note>
+  **前提条件**
+
+  * 承認された[開発者アカウント](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 開発者コンソール内の[Project と App](/ja/resources/fundamentals/developer-apps)
+  * ご利用の App の[ベアラートークン](/ja/resources/fundamentals/authentication)
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="最近の件数クイックスタート" icon="clock" href="/ja/x-api/posts/counts/quickstart/recent-tweet-counts">
+    直近7日間の投稿数を取得します
+  </Card>
+
+  <Card title="全アーカイブクイックスタート" icon="vault" href="/ja/x-api/posts/counts/quickstart/full-archive-tweet-counts">
+    過去の投稿数を取得します
+  </Card>
+
+  <Card title="統合ガイド" icon="book" href="/ja/x-api/posts/counts/integrate/overview">
+    基本概念とベストプラクティス
+  </Card>
+
+  <Card title="サンプルコード" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    実行可能なコード例
+  </Card>
+</CardGroup>

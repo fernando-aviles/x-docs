@@ -1,0 +1,308 @@
+---
+title: Inicio rápido
+sidebarTitle: Inicio rápido
+description: Conéctate al stream filtrado para recibir Publicaciones en tiempo real
+keywords: ["inicio rápido del stream filtrado", "inicio rápido de streaming", "tutorial sobre el stream filtrado", "guía de stream", "ejemplo de streaming"]
+---
+
+import { Button } from '/snippets/es/button.mdx';
+
+Esta guía te explica cómo conectarte al stream filtrado para recibir en tiempo real Publicaciones que coincidan con tus reglas de filtrado.
+
+<Note>
+  **Requisitos previos**
+
+  Antes de comenzar, necesitarás lo siguiente:
+
+  * Una [cuenta de desarrollador](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * El Bearer Token de tu App (se encuentra en la Consola de desarrollador, en «Keys and tokens»)
+</Note>
+
+***
+
+<Steps>
+  <Step title="Crear una regla de filtrado" icon="filter">
+    Las reglas definen qué Publicaciones se reciben. Usa operadores para hacer coincidir palabras clave, hashtags, usuarios y más.
+
+    **Ejemplo de regla:** Coincidir con Publicaciones que contengan &quot;cat&quot; y tengan imágenes:
+
+    ```
+    cat has:images
+    ```
+
+    <Card title="Crea una regla" icon="filter" href="/es/x-api/posts/filtered-stream/integrate/build-a-rule">
+      Aprende la sintaxis de las reglas y sus operadores
+    </Card>
+  </Step>
+
+  <Step title="Añade la regla a tu flujo" icon="plus">
+    Añade tu regla usando el endpoint de reglas. Incluye una `tag` para identificar qué regla se aplicó a cada Publicación:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "add": [
+            {"value": "cat has:images", "tag": "cats with images"}
+          ]
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Añade una regla al stream filtrado
+      response = client.filtered_stream.add_rules(
+          add=[{"value": "cat has:images", "tag": "cats with images"}]
+      )
+
+      for rule in response.data:
+          print(f"Rule added: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Añade una regla al stream filtrado
+      const response = await client.filteredStream.addRules({
+        add: [{ value: "cat has:images", tag: "cats with images" }],
+      });
+
+      response.data?.forEach((rule) => {
+        console.log(`Rule added: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+
+    **Respuesta:**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1273026480692322304",
+          "value": "cat has:images",
+          "tag": "cats with images"
+        }
+      ],
+      "meta": {
+        "sent": "2024-01-15T10:30:00.000Z",
+        "summary": {
+          "created": 1,
+          "not_created": 0,
+          "valid": 1,
+          "invalid": 0
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Comprueba tus reglas" icon="check">
+    Lista todas las reglas activas para confirmar que se añadió tu regla:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Obtener todas las reglas activas
+      response = client.filtered_stream.get_rules()
+
+      for rule in response.data:
+          print(f"Regla activa: {rule.id} - {rule.value}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Obtener todas las reglas activas
+      const response = await client.filteredStream.getRules();
+
+      response.data?.forEach((rule) => {
+        console.log(`Regla activa: ${rule.id} - ${rule.value}`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Conectarse al flujo" icon="plug">
+    Abre una conexión persistente para recibir Publicaciones coincidentes:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/stream?\
+      tweet.fields=created_at,author_id&\
+      expansions=author_id&\
+      user.fields=username" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Conéctate al stream filtrado
+      for post in client.filtered_stream.stream(
+          tweet_fields=["created_at", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username"]
+      ):
+          print(f"Nueva publicación: {post.data.text}")
+          print(f"Reglas coincidentes: {post.matching_rules}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Conéctate al stream filtrado
+      const stream = client.filteredStream.stream({
+        tweetFields: ["created_at", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username"],
+      });
+
+      for await (const post of stream) {
+        console.log(`Nueva publicación: ${post.data?.text}`);
+        console.log(`Reglas coincidentes: ${post.matching_rules}`);
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Procesar publicaciones entrantes" icon="message">
+    Flujo de Publicaciones que coinciden en forma de objetos JSON:
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "text": "Look at this cute cat! 🐱",
+        "author_id": "9876543210",
+        "created_at": "2024-01-15T10:35:00.000Z",
+        "edit_history_tweet_ids": ["1234567890"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "catperson"
+          }
+        ]
+      },
+      "matching_rules": [
+        {
+          "id": "1273026480692322304",
+          "tag": "cats with images"
+        }
+      ]
+    }
+    ```
+
+    <Tip>
+      La matriz `matching_rules` muestra qué reglas se aplicaron a la Publicación, con las etiquetas que definiste.
+    </Tip>
+  </Step>
+
+  <Step title="Eliminar reglas (opcional)" icon="trash">
+    Eliminar reglas por ID:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "delete": {
+            "ids": ["1273026480692322304"]
+          }
+        }'
+      ```
+
+      ```python SDK de Python
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # Eliminar reglas por ID
+      response = client.filtered_stream.delete_rules(
+          delete={"ids": ["1273026480692322304"]}
+      )
+      print(f"Deleted: {response.meta.summary.deleted}")
+      ```
+
+      ```javascript SDK de JavaScript
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // Eliminar reglas por ID
+      const response = await client.filteredStream.deleteRules({
+        delete: { ids: ["1273026480692322304"] },
+      });
+      console.log(`Deleted: ${response.meta?.summary?.deleted}`);
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="managing-your-connection">
+  ## Gestión de tu conexión
+</div>
+
+<AccordionGroup>
+  <Accordion title="Señales de keep-alive">
+    El flujo envía líneas en blanco (`\r\n`) cada 20 segundos. Si no recibes datos ni una señal de keep-alive durante 20 segundos, vuelve a conectarte.
+  </Accordion>
+
+  <Accordion title="Desconexión">
+    Pulsa `Ctrl+C` para cerrar la conexión o cierra la ventana del terminal.
+  </Accordion>
+
+  <Accordion title="Límites de conexión">
+    Solo se permite una conexión por App. Si abres una nueva conexión, se cerrará cualquier conexión existente.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Crear una regla" icon="filter" href="/es/x-api/posts/filtered-stream/integrate/build-a-rule">
+    Aprende la sintaxis de las reglas
+  </Card>
+
+  <Card title="Referencia de operadores" icon="list-check" href="/es/x-api/posts/filtered-stream/integrate/operators">
+    Todos los operadores disponibles
+  </Card>
+
+  <Card title="Gestión de desconexiones" icon="plug" href="/es/x-api/posts/filtered-stream/integrate/handling-disconnections">
+    Vuelve a conectarte sin problemas
+  </Card>
+
+  <Card title="Referencia de la API" icon="code" href="/es/x-api/posts/filtered-stream">
+    Documentación completa del endpoint
+  </Card>
+</CardGroup>

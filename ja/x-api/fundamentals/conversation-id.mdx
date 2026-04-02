@@ -1,0 +1,207 @@
+---
+title: 会話ID
+sidebarTitle: 会話ID
+description: 会話スレッドの追跡と再構築
+keywords: ["conversation ID", "conversation threads", "reply threads", "thread tracking", "conversation tracking"]
+---
+
+X 上のすべての返信は、いずれかの会話スレッドに属します。`conversation_id` フィールドを使用すると、会話ツリー全体を特定・追跡・再構築できます。
+
+***
+
+<div id="how-it-works">
+  ## 動作の仕組み
+</div>
+
+誰かがポストを投稿し、他の人が返信すると、すべての返信は同じ `conversation_id` を共有します。これは、その会話を開始した元のポストのidです。
+
+```
+Original post (ID: 1234567890)  ← conversation_id for all replies
+├── Reply 1 (ID: 1234567891)    → conversation_id: 1234567890
+│   └── Reply to Reply 1        → conversation_id: 1234567890
+└── Reply 2 (ID: 1234567892)    → conversation_id: 1234567890
+    └── Reply to Reply 2        → conversation_id: 1234567890
+```
+
+スレッドがどれだけ深くなっても、すべての投稿は同じ `conversation_id` を共有します。
+
+***
+
+<div id="requesting-conversation_id">
+  ## conversation_id の取得
+</div>
+
+`tweet.fields` に `conversation_id` を追加します。
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_reply_to_user_id,referenced_tweets" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+レスポンス:
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "@user Great point!",
+    "conversation_id": "1234567890",
+    "in_reply_to_user_id": "2244994945",
+    "referenced_tweets": [{
+      "type": "replied_to",
+      "id": "1234567890"
+    }]
+  }
+}
+```
+
+***
+
+<div id="getting-a-full-conversation">
+  ## 会話全体の取得
+</div>
+
+`conversation_id` を検索オペレーターとして使用して、スレッド内のすべての投稿を取得します。
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=conversation_id:1234567890&\
+tweet.fields=author_id,created_at,in_reply_to_user_id&\
+expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+これにより元のポストへのすべての返信が、逆時系列で返されます。
+
+***
+
+<div id="use-cases">
+  ## 使用例
+</div>
+
+<Tabs>
+  <Tab title="スレッドの再構成">
+    会話ツリー全体を構築します:
+
+    ```python
+    import requests
+
+    conversation_id = "1234567890"
+    url = f"https://api.x.com/2/tweets/search/recent"
+    params = {
+        "query": f"conversation_id:{conversation_id}",
+        "tweet.fields": "author_id,in_reply_to_user_id,referenced_tweets,created_at",
+        "max_results": 100
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    replies = response.json()["data"]
+
+    # created_at でソートして時系列順にする
+    replies.sort(key=lambda x: x["created_at"])
+    ```
+  </Tab>
+
+  <Tab title="会話の監視">
+    特定の会話への返信をリアルタイムでストリーミングします:
+
+    ```bash
+    # 特定の会話用のフィルタードストリームルールを追加
+    curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"add": [{"value": "conversation_id:1234567890"}]}'
+    ```
+  </Tab>
+
+  <Tab title="会話の分析">
+    会話内の返信数を集計します:
+
+    ```bash
+    curl "https://api.x.com/2/tweets/counts/recent?\
+    query=conversation_id:1234567890" \
+      -H "Authorization: Bearer $TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="related-fields">
+  ## 関連フィールド
+</div>
+
+| フィールド | 説明 |
+|:------|:------------|
+| `conversation_id` | スレッドを開始した元のポストのID |
+| `in_reply_to_user_id` | 返信対象のポストのユーザーID |
+| `referenced_tweets` | `type: "replied_to"` と親ポストのIDを持つ配列 |
+
+***
+
+<div id="example-full-thread-retrieval">
+  ## 例：スレッド全体の取得
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567893",
+      "text": "@user2 @user1 I agree with you both!",
+      "conversation_id": "1234567890",
+      "author_id": "3333333333",
+      "created_at": "2024-01-15T12:05:00.000Z",
+      "in_reply_to_user_id": "2222222222",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567892"}]
+    },
+    {
+      "id": "1234567892",
+      "text": "@user1 That's interesting!",
+      "conversation_id": "1234567890",
+      "author_id": "2222222222",
+      "created_at": "2024-01-15T12:03:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    },
+    {
+      "id": "1234567891",
+      "text": "@user1 Great point!",
+      "conversation_id": "1234567890",
+      "author_id": "4444444444",
+      "created_at": "2024-01-15T12:02:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    }
+  ],
+  "meta": {
+    "result_count": 3
+  }
+}
+```
+
+***
+
+<div id="notes">
+  ## 注意事項
+</div>
+
+* 元の投稿の `conversation_id` は、その投稿自身の `id` と等しくなります
+* `conversation_id` は、投稿を返すすべての v2 エンドポイントで利用できます
+* 会話をリアルタイムで監視するために、[filtered stream](/ja/x-api/posts/filtered-stream/introduction) と組み合わせて使用します
+* 大規模なスレッドには、[pagination](/ja/x-api/fundamentals/pagination) と組み合わせて使用します
+
+***
+
+<div id="next-steps">
+  ## 次のステップ
+</div>
+
+<CardGroup cols={2}>
+  <Card title="投稿を検索" icon="magnifying-glass" href="/ja/x-api/posts/search/introduction">
+    conversation&#95;id で検索します。
+  </Card>
+
+  <Card title="フィルタ済みストリーム" icon="signal-stream" href="/ja/x-api/posts/filtered-stream/introduction">
+    会話をリアルタイムで監視します。
+  </Card>
+</CardGroup>

@@ -1,0 +1,138 @@
+---
+title: 概要
+sidebarTitle: 概要
+keywords: ["counts migration", "tweet counts migration", "v1.1 to v2 counts", "counts migration guide", "migrate counts"]
+---
+
+<div id="comparing-x-apis-post-counts-endpoints">
+  ## X API のポスト件数エンドポイントの比較
+</div>
+
+v2 ポスト件数エンドポイントは、最終的には [enterprise Search API の counts エンドポイント](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#counts-requests-post-count) を置き換える予定です。既存のコードや App、ツールで旧バージョンのポスト件数エンドポイントを利用していて、新しい X API v2 エンドポイントへの移行を検討している場合は、このガイドがお役に立ちます。
+
+***
+
+<div id="recent-post-counts-comparison">
+  ## 直近の投稿数の比較
+</div>
+
+Enterprise 版の投稿数エンドポイントでは、過去 30 日間分または全アーカイブから投稿数を取得できます。そのため、7 日間を対象とする v2 の recent 投稿数エンドポイントは、前述のいずれのエンドポイントの直接の代替にはなりません。
+
+ただし比較しやすくするために、ここでは v2 の recent 投稿数エンドポイントが Enterprise の 30 日エンドポイントとどのように異なるかを確認します。
+
+次の表は、各種 recent 投稿数エンドポイントを比較したものです。
+
+| **説明** | **Enterprise** | **X API v2** |
+| :--- | :--- | :--- |
+| ホストドメイン | https://gnip-api.x.com | https://api.x.com |
+| エンドポイントパス | /search/30day/accounts/:account&#95;name/:label/counts.json | /2/tweets/counts/recent |
+| [認証](/ja/resources/fundamentals/authentication) | Basic 認証 | OAuth 2.0 ベアラートークン |
+| タイムスタンプ形式 | YYYYMMDDhhmm | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| カウント対象となる投稿の最大経過期間 | 31 日 | 7 日 |
+| 戻されるのはどの程度古くない投稿のカウントか | 31 days | 7 days |
+| 対応している HTTP メソッド | GET | GET |
+| デフォルトのレート制限 | 検索データおよびカウントリクエストの合計で 1 秒あたり 20 リクエスト  <br />1 分あたりのレート制限は、契約書に記載されたパートナーごとの値により異なります。 | ユーザーごとに 15 分あたり 180 リクエスト  <br />App ごとに 15 分あたり 450 リクエスト |
+| [annotations](/ja/x-api/fundamentals/post-annotations) を使ったフィルタリングのサポート |     | ✔   |
+| [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) を使ったフィルタリングのサポート |     | ✔   |
+| 投稿データ配列の JSON キー名 | results | data |
+| 時間の粒度 | 日、時間、または分 | 日、時間、または分 |
+| タイムゾーン | UTC | UTC |
+| 取得期間を指定するためのリクエストパラメータ | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| 投稿 ID によるナビゲーションのためのリクエストパラメータ |     | since&#95;id  <br />until&#95;id |
+| [project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報の使用が必要 |     | ✔   |
+
+<div id="full-archive-post-counts-comparison">
+  ### フルアーカイブのポスト数の比較
+</div>
+
+次の表は、さまざまなフルアーカイブ検索エンドポイントを比較したものです。
+
+| 説明 | Enterprise | X API v2 |
+| :--- | :--- | :--- |
+| ホストドメイン | https://gnip-api.x.com | https://api.x.com |
+| エンドポイントパス | /search/fullarchive/accounts/:account&#95;name/:label/counts | /2/tweets/counts/all |
+| [認証](/ja/resources/fundamentals/authentication) | Basic 認証 | OAuth 2.0 ベアラートークン |
+| タイムスタンプ形式 | YYYYMMDDHHMM | YYYY-MM-DDTHH:mm:ssZ  <br />[ISO 8601 / RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6) |
+| 返されるポスト数の対象となる最も古い期間 | 2006年3月以降のフルアーカイブ | 2006年3月以降のフルアーカイブ |
+| 対応するHTTPメソッド | GET  <br />POST | GET |
+| デフォルトのリクエストレート制限 | 1分あたりのレート制限は、契約で指定されたとおりパートナーごとに異なります。  <br />1秒あたり20リクエスト | Appごとに15分あたり300リクエスト  <br />Appごとに1秒あたり1リクエスト |
+| 粒度 | 日、時、分 | 日、時、分 |
+| [annotations](/ja/x-api/fundamentals/post-annotations) を使用したフィルタリングのサポート |     | ✔   |
+| [conversation&#95;id](/ja/x-api/fundamentals/conversation-id) を使用したフィルタリングのサポート |     | ✔   |
+| ポストデータ配列のJSONキー名 | results | data |
+| 期間を指定するためのリクエストパラメータ | fromDate  <br />toDate | start&#95;time  <br />end&#95;time |
+| ポストIDによるナビゲーション用リクエストパラメータ |     | since&#95;id  <br />until&#95;id |
+| ページネーション用JSONキー名 | next | meta.next&#95;token |
+| ページネーション用リクエストパラメータ | next&#95;token | next&#95;token または pagination&#95;token |
+| タイムゾーン | UTC | UTC |
+| [Academic Research access](/ja/x-api/getting-started/about-x-api) を持つ [Project](/ja/resources/fundamentals/developer-apps) に関連付けられた [developer App](/ja/resources/fundamentals/developer-apps) の認証情報の使用が必要 |     | ✔   |
+
+<div id="filtering-operator-comparison">
+  ### フィルタリングオペレーターの比較
+</div>
+
+2つの異なるバージョン (Enterprise と v2) のポスト数エンドポイントでは、利用可能なオペレーターの種類が異なり、さらに各バージョン内でもオペレーターの提供レベルが異なります。これについて以下で説明します。
+
+Enterprise
+
+* Enterprise オペレーターにサブティアはありません。すべての Enterprise オペレーターは、すべての Enterprise ユーザーが利用できます。
+
+X API v2
+
+* **Core:** これらのオペレーターは、すべての v2 ユーザーが利用できます。
+* **Advanced:** これらのオペレーターは、Academic Research アクセスが承認されたユーザーのみが利用できます。
+
+それぞれのオペレーター群の詳細は、対応するガイドで確認できます。
+
+* [Enterprise オペレーター](/ja/x-api/enterprise-gnip-2.0/fundamentals/search-api#building-search-queries)
+* [X API v2 オペレーター](/ja/x-api/posts/search/integrate/build-a-query)
+
+X API v2 におけるこれらの異なるオペレーターのレベルを把握したところで、ポスト数エンドポイントにおけるオペレーターの利用可否を示した表を以下に示します (セルが空欄の場合、そのオペレーターは利用できません) 。
+
+|     | Enterprise | v2  |
+| :--- | :--- | :--- |
+| keyword | 利用可能 | Core |
+| emoji | 利用可能 | Core |
+| “exact phrase” | 利用可能 | Core |
+| #   | 利用可能 | Core |
+| $   | 利用可能 | Advanced |
+| @   | 利用可能 | Core |
+| from: | 利用可能 | Core |
+| to: | 利用可能 | Core |
+| url: | 利用可能 | Core |
+| retweets&#95;of: | 利用可能 | Core |
+| context: |     | Core |
+| entity: |     | Core - recent search でのみ利用可能 |
+| conversation&#95;id: |     | Core |
+| place: | 利用可能 | Advanced |
+| place&#95;country: | 利用可能 | Advanced |
+| point&#95;radius: | 利用可能 | Advanced |
+| bounding&#95;box: | 利用可能 | Advanced |
+| is:retweet | 利用可能 | Core |
+| is:reply | 利用可能 | Core |
+| is:quote | 利用可能 | Core |
+| is:verified | 利用可能 | Core |
+| -is:nullcast | 利用可能 | Advanced |
+| has:hashtags | 利用可能 | Core |
+| has:cashtags | 利用可能 | Advanced |
+| has:links | 利用可能 | Core |
+| has:mentions | 利用可能 | Core |
+| has:media | 利用可能 | Core |
+| has:images | 利用可能 | Core |
+| has:videos | 利用可能 | Core |
+| has:geo | 利用可能 | Advanced |
+| lang: | 利用可能 | Core |
+| list: |     | Advanced |
+| has:profile&#95;geo | 利用可能 |     |
+| profile&#95;country | 利用可能 |     |
+| profile&#95;locality | 利用可能 |     |
+| profile&#95;region | 利用可能 |     |
+| proximity | 利用可能 |     |
+
+**その他の移行リソース**
+
+[X API 移行ハブ](/ja/x-api/migrate/overview)
+
+[これらのエンドポイントのサンプルコードを確認する](https://github.com/xdevplatform/Twitter-API-v2-sample-code "これらのエンドポイントのサンプルコードを確認する")
+
+[ポスト数: Enterprise から X API v2 への移行](/ja/x-api/posts/counts/migrate/overview)

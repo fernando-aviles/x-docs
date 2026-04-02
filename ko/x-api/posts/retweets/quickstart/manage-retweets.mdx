@@ -1,0 +1,188 @@
+---
+title: 리트윗 관리
+sidebarTitle: 리트윗 관리
+description: X API를 사용하여 리트윗하고 리트윗을 취소합니다
+keywords: ["리트윗 관리", "게시물 리트윗", "리트윗 취소", "리트윗 빠른 시작", "리트윗 튜토리얼", "리트윗 가이드"]
+---
+
+import { Button } from '/snippets/ko/button.mdx';
+
+이 가이드는 X API를 사용하여 리포스트(기존 Retweet)와 리포스트 취소를 단계별로 수행하는 방법을 설명합니다.
+
+<Note>
+  **사전 준비 사항**
+
+  시작하기 전에 다음이 필요합니다.
+
+  * 승인된 App을 보유한 [개발자 계정](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * 사용자 액세스 토큰(User Access Token, OAuth 1.0a 또는 OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="retweet-a-post">
+  ## 게시물을 리트윗하기
+</div>
+
+<Steps>
+  <Step title="사용자 ID 가져오기">
+    인증된 사용자의 ID가 필요합니다. [user lookup endpoint](/ko/x-api/users/lookup/introduction)를 사용하거나 Access Token에서 찾을 수 있습니다(숫자 부분이 사용자 ID입니다).
+  </Step>
+
+  <Step title="게시물 ID 가져오기">
+    게시물을 볼 때 URL에서 게시물 ID를 확인할 수 있습니다:
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── 이것이 게시물 ID입니다
+    ```
+  </Step>
+
+  <Step title="리트윗 요청 보내기">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/retweets" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"tweet_id": "1228393702244134912"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # 게시물을 리트윗합니다
+      response = client.posts.retweet(
+          user_id="123456789",
+          tweet_id="1228393702244134912"
+      )
+
+      print(f"Retweeted: {response.data.retweeted}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // 게시물을 리트윗합니다
+      const response = await client.posts.retweet("123456789", {
+        tweetId: "1228393702244134912",
+      });
+
+      console.log(`Retweeted: ${response.data?.retweeted}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="응답 확인하기">
+    ```json
+    {
+      "data": {
+        "retweeted": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="undo-a-retweet">
+  ## 리트윗 취소하기
+</div>
+
+리트윗을 취소하려면 다음을 수행합니다:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/retweets/1228393702244134912" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # 리트윗 취소하기
+  response = client.posts.unretweet(
+      user_id="123456789",
+      tweet_id="1228393702244134912"
+  )
+
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // 리트윗 취소하기
+  const response = await client.posts.unretweet("123456789", "1228393702244134912");
+
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>
+
+**응답:**
+
+```json
+{
+  "data": {
+    "retweeted": false
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## 다음 단계
+</div>
+
+<CardGroup cols={2}>
+  <Card title="리트윗 조회" icon="retweet" href="/ko/x-api/posts/retweets/quickstart/retweets-lookup">
+    게시물을 리트윗한 사용자 가져오기
+  </Card>
+
+  <Card title="인용 포스트" icon="quote-left" href="/ko/x-api/posts/quote-tweets/quickstart">
+    인용 포스트 가져오기
+  </Card>
+
+  <Card title="API 참조 문서" icon="code" href="/ko/x-api/posts/retweet-a-post">
+    전체 엔드포인트 문서
+  </Card>
+</CardGroup>

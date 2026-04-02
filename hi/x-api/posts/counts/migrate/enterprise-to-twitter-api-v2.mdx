@@ -1,0 +1,142 @@
+---
+title: v1 से v2 (Enterprise)
+sidebarTitle: v1 से v2 (Enterprise)
+keywords: ["enterprise से v2 काउंट्स", "enterprise काउंट्स माइग्रेशन", "GNIP से v2 काउंट्स", "enterprise काउंट्स माइग्रेशन", "enterprise काउंट्स माइग्रेट करें"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise की X API v2 से तुलना
+</div>
+
+**समानताएँ**
+
+* ग्रैन्युलैरिटी
+* पृष्ठांकन
+* समय क्षेत्र
+
+**अंतर**
+
+* एंडपॉइंट URL
+* ऐप और प्रोजेक्ट की आवश्यकता
+* उपलब्ध समयावधियाँ
+* प्रतिक्रिया डेटा का प्रारूप
+* HTTP मेथड
+* अनुरोध समय प्रारूप
+* अनुरोध पैरामीटर
+* फ़िल्टरिंग ऑपरेटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**ग्रैन्युलैरिटी**
+
+हालाँकि लौटाए गए डेटा की ग्रैन्युलैरिटी चुनने वाला पैरामीटर अलग है (`bucket` enterprise वर्शन के लिए और `granularity` v2 वर्शन के लिए), इस पैरामीटर के लिए दिए जाने वाले मान दोनों में एक जैसे हैं, और डिफ़ॉल्ट व्यवहार भी समान है:
+
+* `day`
+* `hour` (डिफ़ॉल्ट)
+* `minute`
+
+**पृष्ठांकन**
+
+हालाँकि v2 में अतिरिक्त पृष्ठांकन सुविधाएँ हैं (नए पृष्ठांकन पैरामीटर, जिनकी मदद से आप `since_id` और `until_id` का उपयोग करके पोस्ट id के आधार पर नेविगेट कर सकते हैं), enterprise और v2 दोनों में समय के आधार पर पृष्ठांकन किया जा सकता है (enterprise में `fromDate` और `toDate`, और v2 में `start_time` और `end_time`)।
+
+यदि आप enterprise वर्शन का उपयोग कर रहे हैं, तो पृष्ठांकन के लिए आप `next` पैरामीटर का उपयोग करेंगे, अगला टोकन फ़ील्ड `next` कहलाएगा, और यह रिस्पॉन्स के रूट पर होगा।
+
+यदि आप v2 का उपयोग कर रहे हैं, तो पृष्ठांकन के लिए आप `next_token` या `pagination_token` पैरामीटर में से किसी एक का उपयोग कर सकते हैं, और आपका अगला टोकन रिस्पॉन्स में `meta.next_token` पर होगा।
+ 
+
+**समय क्षेत्र**
+
+जैसा कि पृष्ठांकन अनुभाग में बताया गया है, enterprise और v2 दोनों में आप समय के आधार पर डेटा के अलग-अलग पेजों के बीच नेविगेट कर सकते हैं। दोनों ही स्थितियों में, इन पैरामीटर का उपयोग करते समय समय क्षेत्र के रूप में UTC का इस्तेमाल किया जाएगा।
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URL**
+
+* Enterprise एंडपॉइंट्स:
+  * 30 day - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label/counts.json`
+  * Full-archive - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label/counts.json`
+* X API v2 एंडपॉइंट्स
+  * Recent (7 day) - `https://api.x.com/2/tweets/counts/recent`
+  * Full-archive - `https://api.x.com/2/tweets/counts/all`
+
+**ऐप और प्रोजेक्ट की आवश्यकता**
+
+X API v2 एंडपॉइंट्स के लिए यह आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के क्रेडेंशियल्स का उपयोग करें, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। X API v1.1 के सभी एंडपॉइंट्स ऐप्स से या किसी ऐप से जुड़े ऐप्स से क्रेडेंशियल्स का उपयोग कर सकते हैं।
+ 
+
+**उपलब्ध समय अवधियाँ**
+
+Enterprise API और X API v2, दोनों ऐसे एंडपॉइंट्स उपलब्ध कराते हैं जिनसे आप पोस्ट्स के full-archive के लिए पोस्ट वॉल्यूम डेटा प्राप्त कर सकते हैं।
+
+हालाँकि, X API v2, enterprise API की तरह 30 day time period एंडपॉइंट उपलब्ध नहीं कराता। इसके बजाय, यह ऊपर उल्लिखित full-archive या 7 day time period उपलब्ध कराता है, जो [v2 Search Posts endpoints](/hi/x-api/posts/search/introduction) के अनुरूप हैं।
+ 
+
+**प्रतिक्रिया डेटा प्रारूप**
+
+Enterprise और X API v2 के माध्यम से मिलने वाले डेटा प्रारूप में कुछ छोटे अंतर हैं:
+
+* Enterprise का counts डेटा `results` ऑब्जेक्ट के भीतर होता है, जबकि v2 का counts डेटा `data` ऑब्जेक्ट के भीतर होता है।
+* Enterprise के counts फ़ील्ड्स `timePeriod` (प्रारंभ समय) और `count` कहलाते हैं, जबकि v2 time period को `start` और `end` फ़ील्ड्स में विभाजित करता है (जो enterprise से अलग date/time format का उपयोग करते हैं, जैसा कि request time formats में बताया गया है), और count फ़ील्ड का नाम बदलकर `tweet_count` कर देता है।
+* Enterprise metadata में root level पर `totalCount`, `next`, और `requestParameters` ऑब्जेक्ट शामिल होते हैं। इसके विपरीत, v2 में `requestParameters` ऑब्जेक्ट शामिल नहीं होता, और यह निम्नलिखित को root level पर मौजूद `meta` ऑब्जेक्ट में स्थानांतरित/पुनर्नामित कर देता है: `total_tweet_count` और `next_token`.
+   
+
+**HTTP methods**
+
+API का enterprise संस्करण आपको अनुरोध को या तो JSON body के साथ POST HTTP method के रूप में, या query string के साथ GET HTTP method के रूप में भेजने की अनुमति देता है।
+
+V2 केवल query string के साथ GET HTTP method का उपयोग करने की अनुमति देता है।
+ 
+
+**अनुरोध समय प्रारूप**
+
+इस एंडपॉइंट का enterprise संस्करण pagination पैरामीटर और `timePeriod` response field, दोनों में निम्नलिखित date/time format का उपयोग करता है: `YYYYMMDDHHmm`
+
+v2 एंडपॉइंट pagination पैरामीटर और `start` तथा `end` response fields, दोनों में ISO 8601/RFC 3339 date/time format का उपयोग करता है: `YYYY-MM-DDTHH:mm:ssZ`
+
+**अनुरोध पैरामीटर**
+
+नीचे enterprise और X API v2 के request parameters की तालिका दी गई है:
+
+| Enterprise            | Search Posts v2                         |
+| :-------------------- | :-------------------------------------- |
+| query                 | query                                   |
+| bucket                | granularity                             |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ)   |
+| toDate (YYMMDDHHmm)   | end&#95;time (YYYY-MM-DDTHH:mm:ssZ)     |
+|                       | since&#95;id                            |
+|                       | until&#95;id                            |
+| next                  | next&#95;token and pagination&#95;token |
+
+**फ़िल्टरिंग ऑपरेटर्स**
+
+हालाँकि enterprise और X API v2 के बीच अधिकांश operators समान हैं, लेकिन operator availability में कुछ अंतर हैं और कुछ नए operators भी हैं, जिन्हें केवल X API v2 संस्करण में जोड़ा गया है।
+
+X API v2, enterprise, और यहाँ तक कि premium के लिए उपलब्ध operators की पूरी तालिका देखने के लिए, कृपया [Post counts migration landing page](/hi/x-api/posts/counts/migrate/overview) पर जाएँ।
+
+<div id="api-reference-index">
+  ## API संदर्भ अनुक्रमणिका
+</div>
+
+पूर्ण API संदर्भ के लिए, कृपया नीचे से कोई एंडपॉइंट चुनें।
+
+<div id="recent-post-counts">
+  ### हाल के पोस्ट्स की संख्या
+</div>
+
+|                                                                                   |                                                                                                         |
+| :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------ |
+| **पिछले 7 दिनों में किसी क्वेरी से मेल खाने वाले पोस्ट्स की संख्या प्राप्त करें** | `[GET /2/tweets/counts/recent](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-recent)` |
+
+<div id="full-archive-post-counts">
+  ### पूर्ण-आर्काइव पोस्ट की संख्या
+</div>
+
+केवल उन लोगों के लिए उपलब्ध है जिनके पास [Self-serve और Enterprise access](/hi/x-api/getting-started/about-x-api) है
+
+|                                                                 |                                                                                                   |
+| :-------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ |
+| **किसी क्वेरी से मेल खाने वाली पोस्ट्स की संख्या प्राप्त करें** | `[GET /2/tweets/counts/all](/x-api/posts/tweet-counts#api-reference-index/get-tweets-counts-all)` |

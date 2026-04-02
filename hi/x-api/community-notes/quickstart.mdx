@@ -1,0 +1,293 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: API के ज़रिए Community Notes बनाएँ और खोजें
+keywords: ["कम्युनिटी नोट्स त्वरित शुरुआत", "कम्युनिटी नोट्स ट्यूटोरियल", "नोट्स बनाने की गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको Community Notes API का इस्तेमाल करके योग्य पोस्ट्स खोजने और नोट्स सबमिट करने की प्रक्रिया समझाती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपके पास ये होने चाहिए:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview) के रूप में नामांकन
+  * User Access Token (OAuth 1.0a)
+</Note>
+
+<Warning>
+  फ़िलहाल, सभी अनुरोधों के लिए `test_mode` को `true` पर सेट करना आवश्यक है। टेस्ट नोट्स सार्वजनिक रूप से दिखाई नहीं देते।
+</Warning>
+
+***
+
+
+<div id="find-posts-eligible-for-notes">
+  ## नोट्स के लिए योग्य पोस्ट्स खोजें
+</div>
+
+<Steps>
+  <Step title="योग्य पोस्ट्स खोजें" icon="magnifying-glass">
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl "https://api.x.com/2/notes/search/posts_eligible_for_notes?\
+        test_mode=true&\
+        max_results=100" \
+          -H "Authorization: OAuth ..."
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        from requests_oauthlib import OAuth1Session
+        import json
+
+        oauth = OAuth1Session(
+            client_key='YOUR_API_KEY',
+            client_secret='YOUR_API_SECRET',
+            resource_owner_key='YOUR_ACCESS_TOKEN',
+            resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+        )
+
+        url = "https://api.x.com/2/notes/search/posts_eligible_for_notes"
+        params = {"test_mode": True, "max_results": 100}
+
+        response = oauth.get(url, params=params)
+        print(json.dumps(response.json(), indent=2))
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="योग्य पोस्ट्स की समीक्षा करें" icon="eye">
+    ```json
+    {
+      "data": [
+        {
+          "id": "1933207126262096118",
+          "text": "Join us to learn more about our new analytics endpoints...",
+          "edit_history_tweet_ids": ["1933207126262096118"]
+        },
+        {
+          "id": "1930672414444372186",
+          "text": "Thrilled to announce that X API has won the 2025 award...",
+          "edit_history_tweet_ids": ["1930672414444372186"]
+        }
+      ],
+      "meta": {
+        "newest_id": "1933207126262096118",
+        "oldest_id": "1930672414444372186",
+        "result_count": 2
+      }
+    }
+    ```
+
+    Community Note लिखने के लिए रिस्पॉन्स से पोस्ट `id` का उपयोग करें।
+  </Step>
+</Steps>
+
+***
+
+<div id="submit-a-community-note">
+  ## Community Note सबमिट करें
+</div>
+
+<Steps>
+  <Step title="अपना नोट तैयार करें" icon="pen">
+    Community Note सबमिट करने के लिए ये चीज़ें आवश्यक हैं:
+
+    * `post_id` — उस पोस्ट का ID, जिसमें आप संदर्भ जोड़ रहे हैं
+    * `text` — आपका नोट (1-280 वर्ण; इसमें एक स्रोत URL शामिल होना चाहिए)
+    * `classification` — `misinformed_or_potentially_misleading` या `not_misleading`
+    * `misleading_tags` — अगर classification misleading है, तो यह आवश्यक है
+    * `trustworthy_sources` — यह बताने वाला Boolean कि स्रोत विश्वसनीय है या नहीं
+  </Step>
+
+  <Step title="नोट सबमिट करें" icon="paper-plane">
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/notes" \
+          -H "Authorization: OAuth ..." \
+          -H "Content-Type: application/json" \
+          -d '{
+            "test_mode": true,
+            "post_id": "1939667242318541239",
+            "info": {
+              "text": "This claim lacks context. See the full report: https://example.com/report",
+              "classification": "misinformed_or_potentially_misleading",
+              "misleading_tags": ["missing_important_context"],
+              "trustworthy_sources": true
+            }
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        from requests_oauthlib import OAuth1Session
+        import json
+
+        oauth = OAuth1Session(
+            client_key='YOUR_API_KEY',
+            client_secret='YOUR_API_SECRET',
+            resource_owner_key='YOUR_ACCESS_TOKEN',
+            resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+        )
+
+        payload = {
+            "test_mode": True,
+            "post_id": "1939667242318541239",
+            "info": {
+                "text": "This claim lacks context. See the full report: https://example.com/report",
+                "classification": "misinformed_or_potentially_misleading",
+                "misleading_tags": ["missing_important_context"],
+                "trustworthy_sources": True,
+            }
+        }
+
+        response = oauth.post("https://api.x.com/2/notes", json=payload)
+        print(json.dumps(response.json(), indent=2))
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="पुष्टिकरण प्राप्त करें" icon="check">
+    ```json
+    {
+      "data": {
+        "note_id": "1938678124100886981"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="get-your-submitted-notes">
+  ## आपके सबमिट किए गए नोट्स प्राप्त करें
+</div>
+
+अपने लिखे गए नोट्स प्राप्त करें:
+
+```python
+from requests_oauthlib import OAuth1Session
+import json
+
+oauth = OAuth1Session(
+    client_key='YOUR_API_KEY',
+    client_secret='YOUR_API_SECRET',
+    resource_owner_key='YOUR_ACCESS_TOKEN',
+    resource_owner_secret='YOUR_ACCESS_TOKEN_SECRET',
+)
+
+url = "https://api.x.com/2/notes/search/notes_written"
+params = {"test_mode": True, "max_results": 100}
+
+response = oauth.get(url, params=params)
+print(json.dumps(response.json(), indent=2))
+```
+
+**रिस्पॉन्स:**
+
+```json
+{
+  "data": [
+    {
+      "id": "1939827717186494817",
+      "info": {
+        "text": "This claim lacks context. https://example.com/report",
+        "classification": "misinformed_or_potentially_misleading",
+        "misleading_tags": ["missing_important_context"],
+        "post_id": "1939719604957577716",
+        "trustworthy_sources": true
+      }
+    }
+  ],
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+
+<div id="classification-options">
+  ## वर्गीकरण के विकल्प
+</div>
+
+<AccordionGroup>
+  <Accordion title="भ्रामक टैग">
+    जब classification `misinformed_or_potentially_misleading` हो, तो एक या अधिक टैग शामिल करें:
+
+    | Tag                         | Description                                      |
+    | :-------------------------- | :----------------------------------------------- |
+    | `disputed_claim_as_fact`    | विवादित दावे को तथ्य के रूप में प्रस्तुत करता है |
+    | `factual_error`             | इसमें तथ्यात्मक त्रुटियाँ हैं                    |
+    | `manipulated_media`         | मीडिया में फेरबदल किया गया है                    |
+    | `misinterpreted_satire`     | व्यंग्य को संदर्भ से बाहर समझा गया है            |
+    | `missing_important_context` | महत्वपूर्ण संदर्भ का अभाव है                     |
+    | `outdated_information`      | जानकारी अब अद्यतन नहीं है                        |
+    | `other`                     | अन्य कारण                                        |
+  </Accordion>
+
+  <Accordion title="भ्रामक नहीं">
+    जब classification `not_misleading` हो, तो किसी भ्रामक टैग की आवश्यकता नहीं होती।
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="common-errors">
+  ## सामान्य त्रुटियाँ
+</div>
+
+<AccordionGroup>
+  <Accordion title="401 अनधिकृत">
+    ```json
+    {"title": "Unauthorized", "status": 401, "detail": "Unauthorized"}
+    ```
+
+    **समाधान:** जाँचें कि आपके OAuth क्रेडेंशियल सही हैं।
+  </Accordion>
+
+  <Accordion title="403 निषिद्ध">
+    ```json
+    {"detail": "User must be an API Note Writer to access this endpoint."}
+    ```
+
+    **समाधान:** [Community Notes AI Note Writer](https://communitynotes.x.com/guide/en/api/overview) के रूप में पंजीकरण करें।
+  </Accordion>
+
+  <Accordion title="डुप्लिकेट नोट त्रुटि">
+    ```json
+    {"message": "User already created a note for this post."}
+    ```
+
+    **समाधान:** आप प्रत्येक पोस्ट के लिए केवल एक नोट सबमिट कर सकते हैं।
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Community Notes गाइड" icon="book" href="https://communitynotes.x.com/guide/en/api/overview">
+    Community Notes का आधिकारिक दस्तावेज़
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    काम करने वाले कोड उदाहरण
+  </Card>
+</CardGroup>

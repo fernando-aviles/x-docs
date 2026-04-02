@@ -1,0 +1,342 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: डायरेक्ट मैसेज भेजें और समूह बातचीत शुरू करें
+keywords: ["डायरेक्ट मैसेज प्रबंधन की त्वरित शुरुआत", "DM भेजने की त्वरित शुरुआत", "DM प्रबंधन की त्वरित शुरुआत", "समूह DM बनाएँ"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको डायरेक्ट मैसेज भेजने और समूह बातचीत बनाने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपके पास ये होने चाहिए:
+
+  * एक स्वीकृत ऐप के साथ [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * User Access Token (OAuth 2.0 PKCE के साथ `dm.write` और `dm.read` स्कोप)
+</Note>
+
+***
+
+<div id="send-a-one-to-one-message">
+  ## एक-से-एक संदेश भेजें
+</div>
+
+<Steps>
+  <Step title="प्राप्तकर्ता की user ID प्राप्त करें">
+    जिस व्यक्ति को आप संदेश भेजना चाहते हैं, उसकी user ID आपके पास होनी चाहिए। आप इसे [User lookup endpoint](/hi/x-api/users/lookup/introduction) से प्राप्त कर सकते हैं।
+  </Step>
+
+  <Step title="संदेश भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"text": "Hello! This is a message from the API."}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # एक-से-एक संदेश भेजें
+      response = client.dm.send_message(
+          participant_id="9876543210",
+          text="Hello! This is a message from the API."
+      )
+
+      print(f"संदेश भेजा गया: {response.data.dm_event_id}")
+      print(f"बातचीत: {response.data.dm_conversation_id}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // एक-से-एक संदेश भेजें
+      const response = await client.dm.sendMessage({
+        participantId: "9876543210",
+        text: "Hello! This is a message from the API.",
+      });
+
+      console.log(`संदेश भेजा गया: ${response.data?.dm_event_id}`);
+      console.log(`बातचीत: ${response.data?.dm_conversation_id}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स देखें">
+    ```json
+    {
+      "data": {
+        "dm_conversation_id": "1234567890-9876543210",
+        "dm_event_id": "1582103724607971332"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="create-a-group-conversation">
+  ## एक समूह बातचीत बनाएँ
+</div>
+
+<Steps>
+  <Step title="प्रतिभागियों को तय करें">
+    उन सभी लोगों की user ID इकट्ठा करें जिन्हें आप समूह में शामिल करना चाहते हैं (अपने अलावा)।
+  </Step>
+
+  <Step title="पहले संदेश के साथ समूह बनाएँ">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/dm_conversations" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "conversation_type": "Group",
+          "participant_ids": ["944480690", "906948460078698496"],
+          "message": {"text": "Welcome to our new group!"}
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # एक समूह बातचीत बनाएँ
+      response = client.dm.create_conversation(
+          conversation_type="Group",
+          participant_ids=["944480690", "906948460078698496"],
+          message={"text": "Welcome to our new group!"}
+      )
+
+      print(f"Group created: {response.data.dm_conversation_id}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // एक समूह बातचीत बनाएँ
+      const response = await client.dm.createConversation({
+        conversationType: "Group",
+        participantIds: ["944480690", "906948460078698496"],
+        message: { text: "Welcome to our new group!" },
+      });
+
+      console.log(`Group created: ${response.data?.dm_conversation_id}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="बातचीत की ID प्राप्त करें">
+    ```json
+    {
+      "data": {
+        "dm_conversation_id": "1582103724607971328",
+        "dm_event_id": "1582103724607971332"
+      }
+    }
+    ```
+
+    बाद में और संदेश जोड़ने के लिए `dm_conversation_id` सहेज लें।
+  </Step>
+</Steps>
+
+***
+
+<div id="add-a-message-to-an-existing-conversation">
+  ## किसी मौजूदा बातचीत में संदेश जोड़ें
+</div>
+
+उस बातचीत में संदेश भेजें, जिसका आप पहले से हिस्सा हैं:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Adding another message to the conversation."}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # मौजूदा बातचीत में संदेश जोड़ें
+  response = client.dm.send_message_to_conversation(
+      dm_conversation_id="1582103724607971328",
+      text="Adding another message to the conversation."
+  )
+
+  print(f"Message sent: {response.data.dm_event_id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // मौजूदा बातचीत में संदेश जोड़ें
+  const response = await client.dm.sendMessageToConversation(
+    "1582103724607971328",
+    { text: "Adding another message to the conversation." }
+  );
+
+  console.log(`Message sent: ${response.data?.dm_event_id}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="send-a-message-with-media">
+  ## मीडिया के साथ संदेश भेजें
+</div>
+
+<Steps>
+  <Step title="मीडिया अपलोड करें">
+    सबसे पहले, [Media Upload endpoint](/hi/x-api/media/quickstart/media-upload-chunked) का इस्तेमाल करके अपना मीडिया अपलोड करें।
+  </Step>
+
+  <Step title="मीडिया संलग्नक के साथ भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "text": "Check out this image!",
+          "attachments": [{"media_id": "1234567890123456789"}]
+        }'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # मीडिया के साथ संदेश भेजें
+      response = client.dm.send_message(
+          participant_id="9876543210",
+          text="Check out this image!",
+          attachments=[{"media_id": "1234567890123456789"}]
+      )
+
+      print(f"Message with media sent: {response.data.dm_event_id}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // मीडिया के साथ संदेश भेजें
+      const response = await client.dm.sendMessage({
+        participantId: "9876543210",
+        text: "Check out this image!",
+        attachments: [{ mediaId: "1234567890123456789" }],
+      });
+
+      console.log(`Message with media sent: ${response.data?.dm_event_id}`);
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="delete-a-message">
+  ## संदेश हटाएँ
+</div>
+
+अपने द्वारा भेजा गया संदेश हटाने के लिए:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/dm_events/1582103724607971332" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # संदेश हटाएँ
+  response = client.dm.delete_message("1582103724607971332")
+  print(f"Deleted: {response.data.deleted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // संदेश हटाएँ
+  const response = await client.dm.deleteMessage("1582103724607971332");
+  console.log(`Deleted: ${response.data?.deleted}`);
+  ```
+</CodeGroup>
+
+**प्रतिक्रिया:**
+
+```json
+{
+  "data": {
+    "deleted": true
+  }
+}
+```
+
+<Warning>
+  आप केवल अपने भेजे गए संदेश हटा सकते हैं, अन्य प्रतिभागियों के संदेश नहीं।
+</Warning>
+
+***
+
+<div id="required-scopes">
+  ## आवश्यक स्कोप
+</div>
+
+OAuth 2.0 PKCE का उपयोग करते समय, आपके access token में ये स्कोप होने चाहिए:
+
+| Scope        | विवरण                                   |
+| :----------- | :-------------------------------------- |
+| `dm.write`   | संदेश भेजना और हटाना                    |
+| `dm.read`    | बातचीत पढ़ना (`dm.write` के साथ आवश्यक) |
+| `tweet.read` | कुछ expansions के लिए आवश्यक            |
+| `users.read` | उपयोगकर्ता expansions के लिए आवश्यक     |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="DM लुकअप" icon="inbox" href="/hi/x-api/direct-messages/lookup/quickstart">
+    DM बातचीत प्राप्त करें
+  </Card>
+
+  <Card title="एकीकरण गाइड" icon="book" href="/hi/x-api/direct-messages/manage/integrate">
+    मुख्य अवधारणाएँ और सर्वोत्तम तरीके
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/direct-messages/create-dm-message-by-participant-id">
+    एंडपॉइंट का संपूर्ण दस्तावेज़ीकरण
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    कार्यशील कोड के उदाहरण
+  </Card>
+</CardGroup>
