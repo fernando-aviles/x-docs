@@ -1,0 +1,102 @@
+---
+title: माइग्रेशन गाइड
+sidebarTitle: माइग्रेशन गाइड
+keywords: ["जवाब छिपाने का माइग्रेशन", "जवाब छिपाने के लिए माइग्रेट करें", "माइग्रेशन गाइड", "जवाब छिपाने की सुविधा के लिए माइग्रेट करें", "v2 माइग्रेशन"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="comparing-x-apis-hide-replies-endpoints">
+  ## X API के जवाब छिपाना एंडपॉइंट्स की तुलना
+</div>
+
+v2 जवाब छिपाना एंडपॉइंट, Labs जवाब छिपाना एंडपॉइंट की जगह ले रहा है। यदि आपके पास ऐसा कोड, ऐप्स या टूल हैं जो इस एंडपॉइंट के Labs संस्करण का उपयोग करते हैं, और आप नए X API v2 एंडपॉइंट पर माइग्रेट करने पर विचार कर रहे हैं, तो यह गाइड आपके लिए है।
+
+नए X API v2 (जिसमें जवाब छिपाना एंडपॉइंट भी शामिल है) का उपयोग करने के लिए, आपको [नए डेवलपर कंसोल में शामिल होना](https://developer.x.com/en/portal/opt-in) होगा, एक [Project](/hi/resources/fundamentals/developer-apps) बनाना होगा, और उस Project में एक ऐप जोड़ना होगा। इसके बाद, आप उस ऐप से जुड़े क्रेडेंशियल्स का उपयोग करके जवाब छिपाना एंडपॉइंट पर अनुरोध भेज सकते हैं। वही ऐप जोड़ने पर जो Labs v2 जवाब छिपाना एंडपॉइंट के लिए पंजीकृत है, आपके उपयोगकर्ता प्रमाणीकृत बने रहेंगे।
+
+निम्न तालिका Labs और नए X API v2 एंडपॉइंट के बीच के अंतर दिखाती है:
+
+| **विवरण**                                                                                                                                                                    | **Labs v2**                                                  | **X API v2**                                                  |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------ |
+| होस्ट डोमेन                                                                                                                                                                  | https://api.x.com                                            | https://api.x.com                                             |
+| एंडपॉइंट पथ                                                                                                                                                                  | /labs/2/tweets/:id/hidden                                    | /2/tweets/:id/hidden                                          |
+| प्रमाणीकरण                                                                                                                                                                   | OAuth 1.0a उपयोगकर्ता संदर्भ                                 | OAuth 1.0a उपयोगकर्ता संदर्भ                                  |
+| समर्थित HTTP मेथड                                                                                                                                                            | PUT                                                          | PUT                                                           |
+| डिफ़ॉल्ट अनुरोध रेट लिमिट्स                                                                                                                                                  | 15 मिनट में 10 अनुरोध (सभी प्रमाणीकृत उपयोगकर्ताओं में साझा) | 15 मिनट में 50 अनुरोध (प्रत्येक प्रमाणीकृत उपयोगकर्ता के लिए) |
+| जवाब छिपा सकता है                                                                                                                                                            | ✔︎                                                           | ✔︎                                                            |
+| पहले से छिपाए गए जवाब को फिर से दिखा सकता है                                                                                                                                 | ✔︎                                                           | ✔︎                                                            |
+| जवाबों को कई बार छिपा या फिर से दिखा सकता है                                                                                                                                 | ✔︎                                                           | ✔︎                                                            |
+| किसी [developer App](/hi/resources/fundamentals/developer-apps) के ऐसे क्रेडेंशियल्स का उपयोग आवश्यक है, जो किसी [project](/hi/resources/fundamentals/developer-apps) से संबद्ध हो |                                                              | ✔                                                             |
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="hide-a-reply-v2">
+  ### जवाब छिपाएँ (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X PUT "https://api.x.com/2/tweets/1234567890/hidden" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"hidden": true}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/tweets/1234567890/hidden"
+  response = requests.put(url, auth=auth, json={"hidden": True})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # जवाब छिपाएँ
+  response = client.posts.hide_reply("1234567890", hidden=True)
+  print(f"Hidden: {response.data.hidden}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // जवाब छिपाएँ
+  const response = await client.posts.hideReply("1234567890", { hidden: true });
+  console.log(`Hidden: ${response.data?.hidden}`);
+  ```
+</CodeGroup>
+
+**अन्य माइग्रेशन संसाधन**
+
+[X API माइग्रेशन हब](/hi/x-api/migrate/overview)

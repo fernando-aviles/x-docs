@@ -1,0 +1,229 @@
+---
+title: v1 से v2
+sidebarTitle: v1 से v2
+keywords: ["v1.1 से v2 माइग्रेशन", "यूज़र लुकअप माइग्रेशन", "यूज़र लुकअप माइग्रेट करें", "स्टैंडर्ड से v2 यूज़र लुकअप", "v1 से v2 यूज़र लुकअप", "माइग्रेशन गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ### X API v2 की तुलना में Standard v1.1
+</div>
+
+यदि आपने standard v1.1 के GET users/show और GET users/lookup के साथ काम किया है, तो इस गाइड का उद्देश्य standard और X API v2 के users lookup एंडपॉइंट्स के बीच समानताओं और अंतरों को समझने में आपकी मदद करना है।
+
+* **समानताएँ**
+  * OAuth 1.0a User Context
+  * प्रति अनुरोध उपयोगकर्ताओं की सीमा
+* **अंतर**
+  * एंडपॉइंट URL
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+  * प्रतिक्रिया डेटा प्रारूप
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**OAuth 1.0a User Context प्रमाणीकरण विधि**
+
+मानक endpoint [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication#oauth-1-0a-2) का समर्थन करता है, जबकि नए X API v2 users lookup endpoints, OAuth 1.0a User Context और [ऐप only](/hi/resources/fundamentals/authentication#oauth-2-0) दोनों का समर्थन करते हैं। इसलिए, यदि आप पहले मानक v1.1 users lookup endpoints में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर migrate करने के बाद भी आप उसी प्रमाणीकरण विधि का उपयोग जारी रख सकते हैं।
+
+आपकी चुनी हुई authentication library/package के आधार पर, ऐप only प्रमाणीकरण संभवतः शुरुआत करने का सबसे आसान तरीका है, और इसे एक साधारण request header के साथ सेट किया जा सकता है। ऐप only Access Token जनरेट करने का तरीका जानने के लिए, [यह ऐप only guide](/hi/resources/fundamentals/authentication#bearer-token-also-known-as-app-only) देखें।
+
+**प्रति अनुरोध उपयोगकर्ताओं की सीमा**
+
+मानक v1.1 GET users/lookup endpoint आपको प्रति अनुरोध 100 उपयोगकर्ता निर्दिष्ट करने की अनुमति देता है। यही बात GET /users और GET /users/by endpoints पर भी लागू होती है। पूरे 100 उपयोगकर्ताओं को निर्दिष्ट करने के लिए, आपको ids (GET /users) parameter या username (GET /users/by) parameter को query parameter के रूप में पास करना होगा, और user IDs/usernames की सूची को comma-separated list में शामिल करना होगा।
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URL**
+
+* मानक v1.1 एंडपॉइंट:
+  * https://api.x.com/1.1/users/show (एकल-ID या username lookup)
+  * https://api.x.com/1.1/users/lookup (मल्टी-ID या username lookup)
+* X API v2 एंडपॉइंट:
+  * https://api.x.com/2/users (मल्टी-ID lookup)
+  * https://api.x.com/2/users/:id (एकल-ID lookup)
+  * https://api.x.com/2/users/by (मल्टी-username lookup)
+  * https://api.x.com/2/users/by/username/:username (एकल-username lookup)
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 एंडपॉइंट के लिए यह आवश्यक है कि आप अपनी रिक्वेस्ट का प्रमाणीकरण करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के credentials का उपयोग करें, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। X API v1.1 के सभी एंडपॉइंट, ऐप्स या किसी प्रोजेक्ट से संबद्ध ऐप्स के credentials का उपयोग कर सकते हैं।
+
+**प्रतिक्रिया डेटा प्रारूप**
+
+मानक v1.1 और X API v2 एंडपॉइंट वर्शन के बीच सबसे बड़े अंतरों में से एक यह है कि आप यह कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें।
+
+मानक एंडपॉइंट्स में, आपको डिफ़ॉल्ट रूप से रिस्पॉन्स के कई फ़ील्ड्स मिलते हैं, और फिर आप पैरामीटर का उपयोग करके यह तय कर सकते हैं कि payload में कौन-से फ़ील्ड्स या फ़ील्ड्स के कौन-से सेट लौटने चाहिए।
+
+X API v2 वर्शन डिफ़ॉल्ट रूप से केवल user id, name, और username फ़ील्ड्स देता है। किसी भी अतिरिक्त फ़ील्ड्स या ऑब्जेक्ट्स का अनुरोध करने के लिए, आपको [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) पैरामीटर का उपयोग करना होगा। इस एंडपॉइंट से जिन भी user फ़ील्ड्स का आप अनुरोध करेंगे, वे मुख्य user ऑब्जेक्ट में लौटेंगे। कोई भी expanded पोस्ट ऑब्जेक्ट और उसके फ़ील्ड्स आपके रिस्पॉन्स के includes ऑब्जेक्ट में लौटेंगे। इसके बाद आप user और expanded पोस्ट ऑब्जेक्ट, दोनों में मौजूद IDs का मिलान करके expanded ऑब्जेक्ट्स को user ऑब्जेक्ट से जोड़ सकते हैं।
+
+हम आपको प्रोत्साहित करते हैं कि आप इन नए पैरामीटर के बारे में उनकी संबंधित guides में और पढ़ें, या [fields और expansions का उपयोग कैसे करें](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) पर हमारी guide देखें।
+
+हमने एक [data format migration guide](/hi/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) भी तैयार की है, जो मानक v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में आपकी मदद कर सकती है। यह guide आपको वह विशिष्ट expansion और field parameter भी बताएगी, जिसे आपको अपनी v2 request के साथ पास करना होगा ताकि विशेष फ़ील्ड्स लौटाए जा सकें।
+
+कुछ फ़ील्ड्स का अनुरोध करने के तरीके में बदलाव के अलावा, X API v2 APIs द्वारा लौटाए जाने वाले ऑब्जेक्ट्स के लिए नए JSON डिज़ाइन भी पेश करता है, जिनमें [Post](/hi/x-api/fundamentals/data-dictionary#tweet) और [user](/hi/x-api/fundamentals/data-dictionary#user) ऑब्जेक्ट्स शामिल हैं।
+
+* JSON root स्तर पर, मानक एंडपॉइंट statuses array में पोस्ट ऑब्जेक्ट्स लौटाते हैं, जबकि X API v2 data array लौटाता है।
+* Retweeted और Quoted &quot;statuses&quot; कहने के बजाय, X API v2 JSON, Retweeted और Quoted Tweets का उल्लेख करता है। contributors और user.translator&#95;type जैसे कई legacy और deprecated फ़ील्ड्स हटाए जा रहे हैं।
+* favorites (Post ऑब्जेक्ट में) और favourites (user ऑब्जेक्ट में) दोनों का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है।
+* X इस परंपरा को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, null), उन्हें payload में नहीं लिखा जाता। पोस्ट और user attributes केवल तभी शामिल किए जाते हैं, जब उनके values non-null हों।
+
+हमने [Post object](/hi/x-api/fundamentals/data-dictionary#tweet) में फ़ील्ड्स का एक नया सेट भी जोड़ा है, जिनमें निम्नलिखित शामिल हैं:
+
+* एक [conversation&#95;id](/hi/x-api/fundamentals/conversation-id) फ़ील्ड
+* दो नए [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स, जिनमें context और entities शामिल हैं
+* कई नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स
+* एक नया reply&#95;setting फ़ील्ड, जो यह दिखाता है कि किसी दिए गए पोस्ट का जवाब कौन दे सकता है
+
+**रिक्वेस्ट पैरामीटर**
+
+निम्नलिखित मानक v1.1 रिक्वेस्ट पैरामीटर के समकक्ष X API v2 में मौजूद हैं:
+
+|                 |              |
+| :-------------- | :----------- |
+| **मानक**        | **X API v2** |
+| user&#95;id     | ids          |
+| screen&#95;name | username     |
+
+मानक users lookup रिक्वेस्ट पैरामीटर का एक सेट ऐसा भी है, जो X API v2 में **समर्थित नहीं** है:
+
+| Standard             | Comment                                                                                                                                             |
+| :------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| include&#95;entities | इस parameter का उपयोग पोस्ट payload से entities node हटाने के लिए किया जाता है। इसे additive fields और expansions functionality से बदल दिया गया है। |
+
+***
+
+<div id="code-examples">
+  ### कोड उदाहरण
+</div>
+
+निम्नलिखित उदाहरण मानक v1.1 एंडपॉइंट्स और उनके v2 समकक्ष दिखाते हैं।
+
+**एकल उपयोगकर्ता लुकअप: v1.1 `GET users/show` → v2 `GET /users/by/username/:username`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/users/show.json?screen_name=XDevelopers' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/users/by/username/XDevelopers?user.fields=created_at,description,public_metrics' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/by/username/XDevelopers"
+
+  params = {
+      "user.fields": "created_at,description,public_metrics"
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # अतिरिक्त फ़ील्ड्स के साथ username के आधार पर उपयोगकर्ता प्राप्त करें
+  response = client.users.get_by_username(
+      "XDevelopers",
+      user_fields=["created_at", "description", "public_metrics"]
+  )
+
+  print(f"Name: {response.data.name}")
+  print(f"Followers: {response.data.public_metrics.followers_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers", {
+    userFields: ["created_at", "description", "public_metrics"],
+  });
+
+  console.log(`Name: ${response.data?.name}`);
+  console.log(`Followers: ${response.data?.public_metrics?.followers_count}`);
+  ```
+</CodeGroup>
+
+**एकाधिक उपयोगकर्ताओं का लुकअप: v1.1 `GET users/lookup` → v2 `GET /users/by`**
+
+<CodeGroup dropdown>
+  ```bash cURL (v1.1)
+  curl --request GET \
+    --url 'https://api.x.com/1.1/users/lookup.json?screen_name=XDevelopers,X,XAPI' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```bash cURL (v2)
+  curl --request GET \
+    --url 'https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&user.fields=created_at,public_metrics' \
+    --header 'Authorization: Bearer $ACCESS_TOKEN'
+  ```
+
+  ```python Python (v2)
+  import requests
+
+  bearer_token = "YOUR_BEARER_TOKEN"
+  url = "https://api.x.com/2/users/by"
+
+  params = {
+      "usernames": "XDevelopers,X,XAPI",
+      "user.fields": "created_at,public_metrics"
+  }
+
+  headers = {"Authorization": f"Bearer {bearer_token}"}
+  response = requests.get(url, headers=headers, params=params)
+
+  for user in response.json()["data"]:
+      print(f"{user['username']}: {user['public_metrics']['followers_count']} followers")
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # usernames के आधार पर एकाधिक उपयोगकर्ता प्राप्त करें
+  response = client.users.get_users_by_usernames(
+      usernames=["XDevelopers", "X", "XAPI"],
+      user_fields=["created_at", "public_metrics"]
+  )
+
+  for user in response.data:
+      print(f"{user.username}: {user.public_metrics.followers_count} followers")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getUsersByUsernames({
+    usernames: ["XDevelopers", "X", "XAPI"],
+    userFields: ["created_at", "public_metrics"],
+  });
+
+  response.data?.forEach((user) => {
+    console.log(`${user.username}: ${user.public_metrics?.followers_count} followers`);
+  });
+  ```
+</CodeGroup>

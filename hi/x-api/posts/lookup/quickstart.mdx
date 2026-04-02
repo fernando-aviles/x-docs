@@ -1,0 +1,216 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: कुछ ही मिनटों में अपना पहला पोस्ट लुकअप अनुरोध भेजें
+keywords: ["पोस्ट लुकअप त्वरित शुरुआत", "Tweet लुकअप त्वरित शुरुआत", "लुकअप ट्यूटोरियल", "लुकअप गाइड", "Tweet पाने की त्वरित शुरुआत", "लुकअप उदाहरण"]
+---
+
+import { Button } from "/snippets/hi/button.mdx"
+
+यह मार्गदर्शिका आपको X API v2 का उपयोग करके अपनी पहली पोस्ट लुकअप अनुरोध करने की प्रक्रिया समझाती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन (जो डेवलपर कंसोल में &quot;Keys and tokens&quot; के अंतर्गत मिलता है)
+</Note>
+
+***
+
+<Steps>
+  <Step title="पोस्ट आईडी ढूँढें">
+    हर पोस्ट की एक विशिष्ट ID होती है। आप इसे पोस्ट के URL में देख सकते हैं:
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── यह पोस्ट ID है
+    ```
+  </Step>
+
+  <Step title="अनुरोध भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # ID के आधार पर एक पोस्ट प्राप्त करें
+      response = client.posts.get("1228393702244134912")
+      print(response.data)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912");
+      console.log(response.data);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    डिफ़ॉल्ट रिस्पॉन्स में पोस्ट का `id`, `text`, और `edit_history_tweet_ids` शामिल होते हैं:
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?\n\nwhile(true) {\n    I = Love(You);\n}",
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="अतिरिक्त फ़ील्ड्स का अनुरोध करें">
+    अधिक डेटा पाने के लिए क्वेरी पैरामीटर्स का उपयोग करें:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1228393702244134912?\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # अतिरिक्त फ़ील्ड्स और expansions के साथ एक पोस्ट प्राप्त करें
+      response = client.posts.get(
+          "1228393702244134912",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"]
+      )
+
+      print(response.data)
+      print(response.includes)  # लेखक का user object शामिल है
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.get("1228393702244134912", {
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+      });
+
+      console.log(response.data);
+      console.log(response.includes); // लेखक का user object शामिल है
+      ```
+    </CodeGroup>
+
+    **रिस्पॉन्स:**
+
+    ```json
+    {
+      "data": {
+        "id": "1228393702244134912",
+        "text": "What did the developer write in their Valentine's card?...",
+        "created_at": "2020-02-14T19:00:55.000Z",
+        "author_id": "2244994945",
+        "public_metrics": {
+          "retweet_count": 156,
+          "reply_count": 23,
+          "like_count": 892,
+          "quote_count": 12
+        },
+        "edit_history_tweet_ids": ["1228393702244134912"]
+      },
+      "includes": {
+        "users": [
+          {
+            "id": "2244994945",
+            "username": "XDevelopers",
+            "verified": true
+          }
+        ]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="कई पोस्ट्स प्राप्त करें">
+    एक ही अनुरोध में अधिकतम 100 पोस्ट्स प्राप्त करें:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets?\
+      ids=1228393702244134912,1227640996038684673,1199786642791452673&\
+      tweet.fields=created_at,author_id" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # IDs के आधार पर कई पोस्ट्स प्राप्त करें
+      response = client.posts.get_posts(
+          ids=["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+          tweet_fields=["created_at", "author_id"]
+      )
+
+      for post in response.data:
+          print(f"{post.id}: {post.text[:50]}...")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      const response = await client.posts.getPosts({
+        ids: ["1228393702244134912", "1227640996038684673", "1199786642791452673"],
+        tweetFields: ["created_at", "author_id"],
+      });
+
+      response.data?.forEach((post) => {
+        console.log(`${post.id}: ${post.text?.slice(0, 50)}...`);
+      });
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="इंटीग्रेशन गाइड" icon="book" href="/hi/x-api/posts/lookup/integrate">
+    ऑथेंटिकेशन, रेट लिमिट्स और सर्वोत्तम प्रक्रियाओं के बारे में जानें
+  </Card>
+
+  <Card title="फ़ील्ड्स और expansions" icon="sliders" href="/hi/x-api/fundamentals/fields">
+    फ़ील्ड्स और expansions सिस्टम में महारत हासिल करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/get-post-by-id">
+    सभी उपलब्ध पैरामीटर्स देखें
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    और उदाहरण एक्सप्लोर करें
+  </Card>
+</CardGroup>

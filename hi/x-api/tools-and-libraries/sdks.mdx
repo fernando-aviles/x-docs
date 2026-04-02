@@ -1,0 +1,241 @@
+---
+title: आधिकारिक SDK
+sidebarTitle: SDKs
+description: TypeScript और Python के लिए आधिकारिक X API SDK
+keywords: ["SDK", "सॉफ़्टवेयर डेवलपमेंट किट", "क्लाइंट SDK", "API SDK", "आधिकारिक SDK"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+X TypeScript और Python के लिए आधिकारिक SDK उपलब्ध कराता है। ये लाइब्रेरी प्रमाणीकरण और पेजिनेशन को संभालती हैं, और पूर्ण Type सुरक्षा प्रदान करती हैं।
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python" href="/hi/xdks/python/overview">
+    Async सपोर्ट, type hints, व्यापक v2 कवरेज।
+  </Card>
+
+  <Card title="TypeScript SDK" icon="js" href="/hi/xdks/typescript/overview">
+    पूर्ण TypeScript types, ESM सपोर्ट, Node.js के साथ काम करता है।
+  </Card>
+</CardGroup>
+
+***
+
+<div id="why-use-the-official-sdks">
+  ## आधिकारिक SDKs का उपयोग क्यों करें?
+</div>
+
+| लाभ                     | विवरण                                                    |
+| :---------------------- | :------------------------------------------------------- |
+| **हमेशा अपडेटेड**       | X द्वारा अनुरक्षित, नए endpoints के साथ अपडेट किया गया   |
+| **Type सुरक्षा**        | सभी objects और methods के लिए पूर्ण type definitions     |
+| **अंतर्निहित auth**     | OAuth 2.0 और OAuth 1.0a का समर्थन                        |
+| **स्वचालित pagination** | मैन्युअल token handling के बिना परिणामों पर iterate करें |
+
+***
+
+<div id="quick-start">
+  ## त्वरित शुरुआत
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ### इंस्टॉलेशन
+
+    ```bash
+    pip install xdk
+    ```
+
+    ### बुनियादी उपयोग
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+    # पोस्ट्स खोजें (यह एक iterator लौटाता है)
+    for page in client.posts.search_recent(query="api", max_results=10):
+        if page.data and len(page.data) > 0:
+            first_post = page.data[0]
+            print(first_post.text)
+            break
+    ```
+
+    <Button href="/hi/xdks/python/overview">पूरा Python गाइड</Button>
+  </Tab>
+
+  <Tab title="TypeScript">
+    ### इंस्टॉलेशन
+
+    ```bash
+    npm install @xdevplatform/xdk
+    ```
+
+    ### बुनियादी उपयोग
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+
+    // किसी उपयोगकर्ता को खोजें
+    const userResponse = await client.users.getByUsername('XDevelopers');
+    console.log(userResponse.data?.username);
+    ```
+
+    <Button href="/hi/xdks/typescript/overview">पूरा TypeScript गाइड</Button>
+  </Tab>
+</Tabs>
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+दोनों SDK कई प्रमाणीकरण विधियों का समर्थन करते हैं:
+
+<Tabs>
+  <Tab title="बेयरर टोकन (केवल ऐप)">
+    सार्वजनिक डेटा पढ़ने के लिए सबसे आसान विकल्प।
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+
+    client = Client(bearer_token="YOUR_BEARER_TOKEN")
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client } from '@xdevplatform/xdk';
+
+    const client = new Client({ bearerToken: 'YOUR_BEARER_TOKEN' });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0 (उपयोगकर्ता संदर्भ)">
+    उपयोगकर्ताओं की ओर से कार्रवाइयों के लिए (पोस्ट करना, फ़ॉलो करना आदि)।
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth2_auth import OAuth2PKCEAuth
+
+    auth = OAuth2PKCEAuth(
+        client_id="YOUR_CLIENT_ID",
+        redirect_uri="YOUR_CALLBACK_URL",
+        scope="tweet.read users.read offline.access"
+    )
+
+    # प्राधिकरण URL प्राप्त करें
+    auth_url = auth.get_authorization_url()
+
+    # उपयोगकर्ता की अनुमति के बाद, code के बदले टोकन प्राप्त करें
+    tokens = auth.fetch_token(authorization_response=callback_url)
+    client = Client(bearer_token=tokens["access_token"])
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth2, generateCodeVerifier, generateCodeChallenge } from '@xdevplatform/xdk';
+
+    const oauth2 = new OAuth2({
+      clientId: 'YOUR_CLIENT_ID',
+      clientSecret: 'YOUR_CLIENT_SECRET',
+      redirectUri: 'https://your-app.com/callback',
+      scope: ['tweet.read', 'users.read', 'offline.access'],
+    });
+
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    oauth2.setPkceParameters(codeVerifier, codeChallenge);
+    const authUrl = await oauth2.getAuthorizationUrl('state');
+
+    // प्राधिकरण के बाद, code के बदले टोकन प्राप्त करें
+    const tokens = await oauth2.exchangeCode(authCode, codeVerifier);
+    const client = new Client({ accessToken: tokens.access_token });
+    ```
+  </Tab>
+
+  <Tab title="OAuth 1.0a (उपयोगकर्ता संदर्भ)">
+    लीगेसी ऐप्लिकेशन या खास उपयोग मामलों के for लिए।
+
+    **Python:**
+
+    ```python
+    from xdk import Client
+    from xdk.oauth1_auth import OAuth1
+
+    oauth1 = OAuth1(
+        api_key="YOUR_API_KEY",
+        api_secret="YOUR_API_SECRET",
+        access_token="YOUR_ACCESS_TOKEN",
+        access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+    )
+
+    client = Client(auth=oauth1)
+    ```
+
+    **TypeScript:**
+
+    ```typescript
+    import { Client, OAuth1 } from '@xdevplatform/xdk';
+
+    const oauth1 = new OAuth1({
+      apiKey: 'YOUR_API_KEY',
+      apiSecret: 'YOUR_API_SECRET',
+      accessToken: 'YOUR_ACCESS_TOKEN',
+      accessTokenSecret: 'YOUR_ACCESS_TOKEN_SECRET'
+    });
+
+    const client = new Client({ oauth1: oauth1 });
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="available-methods">
+  ## उपलब्ध मेथड्स
+</div>
+
+SDKs, X API v2 के सभी endpoints के लिए मेथड्स उपलब्ध कराते हैं:
+
+| श्रेणी         | Python                         | TypeScript                       |
+| :------------- | :----------------------------- | :------------------------------- |
+| **पोस्ट्स**    | `client.posts.search_recent()` | `client.posts.search()`          |
+| **उपयोगकर्ता** | `client.users.get_me()`        | `client.users.getMe()`           |
+| **Spaces**     | `client.spaces.get()`          | `client.spaces.findSpaceById()`  |
+| **सूचियाँ**    | `client.lists.get()`           | `client.lists.getList()`         |
+| **डीएम्स**     | `client.direct_messages.get()` | `client.directMessages.lookup()` |
+
+पूर्ण मेथड संदर्भ के लिए SDK का पूरा दस्तावेज़ीकरण देखें।
+
+***
+
+<div id="resources">
+  ## संसाधन
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Python SDK दस्तावेज़ीकरण" icon="book" href="/hi/xdks/python/overview">
+    पूरा Python दस्तावेज़ीकरण।
+  </Card>
+
+  <Card title="TypeScript SDK दस्तावेज़ीकरण" icon="book" href="/hi/xdks/typescript/overview">
+    पूरा TypeScript दस्तावेज़ीकरण।
+  </Card>
+
+  <Card title="Python GitHub" icon="github" href="https://github.com/xdevplatform/xdk-py">
+    सोर्स कोड और इश्यू।
+  </Card>
+
+  <Card title="TypeScript GitHub" icon="github" href="https://github.com/xdevplatform/twitter-api-typescript-sdk">
+    सोर्स कोड और इश्यू।
+  </Card>
+</CardGroup>

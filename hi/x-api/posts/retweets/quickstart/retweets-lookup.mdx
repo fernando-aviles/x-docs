@@ -1,0 +1,206 @@
+---
+title: रीट्वीट्स लुकअप
+sidebarTitle: रीट्वीट्स लुकअप
+description: उन उपयोगकर्ताओं को प्राप्त करें जिन्होंने किसी पोस्ट को रीट्वीट किया है
+keywords: ["रीट्वीट्स लुकअप", "रीट्वीट्स त्वरित शुरुआत", "रीट्वीट्स प्राप्त करें", "रीट्वीट्स ट्यूटोरियल", "रीट्वीट्स गाइड", "रीट्वीट्स उदाहरण"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको किसी विशिष्ट पोस्ट को रीट्वीट करने वाले उपयोगकर्ताओं को प्राप्त करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपके पास ये होने चाहिए:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन (सार्वजनिक डेटा के लिए) या उपयोगकर्ता एक्सेस टोकन (निजी मेट्रिक्स के लिए)
+</Note>
+
+***
+
+<div id="get-users-who-retweeted-a-post">
+  ## उन उपयोगकर्ताओं को प्राप्त करें जिन्होंने किसी पोस्ट को रीट्वीट किया
+</div>
+
+<Steps>
+  <Step title="पोस्ट ID ढूँढें">
+    जिस पोस्ट के रीट्वीट्स आप देखना चाहते हैं, उसकी ID प्राप्त करें:
+
+    ```
+    https://x.com/XDevelopers/status/1354143047324299264
+                                    └── यह पोस्ट ID है
+    ```
+  </Step>
+
+  <Step title="अनुरोध भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+      user.fields=created_at,username,verified" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # पेजिनेशन के साथ उन उपयोगकर्ताओं को प्राप्त करें जिन्होंने किसी पोस्ट को Retweet किया
+      for page in client.posts.get_retweeted_by(
+          "1354143047324299264",
+          user_fields=["created_at", "username", "verified"]
+      ):
+          for user in page.data:
+              print(f"{user.username} - जॉइन किया: {user.created_at}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // पेजिनेशन के साथ उन उपयोगकर्ताओं को प्राप्त करें जिन्होंने किसी पोस्ट को Retweet किया
+      const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+        userFields: ["created_at", "username", "verified"],
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - जॉइन किया: ${user.created_at}`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": [
+        {
+          "created_at": "2008-12-04T18:51:57.000Z",
+          "id": "17874544",
+          "username": "TwitterSupport",
+          "name": "Twitter Support",
+          "verified": true
+        },
+        {
+          "created_at": "2007-02-20T14:35:54.000Z",
+          "id": "783214",
+          "username": "Twitter",
+          "name": "Twitter",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 2,
+        "next_token": "7140dibdnow9c7btw3z2vwioavpvutgzrzm9icis4ndix"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## अतिरिक्त डेटा शामिल करें
+</div>
+
+पिन की गई पोस्ट्स जैसे संबंधित डेटा पाने के लिए expansions का उपयोग करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/1354143047324299264/retweeted_by?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # expansions के साथ रीट्वीट करने वाले उपयोगकर्ताओं को प्राप्त करें
+  for page in client.posts.get_retweeted_by(
+      "1354143047324299264",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # पिन की गई पोस्ट्स page.includes.tweets में हैं
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // expansions के साथ रीट्वीट करने वाले उपयोगकर्ताओं को प्राप्त करें
+  const paginator = client.posts.getRetweetedBy("1354143047324299264", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // पिन की गई पोस्ट्स page.includes?.tweets में हैं
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### विस्तार सहित प्रतिक्रिया
+</div>
+
+```json
+{
+  "data": [
+    {
+      "pinned_tweet_id": "1389270063807598594",
+      "created_at": "2018-11-21T14:24:58.000Z",
+      "id": "1065249714214457345",
+      "username": "TwitterSpaces",
+      "name": "Spaces"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-05-03T17:26:09.000Z",
+        "id": "1389270063807598594",
+        "text": "now, everyone with 600 or more followers can host a Space..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="रीट्वीट्स प्रबंधित करें" icon="retweet" href="/hi/x-api/posts/retweets/quickstart/manage-retweets">
+    रीट्वीट करें और रीट्वीट्स हटाएँ
+  </Card>
+
+  <Card title="कोट पोस्ट्स" icon="quote-left" href="/hi/x-api/posts/quote-tweets/quickstart">
+    कोट पोस्ट्स प्राप्त करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/get-retweeted-by">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+</CardGroup>

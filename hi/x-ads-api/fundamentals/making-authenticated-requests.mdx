@@ -1,0 +1,147 @@
+---
+title: प्रमाणीकृत अनुरोध करना
+keywords: ["Ads API प्रमाणीकरण", "प्रमाणीकृत अनुरोध", "Ads API auth", "OAuth Ads API", "Ads API अनुरोध", "प्रमाणीकरण"]
+---
+
+X Ads API endpoints तक पहुँचने के लिए, आपके ऐप को https://ads-api.x.com पर TLS का उपयोग करके सुरक्षित, प्रमाणीकृत वेब अनुरोध भेजने होते हैं।
+
+निम्नलिखित अनुभागों में प्रमाणीकृत API अनुरोध करने, API के साथ इंटरैक्ट करने के लिए [Twurl](https://github.com/twitter/twurl#getting-started) सेट अप करने, और OAuth 1.0a के समर्थन के लिए अपने ऐप को विस्तारित करने तथा अपने Ads खाते पर अनुरोध करने का अवलोकन दिया गया है।
+
+<div id="requirements">
+  ## आवश्यकताएँ
+</div>
+
+X Ads API में प्रमाणीकृत अनुरोध करने से पहले, आपको इनकी आवश्यकता होगी:
+
+* एक [अनुमोदित डेवलपर खाता](/hi/resources/fundamentals/developer-portal)
+* एक ऐसा ऐप जिसे [Ads API](/hi/x-ads-api/introduction) एक्सेस के लिए अनुमोदित किया गया हो
+* [ऐप प्रबंधन UI](/hi/resources/fundamentals/developer-apps) के माध्यम से प्राप्त API key और secret, और
+* ऐसे उपयोगकर्ता के [एक्सेस टोकन](/hi/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow), जिसे किसी X Ads खाते का एक्सेस हो
+
+<div id="using-the-api">
+  ## API का उपयोग
+</div>
+
+Advertising API को https://ads-api.x.com पर एक्सेस किया जाता है। [standard REST API](https://developer.x.com/en/docs/x-api/v1/tweets/post-and-engage/overview) और Advertising API, दोनों का उपयोग एक ही client ऐप के साथ किया जा सकता है। Advertising API में HTTPS अनिवार्य है, इसलिए HTTP के साथ किसी endpoint तक पहुँचने का प्रयास करने पर एक त्रुटि संदेश मिलेगा।
+
+Ads API, JSON आउटपुट देता है। सभी पहचानकर्ता स्ट्रिंग होते हैं और सभी स्ट्रिंग UTF-8 में होती हैं। Advertising API [versioned](/hi/x-ads-api/fundamentals/versioning) है, और version किसी भी resource URL के पहले path element के रूप में निर्दिष्ट किया जाता है।
+
+`https://ads-api.x.com/<version>/accounts`
+
+<div id="http-verbs-typical-response-codes">
+  ## HTTP क्रियाएँ और सामान्य रिस्पॉन्स कोड
+</div>
+
+Ads API में चार HTTP क्रियाओं का उपयोग किया जाता है:
+
+* **GET** डेटा प्राप्त करता है 
+* **POST** नया डेटा बनाता है, जैसे campaigns
+* **PUT** मौजूदा डेटा को अपडेट करता है, जैसे line items
+* **DELETE** डेटा हटाता है।
+
+हालाँकि deletion स्थायी होता है, फिर भी हटाए गए डेटा को अधिकांश GET-आधारित methods में संसाधन का अनुरोध करते समय स्पष्ट `with_deleted=true` parameter शामिल करके देखा जा सकता है। अन्यथा, हटाए गए records के लिए HTTP 404 मिलेगा।
+
+किसी संसाधन को बनाते, हटाते या अपडेट करते समय, सफल request में object को दर्शाने वाले JSON रिस्पॉन्स के साथ HTTP 200-सीरीज़ का रिस्पॉन्स मिलेगा।
+
+HTTP PUT से डेटा अपडेट करते समय, केवल निर्दिष्ट फ़ील्ड्स ही अपडेट होंगी। आप किसी optional value को parameter के साथ empty string देकर unset कर सकते हैं। उदाहरण के लिए, parameters का यह समूह पहले से निर्दिष्ट किसी भी `end_time` को unset कर देगा: `&end_time=&paused=false`.
+
+त्रुटि रिस्पॉन्स के बारे में अधिक जानकारी के लिए [Error Codes &amp; Responses](/hi/x-ads-api/fundamentals/error-codes-and-responses) देखें।
+
+<div id="in-line-parameters">
+  ## इन-लाइन पैरामीटर
+</div>
+
+अधिकांश संसाधन URL में एक या अधिक इन-लाइन पैरामीटर होते हैं। कई URL क्वेरी स्ट्रिंग में स्पष्ट रूप से घोषित पैरामीटर भी स्वीकार करते हैं या, POST या PUT अनुरोधों के लिए, बॉडी में पैरामीटर लेते हैं।
+
+इन-लाइन पैरामीटर प्रत्येक संसाधन के **Resource Path** अनुभाग में पहले लगे कोलन (”:”) से दर्शाए जाते हैं। उदाहरण के लिए, यदि आप जिस खाते पर काम कर रहे थे उसकी पहचान `"abc1"` के रूप में की गई हो और आप [किसी खाते से संबद्ध campaigns पुनर्प्राप्त कर रहे हों](/hi/x-ads-api/campaign-management#campaigns), तो आप URL `https://ads-api.x.com/6/accounts/abc1/campaigns` का उपयोग करके उस सूची तक पहुँचेंगे। संसाधन URL (`https://ads-api.x.com/6/accounts/:account_id/campaigns`) में बताए गए इन-लाइन `account_id` पैरामीटर को निर्दिष्ट करके, आपने अनुरोध का दायरा केवल उस खाते से संबद्ध ऑब्जेक्ट्स तक सीमित कर दिया है।
+
+<div id="using-access-tokens">
+  ## एक्सेस टोकन का उपयोग
+</div>
+
+X Ads API, किसी ऐप की पहचान सत्यापित करने और उस अंतिम उपयोगकर्ता द्वारा दी गई अनुमतियाँ प्राप्त करने के लिए signed HTTPS अनुरोधों का उपयोग करता है, जिसकी ओर से ऐप API अनुरोध कर रहा होता है; इन अनुमतियों को उपयोगकर्ता के access token से दर्शाया जाता है। Ads API के लिए सभी HTTP कॉल में HTTPS प्रोटोकॉल पर एक Authorization request header (OAuth 1.0a का उपयोग करते हुए) शामिल होना चाहिए।
+
+X Ads API के साथ इंटीग्रेट करने के लिए, आपको अपने ऐप में OAuth 1.0a Authorization request headers जनरेट करने का समर्थन जोड़ना होगा। हालांकि, signed अनुरोध जनरेट करने की जटिलता के कारण, हम दृढ़ता से अनुशंसा करते हैं कि पार्टनर किसी मौजूदा library का उपयोग करें जो या तो X API को support करती हो या OAuth 1.0a request handling लागू करती हो - यहाँ [recommended OAuth libraries](/hi/resources/fundamentals/authentication#oauth-1-0a-2) और [authentication code samples](/hi/resources/fundamentals/authentication#oauth-1-0a-2) की सूची दी गई है।
+
+ध्यान दें कि यदि पार्टनर किसी ज्ञात library का उपयोग करते समय authentication errors का सामना करते हैं, तो हम उनकी सहायता कर सकते हैं, लेकिन कस्टम OAuth implementations के लिए सहायता प्रदान नहीं कर सकते।
+
+<div id="http-oauth">
+  ## HTTP &amp; OAuth
+</div>
+
+X REST API v1.1 की तरह, Advertising API में [OAuth 1.0A](/hi/resources/fundamentals/authentication) और HTTPS, दोनों का उपयोग आवश्यक है। API keys [ऐप मैनेजमेंट कंसोल](/hi/resources/fundamentals/developer-apps) से प्राप्त की जा सकती हैं। “वर्तमान उपयोगकर्ता” को दर्शाने के लिए access tokens का भी उपयोग किया जाना चाहिए। वर्तमान उपयोगकर्ता वह X खाता होता है जिसमें विज्ञापन संबंधी क्षमताएं हों।
+
+भागीदारों को अपना समाधान स्वयं लिखने के बजाय OAuth library का उपयोग करने की पुरज़ोर अनुशंसा की जाती है। यदि आप किसी ज्ञात library का उपयोग करते हैं, तो हम debugging में सहायता कर सकते हैं, लेकिन यदि आप अपना स्वयं का OAuth implementation बनाते हैं, तो हम ऐसा नहीं कर सकते। जिन [libraries](/hi/resources/fundamentals/authentication#oauth-1-0a-2) का आप उपयोग कर सकते हैं, उन्हें देखें।
+
+यह API HTTP 1.1 और OAuth को लेकर सख्त है। OAuth signature base strings तैयार करने से पहले सुनिश्चित करें कि आप URLs और POST bodies में [आरक्षित वर्णों को एन्कोड](https://tools.ietf.org/html/rfc3986#section-2.2) उचित तरीके से कर रहे हैं। विशेष रूप से, Advertising API समय निर्दिष्ट करते समय ”:” वर्ण का और विकल्पों का संग्रह देते समय ”,” वर्ण का उपयोग करता है। ये दोनों वर्ण इस आरक्षित सेट में शामिल हैं:
+
+| प्रतीक | URL एन्कोडेड |
+| :----- | :----------- |
+| !      | %21          |
+| #      | %23          |
+| $      | %24          |
+| &amp;  | %26          |
+| &#39;  | %27          |
+| (      | %28          |
+| )      | %29          |
+| *      | %2A          |
+| +      | %2B          |
+| ,      | %2C          |
+| /      | %2F          |
+| :      | %3A          |
+| ;      | %3B          |
+| =      | %3D          |
+| ?      | %3F          |
+| @      | %40          |
+| [      | %5B          |
+| ]      | %5D          |
+
+<div id="making-your-first-api-request-with-twurl">
+  ## Twurl के साथ अपना पहला API अनुरोध करना
+</div>
+
+X एक कमांड-लाइन टूल, [Twurl](https://developer.x.com/en/docs/tutorials/using-twurl), के रखरखाव में मदद करता है, जो [cURL](https://en.wikipedia.org/wiki/CURL) के विकल्प के रूप में OAuth 1.0a authorization headers का समर्थन करता है। Twurl आपके ऐप्लिकेशन में authentication जोड़ने से पहले, प्रमाणीकृत API अनुरोध करने और Ads API को एक्सप्लोर करने का एक आसान तरीका देता है।
+
+[Twurl को इंस्टॉल और अधिकृत करने](https://github.com/twitter/twurl#getting-started) के बाद, आप तेज़ी से एक्सेस टोकन जनरेट कर सकते हैं और Ads API के लिए प्रमाणीकृत अनुरोध कर सकते हैं।
+
+```bash
+twurl -H "ads-api.x.com" "/5/accounts/"
+```
+
+Twurl और API को बेहतर ढंग से समझने के लिए, API के माध्यम से कैंपेन बनाने वाले इस [चरण-दर-चरण](/hi/x-ads-api/campaign-management#creating-a-campaign-step-by-step) ट्यूटोरियल का पालन करते हुए थोड़ा समय निकालें।
+
+<div id="testing-with-postman">
+  ## Postman के साथ परीक्षण
+</div>
+
+जो लोग कमांड-लाइन टूल से परिचित नहीं हैं, उनके लिए हम X Ads API एंडपॉइंट्स के लिए Postman collection भी उपलब्ध कराते हैं।
+
+[Postman](https://www.getpostman.com/products) आज के समय में उद्योग में उपलब्ध सबसे लोकप्रिय API डेवलपमेंट टूल्स में से एक है। यह एक HTTP क्लाइंट है, जिसका बेहतरीन यूज़र इंटरफ़ेस आपको जटिल API रिक्वेस्ट अधिक आसानी से करने देता है और उत्पादकता बढ़ाता है।
+
+Postman इंस्टॉल करने और Ads API Postman collection का इस्तेमाल शुरू करने के लिए, कृपया हमारी [सेटअप गाइड](https://github.com/xdevplatform/postman-twitter-ads-api#installation) देखें।
+
+<Button href="https://app.getpostman.com/run-collection/369a02c0adc626ff6a06#?env%5BTwitter%20Ads%20API%5D=W3sia2V5IjoiYWNjb3VudF9pZCIsInZhbHVlIjoieW91cl9hZHNfYWNjb3VudF9pZCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidmVyc2lvbiIsInZhbHVlIjoiNiIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY29uc3VtZXJfa2V5IiwidmFsdWUiOiJ5b3VyX2NvbnN1bWVyX2tleSIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY29uc3VtZXJfc2VjcmV0IiwidmFsdWUiOiJ5b3VyX2NvbnN1bWVyX3NlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiYWNjZXNzX3Rva2VuIiwidmFsdWUiOiJ5b3VyX2FjY2Vzc190b2tlbiIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidG9rZW5fc2VjcmV0IiwidmFsdWUiOiJ5b3VyX3Rva2VuX3NlY3JldCIsImVuYWJsZWQiOnRydWV9XQ==">
+  Postman में चलाएँ
+</Button>
+
+<div id="extending-your-application-to-make-authenticated-requests">
+  ### प्रमाणीकृत अनुरोध करने के लिए अपने ऐप का विस्तार
+</div>
+
+Twurl का उपयोग करके Ads API के लिए अनुरोध करना समझ लेने के बाद, अब अपने ऐप में OAuth 1.0a authentication headers बनाने के समर्थन को जोड़ने का समय है।
+
+[OAuth 1.0a](/hi/resources/fundamentals/authentication) authentication headers में ऐसी जानकारी शामिल होती है जो ऐप और उपयोगकर्ता, दोनों की पहचान सत्यापित करती है, साथ ही अनुरोध के साथ छेड़छाड़ को भी रोकती है। आपके ऐप को हर API अनुरोध के लिए एक नया Authorization header बनाना होगा। कई भाषाओं में ऐसी open source libraries उपलब्ध हैं जो X के लिए API अनुरोध करने हेतु इस authorization header को बनाने में सहायता करती हैं।
+
+यहाँ C#, PHP, Ruby और Python का उपयोग करने वाले कुछ उदाहरण दिए गए हैं - [code samples](/hi/resources/fundamentals/authentication#oauth-1-0a-2).
+
+<div id="custom-implementation">
+  ## कस्टम इम्प्लीमेंटेशन
+</div>
+
+कुछ स्थितियों में ओपन-सोर्स लाइब्रेरी के समर्थन के बिना OAuth 1.0a प्रमाणीकरण लागू करना पड़ता है। [किसी अनुरोध को अधिकृत करना](/hi/resources/fundamentals/authentication#authorizing-a-request) में Authorization header बनाने के समर्थन को लागू करने के लिए विस्तृत निर्देश दिए गए हैं। हम दृढ़तापूर्वक अनुशंसा करते हैं कि आप समुदाय-समर्थित लाइब्रेरी का उपयोग करें।
+
+सामान्य रूपरेखा:
+
+1. header के लिए 7 key/value युग्म एकत्र करें - `oauth_` से शुरू होने वाले
+2. उन key/value युग्मों का उपयोग करके एक [OAuth 1.0a HMAC-SHA1 signature](/hi/resources/fundamentals/authentication#creating-a-signature) जनरेट करें
+3. ऊपर दिए गए मानों का उपयोग करके [Authorization header](/hi/resources/fundamentals/authentication#authorizing-a-request) बनाएँ

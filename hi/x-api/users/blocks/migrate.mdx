@@ -1,0 +1,241 @@
+---
+title: माइग्रेशन गाइड
+sidebarTitle: माइग्रेशन गाइड
+keywords: ["ब्लॉक्स माइग्रेशन", "ब्लॉक्स का माइग्रेशन", "v1.1 से v2 ब्लॉक्स", "ब्लॉक्स माइग्रेशन गाइड", "ब्लॉक्स माइग्रेट करें"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="blocks-lookup-standard-v11-compared-to-x-api-v2">
+  ### ब्लॉक्स लुकअप: मानक v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप मानक v1.1 [GET blocks/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-blocks-ids) और [GET blocks/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-blocks-list) एंडपॉइंट्स का उपयोग कर रहे हैं, तो इस गाइड का उद्देश्य आपको मानक v1.1 और X API v2 ब्लॉक्स लुकअप एंडपॉइंट्स के बीच की समानताओं और अंतरों को समझने में मदद करना है।
+
+* **समानताएँ**
+  * प्रमाणीकरण
+* **अंतर**
+  * एंडपॉइंट URL
+
+  * प्रति अनुरोध उपयोगकर्ता सीमा
+
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+
+  * रिस्पॉन्स डेटा फ़ॉर्मैट
+
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**प्रमाणीकरण**
+
+मानक v1.1 और X API v2, दोनों के blocks lookup एंडपॉइंट [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication#oauth-1-0a-2) का उपयोग करते हैं। इसलिए, यदि आप पहले मानक v1.1 के blocks lookup एंडपॉइंट में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर माइग्रेट करने के बाद भी आप वही प्रमाणीकरण विधि इस्तेमाल करना जारी रख सकते हैं। 
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URLs**
+
+* Standard v1.1 एंडपॉइंट्स:
+  * GET https://api.x.com/1.1/blocks/ids.json
+    (निर्दिष्ट उपयोगकर्ता द्वारा ब्लॉक किए गए उपयोगकर्ताओं की IDs की सूची)
+  * GET https://api.x.com/1.1/blocks/lists.json
+    (निर्दिष्ट उपयोगकर्ता द्वारा ब्लॉक किए गए उपयोगकर्ताओं की सूची)
+* X API v2 एंडपॉइंट:
+  * GET https://api.x.com/2/users/:id/blocking
+    (निर्दिष्ट user ID द्वारा ब्लॉक किए गए उपयोगकर्ताओं की सूची)
+     
+
+**प्रति अनुरोध उपयोगकर्ता सीमा**
+
+Standard v1.1 एंडपॉइंट्स आपको प्रति अनुरोध अधिकतम 5000 उपयोगकर्ता लौटाने की अनुमति देते हैं। नए v2 एंडपॉइंट्स आपको प्रति अनुरोध अधिकतम 1000 उपयोगकर्ता लौटाने की अनुमति देते हैं। पूरे 1000 उपयोगकर्ता लौटाने के लिए, आपको query parameter के रूप में max&#95;results=1000 पास करना होगा; इसके बाद response payload में लौटाए गए next&#95;token को आप अपने अगले अनुरोध के pagination&#95;token query parameter में पास कर सकते हैं।
+ 
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 एंडपॉइंट्स के लिए आवश्यक है कि आप अपने अनुरोधों का प्रमाणीकरण करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के credentials का उपयोग करें, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट्स ऐप्स या किसी प्रोजेक्ट से संबद्ध ऐप्स के credentials का उपयोग कर सकते हैं।
+
+**रिस्पॉन्स डेटा फ़ॉर्मैट**
+
+Standard v1.1 और X API v2 एंडपॉइंट संस्करणों के बीच सबसे बड़ा अंतर यह है कि आप यह कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें।
+
+Standard एंडपॉइंट्स में, आपको डिफ़ॉल्ट रूप से response के कई फ़ील्ड्स मिलते हैं, और फिर parameters का उपयोग करके यह तय करने का विकल्प मिलता है कि payload में कौन-से फ़ील्ड्स या फ़ील्ड्स के कौन-से सेट लौटें।
+
+X API v2 संस्करण डिफ़ॉल्ट रूप से केवल user id, name, और username फ़ील्ड्स लौटाता है। किसी भी अतिरिक्त फ़ील्ड्स या ऑब्जेक्ट्स का अनुरोध करने के लिए, आपको [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) parameters का उपयोग करना होगा। इस एंडपॉइंट से जिन भी user फ़ील्ड्स का आप अनुरोध करेंगे, वे primary user ऑब्जेक्ट में लौटेंगे। कोई भी expanded पोस्ट ऑब्जेक्ट और उसके फ़ील्ड्स आपके response के includes ऑब्जेक्ट में लौटेंगे। इसके बाद, user और expanded पोस्ट ऑब्जेक्ट दोनों में मौजूद IDs का मिलान करके आप expanded ऑब्जेक्ट्स को user ऑब्जेक्ट से जोड़ सकते हैं। 
+
+हम आपको प्रोत्साहित करते हैं कि इन नए parameters के बारे में उनकी संबंधित guides में अधिक पढ़ें, या [fields और expansions का उपयोग कैसे करें](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) पर हमारी guide पढ़ें। 
+
+हमने एक [data format migration guide](/hi/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) भी तैयार की है, जो standard v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में आपकी मदद कर सकती है। यह guide आपको वह specific expansion और field parameter भी बताएगी, जिन्हें आपको अपने v2 अनुरोध के साथ पास करना होगा ताकि specific फ़ील्ड्स लौटाए जा सकें। 
+ 
+
+कुछ फ़ील्ड्स का अनुरोध करने के तरीके में हुए बदलावों के अलावा, X API v2 APIs द्वारा लौटाए गए ऑब्जेक्ट्स के लिए नए JSON डिज़ाइन भी पेश कर रहा है, जिनमें [P](/hi/x-api/fundamentals/data-dictionary#tweet)ost और [user](/hi/x-api/fundamentals/data-dictionary#user) ऑब्जेक्ट्स शामिल हैं।
+
+* JSON root level पर, Standard एंडपॉइंट्स statuses array में पोस्ट ऑब्जेक्ट्स लौटाते हैं, जबकि X API v2 data array लौटाता है। 
+* Retweeted और Quoted &quot;statuses&quot; का उल्लेख करने के बजाय, X API v2 JSON Retweeted और Quoted Tweets का उल्लेख करता है। कई legacy और deprecated फ़ील्ड्स, जैसे contributors और user.translator&#95;type, हटाए जा रहे हैं। 
+* दोनों favorites (पोस्ट ऑब्जेक्ट में) और favourites (user ऑब्जेक्ट में) का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है। 
+* X इस परंपरा को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, null), उन्हें payload में नहीं लिखा जाता। पोस्ट और user attributes केवल तभी शामिल किए जाते हैं, जब उनकी values non-null हों। 
+   
+
+हमने [पोस्ट ऑब्जेक्ट](/hi/x-api/fundamentals/data-dictionary#tweet) में फ़ील्ड्स का एक नया सेट भी जोड़ा है, जिनमें निम्नलिखित शामिल हैं:
+
+* एक [conversation&#95;id](/hi/x-api/fundamentals/conversation-id) फ़ील्ड
+* दो नए [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स, जिनमें context और entities शामिल हैं
+* कई नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स 
+* एक नया reply&#95;setting फ़ील्ड, जो यह दिखाता है कि किसी दिए गए पोस्ट का जवाब कौन दे सकता है
+
+**अनुरोध parameters**
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटर दो अनुरोध क्वेरी पैरामीटर (`user_id` या `screen_name`) स्वीकार करते थे। X API v2 केवल संख्यात्मक user ID स्वीकार करता है, और इसे एंडपॉइंट path के हिस्से के रूप में पास किया जाना चाहिए।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="get-blocked-users-v2">
+  ### ब्लॉक किए गए उपयोगकर्ताओं को प्राप्त करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/blocking?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/blocking"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # पेजिनेशन के साथ ब्लॉक किए गए उपयोगकर्ताओं को प्राप्त करें
+  for page in client.users.get_blocking(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // पेजिनेशन के साथ ब्लॉक किए गए उपयोगकर्ताओं को प्राप्त करें
+  const paginator = client.users.getBlocking("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="block-a-user-v2">
+  ### किसी उपयोगकर्ता को ब्लॉक करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/blocking" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/blocking"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को ब्लॉक करें
+  response = client.users.block(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"ब्लॉकिंग: {response.data.blocking}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को ब्लॉक करें
+  const response = await client.users.block("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`ब्लॉकिंग: ${response.data?.blocking}`);
+  ```
+</CodeGroup>

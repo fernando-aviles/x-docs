@@ -1,0 +1,276 @@
+---
+title: हालिया खोज की त्वरित शुरुआत
+sidebarTitle: हालिया खोज
+description: कुछ ही मिनटों में अपना पहला हालिया खोज अनुरोध भेजें
+keywords: ["हालिया खोज", "खोज की त्वरित शुरुआत", "हालिया खोज ट्यूटोरियल", "Tweet खोजें", "हालिया खोज मार्गदर्शिका", "खोज उदाहरण"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको पिछले 7 दिनों की पोस्ट्स ढूँढ़ने के लिए अपना पहला हालिया खोज अनुरोध करने में मार्गदर्शन देती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन (डेवलपर कंसोल में &quot;Keys and tokens&quot; के अंतर्गत उपलब्ध)
+</Note>
+
+***
+
+<Steps>
+  <Step title="क्वेरी बनाएँ" icon="magnifying-glass">
+    खोज क्वेरियाँ पोस्ट्स से मिलान करने के लिए ऑपरेटर्स का उपयोग करती हैं। एक साधारण कीवर्ड से शुरू करें:
+
+    ```
+    python
+    ```
+
+    या एक से अधिक ऑपरेटर मिलाकर इस्तेमाल करें:
+
+    ```
+    python lang:en -is:retweet
+    ```
+
+    यह अंग्रेज़ी में &quot;python&quot; वाले पोस्ट्स से मेल खाता है और रीट्वीट्स को शामिल नहीं करता।
+
+    <Tip>
+      सभी उपलब्ध विकल्पों के लिए [पूर्ण ऑपरेटर संदर्भ](/hi/x-api/posts/search/integrate/operators) देखें।
+    </Tip>
+  </Step>
+
+  <Step title="अनुरोध भेजें" icon="terminal">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/recent?query=python%20lang%3Aen%20-is%3Aretweet" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # हाल की पोस्ट्स खोजें
+      for page in client.posts.search_recent(
+          query="python lang:en -is:retweet"
+      ):
+          for post in page.data:
+              print(post.text)
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // हाल की पोस्ट्स खोजें
+      const paginator = client.posts.searchRecent({
+        query: "python lang:en -is:retweet",
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(post.text);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें" icon="eye">
+    डिफ़ॉल्ट रिस्पॉन्स में `id`, `text`, और `edit_history_tweet_ids` शामिल हैं:
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1234567890123456789",
+          "text": "Just started learning Python and loving it!",
+          "edit_history_tweet_ids": ["1234567890123456789"]
+        },
+        {
+          "id": "1234567890123456788",
+          "text": "Python tip: use list comprehensions for cleaner code",
+          "edit_history_tweet_ids": ["1234567890123456788"]
+        }
+      ],
+      "meta": {
+        "newest_id": "1234567890123456789",
+        "oldest_id": "1234567890123456788",
+        "result_count": 2
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="फ़ील्ड्स और expansions जोड़ें" icon="sliders">
+    क्वेरी पैरामीटर के साथ अतिरिक्त डेटा का अनुरोध करें:
+
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/search/recent?\
+      query=python%20lang%3Aen%20-is%3Aretweet&\
+      tweet.fields=created_at,public_metrics,author_id&\
+      expansions=author_id&\
+      user.fields=username,verified&\
+      max_results=10" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # फ़ील्ड्स और expansions के साथ खोजें
+      for page in client.posts.search_recent(
+          query="python lang:en -is:retweet",
+          tweet_fields=["created_at", "public_metrics", "author_id"],
+          expansions=["author_id"],
+          user_fields=["username", "verified"],
+          max_results=10
+      ):
+          for post in page.data:
+              print(f"{post.text[:50]}... - लाइक्स: {post.public_metrics.like_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // फ़ील्ड्स और expansions के साथ खोजें
+      const paginator = client.posts.searchRecent({
+        query: "python lang:en -is:retweet",
+        tweetFields: ["created_at", "public_metrics", "author_id"],
+        expansions: ["author_id"],
+        userFields: ["username", "verified"],
+        maxResults: 10,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((post) => {
+          console.log(`${post.text?.slice(0, 50)}... - लाइक्स: ${post.public_metrics?.like_count}`);
+        });
+      }
+      ```
+    </CodeGroup>
+
+    **रिस्पॉन्स:**
+
+    ```json
+    {
+      "data": [
+        {
+          "id": "1234567890123456789",
+          "text": "Just started learning Python and loving it!",
+          "created_at": "2024-01-15T10:30:00.000Z",
+          "author_id": "9876543210",
+          "public_metrics": {
+            "retweet_count": 5,
+            "reply_count": 2,
+            "like_count": 42,
+            "quote_count": 1
+          },
+          "edit_history_tweet_ids": ["1234567890123456789"]
+        }
+      ],
+      "includes": {
+        "users": [
+          {
+            "id": "9876543210",
+            "username": "pythondev",
+            "verified": false
+          }
+        ]
+      },
+      "meta": {
+        "newest_id": "1234567890123456789",
+        "oldest_id": "1234567890123456789",
+        "result_count": 1
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="परिणामों को पृष्ठों में प्राप्त करें" icon="arrow-right">
+    SDKs पेजिनेशन को अपने-आप संभालते हैं। cURL के लिए, रिस्पॉन्स से `next_token` का उपयोग करें:
+
+    ```bash
+    curl "https://api.x.com/2/tweets/search/recent?\
+    query=python&\
+    max_results=100&\
+    next_token=b26v89c19zqg8o3fo7gesq314yb9l2l4ptqy" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+
+    <Card title="पेजिनेशन मार्गदर्शिका" icon="arrow-right" href="/hi/x-api/posts/search/integrate/paginate">
+      बड़े परिणाम सेटों में नेविगेट करने के बारे में और जानें
+    </Card>
+  </Step>
+</Steps>
+
+***
+
+<div id="example-queries">
+  ## उदाहरण क्वेरियाँ
+</div>
+
+<AccordionGroup>
+  <Accordion title="किसी खास उपयोगकर्ता की पोस्ट्स">
+    ```
+    from:XDevelopers
+    ```
+  </Accordion>
+
+  <Accordion title="हैशटैग वाली पोस्ट्स">
+    ```
+    #Python -is:retweet
+    ```
+  </Accordion>
+
+  <Accordion title="तस्वीरों वाली पोस्ट्स">
+    ```
+    "machine learning" has:images lang:en
+    ```
+  </Accordion>
+
+  <Accordion title="किसी उपयोगकर्ता का उल्लेख करने वाली पोस्ट्स">
+    ```
+    @elonmusk -is:retweet -is:reply
+    ```
+  </Accordion>
+
+  <Accordion title="किसी डोमेन के लिंक वाली पोस्ट्स">
+    ```
+    url:github.com lang:en
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="क्वेरी बनाएं" icon="magnifying-glass" href="/hi/x-api/posts/search/integrate/build-a-query">
+    क्वेरी सिंटैक्स और ऑपरेटरों में दक्षता प्राप्त करें
+  </Card>
+
+  <Card title="ऑपरेटर संदर्भ" icon="list-check" href="/hi/x-api/posts/search/integrate/operators">
+    सभी उपलब्ध ऑपरेटर देखें
+  </Card>
+
+  <Card title="पूर्ण आर्काइव खोज" icon="vault" href="/hi/x-api/posts/search/quickstart/full-archive-search">
+    पूरे पोस्ट आर्काइव में खोजें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/search-recent-posts">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

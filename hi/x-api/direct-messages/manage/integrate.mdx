@@ -1,0 +1,315 @@
+---
+title: एकीकरण मार्गदर्शिका
+sidebarTitle: एकीकरण मार्गदर्शिका
+description: डायरेक्ट मैसेज भेजने के लिए मुख्य अवधारणाएँ और सर्वोत्तम प्रथाएँ
+keywords: ["डायरेक्ट मैसेज एकीकरण प्रबंधन", "DM प्रबंधन एकीकरण", "DM भेजने का एकीकरण"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+इस मार्गदर्शिका में उन प्रमुख अवधारणाओं के बारे में बताया गया है जिनकी आपको manage Direct Messages एंडपॉइंट को अपने ऐप में एकीकृत करने के लिए आवश्यकता है।
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+DM एंडपॉइंट्स के लिए उपयोगकर्ता प्रमाणीकरण आवश्यक है:
+
+| विधि                                                                                                                             | विवरण         |
+| :------------------------------------------------------------------------------------------------------------------------------- | :------------ |
+| [PKCE के साथ OAuth 2.0 Authorization Code](/hi/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | अनुशंसित      |
+| [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication)                                                                | लेगेसी सपोर्ट |
+
+<Warning>
+  केवल ऐप प्रमाणीकरण समर्थित नहीं है। सभी डायरेक्ट मैसेज निजी होते हैं।
+</Warning>
+
+<div id="required-scopes-oauth-20">
+  ### आवश्यक स्कोप (OAuth 2.0)
+</div>
+
+| स्कोप        | किनके लिए आवश्यक            |
+| :----------- | :-------------------------- |
+| `dm.write`   | संदेश भेजने और हटाने के लिए |
+| `dm.read`    | `dm.write` के साथ आवश्यक    |
+| `tweet.read` | dm स्कोप के साथ आवश्यक      |
+| `users.read` | dm स्कोप के साथ आवश्यक      |
+
+***
+
+<div id="endpoints-overview">
+  ## एंडपॉइंट का अवलोकन
+</div>
+
+| Method | Endpoint                                            | Description                |
+| :----- | :-------------------------------------------------- | :------------------------- |
+| POST   | `/2/dm_conversations/with/:participant_id/messages` | एक-से-एक संदेश भेजें       |
+| POST   | `/2/dm_conversations`                               | समूह बातचीत बनाएँ          |
+| POST   | `/2/dm_conversations/:dm_conversation_id/messages`  | बातचीत में संदेश जोड़ें    |
+| DELETE | `/2/dm_events/:event_id`                            | संदेश हटाएँ                |
+
+***
+
+<div id="sending-messages">
+  ## संदेश भेजना
+</div>
+
+<div id="one-to-one-message">
+  ### वन-टू-वन संदेश
+</div>
+
+किसी खास उपयोगकर्ता को संदेश भेजें। अगर बातचीत मौजूद नहीं है, तो नई बातचीत बनाई जाती है:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/with/9876543210/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # वन-टू-वन DM भेजें
+  response = client.dm_conversations.create_message(
+      participant_id="9876543210",
+      text="Hello!"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // वन-टू-वन DM भेजें
+  const response = await client.dmConversations.createMessage({
+    participantId: "9876543210",
+    text: "Hello!",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="group-conversation">
+  ### समूह बातचीत
+</div>
+
+एक नया समूह बनाएँ और पहला संदेश भेजें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "conversation_type": "Group",
+      "participant_ids": ["944480690", "906948460078698496"],
+      "message": {"text": "Welcome to our group!"}
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # एक समूह बातचीत बनाएँ
+  response = client.dm_conversations.create(
+      conversation_type="Group",
+      participant_ids=["944480690", "906948460078698496"],
+      message={"text": "Welcome to our group!"}
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // एक समूह बातचीत बनाएँ
+  const response = await client.dmConversations.create({
+    conversationType: "Group",
+    participantIds: ["944480690", "906948460078698496"],
+    message: { text: "Welcome to our group!" },
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Note>
+  `conversation_type` फ़ील्ड का मान `"Group"` होना चाहिए (केस-सेंसिटिव)।
+</Note>
+
+<div id="add-to-existing-conversation">
+  ### मौजूदा बातचीत में जोड़ें
+</div>
+
+जिस भी बातचीत का आप हिस्सा हैं, उसमें संदेश भेजें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/dm_conversations/1582103724607971328/messages" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Another message"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # मौजूदा बातचीत में संदेश जोड़ें
+  response = client.dm_conversations.add_message(
+      dm_conversation_id="1582103724607971328",
+      text="Another message"
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // मौजूदा बातचीत में संदेश जोड़ें
+  const response = await client.dmConversations.addMessage({
+    dmConversationId: "1582103724607971328",
+    text: "Another message",
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-attachments">
+  ## मीडिया संलग्नक
+</div>
+
+हर संदेश के साथ मीडिया का एक आइटम (फ़ोटो, वीडियो, या GIF) संलग्न करें।
+
+<Steps>
+  <Step title="मीडिया अपलोड करें">
+    अपनी फ़ाइल अपलोड करने और `media_id` पाने के लिए [Media Upload endpoint](/hi/x-api/media/quickstart/media-upload-chunked) का उपयोग करें।
+  </Step>
+
+  <Step title="संदेश में शामिल करें">
+    ```json
+    {
+      "text": "Check out this image!",
+      "attachments": [{"media_id": "1583157113245011970"}]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  * मीडिया उसी प्रमाणित उपयोगकर्ता द्वारा अपलोड किया गया होना चाहिए
+  * अपलोड के बाद मीडिया 24 घंटे तक उपलब्ध रहता है
+  * हर संदेश के लिए केवल एक संलग्नक समर्थित है
+</Note>
+
+***
+
+<div id="sharing-posts">
+  ## पोस्ट्स साझा करना
+</div>
+
+टेक्स्ट में पोस्ट URL जोड़कर अपने संदेश में एक पोस्ट शामिल करें:
+
+```json
+{
+  "text": "Have you seen this? https://x.com/XDevelopers/status/1580559079470145536"
+}
+```
+
+प्रतिक्रिया में पोस्ट ID वाला `referenced_tweets` फ़ील्ड शामिल होगा।
+
+***
+
+<div id="message-requirements">
+  ## संदेश संबंधी आवश्यकताएँ
+</div>
+
+| फ़ील्ड        | आवश्यक | टिप्पणियाँ                             |
+| :------------ | :----- | :------------------------------------- |
+| `text`        | हाँ*   | अगर कोई attachments नहीं है, तो आवश्यक |
+| `attachments` | हाँ*   | अगर कोई text नहीं है, तो आवश्यक        |
+
+*`text` या `attachments` में से कम-से-कम एक दिया जाना चाहिए।
+
+***
+
+<div id="id-compatibility-with-v11">
+  ## v1.1 के साथ ID संगतता
+</div>
+
+बातचीत और event ID, v1.1 और v2 एंडपॉइंट के बीच साझा होते हैं। इससे हाइब्रिड वर्कफ़्लो संभव होते हैं:
+
+* v2 के साथ संदेश बनाएँ
+* v1.1 के साथ संदेश हटाएँ (यह v2 में अभी उपलब्ध नहीं है)
+* x.com URL से बातचीत ID प्राप्त करें
+
+***
+
+<div id="error-handling">
+  ## त्रुटि प्रबंधन
+</div>
+
+| Status | Error            | Solution                                    |
+| :----- | :--------------- | :------------------------------------------ |
+| 400    | अमान्य अनुरोध    | अनुरोध बॉडी का फ़ॉर्मैट जाँचें              |
+| 401    | अनधिकृत          | access token सत्यापित करें                  |
+| 403    | निषिद्ध          | scopes और उपयोगकर्ता अनुमतियों की जाँच करें |
+| 429    | बहुत अधिक अनुरोध | प्रतीक्षा करें और फिर से प्रयास करें        |
+
+<div id="common-issues">
+  ### आम समस्याएँ
+</div>
+
+<AccordionGroup>
+  <Accordion title="उपयोगकर्ता को संदेश नहीं भेजा जा सकता">
+    प्राप्तकर्ता की DM सेटिंग्स ऐसी हो सकती हैं जो अज्ञात उपयोगकर्ताओं के संदेशों को रोकती हैं, या उसने आपको ब्लॉक किया हो सकता है।
+  </Accordion>
+
+  <Accordion title="मीडिया अटैचमेंट विफल रहा">
+    सुनिश्चित करें कि मीडिया उसी ऑथेंटिकेट किए गए उपयोगकर्ता ने अपलोड किया हो और वह 24 घंटे से कम पुराना हो।
+  </Accordion>
+
+  <Accordion title="समूह बनाना विफल रहा">
+    सत्यापित करें कि सभी प्रतिभागियों की ID मान्य हैं और उपयोगकर्ता समूह DM आमंत्रण स्वीकार करते हैं।
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="त्वरित शुरुआत" icon="rocket" href="/hi/x-api/direct-messages/manage/quickstart">
+    अपना पहला Direct Message भेजें
+  </Card>
+
+  <Card title="DM लुकअप" icon="inbox" href="/hi/x-api/direct-messages/lookup/introduction">
+    DM बातचीतें प्राप्त करें
+  </Card>
+
+  <Card title="मीडिया अपलोड" icon="image" href="/hi/x-api/media/quickstart/media-upload-chunked">
+    अटैचमेंट के लिए मीडिया अपलोड करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/direct-messages/create-dm-message-by-participant-id">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

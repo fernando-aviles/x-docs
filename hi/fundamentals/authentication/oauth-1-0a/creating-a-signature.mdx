@@ -1,0 +1,167 @@
+---
+title: सिग्नेचर बनाना
+sidebarTitle: सिग्नेचर बनाना
+keywords: ["OAuth सिग्नेचर", "सिग्नेचर बनाना", "OAuth 1.0a सिग्नेचर", "HMAC सिग्नेचर", "सिग्नेचर जनरेशन", "OAuth साइनिंग"]
+---
+
+import { Button } from "/snippets/hi/button.mdx";
+
+<div id="creating-a-signature">
+  ### सिग्नेचर बनाना
+</div>
+
+यह पेज बताता है कि किसी HTTP अनुरोध के लिए OAuth 1.0a HMAC-SHA1 सिग्नेचर कैसे जनरेट करें। [किसी अनुरोध को प्राधिकृत करना](/hi/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) में बताए गए अनुसार, यह सिग्नेचर अधिकृत अनुरोध के हिस्से के रूप में X API को भेजने के लिए उपयुक्त होगा।
+
+हस्ताक्षर करने की प्रक्रिया दिखाने के लिए इस्तेमाल किया गया अनुरोध https://api.x.com/1.1/statuses/update.json पर एक POST अनुरोध है। रॉ अनुरोध इस तरह दिखता है:
+
+```
+POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
+Accept: */*
+Connection: close
+User-Agent: OAuth gem v0.4.4
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 76
+Host: api.x.com
+
+status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
+```
+
+**अनुरोध विधि और URL एकत्र करना**
+
+सिग्नेचर बनाने के लिए, सबसे पहले अनुरोध की HTTP विधि और URL तय करें। अनुरोध बनाते समय ये दोनों पहले से ज्ञात होते हैं, इसलिए इन्हें प्राप्त करना आसान होता है।
+
+X API अनुरोधों में अनुरोध विधि लगभग हमेशा GET या POST होती है।
+
+|             |      |
+| :---------- | :--- |
+| HTTP Method | POST |
+
+बेस URL वह URL है जिस पर अनुरोध भेजा जाता है, लेकिन इसमें कोई भी क्वेरी स्ट्रिंग या हैश पैरामीटर शामिल नहीं होते। यहाँ सही प्रोटोकॉल का उपयोग करना महत्वपूर्ण है, इसलिए सुनिश्चित करें कि URL का “https://” भाग API को भेजे गए वास्तविक अनुरोध से मेल खाता हो।
+
+|          |                                            |
+| :------- | :----------------------------------------- |
+| Base URL | https://api.x.com/1.1/statuses/update.json |
+
+<div id="collecting-parameters">
+  #### पैरामीटर एकत्र करना
+</div>
+
+इसके बाद, अनुरोध में शामिल सभी पैरामीटर एकत्र करें। इन अतिरिक्त पैरामीटरों के लिए दो स्थान होते हैं — URL (query string के हिस्से के रूप में) और अनुरोध बॉडी। नमूना अनुरोध में दोनों स्थानों में एक-एक पैरामीटर शामिल है:
+
+```
+POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
+Accept: */*
+Connection: close
+User-Agent: OAuth gem v0.4.4
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 76
+Host: api.x.com
+
+status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
+```
+
+एक HTTP अनुरोध में ऐसे पैरामीटर होते हैं जो URL encoded होते हैं, लेकिन आपको उनके raw मान एकत्र करने चाहिए। अनुरोध पैरामीटर के अलावा, हर oauth&#95;* पैरामीटर को भी signature में शामिल करना होता है, इसलिए उन्हें भी एकत्र करें। यहाँ [किसी अनुरोध को अधिकृत करना](/hi/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) से पैरामीटर दिए गए हैं:
+
+|                                |                                                    |
+| :----------------------------- | :------------------------------------------------- |
+| status                         | Hello Ladies + Gentlemen, a signed OAuth request!  |
+| include&#95;entities           | true                                               |
+| oauth&#95;consumer&#95;key     | xvz1evFS4wEEPTGEFPHBog                             |
+| oauth&#95;nonce                | kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg         |
+| oauth&#95;signature&#95;method | HMAC-SHA1                                          |
+| oauth&#95;timestamp            | 1318622958                                         |
+| oauth&#95;token                | 370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb |
+| oauth&#95;version              | 1.0                                                |
+
+इन मानों को encode करके एक single string में बदलना होगा, जिसका उपयोग बाद में किया जाएगा। यह string बनाने की प्रक्रिया बहुत विशिष्ट है:
+
+1. जिन key और value पर signature किया जाएगा, उनमें से हर एक को [Percent encode](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) करें।
+2. encoded key [[1]](/hi/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature) के आधार पर पैरामीटर की सूची को वर्णानुक्रम में sort करें [[2]](/hi/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature)।
+3. हर key/value pair के लिए:
+4. output string में encoded key जोड़ें।
+5. output string में ‘=’ वर्ण जोड़ें।
+6. output string में encoded value जोड़ें।
+7. अगर और key/value pair बाकी हैं, तो output string में ‘&amp;’ वर्ण जोड़ें।
+    
+
+[1] OAuth spec के अनुसार lexicographically sort करना होता है, जो कई libraries में default alphabetical sort होता है।
+
+[2] अगर दो पैरामीटर का encoded key एक जैसा हो, तो OAuth spec के अनुसार value के आधार पर sorting जारी रखनी चाहिए। हालांकि, X API अनुरोधों में duplicate keys स्वीकार नहीं करता।
+ 
+
+**पैरामीटर string**
+
+ऊपर एकत्र किए गए पैरामीटर के साथ इन चरणों को दोहराने पर निम्नलिखित *parameter string* बनेगी:
+
+| status                   | Hello Ladies + Gentlemen, a signed OAuth request!  |
+| :----------------------- | :------------------------------------------------- |
+| `include_entities`       | true                                               |
+| `oauth_consumer_key`     | xvz1evFS4wEEPTGEFPHBog                             |
+| `oauth_nonce`            | kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg         |
+| `oauth_signature_method` | HMAC-SHA1                                          |
+| `oauth_timestamp`        | 1318622958                                         |
+| `oauth_token`            | 370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb |
+| `oauth_version`          | 1.0                                                |
+
+<div id="creating-the-signature-base-string">
+  #### सिग्नेचर बेस स्ट्रिंग बनाना
+</div>
+
+अब तक एकत्र किए गए इन तीन मानों को जोड़कर एक एकल स्ट्रिंग बनानी होती है, जिससे सिग्नेचर जनरेट किया जाएगा। OAuth विनिर्देशन में इसे **सिग्नेचर बेस स्ट्रिंग** कहा जाता है।
+
+HTTP method, base URL, और parameter string को एक ही स्ट्रिंग में एन्कोड करने के लिए:
+
+1. HTTP Method को अपरकेस में बदलें और आउटपुट स्ट्रिंग को इसी मान के बराबर सेट करें।
+2. आउटपुट स्ट्रिंग में ‘&amp;’ वर्ण जोड़ें।
+3. URL को [Percent encode](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) करें और उसे आउटपुट स्ट्रिंग में जोड़ें।
+4. आउटपुट स्ट्रिंग में ‘&amp;’ वर्ण जोड़ें।
+5. parameter string को [Percent encode](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) करें और उसे आउटपुट स्ट्रिंग में जोड़ें।
+    
+
+इससे निम्नलिखित *signature base string* बनेगी:
+
+```
+POST&https%3A%2F%2Fapi.x.com%2F1.1%2Fstatuses%2Fupdate.json&include_entities%3Dtrue%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1318622958%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb%26oauth_version%3D1.0%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521
+```
+
+सुनिश्चित करें कि पैरामीटर स्ट्रिंग प्रतिशत-एन्कोडेड हो। सिग्नेचर बेस स्ट्रिंग में ठीक 2 ऐम्परसैंड ‘&amp;’ वर्ण होने चाहिए। पैरामीटर स्ट्रिंग में प्रतिशत ‘%’ वर्णों को सिग्नेचर बेस स्ट्रिंग में %25 के रूप में एन्कोड किया जाना चाहिए।
+
+<div id="getting-a-signing-key">
+  #### साइनिंग कुंजी प्राप्त करना
+</div>
+
+एकत्र करने के लिए डेटा के अंतिम हिस्से वे secret हैं, जो अनुरोध करने वाले [X ऐप](/hi/resources/fundamentals/developer-apps) और उस उपयोगकर्ता की पहचान करते हैं, जिसकी ओर से अनुरोध किया जा रहा है। यह ध्यान रखना बहुत महत्वपूर्ण है कि ये मान अत्यंत संवेदनशील हैं और इन्हें कभी भी किसी के साथ साझा नहीं किया जाना चाहिए।
+
+जो मान X के सामने आपके ऐप की पहचान करता है, उसे **consumer secret** कहा जाता है और इसे [डेवलपर कंसोल](/hi/resources/fundamentals/developer-portal) में [ऐप विवरण पृष्ठ](/hi/resources/fundamentals/developer-apps) देखकर पाया जा सकता है। आपके X ऐप द्वारा भेजे जाने वाले हर अनुरोध के लिए यह समान रहेगा।
+
+|                 |                                             |
+| :-------------- | :------------------------------------------ |
+| Consumer secret | kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw |
+
+जो मान उस खाते की पहचान करता है, जिसकी ओर से आपका ऐप काम कर रहा है, उसे **OAuth token secret** कहा जाता है। यह मान कई तरीकों से प्राप्त किया जा सकता है, जिनका वर्णन [access token प्राप्त करना](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) में किया गया है।
+
+|                    |                                           |
+| :----------------- | :---------------------------------------- |
+| OAuth token secret | LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE |
+
+एक बार फिर, इन मानों को केवल अपने ऐप तक ही सीमित और निजी रखना बहुत महत्वपूर्ण है। अगर आपको लगता है कि आपके मान compromise हो गए हैं, तो अपने token फिर से generate करें (इस पृष्ठ पर दिए गए token वास्तविक अनुरोधों के लिए अमान्य चिह्नित किए गए हैं)।
+
+इन दोनों मानों को मिलाकर एक **साइनिंग कुंजी** बनाई जाती है, जिसका उपयोग signature generate करने के लिए किया जाएगा। साइनिंग कुंजी बस [percent encoded](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) token secret होती है:
+
+ध्यान दें कि कुछ flow, जैसे [request token](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) प्राप्त करते समय, ऐसे होते हैं जिनमें token secret अभी ज्ञात नहीं होता। इस स्थिति में, साइनिंग कुंजी में [percent encoded](/hi/resources/fundamentals/authentication/oauth-1-0a/percent-encoding-parameters) **consumer secret** के बाद ampersand वर्ण ‘&amp;’ होना चाहिए।
+
+|             |                                                                                           |
+| :---------- | :---------------------------------------------------------------------------------------- |
+| Signing key | kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw&amp;LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE |
+
+<div id="calculating-the-signature">
+  #### सिग्नेचर की गणना
+</div>
+
+अंत में, सिग्नेचर की गणना सिग्नेचर बेस स्ट्रिंग और साइनिंग कुंजी को HMAC-SHA1 hashing algorithm में देकर की जाती है। एल्गोरिदम का विवरण hash&#95;hmac फ़ंक्शन के रूप में समझाया गया है।
+
+HMAC signing function का आउटपुट एक binary string होता है। सिग्नेचर स्ट्रिंग बनाने के लिए इसे base64 में encode करना आवश्यक है। उदाहरण के लिए, इस पृष्ठ पर दिए गए base string और साइनिंग कुंजी के लिए आउटपुट 2E CF 77 84 98 99 6D 0D DA 90 5D C7 17 7C 75 07 3F 3F CD 4E है। इस मान को base64 में बदलने पर, यह इस अनुरोध के लिए OAuth सिग्नेचर बनता है:
+
+|                 |                              |
+| :-------------- | :--------------------------- |
+| OAuth सिग्नेचर | Ls93hJiZbQ3akF3HF3x1Bz8/zU4= |

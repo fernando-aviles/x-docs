@@ -1,0 +1,188 @@
+---
+title: रीट्वीट प्रबंधित करें
+sidebarTitle: रीट्वीट प्रबंधित करें
+description: X API का उपयोग करके रीट्वीट करें और रीट्वीट वापस लें
+keywords: ["रीट्वीट प्रबंधित करें", "पोस्ट्स को रीट्वीट करें", "रीट्वीट वापस लें", "रीट्वीट त्वरित शुरुआत", "रीट्वीट ट्यूटोरियल", "रीट्वीट गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको X API का उपयोग करके रीट्वीट करने और उसे पूर्ववत करने का तरीका बताती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपके पास ये होना चाहिए:
+
+  * एक स्वीकृत App के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * User Access Token (OAuth 1.0a or OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="retweet-a-post">
+  ## किसी पोस्ट को रीट्वीट करें
+</div>
+
+<Steps>
+  <Step title="अपनी उपयोगकर्ता ID प्राप्त करें">
+    आपको अपने ऑथेंटिकेट किए गए उपयोगकर्ता की ID चाहिए। आप इसे [user lookup endpoint](/hi/x-api/users/lookup/introduction) का उपयोग करके या अपने Access Token से पता कर सकते हैं (इसका संख्यात्मक भाग आपकी उपयोगकर्ता ID है)।
+  </Step>
+
+  <Step title="पोस्ट ID प्राप्त करें">
+    किसी पोस्ट को देखते समय URL में पोस्ट ID ढूंढें:
+
+    ```
+    https://x.com/XDevelopers/status/1228393702244134912
+                                    └── यह पोस्ट ID है
+    ```
+  </Step>
+
+  <Step title="रीट्वीट अनुरोध भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl -X POST "https://api.x.com/2/users/123456789/retweets" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"tweet_id": "1228393702244134912"}'
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+      from xdk.oauth1_auth import OAuth1
+
+      oauth1 = OAuth1(
+          api_key="YOUR_API_KEY",
+          api_secret="YOUR_API_SECRET",
+          access_token="YOUR_ACCESS_TOKEN",
+          access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+      )
+
+      client = Client(auth=oauth1)
+
+      # किसी पोस्ट को रीट्वीट करें
+      response = client.posts.retweet(
+          user_id="123456789",
+          tweet_id="1228393702244134912"
+      )
+
+      print(f"Retweeted: {response.data.retweeted}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+      const oauth1 = new OAuth1({
+        apiKey: "YOUR_API_KEY",
+        apiSecret: "YOUR_API_SECRET",
+        accessToken: "YOUR_ACCESS_TOKEN",
+        accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+      });
+
+      const client = new Client({ oauth1 });
+
+      // किसी पोस्ट को रीट्वीट करें
+      const response = await client.posts.retweet("123456789", {
+        tweetId: "1228393702244134912",
+      });
+
+      console.log(`Retweeted: ${response.data?.retweeted}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": {
+        "retweeted": true
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="undo-a-retweet">
+  ## Retweet पूर्ववत करें
+</div>
+
+Retweet हटाएँ:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/retweets/1228393702244134912" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # Retweet पूर्ववत करें
+  response = client.posts.unretweet(
+      user_id="123456789",
+      tweet_id="1228393702244134912"
+  )
+
+  print(f"Retweeted: {response.data.retweeted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // Retweet पूर्ववत करें
+  const response = await client.posts.unretweet("123456789", "1228393702244134912");
+
+  console.log(`Retweeted: ${response.data?.retweeted}`);
+  ```
+</CodeGroup>
+
+**प्रतिक्रिया:**
+
+```json
+{
+  "data": {
+    "retweeted": false
+  }
+}
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="रीट्वीट लुकअप" icon="retweet" href="/hi/x-api/posts/retweets/quickstart/retweets-lookup">
+    उस पोस्ट को रीट्वीट करने वाले उपयोगकर्ताओं को प्राप्त करें
+  </Card>
+
+  <Card title="कोट पोस्ट्स" icon="quote-left" href="/hi/x-api/posts/quote-tweets/quickstart">
+    कोट पोस्ट्स प्राप्त करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/retweet-a-post">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

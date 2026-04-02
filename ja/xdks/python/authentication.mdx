@@ -9,9 +9,9 @@ X API では、すべてのエンドポイントで認証が必要です。XDK �
 2. OAuth 2.0 with PKCE
 3. OAuth 1.0a（ユーザーコンテキスト）
 
-- **Bearer Token**: app-auth（アプリ認証）をサポートするエンドポイントへの読み取り専用アクセスに使用します（例: 投稿検索、ストリーミングエンドポイント）。
-- **OAuth 2.0 with PKCE**: スコープベースでユーザーが許可したアクセスを安全に行うために使用します（例: 認証済みユーザーの投稿の非公開メトリクスを取得）。
-- **OAuth 1.0a**: ユーザー固有の操作（例: ユーザーに代わって投稿する、リストを管理する）向けのレガシーな認証方式です。
+- **Bearer Token**: app-auth（アプリ認証）をサポートするエンドポイントへの読み取り専用アクセスに使用します（例: ポスト検索、ストリーミングエンドポイント）。
+- **OAuth 2.0 with PKCE**: スコープベースでユーザーが許可したアクセスを安全に行うために使用します（例: 認証済みユーザーのポストの非公開メトリクスを取得）。
+- **OAuth 1.0a**: ユーザー固有の操作（例: ユーザーに代わってポストする、リストを管理する）向けのレガシーな認証方式です。
 
 [X 開発者コンソール](https://developer.x.com/en/portal/dashboard) から認証情報を取得してください。承認済みの開発者アカウントと、適切な権限（例: Read + Write）を持つ App が必要です。
 
@@ -49,7 +49,7 @@ for page in client.posts.search_recent(query="python", max_results=10):
     if page.data and len(page.data) > 0:
         first_post = page.data[0]
         post_text = first_post.text if hasattr(first_post, 'text') else first_post.get('text', '')
-        print(post_text)  # 最初の投稿にアクセス
+        print(post_text)  # Access first Post
         break
 ```
 
@@ -58,7 +58,7 @@ for page in client.posts.search_recent(query="python", max_results=10):
   ### 2. OAuth 2.0 と PKCE を用いる場合（ユーザーコンテキスト）
 </div>
 
-この例では、Proof Key for Code Exchange（PKCE）を用いた OAuth 2.0 の使い方を示します。ユーザー単位のアクセス（例: ユーザーに代わって投稿する）、ユーザー用のメディアアップロードなどに使用します。
+この例では、Proof Key for Code Exchange（PKCE）を用いた OAuth 2.0 の使い方を示します。ユーザー単位のアクセス（例: ユーザーに代わってポストする）、ユーザー用のメディアアップロードなどに使用します。
 **手順**:
 
 1. 開発者コンソールで App を登録し、リダイレクト URI（例: `http://localhost:8080/callback`）を設定します。
@@ -70,27 +70,27 @@ for page in client.posts.search_recent(query="python", max_results=10):
 from xdk.oauth2_auth import OAuth2PKCEAuth
 from urllib.parse import urlparse
 import webbrowser
-# ステップ 1: PKCEインスタンスを作成
+# Step 1: Create PKCE instance
 auth = OAuth2PKCEAuth(
     client_id="YOUR_CLIENT_ID",
     redirect_uri="YOUR_CALLBACK_URL",
     scope="tweet.read users.read offline.access"
 )
-# ステップ 2: 認可URLを取得
+# Step 2: Get authorization URL
 auth_url = auth.get_authorization_url()
-print(f"この URL にアクセスして認可してください: {auth_url}")
+print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
-# ステップ 3: コールバックを処理(実際のアプリではFlaskなどのWebフレームワークを使用)
+# ステップ3: コールバックを処理(実際のアプリではFlaskなどのWebフレームワークを使用)
 # callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE" と仮定
-callback_url = input("コールバックURLの完全なURLをここに貼り付けてください: ")
-# ステップ 4: コードをトークンに交換
+callback_url = input("Paste the full callback URL here: ")
+# Step 4: Exchange code for tokens
 tokens = auth.fetch_token(authorization_response=callback_url)
 access_token = tokens["access_token"]
-refresh_token = tokens["refresh_token"]  # 更新用に保存
-# ステップ 5: クライアントを作成
-# オプション 1: bearer_token を使用（OAuth2 アクセストークンはベアラートークンとして機能）
+refresh_token = tokens["refresh_token"]  # Store for renewal
+# Step 5: Create client
+# Option 1: Use bearer_token (OAuth2 access tokens work as bearer tokens)
 client = Client(bearer_token=access_token)
-# オプション 2: 自動更新サポートのために完全なトークン辞書を渡す
+# Option 2: Pass the full token dict for automatic refresh support
 # client = Client(token=tokens)
 ```
 
@@ -144,26 +144,26 @@ print(me)
 from xdk import Client
 from xdk.oauth1_auth import OAuth1
 import webbrowser
-# ステップ 1: OAuth1インスタンスを作成
+# Step 1: Create OAuth1 instance
 oauth1 = OAuth1(
     api_key="YOUR_API_KEY",
     api_secret="YOUR_API_SECRET",
     callback="http://localhost:8080/callback"
 )
-# ステップ 2: リクエストトークンを取得
+# Step 2: Get request token
 request_token = oauth1.get_request_token()
-# ステップ 3: 認可URLを取得
+# Step 3: Get authorization URL
 auth_url = oauth1.get_authorization_url(login_with_x=False)
-print(f"この URL にアクセスして認可してください: {auth_url}")
+print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
 # ステップ4: ユーザーが認証するとoauth_verifierを受け取ります
 # 実際のアプリでは、コールバックURLを介してこれを処理します
-oauth_verifier = input("コールバックから受け取った OAuth 検証コードを入力してください: ")
-# ステップ 5: アクセストークンに交換
+oauth_verifier = input("Enter the OAuth verifier from the callback: ")
+# Step 5: Exchange for access token
 access_token = oauth1.get_access_token(oauth_verifier)
-# ステップ 6: クライアントを作成
+# Step 6: Create client
 client = Client(auth=oauth1)
-# これでクライアントを使用できます
+# Now you can use the client
 response = client.users.get_me()
 ```
 

@@ -1,0 +1,359 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: Direct Message इवेंट्स और वार्तालाप प्राप्त करें
+keywords: ["DM lookup त्वरित शुरुआत", "डायरेक्ट मैसेज त्वरित शुरुआत", "DMs पाने का ट्यूटोरियल", "DM lookup गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका प्रमाणीकृत उपयोगकर्ता के लिए Direct Message इवेंट्स प्राप्त करने की प्रक्रिया समझाती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * उपयोगकर्ता एक्सेस टोकन (OAuth 1.0a या OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-all-dm-events">
+  ## सभी DM इवेंट्स प्राप्त करें
+</div>
+
+प्रमाणीकृत उपयोगकर्ता के सभी DM इवेंट्स प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,text&\
+  max_results=100" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # पेजिनेशन के साथ सभी DM इवेंट्स प्राप्त करें
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "text"],
+      max_results=100
+  ):
+      for event in page.data:
+          print(f"{event.event_type}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // पेजिनेशन के साथ सभी DM इवेंट्स प्राप्त करें
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "text"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.event_type}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="response">
+  ### रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "event_type": "MessageCreate",
+      "text": "Hello! How are you?",
+      "sender_id": "9876543210",
+      "created_at": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "meta": {
+    "result_count": 1,
+    "next_token": "abc123"
+  }
+}
+```
+
+***
+
+<div id="get-one-to-one-conversation">
+  ## एक-से-एक बातचीत प्राप्त करें
+</div>
+
+किसी खास एक-से-एक बातचीत से DM इवेंट्स प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_conversations/with/9876543210/dm_events?\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # एक-से-एक बातचीत से DM इवेंट्स प्राप्त करें
+  for page in client.dm_events.get_by_participant(
+      participant_id="9876543210",
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.created_at}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // एक-से-एक बातचीत से DM इवेंट्स प्राप्त करें
+  const paginator = client.dmEvents.getByParticipant("9876543210", {
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.created_at}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+`9876543210` को दूसरे प्रतिभागी की उपयोगकर्ता id से बदलें।
+
+***
+
+<div id="get-conversation-by-id">
+  ## ID से बातचीत प्राप्त करें
+</div>
+
+किसी विशेष बातचीत ID से DM इवेंट्स प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_conversations/1234567890-9876543210/dm_events?\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # ID से किसी बातचीत के DM इवेंट्स प्राप्त करें
+  for page in client.dm_events.get_by_conversation(
+      dm_conversation_id="1234567890-9876543210",
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.created_at}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // ID से किसी बातचीत के DM इवेंट्स प्राप्त करें
+  const paginator = client.dmEvents.getByConversation("1234567890-9876543210", {
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.created_at}: ${event.text}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+***
+
+<div id="filter-by-event-type">
+  ## इवेंट type के आधार पर फ़िल्टर करें
+</div>
+
+केवल निर्दिष्ट इवेंट type प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  event_types=MessageCreate&\
+  dm_event.fields=created_at,sender_id,text" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # केवल MessageCreate इवेंट्स प्राप्त करें
+  for page in client.dm_events.list(
+      event_types=["MessageCreate"],
+      dm_event_fields=["created_at", "sender_id", "text"]
+  ):
+      for event in page.data:
+          print(f"{event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // केवल MessageCreate इवेंट्स प्राप्त करें
+  const paginator = client.dmEvents.list({
+    eventTypes: ["MessageCreate"],
+    dmEventFields: ["created_at", "sender_id", "text"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(event.text);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="event-types">
+  ### ईवेंट प्रकार
+</div>
+
+| प्रकार              | विवरण                           |
+| :------------------ | :------------------------------ |
+| `MessageCreate`     | एक संदेश भेजा गया               |
+| `ParticipantsJoin`  | उपयोगकर्ता बातचीत में शामिल हुआ |
+| `ParticipantsLeave` | उपयोगकर्ता बातचीत से निकल गया   |
+
+***
+
+<div id="include-user-data">
+  ## उपयोगकर्ता डेटा शामिल करें
+</div>
+
+प्रेषक की जानकारी शामिल करने के लिए विस्तार करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/dm_events?\
+  dm_event.fields=created_at,sender_id,text&\
+  expansions=sender_id&\
+  user.fields=username,profile_image_url" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # प्रेषक की जानकारी के साथ DM इवेंट्स प्राप्त करें
+  for page in client.dm_events.list(
+      dm_event_fields=["created_at", "sender_id", "text"],
+      expansions=["sender_id"],
+      user_fields=["username", "profile_image_url"]
+  ):
+      for event in page.data:
+          # includes से प्रेषक का मिलान करें
+          print(f"{event.sender_id}: {event.text}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // प्रेषक की जानकारी के साथ DM इवेंट्स प्राप्त करें
+  const paginator = client.dmEvents.list({
+    dmEventFields: ["created_at", "sender_id", "text"],
+    expansions: ["sender_id"],
+    userFields: ["username", "profile_image_url"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((event) => {
+      console.log(`${event.sender_id}: ${event.text}`);
+    });
+    // प्रेषक user ऑब्जेक्ट्स page.includes.users में हैं
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### एक्सपैंशन के साथ रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567890",
+      "event_type": "MessageCreate",
+      "text": "Hello!",
+      "sender_id": "9876543210"
+    }
+  ],
+  "includes": {
+    "users": [
+      {
+        "id": "9876543210",
+        "username": "example_user",
+        "profile_image_url": "https://..."
+      }
+    ]
+  }
+}
+```
+
+***
+
+<div id="common-parameters">
+  ## सामान्य पैरामीटर
+</div>
+
+| पैरामीटर           | विवरण                                     |
+| :----------------- | :---------------------------------------- |
+| `max_results`      | प्रति पृष्ठ इवेंट्स (1-100, डिफ़ॉल्ट 100) |
+| `pagination_token` | अगले पृष्ठ के लिए टोकन                    |
+| `dm_event.fields`  | लौटाए जाने वाले इवेंट फ़ील्ड्स            |
+| `event_types`      | इवेंट type के अनुसार फ़िल्टर करें         |
+| `expansions`       | शामिल किए जाने वाले संबंधित ऑब्जेक्ट्स    |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="DM भेजें" icon="paper-plane" href="/hi/x-api/direct-messages/manage/quickstart">
+    डायरेक्ट मैसेज भेजें
+  </Card>
+
+  <Card title="इंटीग्रेशन गाइड" icon="book" href="/hi/x-api/direct-messages/lookup/integrate">
+    मुख्य अवधारणाएँ और सर्वोत्तम प्रक्रियाएँ
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/direct-messages/returns-dm-events">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

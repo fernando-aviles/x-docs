@@ -48,7 +48,7 @@ for page in client.posts.search_recent(query="python", max_results=10):
     if page.data and len(page.data) > 0:
         first_post = page.data[0]
         post_text = first_post.text if hasattr(first_post, 'text') else first_post.get('text', '')
-        print(post_text)  # 첫 번째 게시물에 접근
+        print(post_text)  # 첫 번째 포스트에 접근
         break
 ```
 
@@ -69,39 +69,39 @@ for page in client.posts.search_recent(query="python", max_results=10):
 from xdk.oauth2_auth import OAuth2PKCEAuth
 from urllib.parse import urlparse
 import webbrowser
-# 1단계: PKCE 인스턴스 생성
+# Step 1: Create PKCE instance
 auth = OAuth2PKCEAuth(
     client_id="YOUR_CLIENT_ID",
     redirect_uri="YOUR_CALLBACK_URL",
     scope="tweet.read users.read offline.access"
 )
-# 2단계: 인증 URL 가져오기
+# Step 2: Get authorization URL
 auth_url = auth.get_authorization_url()
-print(f"이 URL을 방문하여 인증하세요: {auth_url}")
+print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
 # 3단계: 콜백 처리 (실제 앱에서는 Flask와 같은 웹 프레임워크 사용)
 # callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE"라고 가정
-callback_url = input("전체 콜백 URL을 여기에 붙여넣으세요: ")
-# 4단계: 코드를 토큰으로 교환
+callback_url = input("Paste the full callback URL here: ")
+# Step 4: Exchange code for tokens
 tokens = auth.fetch_token(authorization_response=callback_url)
 access_token = tokens["access_token"]
-refresh_token = tokens["refresh_token"]  # 갱신을 위해 저장
-# 5단계: 클라이언트 생성
-# 옵션 1: bearer_token 사용 (OAuth2 액세스 토큰은 Bearer 토큰으로 작동)
+refresh_token = tokens["refresh_token"]  # Store for renewal
+# Step 5: Create client
+# Option 1: Use bearer_token (OAuth2 access tokens work as bearer tokens)
 client = Client(bearer_token=access_token)
-# 옵션 2: 자동 갱신 지원을 위해 전체 토큰 딕셔너리 전달
+# Option 2: Pass the full token dict for automatic refresh support
 # client = Client(token=tokens)
 ```
 
 **토큰 갱신** (장기 세션에서는 SDK에서 자동으로 처리됨):
 
 ```python
-# 액세스 토큰이 만료되면 저장된 refresh_token을 사용하여 갱신
+# If access token expires, refresh using stored refresh_token
 # refresh_token 메서드는 OAuth2PKCEAuth 인스턴스에 저장된 토큰을 사용합니다
 tokens = auth.refresh_token()
-# 갱신된 토큰 사용
+# Use the refreshed token
 client = Client(bearer_token=tokens["access_token"])
-# 또는 전체 토큰 딕셔너리 전달: client = Client(token=tokens)
+# Or pass the full token dict: client = Client(token=tokens)
 ```
 
 
@@ -128,9 +128,9 @@ oauth1 = OAuth1(
     access_token="YOUR_ACCESS_TOKEN",
     access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
 )
-# 2단계: OAuth1로 클라이언트 생성
+# Step 2: Create client with OAuth1
 client = Client(auth=oauth1)
-# 3단계: 클라이언트 사용
+# Step 3: Use the client
 response = client.users.get_me()
 me = response.data
 print(me)
@@ -142,26 +142,26 @@ print(me)
 from xdk import Client
 from xdk.oauth1_auth import OAuth1
 import webbrowser
-# 1단계: OAuth1 인스턴스 생성
+# Step 1: Create OAuth1 instance
 oauth1 = OAuth1(
     api_key="YOUR_API_KEY",
     api_secret="YOUR_API_SECRET",
     callback="http://localhost:8080/callback"
 )
-# 2단계: 요청 토큰 가져오기
+# Step 2: Get request token
 request_token = oauth1.get_request_token()
-# 3단계: 인증 URL 가져오기
+# Step 3: Get authorization URL
 auth_url = oauth1.get_authorization_url(login_with_x=False)
-print(f"이 URL을 방문하여 인증하세요: {auth_url}")
+print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
 # 4단계: 사용자가 인증하고 oauth_verifier를 받습니다
 # 실제 앱에서는 콜백 URL을 통해 처리합니다
-oauth_verifier = input("콜백에서 받은 OAuth 검증 코드를 입력하세요: ")
-# 5단계: 액세스 토큰으로 교환
+oauth_verifier = input("Enter the OAuth verifier from the callback: ")
+# Step 5: Exchange for access token
 access_token = oauth1.get_access_token(oauth_verifier)
-# 6단계: 클라이언트 생성
+# Step 6: Create client
 client = Client(auth=oauth1)
-# 이제 클라이언트를 사용할 수 있습니다
+# Now you can use the client
 response = client.users.get_me()
 ```
 

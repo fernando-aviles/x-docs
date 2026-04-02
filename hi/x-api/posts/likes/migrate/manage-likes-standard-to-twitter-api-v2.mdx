@@ -1,0 +1,190 @@
+---
+title: लाइक्स प्रबंधित करें
+sidebarTitle: लाइक्स प्रबंधित करें
+keywords: ["लाइक्स माइग्रेशन प्रबंधित करें", "v1.1 से v2 लाइक्स प्रबंधित करें", "लाइक्स प्रबंधित करना माइग्रेट करें", "standard से v2 लाइक्स", "लाइक्स माइग्रेशन"]
+---
+
+<div id="manage-likes-standard-v11-compared-to-x-api-v2">
+  ### लाइक्स प्रबंधित करें: Standard v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप standard v1.1 के [POST favorites/create](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-favorites-create) और [POST favorites/destroy](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-favorites-destroy) एंडपॉइंट के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य standard v1.1 और X API v2 के लाइक्स प्रबंधित करने वाले एंडपॉइंट के बीच की समानताओं और अंतरों को समझने में आपकी मदद करना है।
+
+* **समानताएँ**
+  * OAuth 1.0a उपयोगकर्ता संदर्भ
+* **अंतर**
+  * Endpoint URLs और HTTP methods
+  * ऐप और Project की आवश्यकताएँ
+  * Request parameters
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**OAuth 1.0a उपयोगकर्ता संदर्भ प्रमाणीकरण विधि**
+
+दोनों endpoint संस्करण [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication#oauth-1-0a-2) का समर्थन करते हैं। इसलिए, यदि आप पहले standard v1.1 manage favorites एंडपॉइंट में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर migrate करने के बाद भी आप वही प्रमाणीकरण विधि इस्तेमाल करना जारी रख सकते हैं।
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URL और HTTP मेथड**
+
+* Standard v1.1 एंडपॉइंट:
+  * POST https://api.x.com/1.1/favorites/create.json
+    (किसी पोस्ट को लाइक करना)
+  * POST https://api.x.com/1.1/favorites/destroy.json
+    (किसी पोस्ट को अनलाइक करना)
+* X API v2 एंडपॉइंट:
+  * POST https://api.x.com/2/tweets/:id/likes
+    (किसी पोस्ट को लाइक करना)
+  * DELETE https://api.x.com/2/tweets/:id/likes/:tweet&#95;id
+    (किसी पोस्ट को अनलाइक करना) 
+
+**ऐप और Project की आवश्यकताएँ**
+
+X API v2 एंडपॉइंट्स के लिए यह आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के क्रेडेंशियल्स का उपयोग करें, जो किसी [Project](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट्स ऐप्स के क्रेडेंशियल्स या किसी ऐप से संबद्ध ऐप्स के क्रेडेंशियल्स का उपयोग कर सकते हैं।
+
+**अनुरोध पैरामीटर**
+
+निम्नलिखित Standard v1.1 अनुरोध पैरामीटरों के X API v2 में समकक्ष हैं:
+
+| Standard v1.1         | X API v2        |
+| :-------------------- | :-------------- |
+| id                    | id              |
+| includes&#95;entities | कोई समकक्ष नहीं |
+
+कृपया ध्यान दें कि Standard v1.1 पैरामीटर query parameters के रूप में भेजे जाते हैं, जबकि X API v2 पैरामीटर `POST` एंडपॉइंट के लिए body parameters के रूप में और `DELETE` एंडपॉइंट के लिए path parameters के रूप में भेजे जाते हैं।
+
+साथ ही, Standard v1.1 एंडपॉइंट्स का उपयोग करते समय किसी पोस्ट को लाइक करने वाले उपयोगकर्ता की id देना आवश्यक नहीं है, क्योंकि [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication) के साथ भेजे गए [Access Tokens](/hi/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) से यह पता चल जाता है कि लाइक/अनलाइक शुरू करने वाला उपयोगकर्ता कौन है।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="like-a-post-v2">
+  ### किसी पोस्ट को लाइक करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/likes" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"tweet_id": "1234567890"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/likes"
+  response = requests.post(url, auth=auth, json={"tweet_id": "1234567890"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी पोस्ट को लाइक करें
+  response = client.posts.like(user_id="123456789", tweet_id="1234567890")
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी पोस्ट को लाइक करें
+  const response = await client.posts.like("123456789", { tweetId: "1234567890" });
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>
+
+<div id="unlike-a-post-v2">
+  ### किसी पोस्ट को अनलाइक करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/likes/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/likes/1234567890"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी पोस्ट को अनलाइक करें
+  response = client.posts.unlike(user_id="123456789", tweet_id="1234567890")
+  print(f"Liked: {response.data.liked}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी पोस्ट को अनलाइक करें
+  const response = await client.posts.unlike("123456789", "1234567890");
+  console.log(`Liked: ${response.data?.liked}`);
+  ```
+</CodeGroup>

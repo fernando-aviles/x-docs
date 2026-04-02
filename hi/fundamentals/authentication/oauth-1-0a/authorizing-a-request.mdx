@@ -1,0 +1,150 @@
+---
+title: अनुरोध को ऑथराइज़ करना
+sidebarTitle: अनुरोध को ऑथराइज़ करना
+keywords: ["अनुरोध को ऑथराइज़ करना", "OAuth ऑथराइज़ेशन", "अनुरोध ऑथराइज़ेशन", "OAuth 1.0a ऑथराइज़ेशन", "API अनुरोध को ऑथराइज़ करना"]
+---
+
+import { Button } from "/snippets/hi/button.mdx";
+
+<div id="authorizing-a-request">
+  ### किसी अनुरोध को अधिकृत करना
+</div>
+
+इस दस्तावेज़ का उद्देश्य आपको यह दिखाना है कि X API को अधिकृत अनुरोध भेजने के लिए HTTP अनुरोधों में बदलाव कैसे किया जाता है।
+
+X के सभी API HTTP प्रोटोकॉल पर आधारित हैं। इसका अर्थ है कि आपके द्वारा लिखा गया कोई भी सॉफ़्टवेयर, जो X के API का उपयोग करता है, X के सर्वरों को संरचित संदेशों की एक श्रृंखला भेजता है। उदाहरण के लिए, “**Hello Ladies + Gentlemen, a signed OAuth request!**” टेक्स्ट को एक Tweet के रूप में पोस्ट करने का अनुरोध कुछ इस तरह दिखाई देगा:
+
+```
+POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
+Accept: */*
+Connection: close
+User-Agent: OAuth gem v0.4.4
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 76
+Host: api.x.com
+
+status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
+```
+
+किसी भी HTTP लाइब्रेरी के लिए ऊपर दिखाया गया अनुरोध बहुत आसानी से जनरेट करके भेज पाना संभव होना चाहिए। हालांकि, ऊपर दिया गया अनुरोध अमान्य माना जाता है, क्योंकि यह पता लगाने का कोई तरीका नहीं है कि:
+
+1. अनुरोध कौन-सा ऐप कर रहा है
+2. अनुरोध किस उपयोगकर्ता की ओर से पोस्ट किया जा रहा है
+3. क्या उपयोगकर्ता ने ऐप को अपनी ओर से पोस्ट करने की अनुमति दी है
+4. क्या रास्ते में किसी तीसरे पक्ष ने अनुरोध के साथ छेड़छाड़ की है
+
+ऐप्लिकेशन को यह जानकारी प्रदान करने की अनुमति देने के लिए, X का API [OAuth 1.0a protocol](http://tools.ietf.org/html/rfc5849) पर निर्भर करता है। बहुत सरल शब्दों में, X के इस कार्यान्वयन में यह आवश्यक है कि जिन अनुरोधों के लिए प्राधिकरण चाहिए, उनमें एक अतिरिक्त HTTP Authorization हेडर शामिल हो, जिसमें ऊपर सूचीबद्ध प्रश्नों के उत्तर देने के लिए पर्याप्त जानकारी हो। ऊपर दिखाए गए HTTP अनुरोध का एक संस्करण, जिसे इस Authorization हेडर को शामिल करने के लिए संशोधित किया गया है, इस तरह दिखता है (सामान्यतः Authorization हेडर एक ही पंक्ति में होना चाहिए, लेकिन यहाँ पठनीयता के लिए इसे कई पंक्तियों में विभाजित किया गया है):
+
+```
+POST /1.1/statuses/update.json?include_entities=true HTTP/1.1
+Accept: */*
+Connection: close
+User-Agent: OAuth gem v0.4.4
+Content-Type: application/x-www-form-urlencoded
+Authorization:
+OAuth oauth\_consumer\_key="xvz1evFS4wEEPTGEFPHBog",
+oauth_nonce="kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg",
+oauth_signature="tnnArxj06cWHq44gCs1OSKk%2FjLY%3D",
+oauth\_signature\_method="HMAC-SHA1",
+oauth_timestamp="1318622958",
+oauth_token="370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb",
+oauth_version="1.0"
+Content-Length: 76
+Host: api.x.com
+
+status=Hello%20Ladies%20%2b%20Gentlemen%2c%20a%20signed%20OAuth%20request%21
+```
+
+जब यह अनुरोध बनाया गया था, तब X API इसे वैध मानकर स्वीकार कर लेता।
+
+अगर यह साइनिंग प्रक्रिया आपके इंटीग्रेशन के दायरे से बाहर लगती है, तो [Web Intents](https://dev.x.com/web/intents) का उपयोग करने पर विचार करें, क्योंकि इनके लिए X API के साथ इंटरैक्ट करने हेतु OAuth का उपयोग करना आवश्यक नहीं है.
+ 
+
+**पैरामीटर एकत्र करना**
+
+आप देख सकते हैं कि हेडर में 7 कुंजी/मान युग्म हैं, जिनकी सभी कुंजियाँ “oauth&#95;” स्ट्रिंग से शुरू होती हैं। किसी भी X API अनुरोध के लिए, इन 7 मानों को एकत्र करके और इसी तरह का हेडर बनाकर आप अनुरोध के लिए प्राधिकरण निर्दिष्ट कर सकते हैं। प्रत्येक मान कैसे जनरेट किया गया, इसका वर्णन नीचे दिया गया है:
+
+**कंज़्यूमर कुंजी**
+
+oauth&#95;consumer&#95;key यह पहचानता है कि अनुरोध कौन-सा ऐप कर रहा है। यह मान [X ऐप](/hi/resources/fundamentals/developer-apps) के लिए आपके सेटिंग्स पेज से [डेवलपर कंसोल](/hi/resources/fundamentals/developer-portal) में प्राप्त करें।
+
+|                            |                        |
+| :------------------------- | :--------------------- |
+| oauth&#95;consumer&#95;key | xvz1evFS4wEEPTGEFPHBog |
+
+**Nonce**
+
+oauth&#95;nonce पैरामीटर एक अद्वितीय टोकन है, जिसे आपके ऐप को हर अद्वितीय अनुरोध के लिए जनरेट करना चाहिए। X इस मान का उपयोग यह निर्धारित करने के लिए करेगा कि कोई अनुरोध एक से अधिक बार सबमिट किया गया है या नहीं। इस अनुरोध का मान 32 बाइट रैंडम डेटा को base64 एन्कोड करके और फिर सभी non-word वर्ण हटाकर जनरेट किया गया था, लेकिन यहाँ कोई भी ऐसा तरीका ठीक है जो अपेक्षाकृत रैंडम अक्षरांकीय स्ट्रिंग उत्पन्न करे।
+
+|                 |                                            |
+| :-------------- | :----------------------------------------- |
+| oauth&#95;nonce | kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg |
+
+**सिग्नेचर**
+
+`oauth_signature` पैरामीटर में एक मान होता है, जो अन्य सभी अनुरोध पैरामीटर और दो गुप्त मानों को एक साइनिंग एल्गोरिदम से प्रोसेस करके बनाया जाता है। सिग्नेचर का उद्देश्य यह है कि X यह सत्यापित कर सके कि अनुरोध में रास्ते में कोई बदलाव नहीं किया गया है, अनुरोध भेजने वाले ऐप की पुष्टि कर सके, और यह भी सत्यापित कर सके कि उस ऐप को उपयोगकर्ता के खाते के साथ इंटरैक्ट करने की अनुमति है।
+
+इस अनुरोध के लिए `oauth_signature` की गणना करने की प्रक्रिया [सिग्नेचर बनाना](/hi/resources/fundamentals/authentication/oauth-1-0a/creating-a-signature) में बताई गई है।
+
+|                     |                              |
+| :------------------ | :--------------------------- |
+| oauth&#95;signature | tnnArxj06cWHq44gCs1OSKk/jLY= |
+
+**सिग्नेचर विधि**
+
+X द्वारा उपयोग की जाने वाली `oauth\_signature\_method` `HMAC-SHA1` है। X API को भेजे जाने वाले किसी भी अधिकृत अनुरोध के लिए इसी मान का उपयोग किया जाना चाहिए।
+
+|                                |           |
+| :----------------------------- | :-------- |
+| oauth&#95;signature&#95;method | HMAC-SHA1 |
+
+**टाइमस्टैम्प**
+
+`oauth_timestamp` पैरामीटर यह बताता है कि अनुरोध कब बनाया गया था। यह मान उस समय तक Unix epoch के बाद बीते सेकंडों की संख्या होना चाहिए, जब अनुरोध जनरेट किया जाता है, और अधिकांश प्रोग्रामिंग भाषाओं में इसे आसानी से जनरेट किया जा सकता है। X उन अनुरोधों को अस्वीकार कर देगा जो बहुत पहले बनाए गए हों, इसलिए अनुरोध जनरेट करने वाले कंप्यूटर की घड़ी को NTP के साथ सिंक में रखना महत्वपूर्ण है।
+
+|                     |            |
+| :------------------ | :--------- |
+| oauth&#95;timestamp | 1318622958 |
+
+**टोकन**
+
+`oauth_token` पैरामीटर आम तौर पर उपयोगकर्ता की उस अनुमति को दर्शाता है, जिसके तहत वह आपके ऐप को अपने खाते तक पहुंच साझा करने देता है। कुछ प्रमाणीकरण अनुरोध ऐसे होते हैं जिनमें यह मान पास नहीं किया जाता, या यह किसी अलग प्रकार के टोकन के रूप में होता है, लेकिन उनका विस्तृत विवरण [एक्सेस टोकन प्राप्त करना](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) में दिया गया है। अधिकांश सामान्य-उद्देश्य वाले अनुरोधों के लिए, आप वही उपयोग करेंगे जिसे **एक्सेस टोकन** कहा जाता है।
+
+आप [डेवलपर कंसोल](/hi/resources/fundamentals/developer-portal) में अपने [X ऐप](/hi/resources/fundamentals/developer-apps) के settings page पर अपने खाते के लिए एक वैध [एक्सेस टोकन](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) जनरेट कर सकते हैं।
+
+|                 |                                                    |
+| :-------------- | :------------------------------------------------- |
+| oauth&#95;token | 370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb |
+
+**संस्करण**
+
+X API को भेजे जाने वाले किसी भी अनुरोध के लिए `oauth_version` पैरामीटर का मान हमेशा `1.0` होना चाहिए।
+
+|                   |     |
+| :---------------- | :-- |
+| oauth&#95;version | 1.0 |
+
+<div id="building-the-header-string">
+  #### हेडर स्ट्रिंग बनाना
+</div>
+
+हेडर स्ट्रिंग बनाने के लिए, यह मानकर चलें कि आप DST नाम की एक स्ट्रिंग में लिख रहे हैं।
+
+1. स्ट्रिंग “OAuth ” (अंत में दिए गए स्पेस सहित) को DST में जोड़ें।
+2. ऊपर सूचीबद्ध 7 पैरामीटर के प्रत्येक कुंजी/मान जोड़े के लिए:
+   1. कुंजी को [Percent encode](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) करें और उसे DST में जोड़ें।
+   2. बराबर का चिह्न ‘=’ DST में जोड़ें।
+   3. एक डबल कोट ‘”’ DST में जोड़ें।
+   4. मान को [Percent encode](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) करें और उसे DST में जोड़ें।
+   5. एक डबल कोट ‘”’ DST में जोड़ें।
+   6. अगर और कुंजी/मान जोड़े बचे हों, तो एक कॉमा ‘,’ और एक स्पेस ‘ ‘ DST में जोड़ें।
+
+यह स्ट्रिंग बनाते समय मानों की percent encoding पर विशेष ध्यान दें। उदाहरण के लिए, oauth&#95;signature मान tnnArxj06cWHq44gCs1OSKk/jLY= को tnnArxj06cWHq44gCs1OSKk%2FjLY%3D के रूप में encode किया जाना चाहिए।
+
+ऊपर एकत्र किए गए पैरामीटर पर ये चरण लागू करने से निम्नलिखित स्ट्रिंग प्राप्त होती है:
+
+```
+OAuth oauth\_consumer\_key="xvz1evFS4wEEPTGEFPHBog", oauth\_nonce="kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg", oauth\_signature="tnnArxj06cWHq44gCs1OSKk%2FjLY%3D", oauth\_signature\_method="HMAC-SHA1", oauth\_timestamp="1318622958", oauth\_token="370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb", oauth_version="1.0"
+```
+
+इस मान को अनुरोध के Authorization हेडर के रूप में सेट किया जाना चाहिए।

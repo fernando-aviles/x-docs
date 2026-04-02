@@ -1,0 +1,185 @@
+---
+title: म्यूट्स लुकअप
+sidebarTitle: म्यूट्स लुकअप
+keywords: ["म्यूट्स लुकअप माइग्रेशन", "v1.1 से v2 म्यूट्स लुकअप", "म्यूट्स लुकअप माइग्रेट करें", "स्टैंडर्ड से v2 म्यूट्स", "म्यूट्स माइग्रेशन"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="mutes-lookup-standard-v11-compared-to-x-api-v2">
+  ### म्यूट्स लुकअप: Standard v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप मानक v1.1 के [GET mutes/users/ids](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-ids) और [GET mutes/users/list](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/get-mutes-users-list) endpoints के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य मानक v1.1 और X API v2 के म्यूट्स लुकअप endpoints के बीच समानताओं और अंतरों को समझने में आपकी मदद करना है।
+
+* **समानताएँ**
+  * प्रमाणीकरण
+* **अंतर**
+  * एंडपॉइंट URL
+
+  * प्रति अनुरोध उपयोगकर्ताओं की सीमा
+
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+
+  * प्रतिक्रिया डेटा फ़ॉर्मैट
+
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**प्रमाणीकरण**
+
+मानक v1.1 और X API v2, दोनों के म्यूट्स लुकअप एंडपॉइंट [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication#oauth-1-0a-2) का उपयोग करते हैं। इसलिए, यदि आप पहले मानक v1.1 म्यूट्स लुकअप एंडपॉइंट में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर माइग्रेट करने के बाद भी आप उसी प्रमाणीकरण विधि का उपयोग जारी रख सकते हैं। 
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URL**
+
+* मानक v1.1 एंडपॉइंट:
+  * GET https://api.x.com/1.1/mutes/users/ids.json
+    (उन उपयोगकर्ता IDs की सूची जिन्हें निर्दिष्ट उपयोगकर्ता ने म्यूट किया है)
+  * GET https://api.x.com/1.1/mutes/users/lists.json
+    (उन उपयोगकर्ताओं की सूची जिन्हें निर्दिष्ट उपयोगकर्ता ने म्यूट किया है)
+* X API v2 एंडपॉइंट:
+  * GET https://api.x.com/2/users/:id/muting
+    (उन उपयोगकर्ताओं की सूची जिन्हें निर्दिष्ट उपयोगकर्ता id ने म्यूट किया है)
+     
+
+**प्रति अनुरोध उपयोगकर्ता सीमा**
+
+मानक v1.1 एंडपॉइंट आपको प्रति अनुरोध अधिकतम 5000 उपयोगकर्ता लौटाने की अनुमति देते हैं। नए v2 एंडपॉइंट आपको प्रति अनुरोध अधिकतम 1000 उपयोगकर्ता लौटाने की अनुमति देते हैं। पूरे 1000 उपयोगकर्ता लौटाने के लिए, आपको query parameter के रूप में max&#95;results=1000 पास करना होगा; इसके बाद आप अगले अनुरोध में रिस्पॉन्स payload से मिला next&#95;token, pagination&#95;token query parameter में पास कर सकते हैं।
+ 
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 एंडपॉइंट के लिए आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के credentials का उपयोग करें, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट, ऐप्स के credentials या किसी प्रोजेक्ट से संबद्ध ऐप्स के credentials का उपयोग कर सकते हैं।
+
+**प्रतिक्रिया डेटा प्रारूप**
+
+मानक v1.1 और X API v2 एंडपॉइंट versions के बीच सबसे बड़े अंतरों में से एक यह है कि आप यह कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें।
+
+मानक एंडपॉइंट के लिए, कई response फ़ील्ड्स आपको डिफ़ॉल्ट रूप से मिलते हैं, और फिर parameters का उपयोग करके आप यह तय कर सकते हैं कि payload में कौन-से फ़ील्ड्स या फ़ील्ड्स के कौन-से समूह लौटें।
+
+X API v2 संस्करण डिफ़ॉल्ट रूप से केवल user id, name, और username फ़ील्ड्स देता है। किसी भी अतिरिक्त फ़ील्ड्स या objects का अनुरोध करने के लिए, आपको [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) parameters का उपयोग करना होगा। इस एंडपॉइंट से जिन भी user फ़ील्ड्स का आप अनुरोध करेंगे, वे primary user object में लौटेंगी। कोई भी expanded Post object और उसके फ़ील्ड्स आपके रिस्पॉन्स के includes object में लौटेंगे। इसके बाद, user और expanded Post object, दोनों में मौजूद IDs का मिलान करके आप expanded objects को संबंधित user object से जोड़ सकते हैं। 
+
+हम आपको प्रोत्साहित करते हैं कि आप इन नए parameters के बारे में उनकी संबंधित guides में और पढ़ें, या [fields और expansions का उपयोग कैसे करें](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) पर हमारी guide पढ़ें। 
+
+हमने एक [data format migration guide](/hi/x-api/migrate/data-format-migration#migrating-from-standard-v1-1s-data-format-to-v2) भी तैयार की है, जो मानक v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में आपकी मदद कर सकती है। यह guide आपको वह specific expansion और field parameter भी बताएगी, जिसे आपको अपने v2 अनुरोध के साथ पास करना होगा ताकि specific फ़ील्ड्स लौटाए जा सकें। 
+ 
+
+कुछ फ़ील्ड्स का अनुरोध करने के तरीके में बदलावों के अलावा, X API v2 APIs द्वारा लौटाए जाने वाले objects के लिए नए JSON designs भी पेश कर रहा है, जिनमें [Post](/hi/x-api/fundamentals/data-dictionary#tweet) और [user](/hi/x-api/fundamentals/data-dictionary#user) objects शामिल हैं।
+
+* JSON root level पर, मानक एंडपॉइंट statuses array में Post objects लौटाते हैं, जबकि X API v2 data array लौटाता है। 
+* Retweeted और Quoted &quot;statuses&quot; कहने के बजाय, X API v2 JSON Retweeted और Quoted Tweets का उपयोग करता है। contributors और user.translator&#95;type जैसे कई legacy और deprecated फ़ील्ड्स हटाए जा रहे हैं। 
+* Post object में favorites और user object में favourites, दोनों का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है। 
+* X उस convention को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, null), उन्हें payload में नहीं लिखा जाता। Post और user attributes केवल तभी शामिल किए जाते हैं, जब उनकी values non-null हों। 
+   
+
+हमने [Post object](/hi/x-api/fundamentals/data-dictionary#tweet) में फ़ील्ड्स का एक नया सेट भी जोड़ा है, जिनमें निम्नलिखित शामिल हैं:
+
+* एक [conversation&#95;id](/hi/x-api/fundamentals/conversation-id) field
+* दो नए [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स, जिनमें context और entities शामिल हैं
+* कई नए [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स 
+* एक नया reply&#95;setting field, जो दिखाता है कि किसी दिए गए Post का उत्तर कौन दे सकता है
+
+**अनुरोध पैरामीटर**
+
+निम्नलिखित मानक v1.1 अनुरोध parameters के X API v2 में समकक्ष हैं:
+
+| **मानक**          | **X API v2**         |
+| :---------------- | :------------------- |
+| stringify&#95;ids | कोई समकक्ष नहीं      |
+| cursor            | pagination&#95;token |
+| skip&#95;status   | कोई समकक्ष नहीं      |
+
+इसके अलावा, मानक v1.1 म्यूट्स लुकअप अनुरोध पैरामीटर का एक सेट भी है, जो X API v2 में **समर्थित नहीं** है:
+
+| मानक                 | टिप्पणी                                                                                                                                            |
+| :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+| include&#95;entities | इस पैरामीटर का उपयोग पोस्ट payload से entities नोड हटाने के लिए किया जाता है। इसकी जगह additive फ़ील्ड्स और expansions की कार्यक्षमता ने ले ली है। |
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="get-muted-users-v2">
+  ### म्यूट किए गए उपयोगकर्ता प्राप्त करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?user.fields=username,verified&max_results=100" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  params = {"user.fields": "username,verified", "max_results": 100}
+
+  response = requests.get(url, auth=auth, params=params)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # पेजिनेशन के साथ म्यूट किए गए उपयोगकर्ता प्राप्त करें
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["username", "verified"],
+      max_results=100
+  ):
+      for user in page.data:
+          print(f"{user.username} - Verified: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // पेजिनेशन के साथ म्यूट किए गए उपयोगकर्ता प्राप्त करें
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["username", "verified"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(`${user.username} - Verified: ${user.verified}`);
+    });
+  }
+  ```
+</CodeGroup>

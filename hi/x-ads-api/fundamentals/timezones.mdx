@@ -1,0 +1,57 @@
+---
+title: टाइमज़ोन
+keywords: ["टाइमज़ोन", "टाइमज़ोन", "टाइमज़ोन प्रबंधन", "टाइमज़ोन प्रारूप", "टाइमज़ोन रूपांतरण", "टाइमज़ोन सेटिंग्स"]
+---
+
+<div id="timezones-accounts-and-billing">
+  ## टाइमज़ोन, अकाउंट और बिलिंग
+</div>
+
+Datetime मान हमेशा UTC समय में लौटाए जाते हैं (जैसा कि datetime मान के अंत में दिए गए Z से संकेत मिलता है।) POST या PUT कमांड में टाइमज़ोन के लिए ISO 8601 मानक प्रारूप का उपयोग करके Datetime को किसी भी टाइमज़ोन में निर्दिष्ट किया जा सकता है। समय को [ISO-8601](http://en.wikipedia.org/wiki/ISO_8601) के एक उपसमुच्चय का उपयोग करके दर्शाया जाता है। अधिक सटीक रूप से, हमारे date format के लिए strptime स्ट्रिंग `%Y-%m-%dT%l:%M:%S%z` है। विज्ञापनदाता के अकाउंट का टाइमज़ोन वह वास्तविक समय निर्धारित करता है, जिस पर आधिकारिक बिलिंग संख्याएँ स्थिर हो जाती हैं।
+
+जब आप अकाउंट स्तर पर API से क्वेरी करते हैं ([GET accounts](/hi/x-ads-api/campaign-management#accounts)), तो आपको टाइमज़ोन की जानकारी इस तरह दिखाई देगी:
+
+```json
+    {
+      "request": {
+        "params": {
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data": {
+        "name": "API McTestface",
+        "business_name": null,
+        "timezone": "America/Los_Angeles",
+        "timezone_switch_at": "2016-07-21T07:00:00Z",
+        "id": "18ce54d4x5t",
+        "created_at": "2016-07-21T22:42:09Z",
+        "salt": "54cb7b5a34183f77d82dd6d0f4329691",
+        "updated_at": "2017-09-09T06:42:14Z",
+        "business_id": null,
+        "approval_status": "ACCEPTED",
+        "deleted": false
+      }
+    }
+```
+
+इसमें दो timezone मान शामिल हैं: `timezone` ([wikipedia पर टाइमज़ोन](https://en.wikipedia.org/wiki/Tz_database#Names_of_time_zones) का अवलोकन देखें) और `timezone_switch_at`। ध्यान दें कि `timezone_switch_at` UTC टाइमज़ोन (+00:00) में दिया जाता है, लेकिन यह हमेशा दिए गए टाइमज़ोन में मध्यरात्रि को दर्शाता है।
+
+विज्ञापनदाता का टाइमज़ोन API के माध्यम से बदला नहीं जा सकता। यह attribute X में विज्ञापनदाता के account manager द्वारा contractual/billing स्तर पर सेट किया जाता है।
+
+रिपोर्ट बनाते समय और हमारे analytics endpoints को query करते समय `timezone_switch_at` मान का ध्यान रखें, क्योंकि जिस दिन account America/Los&#95;Angeles टाइमज़ोन से नए स्थानीय मान पर स्विच करता है, उस दिन एक अंतराल होगा।
+
+<div id="specifying-datetime-values-with-timezone">
+  ### टाइमज़ोन के साथ Datetime मान निर्दिष्ट करना
+</div>
+
+Datetime मान हमेशा UTC समय में लौटाए जाते हैं (जैसा कि datetime मान के अंत में `Z` से संकेत मिलता है)। टाइमज़ोन के लिए [ISO 8601 standard](http://en.wikipedia.org/wiki/ISO_8601) प्रारूप का उपयोग करते हुए, POST या PUT कमांड में Datetime को किसी भी टाइमज़ोन में निर्दिष्ट किया जा सकता है। उदाहरण के लिए, `2017-07-10T08:00:00-0800` एक मान्य इनपुट मान है और इसे अपने-आप UTC मान `2017-07-10T16:00:00Z` में बदल दिया जाएगा।
+
+जब `granularity` का मान `DAY` या `TOTAL` हो, तब analytics endpoints का उपयोग करते समय `start_time` मान को खाता-धारक के स्थानीय टाइमज़ोन में इच्छित दिन की मध्यरात्रि के अनुसार निर्दिष्ट करना आवश्यक है। उपयोग किया जाने वाला टाइमज़ोन ऑफ़सेट वर्तमान दिन का ऑफ़सेट होगा, न कि संबंधित दिन का ऑफ़सेट। उदाहरण के लिए, Pacific Daylight Savings time के दौरान America/Los&#95;Angeles में स्थित किसी ads account के लिए UTC ऑफ़सेट -0700 होता है। इसलिए, किसी analytics अनुरोध में समय इस प्रकार निर्दिष्ट किया जाना चाहिए: `start_time=2017-05-21T07:00:00Z` या `start_time=2017-05-21T00:00:00-0700`। यदि ads account Asia/Tokyo में हो, जहाँ ऑफ़सेट हमेशा +09:00 रहता है, तो मान इस प्रकार निर्दिष्ट किए जाएँगे: `start_time=2017-05-20T15:00:00Z` या `start_time=2017-05-21T00:00:00+0900`.
+
+<div id="accepted-utc-offset-formats">
+  ### स्वीकार्य UTC ऑफ़सेट प्रारूप
+</div>
+
+[ISO 8601 Time zone designators](http://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators) देखें।
+
+समर्थित प्रारूप: `Z`, `-HHMM`, `+HHMM`, `-HH:MM`, `+HH:MM`, `-HH`, `+HH`

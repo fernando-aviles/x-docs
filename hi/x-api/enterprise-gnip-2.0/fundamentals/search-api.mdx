@@ -1,0 +1,1616 @@
+---
+title: "सर्च API: एंटरप्राइज़"
+sidebarTitle: सर्च API
+keywords: ["एंटरप्राइज़ सर्च", "GNIP सर्च", "एंटरप्राइज़ सर्च API", "सर्च API एंटरप्राइज़", "एंटरप्राइज़ सर्च एंडपॉइंट्स"]
+---
+
+> **कृपया ध्यान दें:**
+>
+> हमने [search पोस्ट्स](/hi/x-api/posts/search/introduction) और [पोस्ट संख्या](/hi/x-api/posts/counts/introduction) का नया संस्करण [X API v2](/hi/x-api/getting-started/about-x-api) में जारी किया है। हम आपको सलाह देते हैं कि X API v2 में [क्या नया है, यह देखें](/hi/x-api/migrate/overview)। 
+>
+> इन एंडपॉइंट्स को पोस्ट संपादन मेटाडेटा शामिल करने के लिए अपडेट किया गया है। इस मेटाडेटा के बारे में अधिक जानने के लिए [&quot;पोस्ट्स संपादित करें&quot; के मूलभूत पेज](/hi/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) को देखें। 
+
+<div id="overview">
+  ## अवलोकन
+</div>
+
+`Enterprise`
+
+*एंटरप्राइज़ APIs केवल हमारे managed access levels के अंतर्गत उपलब्ध हैं। इन APIs का उपयोग करने के लिए, आपको पहले हमारी एंटरप्राइज़ sales team के साथ एक खाता सेट अप करना होगा। अधिक जानकारी के लिए [HERE](https://developer.x.com/en/products/x-api/enterprise) देखें।*
+
+*आप X API search पोस्ट ऑफ़रिंग्स की पूरी सूची [HERE](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api) पर देख सकते हैं।*
+
+दो एंटरप्राइज़ search APIs हैं:
+
+1. 30-Day Search API पिछले 30 दिनों का डेटा प्रदान करता है।
+2. Full-Archive Search API मार्च 2006 में किए गए पहले पोस्ट तक के X डेटा के पूरे corpus तक पूर्ण और तुरंत पहुँच प्रदान करता है।
+
+ये RESTful APIs हर request में अधिकतम 2,048 characters तक की एक single query को support करती हैं। Queries, PowerTrack rule syntax में लिखी जाती हैं - अधिक जानकारी के लिए [Rules and filtering](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#getting-started-with-enterprise-rules-and-queries) देखें। उपयोगकर्ता किसी भी time period को minute-level granularity तक निर्दिष्ट कर सकते हैं। हालांकि, responses आपके निर्दिष्ट maxResults या 31 days, इनमें से जो कम हो, तक सीमित होंगी और परिणामों के अगले set के लिए paginate करने हेतु एक next token शामिल करेंगी। यदि time parameters निर्दिष्ट नहीं किए गए हैं, तो API सबसे हाल के 30 दिनों का मेल खाता डेटा लौटाएगा।
+
+एंटरप्राइज़ search APIs, minute-level granularity के साथ Post archive तक low-latency, full-fidelity, query-based access प्रदान करती हैं। पोस्ट डेटा reverse chronological order में दिया जाता है, जिसकी शुरुआत आपके query से मेल खाने वाले सबसे हाल के पोस्ट से होती है। पोस्ट्स, प्रकाशित होने के लगभग 30 seconds बाद search API से उपलब्ध हो जाते हैं।
+
+ये search endpoints edited Post metadata प्रदान करते हैं। 29 सितंबर, 2022 से बनाए गए पोस्ट्स के सभी objects में Post edit metadata शामिल होता है, भले ही पोस्ट कभी संपादित न किया गया हो। हर बार जब किसी पोस्ट को संपादित किया जाता है, तो एक नया Post ID बनाया जाता है। किसी Post का edit history, Post IDs की एक array में दर्ज होता है, जिसकी शुरुआत original ID से होती है।
+
+ये endpoints हमेशा सबसे हाल का edit लौटाएँगे, साथ ही कोई भी edit history भी। 30-minute edit window के बाद collected किया गया कोई भी Post उसके final version को दर्शाएगा। Edit Post metadata के बारे में अधिक जानने के लिए, [Edit Posts fundamentals](/hi/x-api/fundamentals/edit-posts) पेज देखें।
+
+Requests में एक maxResultsparameter शामिल होता है, जो प्रति API रिस्पॉन्स लौटाए जाने वाले पोस्ट्स की अधिकतम संख्या निर्दिष्ट करता है। यदि query से जुड़े पोस्ट्स की संख्या प्रति response परिणामों की इस अधिकतम सीमा से अधिक है, तो रिस्पॉन्स में एक next token शामिल किया जाता है। इन next tokens का उपयोग बाद की requests में query से जुड़े पोस्ट्स के पूरे set में page करने के लिए किया जाता है।
+
+ये एंटरप्राइज़ search APIs एक *counts* endpoint प्रदान करती हैं, जो उपयोगकर्ताओं को अपनी query से जुड़े data volume का अनुरोध करने में सक्षम बनाता है। 
+
+<div id="request-types">
+  ### अनुरोध प्रकार
+</div>
+
+एंटरप्राइज़ Search APIs दो प्रकार के अनुरोधों का समर्थन करते हैं:
+
+<div id="search-requests-data">
+  #### खोज अनुरोध (डेटा)
+</div>
+
+एंटरप्राइज़ Search APIs के लिए खोज अनुरोध आपको किसी दिए गए समय-फ़्रेम में प्रति रिस्पॉन्स अधिकतम 500 परिणाम प्राप्त करने की सुविधा देते हैं, साथ ही अतिरिक्त डेटा के लिए पेजिनेशन करने की क्षमता भी देते हैं। `maxResults` पैरामीटर का उपयोग करके, आप डिस्प्ले उपयोग-मामलों के लिए छोटे पेज साइज़ निर्दिष्ट कर सकते हैं (ताकि आपका उपयोगकर्ता आवश्यकता अनुसार और परिणामों का अनुरोध कर सके) या बड़े डेटा पुल के लिए बड़े पेज साइज़ (अधिकतम 500 तक) चुन सकते हैं। डेटा उल्टे कालानुक्रमिक क्रम में दिया जाता है और डिलीवरी के समय अनुपालक होता है।
+
+<div id="counts-requests-post-count">
+  #### गणना अनुरोध (पोस्ट गणना)
+</div>
+
+गणना अनुरोध आपको ऐतिहासिक गतिविधि गणनाएँ प्राप्त करने की सुविधा देते हैं, जो अनुरोधित समयावधि के दौरान किसी दी गई क्वेरी से मेल खाने वाली गतिविधियों की संख्या दिखाती हैं। रिस्पॉन्स मूलतः आपको गणनाओं का एक हिस्टोग्राम देगा, जिसे दिन, घंटे या मिनट के अनुसार बकेट किया गया होगा (डिफ़ॉल्ट बकेट *hour* है)। यह ध्यान रखना महत्वपूर्ण है कि गणना परिणाम हमेशा उन अनुपालन घटनाओं (उदाहरण के लिए, पोस्ट्स हटाए जाना) को नहीं दर्शाते, जो किसी पोस्ट के प्रकाशित होने के काफ़ी समय बाद (7+ दिन) होती हैं; इसलिए, यह अपेक्षित है कि गणना मेट्रिक हमेशा उसी क्वेरी के लिए किसी डेटा अनुरोध से मेल न खाए।
+
+**बिलिंग नोट:** डेटा और गणना एंडपॉइंट्स पर किया गया प्रत्येक अनुरोध – *पेजिनेशन अनुरोधों सहित* – बिल योग्य अनुरोध के रूप में गिना जाता है। इसलिए, यदि एक ही क्वेरी के लिए परिणामों के कई पेज हैं, तो परिणामों के X पेजों के बीच पेजिनेट करना बिलिंग के हिसाब से X अनुरोधों के बराबर होगा।
+
+<div id="available-operators">
+  ### उपलब्ध ऑपरेटर
+</div>
+
+एंटरप्राइज़ search APIs 2,048 वर्णों तक के नियमों का समर्थन करते हैं। एंटरप्राइज़ search APIs नीचे सूचीबद्ध ऑपरेटरों का समर्थन करते हैं। विस्तृत विवरण के लिए [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators) देखें। 
+
+|                                                                                                                   |                                            |                                                                                                                                                                                                                                         |                                                                                                                                                                                                                                                                                             |
+| :---------------------------------------------------------------------------------------------------------------- | :----------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **पोस्ट सामग्री पर मिलान:**                                                                                       | **रुचिकर खातों पर मिलान:**                 | **पोस्ट विशेषताएँ:**                                                                                                                                                                                                                    | **भू-स्थानिक ऑपरेटर:**                                                                                                                                                                                                                                                                      |
+| * keyword<br />* “quoted phrase”<br />* “keyword1 keyword2”~N<br />* #<br />* @<br />* $<br />* url:<br />* lang: | * from:<br />* to:<br />* retweets&#95;of: | * is:retweet  <br />    <br />* has:mentions<br />* has:hashtags<br />* has:media<br />* has:videos<br />* has:images<br />* has:links<br />* has:symbols<br />* is:verified  <br />    <br />* -is:nullcast (केवल निषेध के लिए ऑपरेटर) | * bounding&#95;box:[west&#95;long south&#95;lat east&#95;long north&#95;lat]<br />* point&#95;radius:[lon lat radius]<br />* has:geo<br />* place:<br />* place&#95;country:<br />* has:profile&#95;geo<br />* profile&#95;country:<br />* profile&#95;region:<br />* profile&#95;locality: |
+
+नोट: ऑपरेटरों को एम्बेड/नेस्ट न करें; (&quot;#cats&quot;) search APIs के साथ cats के रूप में रिज़ॉल्व होगा।   ‘lang:’ ऑपरेटर तथा सभी ‘is:’ और ‘has:’ ऑपरेटर standalone ऑपरेटर के रूप में उपयोग नहीं किए जा सकते हैं, और इन्हें किसी अन्य clause के साथ संयोजित करना आवश्यक है (उदा. @XDevelopers has:links)।    
+
+Search APIs, tokenization/matching कार्यक्षमता के कारण, सीमित ऑपरेटर सेट का उपयोग करते हैं। एंटरप्राइज़ real-time और batched historical APIs अतिरिक्त ऑपरेटर प्रदान करते हैं। अधिक विवरण के लिए [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#operators-by-product) देखें।
+
+अधिक जानकारी के लिए, कृपया [ऑपरेटरों के साथ शुरुआत करना](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#building-rules-and-queries) गाइड देखें।
+
+<div id="data-availability-important-date">
+  ### डेटा उपलब्धता / महत्वपूर्ण तिथि
+</div>
+
+Full-Archive search API का उपयोग करते समय, ध्यान रखें कि 2006 से X प्लेटफ़ॉर्म लगातार विकसित होता रहा है। जैसे-जैसे नई सुविधाएँ जोड़ी गईं, आधारभूत JSON ऑब्जेक्ट्स में नया मेटाडेटा भी जोड़ा गया। इसलिए यह समझना महत्वपूर्ण है कि वे पोस्ट एट्रिब्यूट्स कब जोड़े गए, जिन पर search operators मिलान करते हैं। नीचे महत्वपूर्ण मेटाडेटा के कुछ प्रमुख &#39;शुरुआती&#39; दिनांक दिए गए हैं। पोस्ट एट्रिब्यूट्स पहली बार कब पेश किए गए थे, इसके बारे में अधिक जानने के लिए, [इस गाइड](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#full-archive-search-metadata-timeline) को देखें।  
+
+* पहला पोस्ट: 3/21/2006
+* पहला Native Retweets: 11/6/2009
+* पहला Geo-tagged पोस्ट: 11/19/2009
+* फ़िल्टरिंग के लिए URLs पहली बार इंडेक्स किए गए: 8/27/2011
+* उन्नत URL विस्तार मेटाडेटा (वेबसाइट शीर्षक और विवरण): 12/1/2014
+* Profile Geo enrichment मेटाडेटा और फ़िल्टरिंग: 2/17/2015
+
+<div id="data-updates-and-mutability">
+  ### डेटा अपडेट और परिवर्तनशीलता
+</div>
+
+एंटरप्राइज़ search APIs के साथ, किसी पोस्ट के भीतर मौजूद कुछ डेटा परिवर्तनशील होता है, यानी प्रारंभिक आर्काइविंग के बाद उसे अपडेट या बदला जा सकता है।
+
+यह परिवर्तनशील डेटा दो श्रेणियों में आता है:
+
+* उपयोगकर्ता ऑब्जेक्ट मेटाडेटा:
+  * उपयोगकर्ता का @handle (संख्यात्मक ID कभी नहीं बदलता)
+  * बायो विवरण
+  * गणनाएँ: statuses, followers, friends, favorites, lists
+  * प्रोफ़ाइल स्थान
+  * अन्य विवरण, जैसे time zone और language
+* पोस्ट के आँकड़े - यानी ऐसी कोई भी चीज़ जिसे उपयोगकर्ता की कार्रवाइयों से प्लेटफ़ॉर्म पर बदला जा सकता है (उदाहरण नीचे दिए गए हैं):
+  * Favorites की संख्या
+  * Retweet की संख्या
+
+इनमें से अधिकांश मामलों में, search APIs डेटा को वैसे लौटाते हैं जैसा वह *query-time* पर प्लेटफ़ॉर्म पर मौजूद होता है, न कि पोस्ट बनाए जाने के समय जैसा था। हालांकि, select operators (जैसे from, to, @, is:verified) का उपयोग करने वाली queries के मामले में, ऐसा हमेशा नहीं हो सकता। हमारे index में डेटा नियमित रूप से अपडेट किया जाता है, और सबसे हाल की समय-सीमाओं के लिए इसकी आवृत्ति अधिक होती है। परिणामस्वरूप, कुछ मामलों में लौटाया गया डेटा X.com पर वर्तमान में दिख रहे डेटा से पूरी तरह मेल नहीं खा सकता, लेकिन वह उस समय के डेटा से मेल खाता है जब उसे आख़िरी बार index किया गया था।
+
+ध्यान दें, असंगति की यह समस्या केवल उन queries पर लागू होती है जहाँ operator परिवर्तनशील डेटा पर लागू होता है। इसका एक उदाहरण usernames के लिए फ़िल्टर करना है, और इसका सबसे अच्छा समाधान यह है कि ऐसी queries के लिए @handles के बजाय उपयोगकर्ताओं की संख्यात्मक IDs का उपयोग किया जाए।
+
+<div id="single-vs-multi-threaded-requests">
+  ### सिंगल बनाम मल्टी-थ्रेडेड अनुरोध
+</div>
+
+प्रत्येक ग्राहक के search endpoint के लिए एक निर्धारित rate limit होती है। Full-Archive search के लिए डिफ़ॉल्ट प्रति-मिनट rate limit 120 requests per minute है, यानी औसतन 2 queries per second (QPS)। इस औसत QPS का मतलब है कि सैद्धांतिक रूप से API को हर सेकंड 2 requests भेजी जा सकती हैं। प्रोडक्ट में उपलब्ध pagination सुविधा को देखते हुए, यदि किसी one-year query से एक मिलियन पोस्ट्स जुड़ी हों और वे पूरे वर्ष में समान रूप से वितरित हों, तो पूरा डेटा प्राप्त करने के लिए 2,000 से अधिक requests की आवश्यकता होगी (यह मानते हुए कि ‘maxResults’ 500 है)। यदि प्रति रिस्पॉन्स 2 सेकंड लगते हैं, तो उस पूरे डेटा को एक single thread के ज़रिए serially/sequentially pull करने में 4,000 सेकंड (या एक घंटे से थोड़ा अधिक) लगेंगे (पिछले रिस्पॉन्स के “next” token का उपयोग करते हुए 1 request per second)। बुरा नहीं!
+
+अब उस स्थिति पर विचार करें, जहाँ डेटा प्राप्त करने के लिए बारह parallel threads का उपयोग किया जाता है। यदि one-year period में एक मिलियन पोस्ट्स समान रूप से वितरित हों, तो आप requests को बारह parallel threads (multi-threaded) में बाँट सकते हैं और एक ही “job” के लिए प्रति-सेकंड rate limit का अधिक प्रभावी उपयोग कर सकते हैं। दूसरे शब्दों में, जिन महीनों में आपकी रुचि है, उनके लिए आप प्रति माह एक thread चला सकते हैं, और ऐसा करके डेटा 12x तेज़ी से प्राप्त किया जा सकता है (या ~6 मिनट में)।
+
+यह multi-threaded उदाहरण counts endpoint पर भी समान रूप से लागू होता है। उदाहरण के लिए, यदि आप दो-वर्षीय अवधि के लिए पोस्ट की गणनाएँ प्राप्त करना चाहते हैं, तो आप single-threaded request कर सकते हैं और counts में 31 दिनों के अंतराल पर पीछे की ओर page कर सकते हैं। यदि प्रति रिस्पॉन्स 2 सेकंड लगते हैं, तो 24 API requests करने और counts का पूरा सेट प्राप्त करने में लगभग 48 सेकंड लगेंगे। हालाँकि, आपके पास एक बार में कई one-month requests करने का विकल्प भी है। जब प्रति सेकंड 12 requests की जाती हैं, तो counts का पूरा सेट लगभग 2 सेकंड में प्राप्त किया जा सकता है।
+
+<div id="retry-logic">
+  ### पुनः प्रयास लॉजिक
+</div>
+
+यदि एंटरप्राइज़ search APIs के साथ आपको 503 त्रुटि मिलती है, तो संभव है कि यह एक अस्थायी त्रुटि हो और थोड़ी देर बाद अनुरोध को फिर से भेजने पर इसका समाधान हो जाए।
+
+यदि अनुरोध लगातार 4 बार विफल हो जाता है, और आपने प्रत्येक विफलता के बीच कम से कम 10 मिनट का इंतज़ार किया है, तो समस्या-निवारण के लिए निम्न चरण अपनाएँ:
+
+* अनुरोध जिस समयावधि को कवर करता है, उसे कम करके फिर से प्रयास करें। यदि फिर भी सफलता न मिले, तो इसे घटाते-घटाते 6 घंटे की समय-विंडो तक ले आएँ।
+* यदि आप बड़ी संख्या में terms को OR कर रहे हैं, तो उन्हें अलग-अलग rules में बाँट दें और प्रत्येक को अलग-अलग फिर से आज़माएँ।
+* यदि आप अपने rule में बड़ी संख्या में exclusions का उपयोग कर रहे हैं, तो rule में negated terms की संख्या कम करें और फिर से प्रयास करें।
+
+<div id="quick-start">
+  ## त्वरित शुरुआत
+</div>
+
+<div id="getting-started-with-enterprise-search-posts-30-day-api">
+  ### एंटरप्राइज़ Search Posts: 30-Day API के साथ शुरुआत करना
+</div>
+
+एंटरप्राइज़ Search Posts: 30-Day API आपको पिछले 30 दिनों के भीतर किए गए पोस्ट्स उपलब्ध कराता है। पोस्ट्स का मिलान आपकी रिक्वेस्ट में दी गई क्वेरी के आधार पर किया जाता है और फिर उन्हें आपको वापस भेजा जाता है। क्वेरी एक नियम है, जिसमें आप यह निर्धारित करते हैं कि आपको वापस मिलने वाले पोस्ट में क्या होना चाहिए। इस ट्यूटोरियल में, हम X खाते @XDevelopers से अंग्रेज़ी में किए गए पोस्ट्स खोजेंगे।
+
+आपको अपने payload में जो पोस्ट्स वापस मिलते हैं, वे data फ़ॉर्मैट में हो सकते हैं, जो आपको पोस्ट का पूरा payload देता है, या counts फ़ॉर्मैट में हो सकते हैं, जो आपको मिलान किए गए पोस्ट्स की संख्यात्मक गणना का डेटा देता है। हम data और counts endpoints पर रिक्वेस्ट करने के लिए cURL का उपयोग करेंगे।
+
+आपको निम्नलिखित की आवश्यकता होगी:
+
+* [एक एंटरप्राइज़ खाता]https://developer.x.com/en/products/x-api/enterprise
+* आपका username, password, और account name
+* आपके search endpoint से संबद्ध label, जैसा कि console.gnip.com पर प्रदर्शित होता है
+
+#### डेटा endpoint ऐक्सेस करना
+
+data endpoint हमें मेल खाने वाले पोस्ट्स का पूरा Post payload देगा। हम अंग्रेज़ी में @XDevelopers से आने वाले पोस्ट्स खोजने के लिए `from:` और `lang:` operators का उपयोग करेंगे। *अधिक operators के लिए [यहाँ क्लिक करें](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)।*
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL, URL syntax का उपयोग करके फ़ाइलें प्राप्त या भेजने के लिए एक command-line tool है।*
+
+    नीचे दिए गए cURL request को अपनी command line में कॉपी करने से पहले, इनमें आवश्यक बदलाव कर लें:
+
+    * **Username** `<USERNAME>` उदा. `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>` उदा. `john-doe`
+
+    * **Label** `<LABEL>` उदा. `prod`
+
+    * **fromDate and toDate** उदा. `"fromDate":"201811010000", "toDate":"201811122359"`
+
+    *अपना request भेजने के बाद, आपसे password दर्ज करने के लिए कहा जाएगा।*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/30day/accounts/<ACCOUNT-NAME>/<LABEL>.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL उदाहरण">
+    ```bash
+    _यह cURL request का एक उदाहरण है। यदि आप इसे चलाने का प्रयास करेंगे, तो यह काम नहीं करेगा।_
+
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/30day/accounts/john-doe/prod.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"201811100000","toDate":"201812012359"}'
+    ```
+  </Tab>
+</Tabs>
+
+#### डेटा एंडपॉइंट रिस्पॉन्स पेलोड
+
+आपके API अनुरोध से वापस मिलने वाला पेलोड नीचे दिखाए अनुसार JSON फ़ॉर्मैट में होगा।
+
+```json
+{
+	"results": [
+		{
+			"created_at": "Fri Nov 02 17:18:31 +0000 2018",
+			"id": 1058408022936977409,
+			"id_str": "1058408022936977409",
+			"text": "RT @harmophone: \"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relevant conv…",
+			"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web Client<\/a>",
+			"truncated": false,
+			"in_reply_to_status_id": null,
+			"in_reply_to_status_id_str": null,
+			"in_reply_to_user_id": null,
+			"in_reply_to_user_id_str": null,
+			"in_reply_to_screen_name": null,
+			"user": {
+				"id": 2244994945,
+				"id_str": "2244994945",
+				"name": "Twitter Dev",
+				"screen_name": "TwitterDev",
+				"location": "Internet",
+				"url": "https:\/\/developer.x.com\/",
+				"description": "Your official source for Twitter Platform news, updates & events. Need technical help? Visit https:\/\/devcommunity.com\/ ⌨️ #TapIntoTwitter",
+				"translator_type": "null",
+				"protected": false,
+				"verified": true,
+				"followers_count": 503828,
+				"friends_count": 1477,
+				"listed_count": 1437,
+				"favourites_count": 2199,
+				"statuses_count": 3380,
+				"created_at": "Sat Dec 14 04:35:55 +0000 2013",
+				"utc_offset": null,
+				"time_zone": null,
+				"geo_enabled": true,
+				"lang": "en",
+				"contributors_enabled": false,
+				"is_translator": false,
+				"profile_background_color": "null",
+				"profile_background_image_url": "null",
+				"profile_background_image_url_https": "null",
+				"profile_background_tile": null,
+				"profile_link_color": "null",
+				"profile_sidebar_border_color": "null",
+				"profile_sidebar_fill_color": "null",
+				"profile_text_color": "null",
+				"profile_use_background_image": null,
+				"profile_image_url": "null",
+				"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/880136122604507136\/xHrnqf1T_normal.jpg",
+				"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/2244994945\/1498675817",
+				"default_profile": false,
+				"default_profile_image": false,
+				"following": null,
+				"follow_request_sent": null,
+				"notifications": null
+			},
+			"geo": null,
+			"coordinates": null,
+			"place": null,
+			"contributors": null,
+			"retweeted_status": {
+				"created_at": "Tue Oct 30 21:30:25 +0000 2018",
+				"id": 1057384253116289025,
+				"id_str": "1057384253116289025",
+				"text": "\"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relev… https:\/\/t.co\/w46U5TRTzQ",
+				"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web Client<\/a>",
+				"truncated": true,
+				"in_reply_to_status_id": null,
+				"in_reply_to_status_id_str": null,
+				"in_reply_to_user_id": null,
+				"in_reply_to_user_id_str": null,
+				"in_reply_to_screen_name": null,
+				"user": {
+					"id": 175187944,
+					"id_str": "175187944",
+					"name": "Tyler Singletary",
+					"screen_name": "harmophone",
+					"location": "San Francisco, CA",
+					"url": "http:\/\/medium.com\/@harmophone",
+					"description": "SVP Product at @Tagboard. Did some Data, biz, and product @Klout & for @LithiumTech; @BBI board member; @Insightpool advisor. World's worst whiteboarder.",
+					"translator_type": "null",
+					"protected": false,
+					"verified": false,
+					"followers_count": 1982,
+					"friends_count": 1877,
+					"listed_count": 245,
+					"favourites_count": 23743,
+					"statuses_count": 12708,
+					"created_at": "Thu Aug 05 22:59:29 +0000 2010",
+					"utc_offset": null,
+					"time_zone": null,
+					"geo_enabled": false,
+					"lang": "en",
+					"contributors_enabled": false,
+					"is_translator": false,
+					"profile_background_color": "null",
+					"profile_background_image_url": "null",
+					"profile_background_image_url_https": "null",
+					"profile_background_tile": null,
+					"profile_link_color": "null",
+					"profile_sidebar_border_color": "null",
+					"profile_sidebar_fill_color": "null",
+					"profile_text_color": "null",
+					"profile_use_background_image": null,
+					"profile_image_url": "null",
+					"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/719985428632240128\/WYFHcK-m_normal.jpg",
+					"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/175187944\/1398653841",
+					"default_profile": false,
+					"default_profile_image": false,
+					"following": null,
+					"follow_request_sent": null,
+					"notifications": null
+				},
+				"geo": null,
+				"coordinates": null,
+				"place": null,
+				"contributors": null,
+				"is_quote_status": false,
+				"extended_tweet": {
+					"full_text": "\"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relevant conversations in real-time and enabling voters to ask questions during debates,”  -- @adamostrow, @TEGNA\nLearn More: https:\/\/t.co\/ivAFtanfje",
+					"display_text_range": [
+						0,
+						259
+					],
+					"entities": {
+						"hashtags": [],
+						"urls": [
+							{
+								"url": "https:\/\/t.co\/ivAFtanfje",
+								"expanded_url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+								"display_url": "blog.tagboard.com\/twitter-and-ta…",
+								"unwound": {
+									"url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+									"status": 200,
+									"title": "Twitter and Tagboard Collaborate to Bring Best Election Content to News Outlets With Tagboard…",
+									"description": "By Tyler Singletary, Head of Product, Tagboard"
+								},
+								"indices": [
+									236,
+									259
+								]
+							}
+						],
+						"user_mentions": [
+							{
+								"screen_name": "adamostrow",
+								"name": "Adam Ostrow",
+								"id": 5695942,
+								"id_str": "5695942",
+								"indices": [
+									204,
+									215
+								]
+							},
+							{
+								"screen_name": "TEGNA",
+								"name": "TEGNA",
+								"id": 34123003,
+								"id_str": "34123003",
+								"indices": [
+									217,
+									223
+								]
+							}
+						],
+						"symbols": []
+					}
+				},
+				"quote_count": 0,
+				"reply_count": 1,
+				"retweet_count": 6,
+				"favorite_count": 19,
+				"entities": {
+					"hashtags": [],
+					"urls": [
+						{
+							"url": "https:\/\/t.co\/w46U5TRTzQ",
+							"expanded_url": "https:\/\/twitter.com\/i\/web\/status\/1057384253116289025",
+							"display_url": "twitter.com\/i\/web\/status\/1…",
+							"indices": [
+								117,
+								140
+							]
+						}
+					],
+					"user_mentions": [],
+					"symbols": []
+				},
+				"favorited": false,
+				"retweeted": false,
+				"possibly_sensitive": false,
+				"filter_level": "low",
+				"lang": "en"
+			},
+			"is_quote_status": false,
+			"quote_count": 0,
+			"reply_count": 0,
+			"retweet_count": 0,
+			"favorite_count": 0,
+			"entities": {
+				"hashtags": [],
+				"urls": [],
+				"user_mentions": [
+					{
+						"screen_name": "harmophone",
+						"name": "Tyler Singletary",
+						"id": 175187944,
+						"id_str": "175187944",
+						"indices": [
+							3,
+							14
+						]
+					}
+				],
+				"symbols": []
+			},
+			"favorited": false,
+			"retweeted": false,
+			"filter_level": "low",
+			"lang": "en",
+			"matching_rules": [
+				{
+					"tag": null
+				}
+			]
+		}
+	],
+	"requestParameters": {
+		"maxResults": 100,
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+<div id="accessing-the-counts-endpoint">
+  #### counts endpoint को ऐक्सेस करना
+</div>
+
+counts endpoint का उपयोग करके, हम @XDevelopers खाते से की गई अंग्रेज़ी पोस्ट्स की संख्या प्राप्त करेंगे, जिन्हें `day` के अनुसार समूहित किया गया है।
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL, URL सिंटैक्स का उपयोग करके फ़ाइलें प्राप्त करने या भेजने के लिए एक कमांड-लाइन टूल है।*
+
+    नीचे दिए गए cURL अनुरोध को अपनी कमांड लाइन में कॉपी करने से पहले, इनमें आवश्यक बदलाव करें:
+
+    * **उपयोगकर्ता नाम** `<USERNAME>` उदा. `email@domain.com`
+
+    * **अकाउंट नाम** `<ACCOUNT-NAME>` उदा. `john-doe`
+
+    * **लेबल** `<LABEL>` उदा. `prod`
+
+    * **fromDate और toDate** उदा. `"fromDate":"201811010000", "toDate":"201811122359"`
+
+    *अपना अनुरोध भेजने के बाद, आपसे आपका पासवर्ड दर्ज करने के लिए कहा जाएगा।*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/30day/accounts/<ACCOUNT-NAME>/<LABEL>/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>","bucket":"day"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL उदाहरण">
+    *यह एक उदाहरण cURL अनुरोध है। यदि आप इसे चलाने का प्रयास करते हैं, तो यह काम नहीं करेगा।*
+
+    ```bash
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/30day/accounts/john-doe/prod/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"201811100000","toDate":"201812012359","bucket":"day"}'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="counts-endpoint-response-payload">
+  #### Counts एंडपॉइंट रिस्पॉन्स पेलोड
+</div>
+
+आपके API अनुरोध से वापस मिलने वाला पेलोड नीचे दिखाए गए अनुसार JSON फ़ॉर्मैट में होगा।
+
+```json
+{
+	"results": [
+		{
+			"timePeriod": "201811010000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811020000",
+			"count": 1
+		},
+		{
+			"timePeriod": "201811030000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811040000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811050000",
+			"count": 0
+		}
+	],
+	"totalCount": 1,
+	"requestParameters": {
+		"bucket": "day",
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+बहुत बढ़िया! अब आपने एंटरप्राइज़ Search Posts: 30-Day API को सफलतापूर्वक ऐक्सेस कर लिया है।
+
+<div id="referenced-articles">
+  ##### **संदर्भित लेख**
+</div>
+
+* [पोस्ट ऑब्जेक्ट्स का परिचय](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary)
+* [सर्च ऑपरेटर](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)
+* [पोस्ट ऑब्जेक्ट्स और पेलोड](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#post-object)
+
+<div id="getting-started-with-enterprise-search-posts-full-archive-api">
+  ### एंटरप्राइज़ Search Posts: Full-Archive API के साथ शुरुआत करना
+</div>
+
+एंटरप्राइज़ Search Posts: Full-Archive API आपको 2006 में किए गए पहले पोस्ट से अब तक के पोस्ट्स उपलब्ध कराता है। आपके अनुरोध में दी गई क्वेरी के आधार पर पोस्ट्स का मिलान किया जाता है और फिर उन्हें आपको वापस भेजा जाता है। क्वेरी एक नियम होती है, जिसमें आप तय करते हैं कि आपको वापस मिलने वाले पोस्ट में क्या शामिल होना चाहिए। इस ट्यूटोरियल में, हम X खाते @XDevelopers से अंग्रेज़ी में किए गए पोस्ट्स खोजेंगे।
+
+आपके payload में वापस मिलने वाले पोस्ट्स `data` फ़ॉर्मैट में हो सकते हैं, जो आपको पूरा पोस्ट payload देता है, या `counts` फ़ॉर्मैट में, जो आपको मेल खाने वाले पोस्ट्स की संख्यात्मक गणना का डेटा देता है। हम `data` और `counts` endpoints पर अनुरोध करने के लिए cURL का उपयोग करेंगे।
+
+आपको निम्नलिखित की आवश्यकता होगी:
+
+* [एक एंटरप्राइज़ खाता]https://developer.x.com/en/products/x-api/enterprise
+* आपका उपयोगकर्ता नाम, पासवर्ड और खाता नाम
+* आपके search endpoint से संबद्ध लेबल, जैसा कि console.gnip.com पर प्रदर्शित होता है
+
+<div id="accessing-the-data-endpoint">
+  #### डेटा एंडपॉइंट को एक्सेस करना
+</div>
+
+डेटा एंडपॉइंट हमें मिलान किए गए पोस्ट्स का पूरा पोस्ट payload देगा। हम अंग्रेज़ी में @XDevelopers से आने वाले पोस्ट्स खोजने के लिए `from:` और `lang:` ऑपरेटर्स का उपयोग करेंगे। *अधिक ऑपरेटर्स के लिए [यहाँ क्लिक करें](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)।*
+
+* [cURL](#tab1)
+* [cURL उदाहरण](#tab2)
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL, URL syntax का उपयोग करके फ़ाइलें प्राप्त या भेजने के लिए एक command-line tool है।*
+
+    नीचे दिए गए cURL request को अपनी command line में कॉपी करने से पहले, इनमें आवश्यक बदलाव कर लें:
+
+    * **Username** `<USERNAME>` उदाहरण: `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>` उदाहरण: `john-doe`
+
+    * **Label** `<LABEL>` उदाहरण: `prod`
+
+    * **fromDate and toDate** उदाहरण: `"fromDate":"201802010000", "toDate":"201802282359"`
+
+    *अपना request भेजने के बाद, आपसे आपका password दर्ज करने के लिए कहा जाएगा।*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/fullarchive/accounts/<ACCOUNT-NAME>/<LABEL>.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL उदाहरण">
+    *यह एक उदाहरण cURL request है। यदि आप इसे चलाने का प्रयास करते हैं, तो यह काम नहीं करेगा।*
+
+    ```bash
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/fullarchive/accounts/john-doe/prod.json" -d '{"query":"from:TwitterDev lang:en","maxResults":"500","fromDate":"201802010000","toDate":"201802282359"}'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="data-endpoint-response-payload">
+  ##### डेटा एंडपॉइंट रिस्पॉन्स पेलोड
+</div>
+
+आपके API अनुरोध के बदले मिलने वाला पेलोड नीचे दिखाए गए अनुसार JSON फ़ॉर्मेट में होगा।
+
+```json
+{
+	"results": [
+		{
+			"created_at": "Fri Nov 02 17:18:31 +0000 2018",
+			"id": 1058408022936977409,
+			"id_str": "1058408022936977409",
+			"text": "RT @harmophone: \"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relevant conv…",
+			"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web Client<\/a>",
+			"truncated": false,
+			"in_reply_to_status_id": null,
+			"in_reply_to_status_id_str": null,
+			"in_reply_to_user_id": null,
+			"in_reply_to_user_id_str": null,
+			"in_reply_to_screen_name": null,
+			"user": {
+				"id": 2244994945,
+				"id_str": "2244994945",
+				"name": "Twitter Dev",
+				"screen_name": "TwitterDev",
+				"location": "Internet",
+				"url": "https:\/\/developer.x.com\/",
+				"description": "Your official source for Twitter Platform news, updates & events. Need technical help? Visit https:\/\/devcommunity.com\/ ⌨️ #TapIntoTwitter",
+				"translator_type": "null",
+				"protected": false,
+				"verified": true,
+				"followers_count": 503828,
+				"friends_count": 1477,
+				"listed_count": 1437,
+				"favourites_count": 2199,
+				"statuses_count": 3380,
+				"created_at": "Sat Dec 14 04:35:55 +0000 2013",
+				"utc_offset": null,
+				"time_zone": null,
+				"geo_enabled": true,
+				"lang": "en",
+				"contributors_enabled": false,
+				"is_translator": false,
+				"profile_background_color": "null",
+				"profile_background_image_url": "null",
+				"profile_background_image_url_https": "null",
+				"profile_background_tile": null,
+				"profile_link_color": "null",
+				"profile_sidebar_border_color": "null",
+				"profile_sidebar_fill_color": "null",
+				"profile_text_color": "null",
+				"profile_use_background_image": null,
+				"profile_image_url": "null",
+				"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/880136122604507136\/xHrnqf1T_normal.jpg",
+				"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/2244994945\/1498675817",
+				"default_profile": false,
+				"default_profile_image": false,
+				"following": null,
+				"follow_request_sent": null,
+				"notifications": null
+			},
+			"geo": null,
+			"coordinates": null,
+			"place": null,
+			"contributors": null,
+			"retweeted_status": {
+				"created_at": "Tue Oct 30 21:30:25 +0000 2018",
+				"id": 1057384253116289025,
+				"id_str": "1057384253116289025",
+				"text": "\"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relev… https:\/\/t.co\/w46U5TRTzQ",
+				"source": "<a href=\"http:\/\/twitter.com\" rel=\"nofollow\">Twitter Web Client<\/a>",
+				"truncated": true,
+				"in_reply_to_status_id": null,
+				"in_reply_to_status_id_str": null,
+				"in_reply_to_user_id": null,
+				"in_reply_to_user_id_str": null,
+				"in_reply_to_screen_name": null,
+				"user": {
+					"id": 175187944,
+					"id_str": "175187944",
+					"name": "Tyler Singletary",
+					"screen_name": "harmophone",
+					"location": "San Francisco, CA",
+					"url": "http:\/\/medium.com\/@harmophone",
+					"description": "SVP Product at @Tagboard. Did some Data, biz, and product @Klout & for @LithiumTech; @BBI board member; @Insightpool advisor. World's worst whiteboarder.",
+					"translator_type": "null",
+					"protected": false,
+					"verified": false,
+					"followers_count": 1982,
+					"friends_count": 1877,
+					"listed_count": 245,
+					"favourites_count": 23743,
+					"statuses_count": 12708,
+					"created_at": "Thu Aug 05 22:59:29 +0000 2010",
+					"utc_offset": null,
+					"time_zone": null,
+					"geo_enabled": false,
+					"lang": "en",
+					"contributors_enabled": false,
+					"is_translator": false,
+					"profile_background_color": "null",
+					"profile_background_image_url": "null",
+					"profile_background_image_url_https": "null",
+					"profile_background_tile": null,
+					"profile_link_color": "null",
+					"profile_sidebar_border_color": "null",
+					"profile_sidebar_fill_color": "null",
+					"profile_text_color": "null",
+					"profile_use_background_image": null,
+					"profile_image_url": "null",
+					"profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/719985428632240128\/WYFHcK-m_normal.jpg",
+					"profile_banner_url": "https:\/\/pbs.twimg.com\/profile_banners\/175187944\/1398653841",
+					"default_profile": false,
+					"default_profile_image": false,
+					"following": null,
+					"follow_request_sent": null,
+					"notifications": null
+				},
+				"geo": null,
+				"coordinates": null,
+				"place": null,
+				"contributors": null,
+				"is_quote_status": false,
+				"extended_tweet": {
+					"full_text": "\"The innovative crowdsourcing that the Tagboard, Twitter and TEGNA collaboration enables is surfacing locally relevant conversations in real-time and enabling voters to ask questions during debates,”  -- @adamostrow, @TEGNA\nLearn More: https:\/\/t.co\/ivAFtanfje",
+					"display_text_range": [
+						0,
+						259
+					],
+					"entities": {
+						"hashtags": [],
+						"urls": [
+							{
+								"url": "https:\/\/t.co\/ivAFtanfje",
+								"expanded_url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+								"display_url": "blog.tagboard.com\/twitter-and-ta…",
+								"unwound": {
+									"url": "https:\/\/blog.tagboard.com\/twitter-and-tagboard-collaborate-to-bring-best-election-content-to-news-outlets-with-tagboard-e85fc864bcf4",
+									"status": 200,
+									"title": "Twitter and Tagboard Collaborate to Bring Best Election Content to News Outlets With Tagboard…",
+									"description": "By Tyler Singletary, Head of Product, Tagboard"
+								},
+								"indices": [
+									236,
+									259
+								]
+							}
+						],
+						"user_mentions": [
+							{
+								"screen_name": "adamostrow",
+								"name": "Adam Ostrow",
+								"id": 5695942,
+								"id_str": "5695942",
+								"indices": [
+									204,
+									215
+								]
+							},
+							{
+								"screen_name": "TEGNA",
+								"name": "TEGNA",
+								"id": 34123003,
+								"id_str": "34123003",
+								"indices": [
+									217,
+									223
+								]
+							}
+						],
+						"symbols": []
+					}
+				},
+				"quote_count": 0,
+				"reply_count": 1,
+				"retweet_count": 6,
+				"favorite_count": 19,
+				"entities": {
+					"hashtags": [],
+					"urls": [
+						{
+							"url": "https:\/\/t.co\/w46U5TRTzQ",
+							"expanded_url": "https:\/\/twitter.com\/i\/web\/status\/1057384253116289025",
+							"display_url": "twitter.com\/i\/web\/status\/1…",
+							"indices": [
+								117,
+								140
+							]
+						}
+					],
+					"user_mentions": [],
+					"symbols": []
+				},
+				"favorited": false,
+				"retweeted": false,
+				"possibly_sensitive": false,
+				"filter_level": "low",
+				"lang": "en"
+			},
+			"is_quote_status": false,
+			"quote_count": 0,
+			"reply_count": 0,
+			"retweet_count": 0,
+			"favorite_count": 0,
+			"entities": {
+				"hashtags": [],
+				"urls": [],
+				"user_mentions": [
+					{
+						"screen_name": "harmophone",
+						"name": "Tyler Singletary",
+						"id": 175187944,
+						"id_str": "175187944",
+						"indices": [
+							3,
+							14
+						]
+					}
+				],
+				"symbols": []
+			},
+			"favorited": false,
+			"retweeted": false,
+			"filter_level": "low",
+			"lang": "en",
+			"matching_rules": [
+				{
+					"tag": null
+				}
+			]
+		}
+	],
+	"requestParameters": {
+		"maxResults": 100,
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+#### counts endpoint ऐक्सेस करना
+
+counts endpoint के ज़रिए, हम @XDevelopers खाते से किए गए अंग्रेज़ी पोस्ट्स की संख्या `day` के आधार पर समूहित करके प्राप्त करेंगे।
+
+<Tabs>
+  <Tab title="cURL">
+    *cURL, URL सिंटैक्स का उपयोग करके फ़ाइलें प्राप्त या भेजने के लिए एक कमांड-लाइन टूल है।*
+
+    नीचे दिए गए cURL अनुरोध को अपनी कमांड लाइन में कॉपी करने से पहले, इनमें आवश्यक बदलाव करें:
+
+    * **Username** `<USERNAME>` उदा. `email@domain.com`
+
+    * **Account name** `<ACCOUNT-NAME>` उदा. `john-doe`
+
+    * **Label** `<LABEL>` उदा. `prod`
+
+    * **fromDate and toDate** उदा. `"fromDate":"201802010000", "toDate":"201802282359"`
+
+    *अपना अनुरोध भेजने के बाद, आपसे आपका पासवर्ड दर्ज करने के लिए कहा जाएगा।*
+
+    ```bash
+    curl -X POST -u<USERNAME> "https://gnip-api.x.com/search/fullarchive/accounts/<ACCOUNT-NAME>/<LABEL>/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"<yyyymmddhhmm>","toDate":"<yyyymmddhhmm>","bucket":"day"}'
+    ```
+  </Tab>
+
+  <Tab title="cURL उदाहरण">
+    ```bash
+    _यह एक उदाहरण cURL अनुरोध है। यदि आप इसे चलाने का प्रयास करते हैं, तो यह काम नहीं करेगा।_
+
+    curl -X POST -uemail@domain.com "https://gnip-api.x.com/search/fullarchive/accounts/john-doe/prod/counts.json" -d '{"query":"from:TwitterDev lang:en","fromDate":"201802010000","toDate":"201802282359","bucket":"day"}'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="counts-endpoint-response-payload">
+  #### Counts एंडपॉइंट रिस्पॉन्स पेलोड
+</div>
+
+आपके API अनुरोध से प्राप्त पेलोड नीचे दिखाए गए अनुसार JSON फ़ॉर्मैट में दिखाई देगा।
+
+```json
+{
+	"results": [
+		{
+			"timePeriod": "201811010000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811020000",
+			"count": 1
+		},
+		{
+			"timePeriod": "201811030000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811040000",
+			"count": 0
+		},
+		{
+			"timePeriod": "201811050000",
+			"count": 0
+		}
+	],
+	"totalCount": 1,
+	"requestParameters": {
+		"bucket": "day",
+		"fromDate": "201811010000",
+		"toDate": "201811060000"
+	}
+}
+```
+
+बहुत बढ़िया! अब आपने एंटरप्राइज़ Search Posts: Full-Archive API को सफलतापूर्वक एक्सेस कर लिया है।
+
+##### संदर्भित लेख
+
+* [पोस्ट ऑब्जेक्ट का परिचय](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary)
+* [सर्च ऑपरेटर](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-operators)
+* [पोस्ट ऑब्जेक्ट्स और पेलोड](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#post-object)
+
+<div id="guides">
+  ## मार्गदर्शिकाएँ
+</div>
+
+<div id="building-search-queries">
+  ### खोज क्वेरी तैयार करना
+</div>
+
+<div id="enterprise-operators">
+  ### Enterprise ऑपरेटर
+</div>
+
+नीचे X के एंटरप्राइज़ search API में समर्थित सभी ऑपरेटरों की सूची दी गई है:
+
+* **Enterprise** 30-दिनों का search API
+* **Enterprise** Full-archive search API
+
+उत्पाद के अनुसार उपलब्ध ऑपरेटरों की साथ-साथ तुलना के लिए [HERE](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#operators-by-product) देखें।
+
+| ऑपरेटर                          | विवरण                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| :------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| कीवर्ड                          | किसी पोस्ट के मुख्य भाग या URLs में मौजूद किसी टोकनाइज़ किए गए कीवर्ड से मेल खाता है। यह एक टोकनाइज़ किया गया मिलान है, अर्थात आपकी कीवर्ड स्ट्रिंग का मिलान पोस्ट के मुख्य भाग के टोकनाइज़ किए गए टेक्स्ट से किया जाएगा – टोकनाइज़ेशन विराम चिह्नों, प्रतीकों और separator Unicode basic plane वर्णों पर आधारित होता है। उदाहरण के लिए, “I like coca-cola” टेक्स्ट वाली एक पोस्ट को निम्नलिखित टोकनों में विभाजित किया जाएगा: I, like, coca, cola। इसके बाद इन टोकनों की तुलना आपके नियम में उपयोग की गई कीवर्ड स्ट्रिंग से की जाएगी। जिन स्ट्रिंग्स में विराम चिह्न (उदाहरण के लिए, coca-cola), प्रतीक या separator वर्ण शामिल हों, उनका मिलान करने के लिए आपको नीचे बताए अनुसार उद्धरण चिह्नों में exact match का उपयोग करना होगा।<br /><br />**नोट:** Search API के साथ, उच्चारण-चिह्न वाले और विशेष वर्णों को मानक latin वर्णों में सामान्यीकृत कर दिया जाता है, जिससे विदेशी भाषाओं में अर्थ बदल सकते हैं या अप्रत्याशित परिणाम मिल सकते हैं:<br />उदाहरण के लिए, &quot;músic&quot; का मिलान “music” से होगा और इसका उलटा भी सही है।<br />उदाहरण के लिए, Spanish में &quot;Feliz Año Nuevo!&quot; जैसे सामान्य वाक्यांशों को &quot;Feliz Ano Nuevo&quot; के रूप में index किया जाएगा, जिससे वाक्यांश का अर्थ बदल जाता है।<br /><br />**नोट:** यह operator किसी पोस्ट के भीतर URLs और unwound URLs, दोनों पर मिलान करेगा। |
+| इमोजी                           | पोस्ट के मुख्य भाग में किसी इमोजी से मेल खाता है। इमोजी tokenized match होते हैं, यानी आपका इमोजी पोस्ट के मुख्य भाग के tokenized text से मिलाया जाएगा – tokenization, punctuation, symbol/emoji, और separator Unicode basic plane characters पर आधारित होती है। उदाहरण के लिए, “I like <Icon icon="pizza-slice" iconType="solid" />” टेक्स्ट वाले किसी पोस्ट को निम्न tokens में विभाजित किया जाएगा: I, like, <Icon icon="pizza-slice" iconType="solid" />. इसके बाद इन tokens की तुलना आपके नियम में इस्तेमाल किए गए इमोजी से की जाएगी। ध्यान दें कि अगर किसी इमोजी का variant है, तो उसे किसी नियम में जोड़ने के लिए आपको “quotations” का इस्तेमाल करना होगा।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| &quot;सटीक वाक्यांश मिलान&quot; | पोस्ट के मुख्य भाग या URLs में मौजूद टोकनाइज़ किए गए और उसी क्रम में आने वाले वाक्यांश से मेल खाता है। यह एक टोकनाइज़्ड मिलान है, यानी आपकी कीवर्ड स्ट्रिंग का मिलान पोस्ट के मुख्य भाग के टोकनाइज़ किए गए टेक्स्ट से किया जाएगा – टोकनाइज़ेशन विराम चिह्नों, प्रतीकों और separator Unicode basic plane characters पर आधारित है। <br /><br />**नोट:** विराम चिह्न टोकनाइज़ नहीं किए जाते; इसके बजाय उन्हें whitespace माना जाता है।<br />उदाहरण के लिए, उद्धरण चिह्नों में दिया गया “#hashtag”, “hashtag” से मेल खाएगा, लेकिन #hashtag से नहीं (वास्तविक hashtags से मिलान करने के लिए बिना उद्धरण चिह्नों के hashtag # operator का उपयोग करें।<br />उदाहरण के लिए, उद्धरण चिह्नों में दिया गया “$cashtag”, “cashtag” से मेल खाएगा, लेकिन $cashtag से नहीं (वास्तविक cashtags से मिलान करने के लिए बिना उद्धरण चिह्नों के cashtag $ operator का उपयोग करें।<br />उदाहरण के लिए, &quot;Love Snow&quot; का मिलान &quot;#love #snow&quot; से होगा<br />उदाहरण के लिए, &quot;#Love #Snow&quot; का मिलान &quot;love snow&quot; से होगा<br /><br />**नोट:** यह operator पोस्ट के भीतर URLs और unwound URLs, दोनों से मेल खाएगा।                                                                                                                                                                                                      |
+| &quot;keyword1 keyword2&quot;~N | आम तौर पर इसे प्रॉक्सिमिटी ऑपरेटर कहा जाता है। यह ऐसे पोस्ट से मेल खाता है, जिसमें कीवर्ड एक-दूसरे से अधिकतम N टोकन की दूरी पर हों। <br /><br />यदि कीवर्ड उल्टे क्रम में हों, तो वे एक-दूसरे से अधिकतम N-2 टोकन की दूरी पर ही हो सकते हैं। उद्धरण चिह्नों में कितने भी कीवर्ड हो सकते हैं। N, 6 से बड़ा नहीं हो सकता।<br /><br />ध्यान दें कि यह ऑपरेटर केवल `enterprise` search APIs में उपलब्ध है।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| from:                           | किसी विशिष्ट उपयोगकर्ता की किसी भी पोस्ट से मेल खाता है।<br />मान उपयोगकर्ता की X संख्यात्मक Account ID या उपयोगकर्ता नाम होना चाहिए (@ वर्ण को छोड़कर)। संख्यात्मक X Account IDs खोजने के तरीकों के लिए [HERE](/hi/x-api/users/lookup/introduction) या [HERE](http://gettwitterid.com/) देखें।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| to:                             | किसी विशेष उपयोगकर्ता को जवाब के रूप में किए गए किसी भी पोस्ट से मेल खाता है।<br /><br />इसका मान उपयोगकर्ता की संख्यात्मक Account ID या उपयोगकर्ता नाम होना चाहिए (@ वर्ण को छोड़कर)। संख्यात्मक X Account ID खोजने के तरीकों के लिए [HERE](/hi/x-api/users/lookup/introduction) देखें।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| url:                            | किसी पोस्ट के विस्तारित URL पर टोकनाइज़्ड (कीवर्ड/वाक्यांश) मिलान करता है (url&#95;contains के समान)। जिन टोकन और वाक्यांशों में विराम-चिह्न या विशेष वर्ण हों, उन्हें डबल-कोट्स में रखा जाना चाहिए। उदाहरण के लिए, url:&quot;/developer&quot;। हालांकि आम तौर पर इसकी अनुशंसा नहीं की जाती, लेकिन यदि आप किसी विशिष्ट प्रोटोकॉल पर मिलान करना चाहते हैं, तो उसे डबल-कोट्स में लिखें: url:&quot;https://developer.x.com&quot;।<br />**नोट:** PowerTrack या Historical PowerTrack का उपयोग करते समय, यह ऑपरेटर किसी Quote पोस्ट की मूल पोस्ट में मौजूद URL से मिलान करेगा। उदाहरण के लिए, यदि आपके नियम में url:&quot;developer.x.com&quot; शामिल है, और किसी पोस्ट में वह URL मौजूद है, तो उस पोस्ट के सभी Quote Tweets परिणामों में शामिल किए जाएंगे। Search API का उपयोग करते समय ऐसा नहीं होता।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| #                               | दिए गए हैशटैग वाले किसी भी पोस्ट से मेल खाता है।<br /><br />यह ऑपरेटर सटीक मिलान करता है, टोकनाइज़्ड मिलान नहीं। यानी, “2016” नियम ठीक “2016” हैशटैग वाले पोस्ट्स से मेल खाएगा, लेकिन “2016election” हैशटैग वाले पोस्ट्स से नहीं।<br /><br />नोट: हैशटैग ऑपरेटर, हैशटैग का मिलान करने के लिए, पोस्ट के मुख्य भाग से सीधे हैशटैग निकालने के बजाय X के entity extraction पर निर्भर करता है। X Entities JSON attributes के बारे में अधिक जानकारी के लिए [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#hashtags) देखें।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| @                               | दिए गए उपयोगकर्ता नाम का उल्लेख करने वाली किसी भी पोस्ट से मेल खाता है।<br />`to:` ऑपरेटर, `@mention` ऑपरेटर द्वारा किए गए मिलानों का एक उपसमुच्चय लौटाता है।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| $                               | किसी भी ऐसे पोस्ट से मेल खाता है जिसमें निर्दिष्ट ‘cashtag’ शामिल हो (जहाँ टोकन का पहला वर्ण ‘$’ होता है)।<br /><br />ध्यान दें कि cashtag operator, cashtag का मिलान करने के लिए X के ‘symbols’ entity extraction पर निर्भर करता है, न कि स्वयं body से cashtag निकालने का प्रयास करता है। X Entities JSON attributes के बारे में अधिक जानकारी के लिए [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary#symbols) देखें।<br /><br />ध्यान दें कि यह operator केवल `enterprise` search APIs में उपलब्ध है।<br /><br />                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| retweets&#95;of:                | *उपलब्ध उपनाम*: retweets&#95;of&#95;user:<br />उन पोस्ट्स से मेल खाता है जो किसी निर्दिष्ट उपयोगकर्ता के रीट्वीट हैं। यह उपयोगकर्ता नाम और संख्यात्मक X अकाउंट ID, दोनों स्वीकार करता है (पोस्ट status ID नहीं)। संख्यात्मक X अकाउंट ID खोजने के तरीकों के लिए [HERE](/hi/x-api/users/lookup/introduction) देखें।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| lang:                           | उन पोस्ट्स से मेल खाता है जिन्हें X ने किसी विशेष भाषा की पोस्ट्स के रूप में वर्गीकृत किया है (तभी, और केवल तभी, जब पोस्ट का वर्गीकरण किया गया हो)। यह ध्यान रखना महत्वपूर्ण है कि वर्तमान में प्रत्येक पोस्ट को केवल एक ही भाषा में वर्गीकृत किया जाता है, इसलिए कई भाषाओं को AND के साथ जोड़ने पर कोई परिणाम नहीं मिलेगा।<br /><br />**नोट:** यदि किसी भाषा का वर्गीकरण नहीं किया जा सकता है, तो दिया गया परिणाम ‘und’ होगा (अपरिभाषित के लिए)।<br /><br />नीचे दी गई सूची वर्तमान में समर्थित भाषाओं और उनके संबंधित BCP 47 भाषा पहचानकर्ता दर्शाती है:<br />                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+|                 |                               |                     |                      |
+| :-------------- | :---------------------------- | :------------------ | :------------------- |
+| अम्हारिक: am    | जर्मन: de                     | मलयालम: ml          | स्लोवाक: sk          |
+| अरबी: ar        | ग्रीक: el                     | मालदीवी: dv         | स्लोवेनियाई: sl      |
+| आर्मेनियाई: hy  | गुजराती: gu                   | मराठी: mr           | सोरानी कुर्दी: ckb   |
+| बास्क: eu       | हैतियन क्रियोल: ht            | नेपाली: ne          | स्पेनिश: es          |
+| बांग्ला: bn     | हिब्रू: iw                    | नॉर्वेजियन: no      | स्वीडिश: sv          |
+| बोस्नियाई: bs   | हिंदी: hi                     | ओड़िया: or          | टागालोग: tl          |
+| बुल्गारियाई: bg | लैटिन लिपि में हिंदी: hi-Latn | पंजाबी: pa          | तमिल: ta             |
+| बर्मी: my       | हंगेरियाई: hu                 | पश्तो: ps           | तेलुगु: te           |
+| क्रोएशियाई: hr  | आइसलैंडिक: is                 | फ़ारसी: fa          | थाई: th              |
+| कैटलन: ca       | इंडोनेशियाई: in               | पोलिश: pl           | तिब्बती: bo          |
+| चेक: cs         | इतालवी: it                    | पुर्तगाली: pt       | पारंपरिक चीनी: zh-TW |
+| डैनिश: da       | जापानी: ja                    | रोमानियाई: ro       | तुर्की: tr           |
+| डच: nl          | कन्नड़: kn                    | रूसी: ru            | यूक्रेनी: uk         |
+| अंग्रेज़ी: en   | खमेर: km                      | सर्बियाई: sr        | उर्दू: ur            |
+| एस्टोनियाई: et  | कोरियाई: ko                   | सरलीकृत चीनी: zh-CN | उइगुर: ug            |
+| फ़िनिश: fi      | लाओ: lo                       | सिंधी: sd           | वियतनामी: vi         |
+| फ़्रेंच: fr     | लातवियाई: lv                  | सिंहला: si          | वेल्श: cy            |
+| जॉर्जियाई: ka   | लिथुआनियाई: lt                |                     |                      |
+
+|                                                                            |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| :------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| place:                                                                     | निर्दिष्ट स्थान *या* X place ID (उदाहरण देखें) से टैग किए गए पोस्ट्स से मेल खाता है। कई-शब्दों वाले स्थान नामों (“New York City”, “Palo Alto”) को उद्धरण चिह्नों में रखा जाना चाहिए।<br /><br />**नोट:** X place IDs कैसे प्राप्त करें, यह जानने के लिए [GET geo/search](https://developer.x.com/en/docs/x-api/v1/geo/place-information/overview) सार्वजनिक API endpoint देखें।<br /><br />**नोट:** यह ऑपरेटर Retweets पर मेल नहीं खाएगा, क्योंकि Retweet के places मूल पोस्ट से जुड़े होते हैं। यह Quote Tweet की मूल पोस्ट से जुड़े places पर भी मेल नहीं खाएगा।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| place&#95;country:                                                         | उन पोस्ट्स से मेल खाता है जिनमें टैग किए गए [place](https://developer.x.com/en/docs/x-api/v1/geo/place-information/overview) से संबद्ध country code दिए गए ISO alpha-2 character code से मेल खाता है।<br /><br />मान्य ISO codes यहाँ मिल सकते हैं: [http://en.wikipedia.org/wiki/ISO&#95;3166-1&#95;alpha-2](http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)<br /><br />**नोट:** यह ऑपरेटर Retweets पर मेल नहीं खाएगा, क्योंकि Retweet के places मूल पोस्ट से जुड़े होते हैं। यह Quote Tweet की मूल पोस्ट से जुड़े places पर भी मेल नहीं खाएगा।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| point&#95;radius:[lon lat radius]                                          | जब उपलब्ध हो, तब पोस्ट के Exact Location (x,y) से मेल खाता है, और X में “Place” geo polygon से तब मेल खाता है, जब Place पूरी तरह परिभाषित क्षेत्र के भीतर समाहित हो।<br /><br />* radius के लिए समर्थित इकाइयाँ miles (mi) और kilometers (km) हैं।<br />* Radius 25mi से कम होना चाहिए।<br />* Longitude ±180 की सीमा में होना चाहिए<br />* Latitude ±90 की सीमा में होना चाहिए<br />* सभी coordinates decimal degrees में होते हैं।<br />* Rule arguments brackets के भीतर होते हैं और spaces से अलग किए जाते हैं।<br /><br />**नोट:** यह ऑपरेटर Retweets पर मेल नहीं खाएगा, क्योंकि Retweet के places मूल पोस्ट से जुड़े होते हैं। यह Quote Tweet की मूल पोस्ट से जुड़े places पर भी मेल नहीं खाएगा।                                                                                                                                                                                                                                                                                                                                                    |
+| bounding&#95;box:[west&#95;long south&#95;lat east&#95;long north&#95;lat] | *उपलब्ध alias*: geo&#95;bounding&#95;box:<br /><br />जब उपलब्ध हो, तब पोस्ट के Exact Location (long, lat) से मेल खाता है, और X में “Place” geo polygon से तब मेल खाता है, जब Place पूरी तरह परिभाषित क्षेत्र के भीतर समाहित हो।<br /><br />* west&#95;long और south&#95;lat, bounding box के southwest corner को दर्शाते हैं, जहाँ west&#95;long उस बिंदु का longitude है और south&#95;lat उसका latitude है।<br />* east&#95;long और north&#95;lat, bounding box के northeast corner को दर्शाते हैं, जहाँ east&#95;long उस बिंदु का longitude है और north&#95;lat उसका latitude है।<br />* bounding box की चौड़ाई और ऊँचाई 25mi से कम होनी चाहिए<br />* Longitude ±180 की सीमा में होना चाहिए<br />* Latitude ±90 की सीमा में होना चाहिए<br />* सभी coordinates decimal degrees में होते हैं।<br />* Rule arguments brackets के भीतर होते हैं और spaces से अलग किए जाते हैं।<br />**नोट:** यह ऑपरेटर Retweets पर मेल नहीं खाएगा, क्योंकि Retweet के places मूल पोस्ट से जुड़े होते हैं। यह Quote Tweet की मूल पोस्ट से जुड़े places पर भी मेल नहीं खाएगा। |
+| profile&#95;country:                                                       | Profile Geo enrichment में “address” object के “countryCode” field पर exact match करता है।<br />यह ISO-3166-1-alpha-2 specification पर आधारित दो-अक्षरीय country codes के normalized set का उपयोग करता है। संक्षिप्तता के लिए, “address” object के “country” field के लिए अलग ऑपरेटर देने के बजाय यह ऑपरेटर प्रदान किया गया है।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| profile&#95;region:                                                        | Profile Geo enrichment में “address” object के “region” field से मेल खाता है।<br /><br />यह exact full string match है। backslash के साथ characters को escape करना आवश्यक नहीं है। उदाहरण के लिए, यदि किसी slash वाले मान से मेल करना हो, तो “one/two” का उपयोग करें, “one/two” का नहीं। whitespace या punctuation वाले substrings से मेल करने के लिए double quotes का उपयोग करें।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| profile&#95;locality:                                                      | Profile Geo enrichment में “address” object के “locality” field से मेल खाता है।<br /><br />यह exact full string match है। backslash के साथ characters को escape करना आवश्यक नहीं है। उदाहरण के लिए, यदि किसी slash वाले मान से मेल करना हो, तो “one/two” का उपयोग करें, “one/two” का नहीं। whitespace या punctuation वाले substrings से मेल करने के लिए double quotes का उपयोग करें।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+<Info>
+  **नोट:** Search API का उपयोग करते समय कोई भी is: या has: ऑपरेटर standalone ऑपरेटर के रूप में इस्तेमाल नहीं किया जा सकता; इन्हें किसी दूसरे clause के साथ जोड़ना आवश्यक है।
+
+  उदाहरण के लिए, @XDeevelopers has:links
+</Info>
+
+|                     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| :------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| has:geo             | उन पोस्ट्स से मेल खाता है जिनमें X द्वारा प्रदान किया गया पोस्ट-विशिष्ट भौगोलिक स्थान डेटा होता है। यह या तो “geo” lat-long निर्देशांक हो सकता है, या X [“Place”](https://dev.x.com/overview/api/places) के रूप में “location” हो सकता है, जिसमें संबंधित प्रदर्शन नाम, geo polygon और अन्य फ़ील्ड्स शामिल होते हैं।<br /><br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटरों के साथ करना आवश्यक है जिनमें `is:` या `has:` शामिल न हों।                                                                                                                    |
+| has:profile&#95;geo | *उपलब्ध एलियस*: has:derived&#95;user&#95;geo<br /><br />उन पोस्ट्स से मेल खाता है जिनमें कोई भी [Profile Geo](http://support.gnip.com/enrichments/profile_geo.html) मेटाडेटा हो, चाहे उसका वास्तविक मान कुछ भी हो।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                         |
+| has:links           | यह ऑपरेटर उन पोस्ट्स से मेल खाता है जिनके संदेश के मुख्य भाग में लिंक होते हैं।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                                                                                                                                                            |
+| is:retweet          | केवल वे स्पष्ट रीट्वीट डिलीवर करें जो किसी नियम से मेल खाते हों। इसे निषेधात्मक रूप में भी इस्तेमाल किया जा सकता है, ताकि किसी नियम से मेल खाने वाले रीट्वीट डिलीवरी से बाहर कर दिए जाएँ और केवल मूल सामग्री ही डिलीवर हो।<br /><br />यह ऑपरेटर केवल वास्तविक Retweets को देखता है, जो X की रीट्वीट सुविधा का उपयोग करते हैं। Quoted Tweets और संशोधित Posst, जो X की रीट्वीट सुविधा का उपयोग नहीं करते, इस ऑपरेटर से मेल नहीं खाएँगे।<br /><br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों। |
+| is:reply            | यह एक ऑपरेटर है, जो पोस्ट्स को इस आधार पर फ़िल्टर करता है कि वे पोस्ट्स के उत्तर हैं या नहीं। केवल वे स्पष्ट उत्तर डिलीवर करता है जो किसी नियम से मेल खाते हैं। इसे नकारात्मक रूप में भी इस्तेमाल किया जा सकता है, ताकि किसी नियम से मेल खाने वाले उत्तरों को डिलीवरी से बाहर रखा जा सके।<br /><br />ध्यान दें कि यह ऑपरेटर सशुल्क प्रीमियम और एंटरप्राइज़ सर्च के लिए उपलब्ध है और Sandbox dev environments में उपलब्ध नहीं है।<br /><br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का इस्तेमाल उन अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हो।      |
+| is:quote            | केवल Quote Tweets, या ऐसे पोस्ट्स लौटाता है जो किसी अन्य पोस्ट का संदर्भ देते हैं और जिनकी पहचान पोस्ट पेलोड में &quot;is&#95;quote&#95;status&quot;:true से होती है। Quote Tweets को बाहर रखने के लिए इसे नकारा भी जा सकता है।  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटर्स के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                    |
+| is:verified         | केवल वे पोस्ट्स लौटाता है जिनके लेखक X द्वारा “सत्यापित” हैं। इसे नकारकर उन पोस्ट्स को भी बाहर रखा जा सकता है जिनके लेखक सत्यापित हैं।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                                                                                                     |
+| has:mentions        | उन पोस्ट्स से मेल खाता है जिनमें किसी अन्य X उपयोगकर्ता का उल्लेख किया गया हो।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का इस्तेमाल ऐसे अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हो।                                                                                                                                                                                                                                                                                                                                                           |
+| has:hashtags        | हैशटैग शामिल करने वाले पोस्ट्स से मेल खाता है।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का इस्तेमाल उन अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                                                                                                                                                                                           |
+| has:media           | *उपलब्ध उपनाम*: has:media&#95;link<br /><br />उन पोस्ट्स से मेल खाता है जिनमें X द्वारा वर्गीकृत मीडिया URL शामिल होता है। उदाहरण के लिए, pic.x.com।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग उन अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हो।                                                                                                                                                                                                                                                                                         |
+| has:images          | X द्वारा वर्गीकृत मीडिया URL वाले पोस्ट्स से मेल खाता है। उदाहरण के लिए, pic.x.com।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का इस्तेमाल ऐसे अन्य ऑपरेटरों के साथ करना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                                                                                                                                                          |
+| has:videos          | *उपलब्ध उपनाम*: has:video&#95;link<br /><br />उन पोस्ट्स से मेल खाता है जिनमें X के नेटिव वीडियो हों, जिन्हें सीधे X पर अपलोड किया गया हो। यह Vine या Periscope से बनाए गए वीडियो, या अन्य वीडियो होस्टिंग साइटों के लिंक वाले पोस्ट्स से मेल नहीं खाएगा।  <br />  <br /><br />**नोट:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग ऐसे अन्य ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हो।                                                                                                                                                                                   |
+| has:symbols         | उन पोस्ट्स से मेल खाता है जिनमें कैशटैग प्रतीक होता है (यानी, जिसकी शुरुआत ‘$’ वर्ण से होती है; उदाहरण के लिए, $tag)।  ध्यान दें कि यह ऑपरेटर केवल `enterprise` search APIs में उपलब्ध है।  <br />  <br /><br />**ध्यान दें:** Search API का उपयोग करते समय, इस ऑपरेटर का उपयोग अन्य ऐसे ऑपरेटरों के साथ किया जाना चाहिए जिनमें `is:` या `has:` शामिल न हों।                                                                                                                                                                                                                                           |
+
+<div id="product-overview">
+  ### उत्पाद अवलोकन
+</div>
+
+एंटरप्राइज़-स्तर का Full-archive Search अगस्त 2015 में लॉन्च किया गया था, और प्रीमियम-स्तर का संस्करण फ़रवरी 2018 में लॉन्च किया गया था। ये सर्च प्रोडक्ट ग्राहकों को किसी भी सार्वजनिक रूप से उपलब्ध पोस्ट तक तुरंत पहुँच प्रदान करते हैं। Full-archive Search के साथ आप एक ही क्वेरी सबमिट करते हैं और क्लासिक RESTful शैली में एक रिस्पॉन्स प्राप्त करते हैं। Full-archive Search में (अधिकतम) 500-पोस्ट्स-प्रति-रिस्पॉन्स पेजिनेशन लागू होता है, और यह प्रीमियम के लिए 60 requests-per-minute (rpm) तथा एंटरप्राइज़ के लिए 120 rpm तक की rate limit का समर्थन करता है। इन विवरणों को देखते हुए, Full-archive Search का उपयोग पोस्ट्स को तेज़ी से प्राप्त करने और concurrent requests के माध्यम से बड़े पैमाने पर करने के लिए किया जा सकता है।
+
+Historical PowerTrack के विपरीत, जिसका archive डिस्क पर मौजूद पोस्ट flat-files के एक सेट पर आधारित है, Full-archive Search का पोस्ट archive काफ़ी हद तक एक ऑनलाइन डेटाबेस जैसा है। सभी डेटाबेस की तरह, यह अपनी सामग्री पर क्वेरी चलाने का समर्थन करता है। यह उच्च-प्रदर्शन डेटा पुनर्प्राप्ति को सक्षम करने के लिए एक *index* का भी उपयोग करता है। Full-archive Search endpoints के साथ, querying language PowerTrack Operators से मिलकर बनी होती है, और इनमें से हर Operator किसी indexed पोस्ट JSON attribute से संबंधित होता है।
+
+इसके अलावा, Historical PowerTrack की तरह, कुछ पोस्ट attributes ऐसे होते हैं जो क्वेरी किए जाने के समय के अनुसार current होते हैं। उदाहरण के लिए, यदि आप आज Search API का उपयोग करके 2010 में पोस्ट की गई किसी पोस्ट को एक्सेस कर रहे हैं, तो उपयोगकर्ता की profile description, account &#39;home&#39; location, display name, और Favorites तथा Retweet counts के लिए पोस्ट metrics आज के मानों के अनुसार अपडेट होंगे, न कि उन मानों के अनुसार जो 2010 में थे। 
+
+<div id="metadata-timelines">
+  ### मेटाडेटा टाइमलाइन
+</div>
+
+नीचे यह टाइमलाइन दी गई है कि Full-archive search endpoint Operators कब से मैच करना शुरू करते हैं। कुछ मामलों में, X पर किसी ‘संचार परंपरा’ के आम हो जाने के *काफी बाद* Operator मैचिंग शुरू हुई। उदाहरण के लिए, @Replies 2006 में एक उपयोगकर्ता परंपरा के रूप में उभरे, लेकिन 2007 की शुरुआत तक वे ‘supporting’ JSON के साथ *first-class object* या *event* नहीं बने। इसलिए, 2006 में @Replies पर मैच करने के लिए `to:` और `in_reply_to_status_id:` PowerTrack Operators पर निर्भर रहने के बजाय, पोस्ट के मुख्य भाग की जांच करनी पड़ती है।
+
+यहाँ दी गई जानकारी Full-Archive Search का उपयोग करके तैयार की गई है (जो सैकड़ों searches पर आधारित है)। यह टाइमलाइन 100% पूर्ण या सटीक नहीं है। यदि आप filtering/metadata से जुड़ी कोई अन्य “born on date” पहचानते हैं जो आपके use-case के लिए अहम है, तो कृपया हमें बताएं।
+
+ध्यान दें कि आधारभूत Search index को फिर से बनाया जा सकता है। इसलिए, इस टाइमलाइन में दिए गए विवरण बदल सकते हैं।
+
+<div id="2006">
+  #### 2006
+</div>
+
+* 26 मार्च - `lang:`. Search index जनरेट करते समय बैकफिल किए जा रहे पोस्ट metadata का एक उदाहरण।
+* 13 जुलाई - `has:mentions` का मिलान शुरू होता है।
+* 6 अक्टूबर - `has:symbols`. स्टॉक प्रतीकों पर चर्चा के लिए $cashtags (या symbols) 2009 की शुरुआत तक आम नहीं हुए थे। तब तक इनके ज़्यादातर उपयोग संभवतः स्लैंग थे (उदाहरण के लिए, $slang)।
+* 26 अक्टूबर - `has:links` का मिलान शुरू होता है।
+* 23 नवंबर - `has:hashtags` का मिलान शुरू होता है।
+
+<div id="2007">
+  #### 2007
+</div>
+
+* 30 जनवरी - पहला औपचारिक @reply (in&#95;reply&#95;to&#95;user&#95;id), `reply_to_status_id:` का मिलान शुरू होता है।
+* 23 अगस्त - विषयों और बातचीतों को व्यवस्थित करने के लिए Hashtags एक सामान्य प्रचलन के रूप में उभरते हैं। इसका पहला वास्तविक उपयोग एक सप्ताह बाद होता है।
+
+<div id="2009">
+  #### 2009
+</div>
+
+* 15 मई - `is:retweet`। ध्यान दें कि यह ऑपरेटर आधिकारिक Retweets के ‘beta’ रिलीज़ और उसके “Via @” पैटर्न के साथ मैच करना शुरू करता है। इस beta अवधि के दौरान, पोस्ट क्रिया ‘post’ होती है और मूल पोस्ट पेलोड में शामिल नहीं होती।
+* 13 अगस्त - आधिकारिक Retweets का अंतिम संस्करण “RT @” पैटर्न, ‘share’ पर सेट क्रिया, और मूल पोस्ट को शामिल करने वाले ‘retweet&#95;status’ एट्रिब्यूट के साथ रिलीज़ किया जाता है (इस प्रकार JSON पेलोड का आकार लगभग दोगुना हो जाता है)।
+
+<div id="2010">
+  #### 2010
+</div>
+
+* 6 मार्च - `has:geo`, `bounding_box:` और `point_radius:` geo ऑपरेटर मैच होना शुरू करते हैं।
+* 28 अगस्त - `has:videos` (फ़रवरी 2015 तक, यह ऑपरेटर youtube.com, vimeo.com, और vivo.com जैसी चुनिंदा वीडियो होस्टिंग साइटों के लिंक वाले पोस्ट्स से मैच करता है)।
+
+<div id="2011">
+  #### 2011
+</div>
+
+* 20 जुलाई - `has:media` और `has:images` का मिलान शुरू हुआ। Native photos की आधिकारिक घोषणा 9 अगस्त, 2010 को की गई थी।
+
+<div id="2014">
+  #### 2014
+</div>
+
+* 3 दिसंबर - payloads में HTML title और description के साथ [उन्नत URL मेटाडेटा](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) का *कुछ* भाग (लगभग) शामिल होना शुरू होता है। उन्नत मेटाडेटा मई 2016 में अधिक पूर्ण रूप में सामने आया।
+
+<div id="2015">
+  #### 2015
+</div>
+
+* 10 फ़रवरी - `has:videos` ‘native’ X वीडियो से मेल खाता है।
+* 17 फ़रवरी - `has:profile_geo`, `profile_country:`, `profile_region:`, `profile_locality:` [Profile Geo](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments#profile-geo) ऑपरेटर मिलान शुरू करते हैं।
+* 17 फ़रवरी - `place_country:` और `place:` पोस्ट geo ऑपरेटर मिलान शुरू करते हैं।
+
+<div id="2016">
+  #### 2016
+</div>
+
+* 1 मई - [उन्नत URL मेटाडेटा](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) अधिक व्यापक रूप से उपलब्ध हुआ, और इसकी आधिकारिक घोषणा [अगस्त 2016 में Gnip 2.0 लॉन्च](https://blog.x.com/2016/gnip-2-is-here) के हिस्से के रूप में की गई। Search APIs के साथ इस मेटाडेटा के लिए कोई संबंधित Operators नहीं हैं।
+
+<div id="2017">
+  #### 2017
+</div>
+
+* 22 फ़रवरी - पोल मेटाडेटा समृद्ध नेटिव फ़ॉर्मैट में उपलब्ध हुआ। इस मेटाडेटा के लिए कोई संबद्ध Operators नहीं हैं।
+
+<div id="2022">
+  #### 2022
+</div>
+
+* 27 सितंबर - इस तारीख से बनाए गए सभी पोस्ट ऑब्जेक्ट्स के लिए Edited Post मेटाडेटा उपलब्ध है। पोस्ट ऑब्जेक्ट्स प्रदान करने वाले सभी Enterprise एंडपॉइंटs को भी इसी तारीख से यह मेटाडेटा उपलब्ध कराने के लिए अपडेट किया गया। उपलब्ध कराए गए संपादन मेटाडेटा में edit&#95;history और edit&#95;controls ऑब्जेक्ट्स शामिल हैं। यह edit मेटाडेटा उन पोस्ट्स के लिए नहीं लौटाया जाएगा जो 27 सितंबर, 2022 से पहले बनाए गए थे। फिलहाल, ऐसे कोई Enterprise Operators उपलब्ध नहीं हैं जो इस मेटाडेटा से मेल खाते हों।  Edit Post मेटाडेटा के बारे में अधिक जानने के लिए, [Edit Posts fundamentals](/hi/x-api/fundamentals/edit-posts) पेज देखें।
+
+<div id="2022">
+  #### 2022
+</div>
+
+* 29 सितंबर - इस तारीख से बनाए गए सभी पोस्ट ऑब्जेक्ट्स के लिए Edited Post मेटाडेटा उपलब्ध है। पोस्ट ऑब्जेक्ट्स उपलब्ध कराने वाले सभी Enterprise एंडपॉइंट्स को भी इसी तारीख से यह मेटाडेटा उपलब्ध कराने के लिए अपडेट किया गया। दिए गए edit मेटाडेटा में edit&#95;history और edit&#95;controls ऑब्जेक्ट्स शामिल हैं। यह मेटाडेटा 27 सितंबर, 2022 से पहले बनाए गए पोस्ट्स के लिए वापस नहीं किया जाएगा। फ़िलहाल, इन मेटाडेटा से मेल खाने वाले कोई Enterprise Operators उपलब्ध नहीं हैं। Edit Post मेटाडेटा के बारे में अधिक जानने के लिए, [Edit Posts fundamentals](/hi/x-api/fundamentals/edit-posts) पेज देखें।
+
+<div id="filtering-tips">
+  ### फ़िल्टरिंग सुझाव
+</div>
+
+ऊपर दी गई टाइमलाइन संबंधी जानकारी से स्पष्ट है कि Search APIs फ़िल्टर लिखते समय कई बारीकियों का ध्यान रखना पड़ता है। ध्यान में रखने के लिए दो मुख्य बातें हैं:
+
+* कुछ मेटाडेटा के लिए ‘उपलब्धता शुरू होने’ की तारीखें होती हैं, इसलिए फ़िल्टर के कारण *फ़ॉल्स नेगेटिव्स* मिल सकते हैं। ऐसी खोजों में वे Operators शामिल होते हैं जो ऐसे मेटाडेटा पर निर्भर करते हैं, जो खोज अवधि के पूरे समय या उसके किसी हिस्से में मौजूद नहीं था। उदाहरण के लिए, अगर आप `has:images` Operator के साथ पोस्ट्स खोज रहे हैं, तो जुलाई 2011 से पहले की अवधियों के लिए कोई मैच नहीं मिलेगा। ऐसा इसलिए है क्योंकि यह Operator *नेटिव* फ़ोटो पर मैच करता है (यानी वे फ़ोटो जो X user-interface का उपयोग करके किसी पोस्ट से अटैच की गई हों)। फ़ोटो-शेयरिंग वाले पोस्ट्स का अधिक पूर्ण डेटा सेट पाने के लिए, जुलाई 2011 से पहले के फ़िल्टर में ऐसे rule clauses होने चाहिए जो फ़ोटो होस्टिंग के सामान्य URLs से मैच करें।
+* कुछ मेटाडेटा को उस समय के *बाद* के मेटाडेटा से backfill किया गया है, जब X पर पोस्ट किया गया था।
+
+PowerTrack queries बनाते समय आम तौर पर कई attribute types पर ध्यान दिया जाता है:
+
+* X प्रोफ़ाइल्स
+* मूल या साझा किए गए पोस्ट्स
+* पोस्ट भाषा वर्गीकरण
+* पोस्ट्स का भू-संदर्भन
+* साझा किए गए लिंक का मीडिया
+
+इनमें से कुछ का व्यवहार उत्पाद-विशिष्ट होता है, जबकि अन्य का व्यवहार एक जैसा होता है। अधिक जानकारी के लिए नीचे देखें।
+
+<div id="x-profiles">
+  #### X प्रोफ़ाइल
+</div>
+
+Search APIs, ऐतिहासिक पोस्ट्स को उपयोगकर्ता प्रोफ़ाइल डेटा के साथ उसी रूप में उपलब्ध कराता है, जैसा वह *पुनर्प्राप्ति के समय* होता है। यदि आप 2014 का कोई पोस्ट अनुरोध करते हैं, तो उपयोगकर्ता का प्रोफ़ाइल मेटाडेटा वैसा ही दिखेगा जैसा वह क्वेरी के समय मौजूद होता है।
+
+<div id="original-posts-and-retweets">
+  #### मूल पोस्ट्स और रीट्वीट्स
+</div>
+
+PowerTrack `_is:retweet_` Operator उपयोगकर्ताओं को रीट्वीट्स को शामिल करने या बाहर रखने की सुविधा देता है। इस Operator का उपयोग करने वालों को अगस्त 2009 से पहले के डेटा में रीट्वीट का मिलान करने (या न करने) के लिए दो रणनीतियाँ रखनी चाहिए। अगस्त 2009 से पहले, “@RT ” पैटर्न से मेल खाने वाली पोस्ट्स की पहचान करने के लिए, पोस्ट संदेश की स्वयं सटीक वाक्यांश मिलान के साथ जाँच करनी होती है। (वास्तव में, यदि आप मई से अगस्त 2009 के बीच के रीट्वीट्स पर फ़िल्टर कर रहे हैं, तो “Via @” पैटर्न को भी शामिल किया जाना चाहिए।) अगस्त 2009 के बाद की अवधियों के लिए, *is:retweet* Operator उपलब्ध है।
+
+<div id="post-language-classifications">
+  #### पोस्ट भाषा वर्गीकरण
+</div>
+
+किसी पोस्ट के भाषा वर्गीकरण के आधार पर फ़िल्टर करने के लिए, X के ऐतिहासिक प्रोडक्ट काफ़ी अलग हैं। जब Search archive बनाया गया था, तब सभी पोस्ट्स में X का भाषा वर्गीकरण बैकफिल किया गया था। इसलिए `lang:` Operator पूरे पोस्ट archive के लिए उपलब्ध है।
+
+<div id="geo-referencing-posts">
+  #### पोस्ट्स का भू-संदर्भन
+</div>
+
+पोस्ट्स का भू-संदर्भन करने के तीन मुख्य तरीके हैं:
+
+* **पोस्ट संदेश में भौगोलिक संदर्भ।** पोस्ट संदेश में भौगोलिक संदर्भों का मिलान करना, हालांकि यह अक्सर सबसे चुनौतीपूर्ण तरीका होता है क्योंकि यह स्थानीय जानकारी पर निर्भर करता है, पूरे पोस्ट आर्काइव के लिए एक विकल्प है। [यहाँ](https://x.com/biz/statuses/28311) 2006 में San Francisco क्षेत्र के लिए `golden gate` फ़िल्टर के आधार पर किए गए भू-संदर्भित मिलान का एक उदाहरण दिया गया है।
+
+* **उपयोगकर्ता द्वारा geo-tag की गई पोस्ट्स।** Search APIs के साथ, कुछ Geo Operators का उपयोग करके पोस्ट्स का मिलान शुरू करने की क्षमता मार्च 2010 में उपलब्ध हुई, और अन्य के लिए फ़रवरी 2015 में:
+
+  * 6 मार्च, 2010: `has:geo`, `bounding_box:` और `point_radius:`
+  * 17 फ़रवरी, 2015: `place_country:` और `place:`
+
+* **उपयोगकर्ता द्वारा सेट किया गया अकाउंट प्रोफ़ाइल ‘home’ स्थान।** Profile Geo Operators, Historical PowerTrack और Search APIs दोनों में उपलब्ध हैं। Search APIs में यह Profile Geo metadata फ़रवरी 2015 से उपलब्ध है। उन पोस्ट्स के लिए जो Profile Geo metadata उपलब्ध होने से पहले पोस्ट की गई थीं, `bio_location:` Operator उपलब्ध है, जिसका उपयोग गैर-मानकीकृत उपयोगकर्ता इनपुट के मिलान के लिए किया जा सकता है।
+
+<div id="shared-links-and-media">
+  #### साझा किए गए लिंक और मीडिया
+</div>
+
+मार्च 2012 में expanded URL enrichment पेश किया गया। इससे पहले, पोस्ट payloads में केवल वही URL शामिल होता था जो उपयोगकर्ता ने दिया था। इसलिए, अगर उपयोगकर्ता ने कोई shortened URL शामिल किया हो, तो रुचि के (expanded) URLs के आधार पर मिलान करना चुनौतीपूर्ण हो सकता है। Search APIs में ये metadata मार्च 2012 से उपलब्ध हैं।
+
+जुलाई 2016 में enhanced URL enrichment पेश किया गया। यह enhanced संस्करण पोस्ट payload में वेबसाइट का HTML title और description देता है, साथ ही उन पर मिलान करने के लिए Operators भी उपलब्ध कराता है। ये metadata दिसंबर 2014 से दिखाई देने लगते हैं।
+
+सितंबर 2016 में X ने ‘native attachments’ पेश किए, जिनमें अंत में जोड़ा गया साझा लिंक 140 पोस्ट वर्ण-सीमा में नहीं गिना जाता। दोनों URL enrichments अब भी इन साझा किए गए लिंक पर लागू होते हैं।
+
+यहाँ बताया गया है कि संबंधित Search Operators कब से मिलान करना शुरू करते हैं:
+
+* 2006 October 26 - `has:links`
+* 2011 July 20 - `has:images` and `has:media`
+* 2011 August - [Expanded URLs enrichment](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) के साथ `url:` सितंबर 2006 से ही `(url:"spotify.com" OR url:gnip OR url:microsoft OR url:google OR url:youtube)` http://x.com/Adam/statuses/16602 से मेल खाता है, जबकि twitter&#95;entities और gnip objects में कोई urls[] metadata नहीं है। “youtube.com” message content का एक उदाहरण है, जो किसी भी urls[] metadata के बिना url:youtube से मेल खाता है।
+* 2015 February 10 - native videos के लिए `has:videos`। 2010/08/28 और 2015/02/10 के बीच, यह Operator youtube.com, vimeo.com, और vivo.com जैसी चुनिंदा video hosting sites के लिंक वाले पोस्ट्स से मेल खाता है।
+* 2016 May 1 - [Enhanced URLs enrichment](/hi/x-api/enterprise-gnip-2.0/fundamentals/data-enrichments) के आधार पर `url_title:` और `url_description:`, जो सामान्य रूप से उपलब्ध हैं। पहला Enhanced URL metadata दिसंबर 2014 में दिखाई देना शुरू हुआ।
+
+<div id="frequently-asked-questionsfaq">
+  ## अक्सर पूछे जाने वाले प्रश्न (FAQ)
+</div>
+
+<div id="general-search-post-api-questions">
+  ### General Search पोस्ट API के सामान्य प्रश्न
+</div>
+
+<AccordionGroup>
+  <Accordion title="data endpoint से मुझे मिलने वाली पोस्ट्स की संख्या, counts endpoint द्वारा दर्शाई गई पोस्ट्स की संख्या से मेल नहीं खाती। ऐसा क्यों है?">
+    counts endpoint और data endpoint द्वारा प्रदान किए गए परिणामों के बीच एक ज्ञात अंतर है। आपके परिणामों में अंतर दिखाई दे सकता है, क्योंकि counts endpoint pre-compliance है (अर्थात यह हटाई गई पोस्ट्स, scrub geo आदि जैसी चीज़ों को ध्यान में नहीं रखता), जबकि data endpoint डिलीवरी के समय compliant होता है और सभी compliance events को ध्यान में रखता है।
+  </Accordion>
+
+  <Accordion title="मुझे वह पोस्ट नहीं मिली जो मेरी क्वेरी से मेल खानी चाहिए थी। क्यों?">
+    इसके होने के कुछ अलग-अलग कारण हो सकते हैं, जिनमें ये शामिल हैं
+
+    1. वह पोस्ट, जिसे आप देखने की अपेक्षा कर रहे थे, किसी संरक्षित खाते से है
+    2. क्योंकि data endpoint सभी compliance events को ध्यान में रखता है (अर्थात हटाई गई पोस्ट्स, scrubbed geos आदि को रिस्पॉन्स में शामिल नहीं किया जाएगा)।
+  </Accordion>
+
+  <Accordion title="मेरी क्वेरी का मिलान एक पोस्ट से हुआ, लेकिन उसमें ऐसा कीवर्ड शामिल है जिसे मैंने नकार दिया था। ऐसा क्यों हो रहा है?">
+    यह संभवतः हमारे premium rules &amp; filtering के गलत इस्तेमाल के कारण है। कृपया हमारे दस्तावेज़ [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering) देखें और सुनिश्चित करें कि आप rules बनाने पर लागू प्रतिबंधों को समझते हैं।
+  </Accordion>
+
+  <Accordion title="क्या ऐसी कोई लाइब्रेरी हैं जिनका इस्तेमाल मैं Search पोस्ट APIs के साथ शुरुआत करने के लिए कर सकता हूँ?">
+    हाँ, हैं, जिनमें ये शामिल हैं:
+
+    * [Tweepy](http://www.tweepy.org/) - मानक search/Posts प्रोडक्ट (Python) का उपयोग करने के लिए अच्छा है
+    * [X API](https://github.com/geduldig/TwitterAPI) - मानक Search Post APIs (Python) का उपयोग करने के लिए अच्छा है
+    * [Search Posts Python](https://github.com/xdevplatform/search-tweets-python) और [Search Posts Ruby](https://github.com/xdevplatform/search-tweets-ruby) - दो अच्छे टूल, जिनका उपयोग enterprise (और v2!) Search Post APIs के लिए किया जा सकता है
+
+    जिन लाइब्रेरीज़ को हम सीधे सपोर्ट करते हैं, वे सभी हमारे xdevplatform GitHub पेज पर मिल सकती हैं: [https://github.com/xdevplatform](https://github.com/xdevplatform).
+
+    [अन्य third-party लाइब्रेरीज़](/hi/resources/fundamentals/authentication#oauth-1-0a-2) भी उपयोगी हो सकती हैं; हालांकि, कृपया ध्यान दें कि इनमें से कुछ हमारे premium और enterprise प्रोडक्ट्स के साथ काम नहीं कर सकती हैं।
+  </Accordion>
+
+  <Accordion title="क्या मुझे कभी data endpoint को किए गए अपने अनुरोध में `maxResults` के लिए सेट किए गए मान से कम पोस्ट्स मिलेंगी?">
+    हाँ। हमारा डेटा endpoint या तो निर्दिष्ट `maxResults` पर या 30 दिनों के बाद pagination करता है।
+
+    उदाहरण के लिए, यदि किसी 30-दिवसीय अवधि में आपके पास 800 पोस्ट्स हैं, तो पूरे परिणाम प्राप्त करने के लिए आपको दो requests करनी होंगी; क्योंकि प्रति request लौटाई जा सकने वाली पोस्ट्स की अधिकतम संख्या 500 (`maxResults`) है। और यदि पहले महीने में आपके पास केवल 400 पोस्ट्स हैं, और फिर दूसरे महीने में 100 पोस्ट्स हैं, तब भी पूरे परिणाम प्राप्त करने के लिए आपको दो requests का उपयोग करना होगा; क्योंकि pagination 30 दिनों की अवधि के बाद होता है, भले ही पहली request निर्दिष्ट `maxResults` पोस्ट्स से कम लौटाए।
+  </Accordion>
+
+  <Accordion title="मेल खाने वाली पोस्ट्स किस क्रम में लौटाई जाती हैं?">
+    पोस्ट्स उल्टे कालानुक्रमिक क्रम में लौटाई जाती हैं। उदाहरण के लिए, परिणामों का पहला पेज क्वेरी से मेल खाने वाली सबसे हाल की पोस्ट्स दिखाएगा। पृष्ठांकन तब तक जारी रहेगा, जब तक परिणामों की पोस्ट की गई तिथियाँ शुरू में अनुरोधित `fromDate` तक नहीं पहुँच जातीं।
+  </Accordion>
+
+  <Accordion title="Edit पोस्ट्स मेरे उपयोग और बिलिंग को कैसे प्रभावित करते हैं?">
+    बिलिंग के लिए केवल मूल पोस्ट को ही गिना जाएगा। बाद में किए गए किसी भी संपादन को अनदेखा किया जाएगा और वे आपकी कुल गतिविधि संख्या में शामिल नहीं होंगे। 
+
+    `Enterprise`
+  </Accordion>
+
+  <Accordion title="मैं एंटरप्राइज़ Search पोस्ट API की कीमत के बारे में अधिक जानना चाहता/चाहती हूँ और इस ऑफ़रिंग के लिए आवेदन करना चाहता/चाहती हूँ। मैं यह कैसे करूँ?">
+    हमारे एंटरप्राइज़ समाधान आपके व्यवसाय की ज़रूरतों को पूरा करने के लिए अनुमानित मूल्य-निर्धारण के साथ अनुकूलित किए गए हैं। अधिक जानकारी के लिए कृपया [यहाँ](/hi/x-api/enterprise-gnip-2.0/enterprise-gnip) आवेदन करें।
+  </Accordion>
+
+  <Accordion title="मैं अपने उपयोग-परिदृश्य से मेल खाने वाला नियम-समुच्चय कैसे बनाऊँ?">
+    * कृपया हमारे enterprise Search पोस्ट APIs का दस्तावेज़ [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#enterprise-search-apis) देखें
+    * नियमों और फ़िल्टरिंग के बारे में उपयोगी जानकारी [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/rules-filtering#enterprise-operators) मिल सकती है
+    * data endpoint का उपयोग करने के बारे में उपयोगी जानकारी [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#data-endpoint) मिल सकती है
+    * counts endpoint का उपयोग करने के बारे में उपयोगी जानकारी [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#counts-endpoint) मिल सकती है
+    * उपलब्ध operators की सूची [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) मिल सकती है
+  </Accordion>
+
+  <Accordion title="मैंने इस महीने की अपनी अनुरोध सीमा/लिमिट पार कर ली है, लेकिन मुझे अधिक डेटा तक पहुंच चाहिए - मैं क्या कर सकता/सकती हूँ?">
+    कृपया X में अपने Account Manager से संपर्क करें, जो इस मामले में आपकी मदद कर सकेंगे।
+  </Accordion>
+</AccordionGroup>
+
+<div id="error-troubleshooting-guide">
+  ### त्रुटि निवारण मार्गदर्शिका
+</div>
+
+**कोड 404 - नहीं मिला**
+
+1. कृपया सुनिश्चित करें कि आप प्रत्येक एंडपॉइंट के लिए सही पैरामीटर का उपयोग कर रहे हैं (उदा. `buckets` फ़ील्ड का उपयोग केवल counts एंडपॉइंट के साथ किया जा सकता है, data एंडपॉइंट के साथ नहीं)
+2. कृपया दोबारा जाँच लें कि `:product`, `:account_name` और `:label` फ़ील्ड्स सही हैं। आप अपना `:label` फ़ील्ड GNIP Console में देख सकते हैं (केवल enterprise ग्राहकों के लिए)।
+
+<div id="api-reference">
+  ## API संदर्भ
+</div>
+
+<div id="enterprise-search-apis">
+  ### Enterprise search APIs
+</div>
+
+दो enterprise search API हैं:
+
+* 30-Day Search API - पिछले 30 दिनों के भीतर पोस्ट किए गए Tweet उपलब्ध कराता है।
+* Full-Archive Search API - मार्च 2006 में पोस्ट किए गए पहले Tweet से शुरू होकर, 2006 तक पुराने Tweet उपलब्ध कराता है।
+
+इन search API का डिज़ाइन समान है और नीचे दिया गया दस्तावेज़ीकरण दोनों पर लागू होता है। ध्यान दें कि 29 सितंबर 2022 से बनाए गए Tweet के लिए, Tweet ऑब्जेक्ट में Tweet edit metadata शामिल होगा, जो उसके edit history का विवरण देता है। अधिक जानकारी के लिए [&quot;Edit Tweets&quot;](/hi/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) fundamentals पेज देखें।
+
+नीचे enterprise search API के साथ integration करते समय आवश्यक महत्वपूर्ण विवरण दिए गए हैं:
+
+* Tweet data और counts का अनुरोध करने के methods
+* Authentication
+* Pagination
+* API request पैरामीटर और example requests
+* API रिस्पॉन्स JSON payloads और example responses
+* HTTP रिस्पॉन्स codes
+
+Enterprise API, Tweet archive तक कम-विलंबता, पूर्ण-निष्ठा, query-आधारित access प्रदान करते हैं। इन दोनों API के बीच केवल time frame का अंतर है जिसमें आप search कर सकते हैं — या तो पिछले 30 दिन, या 2006 तक पुराने डेटा में। Time frame को minute granularity के साथ निर्दिष्ट किया जा सकता है। Tweet data reverse chronological order में दिया जाता है, यानी आपकी query से मेल खाने वाले सबसे हाल के Tweet से शुरू होकर। Tweet, प्रकाशित होने के लगभग 30 सेकंड बाद search API में उपलब्ध हो जाते हैं।
+
+<div id="methods">
+  #### विधियाँ
+</div>
+
+enterprise search के लिए बेस URI `https://gnip-api.x.com/search/` है।
+
+| Method                                                                           | Description                                                                                 |
+| :------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| [POST /search/:product/accounts/:account&#95;name/:label](#SearchRequests)       | निर्दिष्ट PowerTrack नियम से मेल खाने वाले पिछले 30 दिनों के Tweets प्राप्त करें।           |
+| [POST /search/:product/accounts/:account&#95;name/:label/counts](#CountRequests) | निर्दिष्ट PowerTrack नियम से मेल खाने वाले पिछले 30 दिनों के Tweets की संख्या प्राप्त करें। |
+
+जहाँ:
+
+* `:product` उस search एंडपॉइंट को दर्शाता है जिस पर आप अनुरोध भेज रहे हैं, यानी `30day` या `fullarchive`।
+* `:account_name` आपके खाते से संबद्ध (case-sensitive) नाम है, जैसा कि console.gnip.com पर दिखाया जाता है
+* `:label` आपके search एंडपॉइंट से संबद्ध (case-sensitive) लेबल है, जैसा कि console.gnip.com पर दिखाया जाता है
+
+उदाहरण के लिए, अगर TwitterDev खाते में &#39;prod&#39; लेबल (production का संक्षिप्त रूप) वाला 30-Day search प्रोडक्ट है, तो search एंडपॉइंटs इस प्रकार होंगे:
+
+* Data एंडपॉइंट: [https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod.json](https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod.json)
+* Counts एंडपॉइंट: [https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod/counts.json](https://gnip-api.x.com/search/30day/accounts/TwitterDev/prod/counts.json)
+
+आपका पूरा enterprise search API एंडपॉइंट [https://console.gnip.com](https://console.gnip.com) पर दिखाया जाता है।
+
+नीचे curl नाम की एक सरल HTTP utility का उपयोग करने वाले कुछ उदाहरण अनुरोध दिए गए हैं। इन उदाहरणों में `:product`, `:account_name`, और `:label` वाले URLs का उपयोग किया गया है। इन उदाहरणों का उपयोग करने से पहले, URLs को अपनी जानकारी के अनुसार अपडेट कर लें।
+
+<div id="authentication">
+  #### प्रमाणीकरण
+</div>
+
+enterprise search APIs के लिए सभी अनुरोधों में HTTP *Basic Authentication* का उपयोग करना आवश्यक है, जिसे [https://console.gnip.com](https://console.gnip.com) पर अपने खाते में लॉग इन करने के लिए इस्तेमाल किए जाने वाले वैध ईमेल पते और पासवर्ड के संयोजन से बनाया जाता है। हर अनुरोध में क्रेडेंशियल्स को *Authorization* header के रूप में भेजना आवश्यक है।
+
+<div id="requestresponse-behavior">
+  #### अनुरोध/रिस्पॉन्स का व्यवहार
+</div>
+
+`fromDate` और `toDate` पैरामीटर का उपयोग करके, आप API द्वारा समर्थित किसी भी समयावधि के लिए अनुरोध कर सकते हैं। 30-Day search API पिछले 31 दिनों के Tweets उपलब्ध कराता है (हालाँकि इसे &#39;30-Day&#39; API कहा जाता है, यह उपयोगकर्ताओं को पूरे महीने के अनुरोध करने में सक्षम बनाने के लिए 31 दिन उपलब्ध कराता है)। Full-Archive search API सबसे पहले Tweet (21 मार्च, 2006) तक के Tweets उपलब्ध कराता है। हालांकि, एक ही रिस्पॉन्स आपके द्वारा निर्दिष्ट &#39;maxResults&#39; या 31 दिनों में से जो भी कम हो, उसी तक सीमित रहेगा। यदि मेल खाने वाला डेटा या आपकी समयावधि आपके निर्दिष्ट maxResults या 31 दिनों से अधिक है, तो आपको एक टोकन मिलेगा, जिसका उपयोग आपको अपनी निर्दिष्ट समयावधि के शेष भाग पर pagination करने के लिए करना चाहिए।
+
+उदाहरण के लिए, मान लें कि आप Full-Archive search का उपयोग कर रहे हैं और 1 जनवरी, 2017 से 30 जून, 2017 तक अपनी query से मेल खाने वाले सभी Tweets चाहते हैं। आप अपने अनुरोध में `fromDate` और `toDate` पैरामीटर का उपयोग करके पूरी छह महीने की समयावधि निर्दिष्ट करेंगे। search API, Tweets के पहले &#39;page&#39; के साथ रिस्पॉन्स देगा, जिसमें आपके `maxResults` पैरामीटर के अनुसार Tweets की संख्या होगी (जिसका डिफ़ॉल्ट मान 100 है)। यदि और Tweets मौजूद हैं (और बहुत संभव है कि होंगे), तो API एक टोकन भी देगा, जिससे आप डेटा के अगले &#39;page&#39; के लिए अनुरोध कर सकेंगे। यह प्रक्रिया तब तक दोहराई जाती है, जब तक API टोकन लौटाना बंद नहीं कर देता। अधिक जानकारी के लिए अगला अनुभाग देखें।
+
+<div id="pagination">
+  #### पेजिनेशन
+</div>
+
+डेटा और काउंट, दोनों तरह के अनुरोध करते समय अक्सर एक ही रिस्पॉन्स में लौटाए जा सकने वाले डेटा से अधिक डेटा उपलब्ध होता है। ऐसे में, रिस्पॉन्स में एक ‘next’ टोकन शामिल होता है। ‘next’ टोकन रूट-लेवल JSON एट्रिब्यूट के रूप में दिया जाता है। जब भी ‘next’ टोकन दिया जाता है, तो इसका मतलब है कि प्राप्त करने के लिए अतिरिक्त डेटा उपलब्ध है, इसलिए आपको API अनुरोध करते रहना होगा।
+
+**नोट:** डेटा और काउंट अनुरोधों के लिए ‘next’ टोकन का व्यवहार थोड़ा अलग होता है। दोनों का वर्णन नीचे किया गया है, और उदाहरण रिस्पॉन्स API संदर्भ अनुभाग में दिए गए हैं।
+
+<div id="data-pagination">
+  ##### डेटा पेजिनेशन
+</div>
+
+डेटा के लिए अनुरोधों से अक्सर इतना अधिक डेटा मिल सकता है कि उसे एक ही रिस्पॉन्स में लौटाना संभव न हो। प्रत्येक डेटा अनुरोध में एक पैरामीटर शामिल होता है, जो प्रति अनुरोध लौटाए जाने वाले अधिकतम Tweets की संख्या निर्धारित करता है। `maxResults` पैरामीटर का डिफ़ॉल्ट मान 100 होता है, और इसे 10-500 की सीमा में सेट किया जा सकता है। यदि आपकी क्वेरी, अनुरोध में उपयोग किए गए `maxResults` पैरामीटर से अधिक Tweets से मेल खाती है, तो रिस्पॉन्स में एक &#39;next&#39; टोकन शामिल होगा (रूट-लेवल JSON एट्रिब्यूट के रूप में)। इस &#39;next&#39; टोकन का उपयोग अगले अनुरोध में उस क्वेरी से मेल खाने वाले Tweets के अगले हिस्से को प्राप्त करने के लिए किया जाता है (यानी अगला &#39;page&#39;)। &#39;next&#39; टोकन तब तक मिलते रहेंगे, जब तक आप उस क्वेरी के परिणामों के अंतिम &#39;page&#39; तक नहीं पहुंच जाते; अंतिम &#39;page&#39; पर कोई &#39;next&#39; टोकन नहीं दिया जाता।
+
+डेटा का अगला &#39;page&#39; अनुरोध करने के लिए, आपको मूल अनुरोध जैसी बिल्कुल वही क्वेरी करनी होगी, जिसमें `query`, `toDate`, और `fromDate` पैरामीटर भी शामिल हों, यदि उनका उपयोग किया गया हो। साथ ही, आपको एक &#39;next&#39; अनुरोध पैरामीटर भी शामिल करना होगा, जिसे पिछले रिस्पॉन्स से मिले मान पर सेट किया गया हो। इसका उपयोग GET या POST, दोनों प्रकार के अनुरोधों के साथ किया जा सकता है। हालांकि, GET अनुरोध के मामले में &#39;next&#39; पैरामीटर URL encoded होना चाहिए।
+
+आप अपनी पिछली क्वेरी से मिले &#39;next&#39; एलिमेंट को तब तक पास करते रह सकते हैं, जब तक आपकी क्वेरी द्वारा कवर की गई समयावधि के सभी Tweets प्राप्त न हो जाएं। जब आपको ऐसा रिस्पॉन्स मिलता है जिसमें &#39;next&#39; एलिमेंट शामिल नहीं होता, तो इसका मतलब है कि आप अंतिम page तक पहुंच चुके हैं और निर्दिष्ट क्वेरी तथा समय-सीमा के लिए कोई अतिरिक्त डेटा उपलब्ध नहीं है।
+
+<div id="counts-pagination">
+  ##### Counts पेजिनेशन
+</div>
+
+&#39;counts&#39; endpoint किसी क्वेरी से संबंधित Tweet की संख्या को दैनिक, प्रति-घंटा, या प्रति-मिनट के आधार पर प्रदान करता है। &#39;counts&#39; API endpoint, अधिकतम 31 दिनों के counts payload के लिए, टाइमस्टैम्प के साथ counts की एक array लौटाता है। यदि आप 31 दिनों से अधिक के counts का अनुरोध करते हैं, तो आपको एक टोकन दिया जाएगा। डेटा के टोकन की तरह, आपको मूल अनुरोध जैसी बिल्कुल वही query करनी होगी और साथ ही &#39;next&#39; request parameter भी शामिल करना होगा, जिसका मान पिछले रिस्पॉन्स से लिया गया हो।
+
+31 दिनों से अधिक के counts का अनुरोध करने के अलावा, एक और स्थिति होती है जिसमें टोकन दिया जाता है। अधिक वॉल्यूम वाली queries में, यह संभव है कि counts जनरेट होने में इतना समय लगे कि रिस्पॉन्स timeout हो जाए। जब ऐसा होता है, तो आपको 31 दिनों से कम के counts मिलेंगे, लेकिन counts के पूरे payload के लिए अनुरोध जारी रखने हेतु एक टोकन दिया जाएगा। ***महत्वपूर्ण:*** Timeouts केवल पूर्ण &quot;buckets&quot; ही जारी करते हैं — इसलिए 2.5 दिनों के लिए 2 पूर्ण-दिन &quot;buckets&quot; मिलेंगे।
+
+<div id="additional-notes">
+  ##### अतिरिक्त टिप्पणियाँ
+</div>
+
+* खोज अनुरोध में `fromDate` या `toDate` का उपयोग करने पर, आपको केवल अपनी समय-सीमा के भीतर के परिणाम ही मिलेंगे। जब आप अपनी समय-सीमा के भीतर परिणामों के अंतिम समूह तक पहुँच जाते हैं, तो आपको &#39;next&#39; टोकन नहीं मिलेगा।
+* &#39;next&#39; एलिमेंट का उपयोग 10-500 के बीच किसी भी `maxResults` मान के साथ किया जा सकता है (डिफ़ॉल्ट मान 100 है)। `maxResults` यह निर्धारित करता है कि हर रिस्पॉन्स में कितने Tweets लौटाए जाएँगे, लेकिन इससे अंततः सभी परिणाम प्राप्त करने में कोई बाधा नहीं आती।
+* &#39;next&#39; एलिमेंट की समय-सीमा समाप्त नहीं होती। एक ही &#39;next&#39; क्वेरी का उपयोग करने वाले कई अनुरोधों को, अनुरोध कब किया गया है इसकी परवाह किए बिना, वही परिणाम मिलेंगे।
+* &#39;next&#39; पैरामीटर का उपयोग करके परिणामों में पेजिंग करते समय, आपको क्वेरी की सीमाओं पर डुप्लिकेट मिल सकते हैं। आपके एप्लिकेशन को इन्हें सहन करने में सक्षम होना चाहिए।
+
+<div id="data-endpoint">
+  #### डेटा एंडपॉइंट
+</div>
+
+<div id="post-searchproductlabel">
+  ##### POST /search/:product/:label
+</div>
+
+<div id="endpoint-pattern">
+  ###### एंडपॉइंट पैटर्न:
+</div>
+
+यह एंडपॉइंट निर्दिष्ट क्वेरी और समयावधि के लिए डेटा लौटाता है। यदि कोई समयावधि निर्दिष्ट नहीं की जाती, तो समय पैरामीटर डिफ़ॉल्ट रूप से पिछले 30 दिनों के लिए सेट हो जाएंगे। ध्यान दें: नीचे बताए गए पैरामीटर को URL में एन्कोड करके, POST के बजाय GET अनुरोध का उपयोग करके भी यह कार्य किया जा सकता है।
+
+<div id="data-request-parameters">
+  ##### डेटा अनुरोध पैरामीटर
+</div>
+
+| पैरामीटर   | विवरण                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | आवश्यक | नमूना मान                          |
+| :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----- | :--------------------------------- |
+| query      | एक PowerTrack नियम के बराबर, जिसमें अधिकतम 2,048 वर्ण हो सकते हैं (और सकारात्मक व नकारात्मक क्लॉज़ की संख्या पर कोई सीमा नहीं है)।  <br />  <br />इस पैरामीटर में PowerTrack नियम के सभी हिस्से शामिल होने चाहिए, जिनमें सभी ऑपरेटर भी शामिल हों। नियम के हिस्सों को query के अन्य पैरामीटरों में अलग-अलग नहीं बाँटना चाहिए।  <br />  <br />**नोट:** सभी PowerTrack ऑपरेटर समर्थित नहीं हैं। समर्थित ऑपरेटर [यहाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) सूचीबद्ध हैं।                                                                                                                                                                                                      | हाँ    | (snow OR cold OR blizzard) weather |
+| tag        | टैग का उपयोग नियमों और उनसे मेल खाने वाले डेटा को अलग-अलग तार्किक समूहों में विभाजित करने के लिए किया जा सकता है। यदि कोई नियम टैग दिया जाता है, तो वह &#39;matching&#95;rules&#39; एट्रिब्यूट में शामिल किया जाता है।  <br />  <br />यह अनुशंसा की जाती है कि नियम टैग के लिए नियम-विशिष्ट UUID असाइन किए जाएँ और आवश्यक मैपिंग क्लाइंट साइड पर बनाए रखी जाए।                                                                                                                                                                                                                                                                                                                                                | नहीं   | 8HYG54ZGTU                         |
+| fromDate   | सबसे पुराना UTC टाइमस्टैम्प (Full-Archive search के साथ 3/21/2006 तक) जिससे Tweet उपलब्ध कराए जाएँगे। टाइमस्टैम्प मिनट-स्तर की ग्रैन्युलैरिटी में होता है और समावेशी होता है (अर्थात 12:00 में 00वाँ मिनट शामिल होता है)।  <br />  <br />*निर्दिष्ट:* केवल fromDate का उपयोग करने पर, बिना toDate पैरामीटर के, क्वेरी के परिणाम अब( ) से पीछे जाते हुए fromDate तक दिए जाएँगे।  <br />  <br />*निर्दिष्ट नहीं:* यदि fromDate निर्दिष्ट नहीं है, तो API अब( ) से पिछले 30 दिनों के सभी परिणाम, या toDate तक (यदि निर्दिष्ट है), प्रदान करेगा।  <br />  <br />यदि न तो fromDate और न ही toDate पैरामीटर का उपयोग किया जाता है, तो API अनुरोध के समय से पीछे जाते हुए पिछले 30 दिनों के सभी परिणाम प्रदान करेगा। | नहीं   | 201207220000                       |
+| toDate     | नवीनतम UTC टाइमस्टैम्प, जिस तक Tweet उपलब्ध कराए जाएँगे। टाइमस्टैम्प मिनट-स्तर की ग्रैन्युलैरिटी में होता है और समावेशी नहीं होता (अर्थात 11:59 में घंटे का 59वाँ मिनट शामिल नहीं होता)।  <br />  <br />*निर्दिष्ट:* केवल toDate का उपयोग करने पर, बिना fromDate पैरामीटर के, toDate से पहले के सबसे हाल के 30 दिनों का डेटा दिया जाएगा।  <br />  <br />*निर्दिष्ट नहीं:* यदि toDate निर्दिष्ट नहीं है, तो API क्वेरी के सभी परिणाम अब( ) से पीछे जाते हुए fromDate तक प्रदान करेगा।  <br />  <br />यदि न तो fromDate और न ही toDate पैरामीटर का उपयोग किया जाता है, तो API अनुरोध के समय से पीछे जाते हुए पूरे 30-दिवसीय इंडेक्स के सभी परिणाम प्रदान करेगा।                                                 | नहीं   | 201208220000                       |
+| maxResults | किसी अनुरोध में लौटाए जाने वाले खोज परिणामों की अधिकतम संख्या। यह 10 और सिस्टम सीमा (वर्तमान में 500) के बीच की संख्या होती है। डिफ़ॉल्ट रूप से, किसी अनुरोध का रिस्पॉन्स 100 परिणाम लौटाता है।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | नहीं   | 500                                |
+| next       | इस पैरामीटर का उपयोग परिणामों का अगला &#39;पेज&#39; प्राप्त करने के लिए किया जाता है, जैसा कि [यहाँ](#Pagination) बताया गया है। इस पैरामीटर के साथ उपयोग किया जाने वाला मान सीधे API द्वारा दिए गए रिस्पॉन्स से लिया जाता है, और इसे बदला नहीं जाना चाहिए।                                                                                                                                                                                                                                                                                                                                                                                                                                                    | नहीं   | NTcxODIyMDMyODMwMjU1MTA0           |
+
+<div id="additional-details">
+  ###### अतिरिक्त विवरण
+</div>
+
+|                       |                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **उपलब्ध समय-सीमा**   | 30-Day: पिछले 31 दिन  <br />Full-Archive: 21 मार्च, 2006 - वर्तमान                                                                                                                                                                                                                                                                                                                                                                  |
+| **क्वेरी प्रारूप**    | एक PowerTrack नियम के समकक्ष, जिसमें अधिकतम 2,048 वर्ण हो सकते हैं (और सकारात्मक तथा नकारात्मक क्लॉज़ की संख्या पर कोई सीमा नहीं है)।  <br />  <br />**नोट:** सभी PowerTrack ऑपरेटर समर्थित नहीं हैं। समर्थित ऑपरेटरों की सूची के लिए [उपलब्ध ऑपरेटर](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) देखें।                                                                                                |
+| **रेट लिमिट**         | पार्टनर्स पर मिनट और सेकंड, दोनों स्तरों पर रेट लिमिट्स लागू होंगी। प्रति मिनट रेट लिमिट आपके अनुबंध में निर्दिष्ट अनुसार प्रत्येक पार्टनर के लिए अलग-अलग होगी। हालांकि, इन प्रति-मिनट रेट लिमिट्स का उद्देश्य उन्हें एक ही बार में burst के रूप में उपयोग करना नहीं है। आपकी प्रति मिनट रेट लिमिट चाहे जो भी हो, सभी पार्टनर्स को डेटा और/या काउंट्स के सभी अनुरोधों को मिलाकर प्रति सेकंड अधिकतम 20 अनुरोधों तक सीमित किया जाएगा। |
+| **अनुपालन**           | Full-Archive Search API के माध्यम से वितरित किया गया सारा डेटा वितरण के समय अनुपालन-युक्त होता है।                                                                                                                                                                                                                                                                                                                                  |
+| **रीयलटाइम उपलब्धता** | Twitter Platform पर जनरेट होने के 30 सेकंड के भीतर डेटा इंडेक्स में उपलब्ध हो जाता है                                                                                                                                                                                                                                                                                                                                               |
+
+<div id="example-data-requests-and-responses">
+  ##### डेटा अनुरोधों और रिस्पॉन्स के उदाहरण
+</div>
+
+<div id="example-post-request">
+  ###### उदाहरण POST अनुरोध
+</div>
+
+* POST अनुरोध में अनुरोध पैरामीटर JSON-स्वरूपित बॉडी के माध्यम से भेजे जाते हैं, जैसा कि नीचे दिखाया गया है।
+* जिस PowerTrack नियम के लिए क्वेरी की जा रही है, उसके सभी भाग (उदा. keywords, bounding&#95;box: जैसे अन्य operators) &#39;query&#39; पैरामीटर में रखे जाने चाहिए।
+* नियम के भागों को query URL में अलग-अलग पैरामीटर के रूप में विभाजित न करें।
+
+प्रारंभिक डेटा अनुरोध करने के लिए यहाँ POST (cURL का उपयोग करके) कमांड का एक उदाहरण दिया गया है:
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label.json" -d '{"query":"from:twitterDev","maxResults":500,"fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm"}'
+```
+
+यदि API डेटा रिस्पॉन्स में &#39;next&#39; टोकन शामिल हो, तो नीचे उसी के बाद किया जाने वाला अनुरोध दिया गया है, जो मूल अनुरोध जैसा है, बस इसमें &#39;next&#39; पैरामीटर को दिए गए टोकन पर सेट किया गया है:
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label.json" -d '{"query":"from:twitterDev","maxResults":500,"fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm",
+    "next":"NTcxODIyMDMyODMwMjU1MTA0"}'
+```
+
+<div id="example-get-request">
+  ###### उदाहरण GET अनुरोध
+</div>
+
+* GET अनुरोध में, अनुरोध पैरामीटर मानक URL एन्कोडिंग का उपयोग करके URL में एन्कोड किए जाते हैं।
+* जिस PowerTrack नियम के लिए क्वेरी की जा रही है, उसके सभी भाग (जैसे, कीवर्ड और bounding&#95;box: जैसे अन्य ऑपरेटर) &#39;query&#39; पैरामीटर में रखे जाने चाहिए।
+* नियम के भागों को क्वेरी URL में अलग-अलग पैरामीटर के रूप में विभाजित न करें।
+
+प्रारंभिक डेटा अनुरोध करने के लिए, यहाँ GET (cURL का उपयोग करते हुए) कमांड का एक उदाहरण दिया गया है:
+
+```bash
+    curl -u<username> "http://gnip-api.x.com/search/:product/accounts/:account_name/:label.json?query=from%3Atwitterdev&maxResults=500&fromDate=yyyymmddhhmm&toDate=yyyymmddhhmm"
+```
+
+<div id="example-data-responses">
+  ###### उदाहरण डेटा रिस्पॉन्स
+</div>
+
+ध्यान दें कि 29 सितंबर, 2022 से बनाए गए Tweets के लिए, Tweet ऑब्जेक्ट्स में Tweet edit metadata शामिल होगा, जो उसके edit history का विवरण देता है। अधिक जानकारी के लिए [&quot;Edit Tweets&quot;](/hi/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) fundamentals पेज देखें।
+
+नीचे डेटा क्वेरी के लिए एक उदाहरण रिस्पॉन्स दिया गया है। इस उदाहरण में माना गया है कि ‘maxResults’ से अधिक Tweets उपलब्ध थे, इसलिए बाद के अनुरोधों के लिए एक &#39;next&#39; टोकन दिया गया है। यदि आपकी क्वेरी से &#39;maxResults&#39; या उससे कम Tweets जुड़े हैं, तो रिस्पॉन्स में कोई &#39;next&#39; टोकन शामिल नहीं होगा।
+&#39;next&#39; element का मान हर क्वेरी के साथ बदलता रहेगा और इसे एक अपारदर्शी स्ट्रिंग के रूप में माना जाना चाहिए। रिस्पॉन्स body में &#39;next&#39; element कुछ इस प्रकार दिखाई देगा:
+
+```json
+{
+    "results":
+      [
+            {--Tweet 1--},
+            {--Tweet 2--},
+            ...
+            {--Tweet 500--}
+      ],
+    "next":"NTcxODIyMDMyODMwMjU1MTA0",
+    "requestParameters":
+      {
+        "maxResults":500,
+        "fromDate":"201101010000",
+        "toDate":"201201010000"
+      }
+  }
+```
+
+किसी बाद के अनुरोध का रिस्पॉन्स कुछ इस तरह दिख सकता है (नए Tweets और अलग &#39;next&#39; मान पर ध्यान दें):
+
+```json
+{
+      "results":
+      [
+            {--Tweet 501--},
+            {--Tweet 502--},
+            ...
+            {--Tweet 1000--}
+      ],
+      "next":"R2hCDbpBFR6eLXGwiRF1cQ",
+      "requestParameters":
+      {
+        "maxResults":500,
+        "fromDate":"201101010000",
+        "toDate":"201201010000"
+      }
+  }
+```
+
+आप अपनी पिछली क्वेरी के &#39;next&#39; एलिमेंट को तब तक पास करते रह सकते हैं, जब तक आपको अपनी क्वेरी में शामिल समयावधि के सभी Tweet न मिल जाएँ। जब आपको ऐसा रिस्पॉन्स मिलता है जिसमें &#39;next&#39; एलिमेंट शामिल नहीं होता, तो इसका मतलब है कि आप आखिरी पेज पर पहुँच गए हैं और आपकी समय-सीमा में कोई अतिरिक्त डेटा उपलब्ध नहीं है.
+
+<div id="counts-endpoint">
+  #### काउंट्स एंडपॉइंट
+</div>
+
+<div id="searchstreamcounts">
+  ##### /search/:stream/counts
+</div>
+
+<div id="endpoint-pattern">
+  ###### एंडपॉइंट पैटर्न:
+</div>
+
+`/search/fullarchive/accounts/:account_name/:label/counts.json`
+
+यह एंडपॉइंट निर्दिष्ट क्वेरी के लिए काउंट (डेटा वॉल्यूम) डेटा लौटाता है। यदि कोई समयावधि निर्दिष्ट नहीं की जाती है, तो समय पैरामीटर डिफ़ॉल्ट रूप से पिछले 30 दिनों के लिए सेट हो जाते हैं। डेटा वॉल्यूम टाइमस्टैम्प वाली ऐरे के रूप में लौटाए जाते हैं, जो दैनिक, प्रति घंटा (डिफ़ॉल्ट), या प्रति मिनट हो सकती है।
+
+**नोट:** इस कार्यक्षमता को नीचे वर्णित पैरामीटरों को URL में एन्कोड करके, POST के बजाय GET अनुरोध का उपयोग करके भी पूरा किया जा सकता है।
+
+<div id="counts-request-parameters">
+  ##### काउंट्स अनुरोध पैरामीटर
+</div>
+
+| पैरामीटर | विवरण                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | आवश्यक | नमूना मान                          |
+| :------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----- | :--------------------------------- |
+| query    | एक PowerTrack नियम के बराबर, जिसमें अधिकतम 2,048 वर्ण हो सकते हैं (और सकारात्मक व नकारात्मक क्लॉज़ की संख्या पर कोई सीमा नहीं है)।  <br />  <br />इस पैरामीटर में PowerTrack नियम के सभी हिस्से शामिल होने चाहिए, जिनमें सभी ऑपरेटर भी शामिल हों। नियम के हिस्सों को query के अन्य पैरामीटरों में अलग-अलग नहीं बांटना चाहिए।  <br />  <br />**नोट:** सभी PowerTrack ऑपरेटर समर्थित नहीं हैं। समर्थित ऑपरेटरों की सूची के लिए [उपलब्ध ऑपरेटर](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) देखें।                                                                                                                                                                                                                                                                                                                                                                                 | हाँ    | (snow OR cold OR blizzard) weather |
+| fromDate | सबसे पुराना UTC टाइमस्टैम्प (3/21/2006 तक पीछे) जिससे Tweet उपलब्ध कराए जाएंगे। टाइमस्टैम्प मिनट-स्तर की सटीकता में है और यह inclusive है (अर्थात 12:00 में 00वाँ मिनट शामिल है)।  <br />  <br />*निर्दिष्ट:* यदि केवल fromDate दिया गया है और toDate पैरामीटर नहीं दिया गया है, तो API query के लिए counts (data volumes) डेटा वर्तमान समय से fromDate तक पीछे जाते हुए उपलब्ध कराएगा। अगर fromDate वर्तमान समय( ) से 31 दिनों से अधिक पुराना है, तो अनुरोध के अगले पेज प्राप्त करने के लिए आपको एक next टोकन मिलेगा।  <br />  <br />*निर्दिष्ट नहीं:* यदि fromDate निर्दिष्ट नहीं है, तो API वर्तमान समय( ) से पिछले 30 दिनों या toDate (यदि निर्दिष्ट हो) तक के counts (data volumes) उपलब्ध कराएगा।  <br />  <br />यदि न तो fromDate और न ही toDate पैरामीटर का उपयोग किया जाता है, तो API अनुरोध के समय से शुरू होकर पीछे की ओर जाते हुए सबसे हाल के 30 दिनों के counts (data volumes) उपलब्ध कराएगा। | नहीं   | 201207220000                       |
+| toDate   | सबसे नया, यानी सबसे हाल का UTC टाइमस्टैम्प, तक जिसके लिए Tweet उपलब्ध कराए जाएंगे। टाइमस्टैम्प मिनट-स्तर की सटीकता में है और यह inclusive नहीं है (अर्थात 11:59 में घंटे का 59वाँ मिनट शामिल नहीं है)।  <br />  <br />*निर्दिष्ट:* यदि केवल toDate दिया गया है और fromDate पैरामीटर नहीं दिया गया है, तो API toDate से पहले के 30 दिनों के सबसे हाल के counts (data volumes) उपलब्ध कराएगा।  <br />  <br />*निर्दिष्ट नहीं:* यदि toDate निर्दिष्ट नहीं है, तो API query के लिए counts (data volumes) को fromDate तक पीछे जाते हुए उपलब्ध कराएगा। अगर fromDate वर्तमान समय( ) से 31 दिनों से अधिक पुराना है, तो अनुरोध के अगले पेज प्राप्त करने के लिए आपको एक next टोकन मिलेगा।  <br />  <br />यदि न तो fromDate और न ही toDate पैरामीटर का उपयोग किया जाता है, तो API अनुरोध के समय से शुरू होकर पीछे की ओर जाते हुए सबसे हाल के 30 दिनों के counts (data volumes) उपलब्ध कराएगा।                         | नहीं   | 201208220000                       |
+| bucket   | वह समय इकाई जिसके लिए count डेटा उपलब्ध कराया जाएगा। अनुरोधित समयावधि में हर दिन, घंटे या मिनट के लिए count डेटा लौटाया जा सकता है। डिफ़ॉल्ट रूप से, प्रति घंटे के counts उपलब्ध कराए जाएंगे। विकल्प: &#39;day&#39;, &#39;hour&#39;, &#39;minute&#39;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | नहीं   | minute                             |
+| next     | इस पैरामीटर का उपयोग परिणामों के अगले &#39;page&#39; को प्राप्त करने के लिए किया जाता है, जैसा [यहाँ](#Pagination) बताया गया है। इस पैरामीटर के साथ इस्तेमाल किया जाने वाला मान सीधे API द्वारा दिए गए रिस्पॉन्स से लिया जाता है, और इसमें कोई बदलाव नहीं किया जाना चाहिए।                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | नहीं   | NTcxODIyMDMyODMwMjU1MTA0           |
+
+<div id="additional-details">
+  ###### अतिरिक्त विवरण
+</div>
+
+|                     |                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| :------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **उपलब्ध समय-सीमा** | 30-Day: पिछले 31 दिन  <br />Full-Archive: 21 मार्च, 2006 - वर्तमान                                                                                                                                                                                                                                                                                                                                                 |
+| **क्वेरी प्रारूप**  | एक PowerTrack नियम के समकक्ष, अधिकतम 2,048 वर्ण।  <br />  <br />**नोट:** सभी PowerTrack ऑपरेटर समर्थित नहीं हैं। समर्थित ऑपरेटरों की सूची के लिए [उपलब्ध ऑपरेटर](/hi/x-api/enterprise-gnip-2.0/fundamentals/search-api#available-operators) देखें।                                                                                                                                                                    |
+| **रेट लिमिट**       | पार्टनर्स पर मिनट और सेकंड, दोनों स्तरों पर रेट लिमिट्स लागू होंगी। प्रति मिनट रेट लिमिट, आपके कॉन्ट्रैक्ट में बताए अनुसार, पार्टनर के हिसाब से अलग-अलग होगी। हालांकि, इन प्रति-मिनट रेट लिमिट्स का उपयोग एक ही बर्स्ट में करने के लिए नहीं किया गया है। आपकी प्रति मिनट रेट लिमिट चाहे जो भी हो, सभी पार्टनर्स के लिए डेटा और/या counts के सभी अनुरोधों को मिलाकर अधिकतम 20 अनुरोध प्रति सेकंड की सीमा लागू होगी। |
+| **काउंट प्रिसिजन**  | इस एंडपॉइंट के माध्यम से दिए गए counts, हुए Tweets की संख्या दर्शाते हैं और बाद में होने वाली किसी भी compliance घटना (deletions, scrub geos) को प्रतिबिंबित नहीं करते। गिने गए कुछ Tweets, उपयोगकर्ता compliance कार्रवाइयों के कारण data एंडपॉइंट के माध्यम से उपलब्ध नहीं हो सकते।                                                                                                                              |
+
+<div id="example-counts-requests-and-responses">
+  ##### काउंट्स अनुरोधों और रिस्पॉन्स के उदाहरण
+</div>
+
+<div id="example-post-request">
+  ###### उदाहरण POST अनुरोध
+</div>
+
+* POST अनुरोध में अनुरोध पैरामीटर JSON-स्वरूपित body के माध्यम से भेजे जाते हैं, जैसा कि नीचे दिखाया गया है।
+* जिस PowerTrack नियम के लिए क्वेरी की जा रही है, उसके सभी भागों (उदाहरण के लिए, keywords, bounding&#95;box: जैसे अन्य operators) को &#39;query&#39; पैरामीटर में रखा जाना चाहिए।
+* rule के भागों को query URL में अलग-अलग पैरामीटर के रूप में विभाजित न करें।
+
+प्रारंभिक counts अनुरोध करने के लिए यहाँ POST (cURL का उपयोग करते हुए) command का एक उदाहरण दिया गया है:
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label/counts.json" -d '{"query":"TwitterDev","fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm","bucket":"day"}'
+```
+
+यदि API counts रिस्पॉन्स में &#39;next&#39; टोकन शामिल हो, तो नीचे मूल अनुरोध पर आधारित एक अनुवर्ती अनुरोध दिया गया है, जिसमें &#39;next&#39; पैरामीटर को दिए गए टोकन पर सेट किया गया है:
+
+```bash
+    curl -X POST -u<username> "https://gnip-api.x.com/search/:product/accounts/:account_name/:label/counts.json" -d '{"query":"TwitterDev","fromDate":"yyyymmddhhmm","toDate":"yyyymmddhhmm","bucket":"day",
+    "next":"YUcxO87yMDMyODMwMjU1MTA0"}'
+```
+
+<div id="example-get-request">
+  ###### उदाहरण GET अनुरोध
+</div>
+
+* GET अनुरोध में, अनुरोध पैरामीटर मानक URL encoding का उपयोग करके URL में एन्कोड किए जाते हैं
+* जिस PowerTrack नियम के लिए क्वेरी की जा रही है, उसके सभी हिस्से (उदा. keywords, bounding&#95;box: जैसे अन्य operators) &#39;query&#39; पैरामीटर में रखे जाने चाहिए
+* rule के हिस्सों को query URL में अलग-अलग पैरामीटर के रूप में विभाजित न करें
+
+प्रारंभिक counts अनुरोध करने के लिए, यहाँ GET (cURL का उपयोग करते हुए) कमांड का एक उदाहरण दिया गया है:
+
+```bash
+    curl -u<username> "http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label/counts.json?query=TwitterDev&bucket=day&fromDate=yyyymmddhhmm&toDate=yyyymmddhhmm"
+```
+
+<div id="example-counts-responses">
+  #### counts रिस्पॉन्स के उदाहरण
+</div>
+
+नीचे counts (डेटा वॉल्यूम) क्वेरी के लिए एक उदाहरण रिस्पॉन्स दिया गया है। इस उदाहरण रिस्पॉन्स में एक &#39;next&#39; टोकन शामिल है, जिसका अर्थ है कि counts अनुरोध 31 दिनों से अधिक की अवधि के लिए था, या सबमिट की गई क्वेरी से जुड़ा वॉल्यूम इतना अधिक था कि आंशिक रिस्पॉन्स ट्रिगर हो गया।
+
+&#39;next&#39; एलिमेंट का मान हर क्वेरी के साथ बदल जाएगा और इसे एक opaque string के रूप में माना जाना चाहिए। रिस्पॉन्स बॉडी में &#39;next&#39; एलिमेंट निम्नलिखित जैसा दिखाई देगा:
+
+```json
+    {
+      "results": [
+        { "timePeriod": "201101010000", "count": 32 },
+        { "timePeriod": "201101020000", "count": 45 },
+        { "timePeriod": "201101030000", "count": 57 },
+        { "timePeriod": "201101040000", "count": 123 },
+        { "timePeriod": "201101050000", "count": 134 },
+        { "timePeriod": "201101060000", "count": 120 },
+        { "timePeriod": "201101070000", "count": 43 },
+        { "timePeriod": "201101080000", "count": 65 },
+        { "timePeriod": "201101090000", "count": 85 },
+        { "timePeriod": "201101100000", "count": 32 },
+        { "timePeriod": "201101110000", "count": 23 },
+        { "timePeriod": "201101120000", "count": 85 },
+        { "timePeriod": "201101130000", "count": 32 },
+        { "timePeriod": "201101140000", "count": 95 },
+        { "timePeriod": "201101150000", "count": 109 },
+        { "timePeriod": "201101160000", "count": 34 },
+        { "timePeriod": "201101170000", "count": 74 },
+        { "timePeriod": "201101180000", "count": 24 },
+        { "timePeriod": "201101190000", "count": 90 },
+        { "timePeriod": "201101200000", "count": 85 },
+        { "timePeriod": "201101210000", "count": 93 },
+        { "timePeriod": "201101220000", "count": 48 },
+        { "timePeriod": "201101230000", "count": 37 },
+        { "timePeriod": "201101240000", "count": 54 },
+        { "timePeriod": "201101250000", "count": 52 },
+        { "timePeriod": "201101260000", "count": 84 },
+        { "timePeriod": "201101270000", "count": 120 },
+        { "timePeriod": "201101280000", "count": 34 },
+        { "timePeriod": "201101290000", "count": 83 },
+        { "timePeriod": "201101300000", "count": 23 },
+        { "timePeriod": "201101310000", "count": 12 }
+       ],
+      "totalCount":2027,
+      "next":"NTcxODIyMDMyODMwMjU1MTA0",
+      "requestParameters":
+        {
+          "bucket":"day",
+          "fromDate":"201101010000",
+          "toDate":"201201010000"
+        }
+    }
+```
+
+इसके बाद आने वाले अनुरोध का रिस्पॉन्स कुछ इस तरह दिख सकता है (नई counts timeline और अलग &#39;next&#39; मान पर ध्यान दें):
+
+```json
+    {
+      "results": [
+        { "timePeriod": "201102010000", "count": 45 },
+        { "timePeriod": "201102020000", "count": 76 },
+         ....
+        { "timePeriod": "201103030000", "count": 13 }
+     ],
+     "totalCount":3288,
+     "next":"WE79fnakFanyMDMyODMwMjU1MTA0",
+     "requestParameters":
+        {
+          "bucket":"day",
+          "fromDate":"201101010000",
+          "toDate":"201201010000"
+        }
+    }
+```
+
+आप अपनी पिछली क्वेरी के &#39;next&#39; element को तब तक पास करते रह सकते हैं, जब तक आपको क्वेरी की समयावधि के सभी counts प्राप्त न हो जाएँ। जब आपको ऐसा रिस्पॉन्स मिलता है, जिसमें &#39;next&#39; element शामिल नहीं होता, तो इसका मतलब है कि आप आख़िरी page पर पहुँच चुके हैं और आपकी समय-सीमा में कोई अतिरिक्त counts उपलब्ध नहीं हैं।
+
+<div id="http-response-codes">
+  #### HTTP रिस्पॉन्स कोड
+</div>
+
+| Status | Text                  | Description                                                                                                                                                                                                   |
+| :----- | :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 200    | OK                    | अनुरोध सफल रहा। JSON रिस्पॉन्स निम्नलिखित के समान होगा:                                                                                                                                                       |
+| 400    | Bad Request           | आम तौर पर, यह रिस्पॉन्स अनुरोध में अमान्य JSON होने पर, या जब अनुरोध कोई JSON payload भेजने में विफल रहता है, तब मिलता है।                                                                                    |
+| 401    | Unauthorized          | अमान्य credentials के कारण HTTP authentication विफल हो गया। यह सुनिश्चित करने के लिए कि आप उन्हें अपने अनुरोध के साथ सही तरीके से उपयोग कर रहे हैं, अपने credentials के साथ console.gnip.com में लॉग इन करें। |
+| 404    | Not Found             | जिस URL पर अनुरोध भेजा गया था, उस पर संसाधन नहीं मिला। संभवतः गलत URL का उपयोग किया गया था।                                                                                                                   |
+| 422    | Unprocessable Entity  | यह query में अमान्य पैरामीटर के कारण लौटाया जाता है -- उदाहरण के लिए, अमान्य PowerTrack rules।                                                                                                                |
+| 429    | Unknown Code          | आपका ऐप connection requests की सीमा से अधिक हो गया है। संबंधित JSON संदेश निम्नलिखित के समान दिखेगा:                                                                                                          |
+| 500    | Internal Server Error | सर्वर साइड में त्रुटि हुई। exponential backoff pattern का उपयोग करके अपने अनुरोध को फिर से आज़माएँ।                                                                                                           |
+| 502    | Proxy Error           | सर्वर साइड में त्रुटि हुई। exponential backoff pattern का उपयोग करके अपने अनुरोध को फिर से आज़माएँ।                                                                                                           |
+| 503    | Service Unavailable   | सर्वर साइड में त्रुटि हुई। exponential backoff pattern का उपयोग करके अपने अनुरोध को फिर से आज़माएँ।                                                                                                           |

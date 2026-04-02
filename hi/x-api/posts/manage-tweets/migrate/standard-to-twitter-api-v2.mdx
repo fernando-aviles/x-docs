@@ -1,0 +1,159 @@
+---
+title: v1 से v2
+sidebarTitle: v1 से v2
+keywords: ["v1.1 से v2 माइग्रेशन", "Tweet बनाने का माइग्रेशन", "Tweet बनाने के लिए माइग्रेट करें", "standard से v2", "v1 से v2 Tweet", "माइग्रेशन गाइड"]
+---
+
+<div id="standard-v11-compared-to-x-api-v2">
+  ## Standard v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप standard v1.1 के [POST statuses/update](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update) और [POST statuses/destroy/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-destroy-id) एंडपॉइंट के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य standard और X API v2 के पोस्ट्स प्रबंधन एंडपॉइंट के बीच समानताओं और अंतरों को समझने में आपकी मदद करना है।
+
+* **समानताएँ**
+  * प्रमाणीकरण
+* **अंतर**
+  * Endpoint URLs
+
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  ### समानताएँ
+</div>
+
+**प्रमाणीकरण**
+
+मानक v1.1 और X API v2, दोनों में पोस्ट्स को प्रबंधित करने वाले एंडपॉइंट्स ([POST statuses/update](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update) और [POST statuses/destroy/:id](https://developer.x.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-destroy-id)) [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) का उपयोग करते हैं। इसलिए, यदि आप पहले मानक v1.1 के किसी एंडपॉइंट का उपयोग कर रहे थे, तो X API v2 संस्करण पर माइग्रेट करने के बाद भी आप उसी प्रमाणीकरण विधि का उपयोग जारी रख सकते हैं।
+
+<div id="differences">
+  ### अंतर
+</div>
+
+**एंडपॉइंट URL**
+
+* Standard v1.1 एंडपॉइंट:
+  * https://api.x.com/1.1/statuses/update.json
+    (एक पोस्ट बनाता है)
+  * `https://api.x.com/1.1/statuses/destroy/:id.json`
+    (एक पोस्ट हटाता है)
+* X API v2 एंडपॉइंट:
+  * https://api.x.com/2/tweets
+    (एक पोस्ट बनाता है)
+  * https://api.x.com/2/tweets/:id
+    (निर्दिष्ट पोस्ट को हटाता है)
+
+<div id="app-and-project-requirements">
+  ### ऐप और प्रोजेक्ट संबंधी आवश्यकताएँ
+</div>
+
+X API v2 एंडपॉइंट्स के लिए यह आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [डेवलपर ऐप](/hi/resources/fundamentals/developer-apps) के क्रेडेंशियल्स का उपयोग करें, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट्स ऐप्स या किसी प्रोजेक्ट से संबद्ध ऐप्स के क्रेडेंशियल्स का उपयोग कर सकते हैं।
+
+<div id="request-parameters">
+  ### अनुरोध पैरामीटर
+</div>
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटर दो क्वेरी पैरामीटर (user&#95;id या screen&#95;name) स्वीकार करते थे। X API v2, DELETE एंडपॉइंट के लिए केवल संख्यात्मक पोस्ट ID स्वीकार करता है, और इसे एंडपॉइंट पाथ के हिस्से के रूप में पास किया जाना चाहिए।
+
+POST एंडपॉइंट के लिए, अतिरिक्त पैरामीटर अनुरोध की JSON बॉडी में पास करने होंगे। कौन-से पैरामीटर उपलब्ध हैं, इसके बारे में आप [API संदर्भ गाइड](/hi/x-api/posts/manage-tweets/introduction) में अधिक जान सकते हैं।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="create-a-post-v2">
+  ### पोस्ट बनाएँ (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"text": "Hello world!"}'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # पोस्ट बनाएँ
+  response = client.posts.create(text="Hello world!")
+  print(f"Created Post: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // पोस्ट बनाएँ
+  const response = await client.posts.create({ text: "Hello world!" });
+  console.log(`Created Post: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+<div id="delete-a-post-v2">
+  ### पोस्ट हटाएँ (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/tweets/1234567890" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # पोस्ट हटाएँ
+  response = client.posts.delete("1234567890")
+  print(f"Deleted: {response.data.deleted}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // पोस्ट हटाएँ
+  const response = await client.posts.delete("1234567890");
+  console.log(`Deleted: ${response.data?.deleted}`);
+  ```
+</CodeGroup>

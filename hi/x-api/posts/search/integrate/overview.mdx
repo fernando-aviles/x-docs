@@ -1,0 +1,299 @@
+---
+title: इंटीग्रेशन गाइड
+sidebarTitle: अवलोकन
+description: Search Posts के एकीकरण के लिए प्रमुख अवधारणाएँ और सर्वोत्तम प्रथाएँ
+keywords: ["खोज एकीकरण", "खोज अवलोकन", "खोज गाइड", "खोज कार्यान्वयन", "Tweet खोज एकीकरण"]
+---
+
+इस गाइड में उन प्रमुख अवधारणाओं के बारे में बताया गया है जिनकी मदद से आप Search Posts एंडपॉइंट्स को अपने ऐप में एकीकृत कर सकते हैं।
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+<div id="recent-search">
+  ### हालिया खोज
+</div>
+
+हालिया खोज कई प्रमाणीकरण विधियों का समर्थन करती है:
+
+| विधि                                                                                                                           | उपयोग का परिदृश्य    |
+| :----------------------------------------------------------------------------------------------------------------------------- | :------------------- |
+| [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#oauth-2-0)                                                         | सार्वजनिक पोस्ट डेटा |
+| [OAuth 2.0 Authorization Code with PKCE](/hi/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | निजी मेट्रिक्स       |
+| [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication)                                                              | निजी मेट्रिक्स       |
+
+<div id="full-archive-search">
+  ### पूर्ण-आर्काइव खोज
+</div>
+
+पूर्ण-आर्काइव खोज केवल [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#oauth-2-0) प्रमाणीकरण का समर्थन करती है।
+
+<Warning>
+  निजी मेट्रिक्स (`non_public_metrics`, `organic_metrics`, `promoted_metrics`) पूर्ण-आर्काइव खोज में उपलब्ध नहीं हैं, क्योंकि यह केवल App-Only प्रमाणीकरण का समर्थन करती है।
+</Warning>
+
+***
+
+<div id="building-queries">
+  ## क्वेरी बनाना
+</div>
+
+क्वेरी, पोस्ट्स का मिलान करने के लिए ऑपरेटरों का उपयोग करती हैं। ऑपरेटरों को बूलियन लॉजिक के साथ संयोजित करें:
+
+```
+(AI OR "machine learning") lang:en -is:retweet has:links
+```
+
+<div id="query-length-limits">
+  ### क्वेरी लंबाई की सीमाएँ
+</div>
+
+| एक्सेस स्तर | हालिया खोज | पूर्ण-आर्काइव खोज |
+| :---------- | :--------- | :---------------- |
+| सेल्फ-सर्व  | 512 वर्ण   | 1,024 वर्ण        |
+| एंटरप्राइज़ | 4,096 वर्ण | 4,096 वर्ण        |
+
+<div id="operator-types">
+  ### ऑपरेटर के प्रकार
+</div>
+
+| Type              | Description                                             | Example                   |
+| :---------------- | :------------------------------------------------------ | :------------------------ |
+| **स्वतंत्र**      | अकेले इस्तेमाल किया जा सकता है                          | `#python`, `from:user`    |
+| **संयोजन-आवश्यक** | किसी स्वतंत्र ऑपरेटर के साथ ही इस्तेमाल किया जाना चाहिए | `has:media`, `is:retweet` |
+
+<Card title="क्वेरी बनाएं" icon="magnifying-glass" href="/hi/x-api/posts/search/integrate/build-a-query">
+  क्वेरी सिंटैक्स को विस्तार से जानें
+</Card>
+
+<Card title="ऑपरेटर संदर्भ" icon="list-check" href="/hi/x-api/posts/search/integrate/operators">
+  सभी उपलब्ध ऑपरेटर देखें
+</Card>
+
+***
+
+<div id="fields-and-expansions">
+  ## फ़ील्ड्स और expansions
+</div>
+
+डिफ़ॉल्ट रूप से, रिस्पॉन्स में केवल `id`, `text`, और `edit_history_tweet_ids` शामिल होते हैं। अतिरिक्त डेटा पाने के लिए पैरामीटर का उपयोग करें।
+
+<div id="example-request">
+  ### अनुरोध का उदाहरण
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/search/recent?\
+  query=python&\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # हाल की पोस्ट्स खोजें
+  for page in client.posts.search_recent(
+      query="python",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text} - Likes: {post.public_metrics.like_count}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // हाल की पोस्ट्स खोजें
+  const paginator = client.posts.searchRecent("python", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - Likes: ${post.public_metrics?.like_count}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="available-expansions">
+  ### उपलब्ध expansions
+</div>
+
+| Expansion                    | क्या लौटाता है                    |
+| :--------------------------- | :-------------------------------- |
+| `author_id`                  | लेखक का उपयोगकर्ता ऑब्जेक्ट       |
+| `attachments.media_keys`     | संलग्न मीडिया ऑब्जेक्ट्स          |
+| `attachments.poll_ids`       | संलग्न पोल ऑब्जेक्ट्स             |
+| `referenced_tweets.id`       | कोट किए गए या जवाब दिए गए पोस्ट्स |
+| `geo.place_id`               | स्थान ऑब्जेक्ट्स                  |
+| `entities.mentions.username` | उल्लेखित उपयोगकर्ता ऑब्जेक्ट्स    |
+
+<Card title="फ़ील्ड्स और expansions गाइड" icon="sliders" href="/hi/x-api/fundamentals/fields">
+  रिस्पॉन्स को कस्टमाइज़ करने के बारे में और जानें
+</Card>
+
+***
+
+<div id="pagination">
+  ## पेजिनेशन
+</div>
+
+खोज एंडपॉइंट पेजों में परिणाम लौटाते हैं। अतिरिक्त पेज पाने के लिए रिस्पॉन्स से `next_token` का उपयोग करें।
+
+<div id="how-it-works">
+  ### यह कैसे काम करता है
+</div>
+
+1. `max_results` के साथ अपना शुरुआती अनुरोध करें
+2. `next_token` के लिए `meta` ऑब्जेक्ट जाँचें
+3. बाद के अनुरोधों में `next_token` शामिल करें
+4. इसे तब तक दोहराएँ, जब तक `next_token` लौटना बंद न हो जाए
+
+<div id="example">
+  ### उदाहरण
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # पहला अनुरोध
+  curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # पेजिनेशन टोकन के साथ अगला अनुरोध
+  curl "https://api.x.com/2/tweets/search/recent?query=python&max_results=100&next_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK पेजिनेशन को अपने-आप संभालता है
+  all_posts = []
+
+  for page in client.posts.search_recent(query="python", max_results=100):
+      if page.data:
+          all_posts.extend(page.data)
+
+  print(f"{len(all_posts)} पोस्ट्स मिले")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllResults(query) {
+    const allPosts = [];
+
+    // SDK पेजिनेशन को अपने-आप संभालता है
+    const paginator = client.posts.searchRecent(query, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allPosts.push(...page.data);
+      }
+    }
+
+    return allPosts;
+  }
+
+  // उपयोग
+  const posts = await getAllResults("python");
+  console.log(`${posts.length} पोस्ट्स मिले`);
+  ```
+</CodeGroup>
+
+<Card title="पेजिनेशन गाइड" icon="arrow-right" href="/hi/x-api/posts/search/integrate/paginate">
+  पेजिनेशन के बारे में और जानें
+</Card>
+
+***
+
+<div id="post-edits">
+  ## पोस्ट संपादन
+</div>
+
+पोस्ट्स को 30 मिनट के भीतर अधिकतम 5 बार संपादित किया जा सकता है। खोज एंडपॉइंट्स हमेशा सबसे नया संस्करण लौटाते हैं।
+
+<div id="considerations">
+  ### ध्यान देने योग्य बातें
+</div>
+
+* `edit_history_tweet_ids` में सभी पोस्ट IDs शामिल हैं (सबसे पुराना पहले)
+* 30 मिनट की विंडो के बाद प्राप्त किए गए पोस्ट्स अंतिम संस्करण को दर्शाते हैं
+* लगभग रीयल-टाइम उपयोग मामलों में, हाल ही में प्रकाशित पोस्ट्स अभी भी संपादित किए जा सकते हैं
+
+<Card title="पोस्ट संपादन की बुनियादी बातें" icon="clock-rotate-left" href="/hi/x-api/fundamentals/edit-posts">
+  पोस्ट संपादन के बारे में और जानें
+</Card>
+
+***
+
+<div id="best-practices">
+  ## सर्वोत्तम तरीके
+</div>
+
+<CardGroup cols={2}>
+  <Card title="शुरू से ही विशिष्ट रहें" icon="crosshairs">
+    नतीजों को सीमित करने और अनावश्यक शोर कम करने के लिए कई ऑपरेटरों का इस्तेमाल करें।
+  </Card>
+
+  <Card title="चरणबद्ध तरीके से परीक्षण करें" icon="flask">
+    शुरुआत व्यापक रूप से करें, फिर नतीजों के आधार पर उसे परिष्कृत करें।
+  </Card>
+
+  <Card title="पेजिनेशन संभालें" icon="arrow-right">
+    बड़े परिणाम सेट के लिए सही पेजिनेशन लागू करें।
+  </Card>
+
+  <Card title="परिणाम कैश करें" icon="database">
+    बार-बार अनुरोध भेजने से बचने के लिए परिणामों को लोकल रूप से स्टोर करें।
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="क्वेरी बनाएं" icon="magnifying-glass" href="/hi/x-api/posts/search/integrate/build-a-query">
+    क्वेरी सिंटैक्स में महारत हासिल करें
+  </Card>
+
+  <Card title="ऑपरेटर संदर्भ" icon="list-check" href="/hi/x-api/posts/search/integrate/operators">
+    सभी उपलब्ध ऑपरेटर
+  </Card>
+
+  <Card title="पेजिनेशन" icon="arrow-right" href="/hi/x-api/posts/search/integrate/paginate">
+    बड़े परिणाम सेट संभालें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/recent-search">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+</CardGroup>

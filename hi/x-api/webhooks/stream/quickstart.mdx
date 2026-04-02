@@ -1,0 +1,152 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+keywords: ["फ़िल्टर्ड स्ट्रीम वेबहुक्स त्वरित शुरुआत", "वेबहुक स्ट्रीम त्वरित शुरुआत", "स्ट्रीम वेबहुक्स ट्यूटोरियल", "वेबहुक स्ट्रीम गाइड"]
+---
+
+<div id="getting-started-with-the-filtered-stream-webhooks-api">
+  ## फ़िल्टर्ड स्ट्रीम वेबहुक्स API के साथ शुरुआत करना
+</div>
+
+v2 फ़िल्टर्ड स्ट्रीम वेबहुक्स API, फ़िल्टरिंग के लिए नियम सेट अप करने के मामले में [v2 filtered stream endpoint](/hi/x-api/posts/filtered-stream/introduction) के समान है। अंतर उन पोस्ट्स को पहुँचाने के तरीके में है जो आपके नियमों से मेल खाते हैं।
+
+* v2 फ़िल्टर्ड स्ट्रीम endpoint के मामले में, आपको एक स्थायी कनेक्शन स्थापित करना होता है और अपने नियमों से मेल खाने वाले पोस्ट्स को सुनना होता है।
+* इस फ़िल्टर्ड स्ट्रीम webhook endpoint के मामले में, आप अपना webhook रजिस्टर करते हैं, और X आपके नियमों से मेल खाने वाले पोस्ट्स को आपके webhook पर डिलीवर करता है।
+
+यह गाइड बताती है कि फ़िल्टर्ड स्ट्रीम वेबहुक्स endpoints का उपयोग करके पोस्ट्स को कैसे फ़िल्टर करें और प्राप्त करें। इसमें 3 चरण शामिल हैं
+
+1. अपने फ़िल्टर्ड स्ट्रीम नियम सेट अप करना
+2. अपना webhook बनाना
+3. अपने Filtered Stream instance को अपने webhook से लिंक करना
+
+जब आप अपने Filtered Stream instance को अपने webhook से लिंक कर लेते हैं, तो X आपके नियमों से मेल खाने वाले पोस्ट्स को आपके webhook पर भेजेगा।
+
+<div id="setting-up-your-filtered-stream-rules">
+  ### अपने फ़िल्टर्ड स्ट्रीम नियम सेट अप करना
+</div>
+
+फ़िल्टर्ड स्ट्रीम नियम एक या कई ऑपरेटरों से मिलकर बनते हैं, जिन्हें boolean logic और parentheses के साथ जोड़ा जाता है, ताकि यह तय किया जा सके कि कौन-सी पोस्ट्स आपके वेबहुक्स तक भेजी जाएँगी। फ़िल्टर्ड स्ट्रीम वेबहुक्स API, नियम बनाने और प्रबंधित करने के लिए [v2 filtered stream endpoint](/hi/x-api/posts/filtered-stream/introduction) के उसी endpoint सेट का उपयोग करता है। [यह विस्तृत गाइड](/hi/x-api/posts/filtered-stream/integrate/build-a-rule) देखें, जिसमें बताया गया है कि आप फ़िल्टर कैसे बना सकते हैं।
+
+<div id="creating-your-webhook">
+  ### अपना webhook बनाना
+</div>
+
+इवेंट प्राप्त करने के लिए X API के साथ सार्वजनिक रूप से सुलभ HTTPS URL पंजीकृत करके एक webhook बनाएँ। Webhooks को CRC सत्यापन के लिए GET अनुरोधों और इवेंट payloads के लिए POST अनुरोधों को संभालना चाहिए। Webhooks बनाने और उन्हें प्रबंधित करने के विस्तृत चरणों के लिए [Webhooks Introduction documentation](/hi/x-api/webhooks/introduction) देखें।
+
+**ध्यान दें:** अगर आप पहले से [Account Activity API (AAA)](/hi/x-api/account-activity/introduction) के लिए webhooks का उपयोग करते हैं, तो उसके लिए सेट किए गए webhooks यहाँ भी बिल्कुल वही हैं। वास्तव में, अगर आपके पास पर्याप्त क्षमता है और आप इवेंट्स को अलग-अलग कर सकते हैं, तो आप इस API के लिए वही webhook endpoint इस्तेमाल कर सकते हैं जो आप AAA के लिए करते हैं।
+
+<div id="linking-your-filtered-stream-instance-to-your-webhook">
+  ### अपने Filtered Stream इंस्टेंस को अपने webhook से लिंक करना
+</div>
+
+जब आपके rules सेट हो जाएँ और webhook बन जाए, तो webhook को अपने Filtered Stream इंस्टेंस से लिंक करें। इससे मैच होने वाले पोस्ट ईवेंट आपके webhook URL पर भेजे जाते हैं।
+
+इस endpoint का उपयोग करें: `POST /2/tweets/search/webhooks/:webhook_id `
+
+आप `/2/tweets/search/stream` streaming endpoint में इस्तेमाल किए जाने वाले उन्हीं query parameters को शामिल कर सकते हैं, जैसे expansions, fields, और media options। इससे
+event payloads में शामिल डेटा को कस्टमाइज़ किया जा सकता है।
+
+**उदाहरण:**
+
+```bash
+curl --request POST \ 
+  --url 
+'https://api.x.com/2/tweets/search/webhooks/123456789012345678?ex
+pansions=author_id&user.fields=username,name,id' \ 
+  --header 'Authorization: Bearer $BEARER_TOKEN' 
+```
+
+सफल रिस्पॉन्स का उदाहरण:
+
+```json
+{ 
+  "data": { 
+    "provisioned": true 
+  } 
+}
+```
+
+**सुझाव:** रिडंडेंसी के लिए या अलग-अलग फ़ील्ड सेट प्राप्त करने के लिए, आप एक ही स्ट्रीम से कई webhooks लिंक कर सकते हैं। हर लिंकिंग के लिए अलग पैरामीटर निर्दिष्ट किए जा सकते हैं।
+
+जब आप अपने webhook को अपने Filtered Stream instance से लिंक कर लेते हैं, तो आपको नीचे दिखाए गए अनुसार आपके नियमों से मेल खाने वाली पोस्ट्स मिलने लगेंगी:
+
+```json
+{
+    "data": {
+        "id": "1346889436626259968",
+        "text": "Learn how to use the user Post timeline and user mention timeline endpoints in the X API v2 to explore Post… https://t.co/56a0vZUx7i",
+        "created_at": "2021-01-06T18:40:40.000Z",
+        "author_id": "2244994945"
+    },
+    "includes": {
+        "users": [
+            {
+                "id": "2244994945",
+                "name": "Developers",
+                "username": "Xdevelopers",
+                "created_at": "2013-12-14T04:35:55Z",
+                "protected": false
+            }
+        ]
+    },
+    "matching_rules": [
+        {
+            "id": "120897978112909812",
+            "tag": "api-posts"
+        }
+    ]
+}
+```
+
+<div id="retrieving-webhooks-linked-to-filtered-stream">
+  ### Filtered Stream से जुड़े Webhooks प्राप्त करना
+</div>
+
+अपने Filtered Stream से वर्तमान में जुड़े सभी Webhooks की सूची प्राप्त करें:
+
+```bash
+GET /2/tweets/search/stream/webhooks 
+```
+
+उदाहरण प्रतिक्रिया:
+
+```json
+{
+    "data": {
+        "links": [
+            {
+                "application_id": "29893711",
+                "business_user_id": "1877374016438091776",
+                "fields": [
+                    "user.fields=username",
+                    "name",
+                    "id",
+                    "expansions=author_id"
+                ],
+                "instance_id": "1877375130462289920",
+                "webhook_id": "1952390923729424384"
+            }
+        ]
+    }
+}
+```
+
+<div id="unlinking-your-webhook-from-filtered-stream">
+  ### Filtered Stream से अपने webhook का लिंक हटाना
+</div>
+
+किसी विशिष्ट webhook पर इवेंट मिलना बंद करने के लिए, उसका लिंक हटाने हेतु इसका उपयोग करें:
+
+```bash
+DELETE /2/tweets/search/webhooks/:webhook_id
+```
+
+रिस्पॉन्स इस प्रकार होगा:
+
+```json
+{
+    "data": {
+        "deleted": true
+    }
+}
+```

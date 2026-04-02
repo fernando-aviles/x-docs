@@ -1,0 +1,120 @@
+---
+title: विज्ञापन खातों तक पहुँच
+keywords: ["विज्ञापन खाते", "विज्ञापन खाता", "विज्ञापन खातों तक पहुँच", "खाते तक पहुँच", "विज्ञापन खाता प्रबंधन", "खाता पदानुक्रम"]
+---
+
+<div id="user-accounts-vs-ad-accounts">
+  # उपयोगकर्ता खाते बनाम Ad खाते
+</div>
+
+Ads API का उपयोग करने में दो अलग-अलग प्रकार के खाते शामिल होते हैं: विज्ञापन खाते और X उपयोगकर्ता खाते। Ads API दस्तावेज़ों में, “account” शब्द आमतौर पर विज्ञापन खाते के लिए इस्तेमाल होता है।
+
+* विज्ञापन खाते **business.x.com** पर पंजीकृत होते हैं और API में account&#95;id से पहचाने जाते हैं। विज्ञापन खाते सीधे फंडिंग स्रोतों से जुड़े होते हैं और एक या अधिक X उपयोगकर्ता खातों की सामग्री को ‘promotable users’ के रूप में इस्तेमाल करते हैं। हर विज्ञापन खाता एक या अधिक X उपयोगकर्ता खातों को अनुमति दे सकता है। विज्ञापन खाता, या “current account,” लगभग हर निष्पादित URL में इन-लाइन :account&#95;id पैरामीटर के रूप में दर्शाया जाता है।
+* X उपयोगकर्ता खाते (जैसे @AdsAPI) Ads API में user&#95;id से पहचाने जाते हैं। इनमें से एक या अधिक खाते किसी विज्ञापन खाते से संबद्ध हो सकते हैं। API पर अनुरोध करने वाले प्रमाणीकृत X उपयोगकर्ता खाते को ‘current user’ कहा जाता है। जिन विज्ञापन खातों तक current user की पहुँच है, उनकी सूची [GET accounts](/hi/x-ads-api/campaign-management#accounts) से प्राप्त की जा सकती है। ‘Promotable users’ ऐसे X हैंडल होते हैं जिन्हें कोई विशिष्ट विज्ञापन खाता प्रमोट कर सकता है। इसके बारे में अधिक जानकारी के लिए, [Obtaining Ads Account Access](/hi/x-ads-api/introduction) देखें।
+
+<div id="methods-for-ad-account-access">
+  ## Ad खाते तक पहुँच के तरीके
+</div>
+
+ऐसे दो तरीके हैं जिनका उपयोग आप किसी विज्ञापनदाता के खाते के लिए Ads API अनुरोध करने हेतु कर सकते हैं:
+
+1. किसी विज्ञापनदाता की ओर से अनुरोध करना (**अनुशंसित)**
+2. अपने उस खाते का उपयोग करके अनुरोध करना, जिसे किसी विज्ञापनदाता के खाते तक पहुँच दी गई हो; उदाहरण के लिए, कई खातों का समर्थन करने वाली कोई [Agency](https://business.x.com/en/blog/agencies-manage-multiple-Twitter-Ads-accounts.html)।
+
+यह दस्तावेज़ इन विकल्पों के बीच के अंतर का संक्षिप्त अवलोकन है और इसे हमारे अन्य संसाधनों, जैसे [multi-user login FAQ](https://business.x.com/en/help/troubleshooting/multi-user-login-faq.html), के साथ पढ़ा जाना चाहिए। 
+
+जैसा कि [Authorizing a request](/hi/resources/fundamentals/authentication#authorizing-a-request#authorizing-a-request) में बताया गया है, Ads API के लिए सभी अनुरोधों में Authorization headers आवश्यक होते हैं, जिनमें [OAuth 1.0a](/hi/resources/fundamentals/authentication) का उपयोग उस access token के साथ किया जाता है, जो [3-legged](/hi/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow)[OAuth](/hi/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) flow के माध्यम से प्राप्त किया गया हो। आपके ऐप को [obtain access tokens](/hi/resources/fundamentals/authentication#oauth-1-0a-2) करने के लिए वेब-आधारित OAuth flow लागू करना होगा। Ads API डेवलपरों को हमारे X विज्ञापनदाताओं से उनके लॉगिन क्रेडेंशियल साझा करने के लिए कभी नहीं कहना चाहिए।
+
+डिफ़ॉल्ट रूप से, प्रत्येक [X developer application](/hi/resources/fundamentals/developer-apps) में एक स्थिर **access token** होता है, जिसका उपयोग उस खाते के लिए Ads API अनुरोध करने में किया जा सकता है जो उस ऐप का स्वामी है। ये क्रेडेंशियल 3-legged या [PIN-based OAuth](/hi/resources/fundamentals/authentication#pin-based-authorization) flow की आवश्यकता के बिना एकल-खाता उपयोग परिदृश्यों के लिए आदर्श हैं। यदि आप किसी अन्य X Ads Account तक पहुँच नहीं कर रहे हैं, तो नीचे दिए गए चरणों के बजाय इन्हीं [single-user](/hi/resources/fundamentals/authentication#oauth-1-0a-2) क्रेडेंशियल का उपयोग करें।
+
+<div id="levels-of-access">
+  ## पहुँच के स्तर
+</div>
+
+<div id="app-level-permissions">
+  ### ऐप-स्तरीय अनुमतियाँ
+</div>
+
+[Ads API के लिए आवेदन](/hi/x-ads-api/getting-started/step-by-step-guide) करते समय किए गए अनुरोध के अनुसार, प्रत्येक उपयोगकर्ता को पहुँच का एक स्तर दिया जाएगा:
+
+* **केवल Conversion**: उपयोगकर्ता को [Mobile](/hi/x-ads-api/measurement/mobile-conversions) और [Web Conversion](/hi/x-ads-api/measurement/web-conversions) एंडपॉइंट्स पर [पढ़ने और लिखने](/hi/resources/fundamentals/developer-apps) की पहुँच होगी।
+* **मानक पहुँच**: उपयोगकर्ता को [Analytics](/hi/x-ads-api/analytics), [Campaign Management](https://developer.x.com/en/docs/twitter-ads-api/campaign-management/overview), [Creatives](https://developer.x.com/en/docs/twitter-ads-api/creatives/overview), [Custom Audiences](https://developer.x.com/en/docs/twitter-ads-api/audiences/overview), और [Conversion](/hi/x-ads-api/measurement/web-conversions) एंडपॉइंट्स पर [पढ़ने और लिखने](/hi/resources/fundamentals/developer-apps) की पहुँच होगी।
+
+**ध्यान दें:** जिन Ads API डेवलपर्स ने जुलाई 2023 से पहले पहुँच का अनुरोध किया था, उनके लिए पहुँच और अनुमतियों के स्तर अलग हो सकते हैं, और वे पाँच OAuth tokens तक सीमित हो सकते हैं। अतिरिक्त एंडपॉइंट्स तक पहुँच प्राप्त करने या मौजूदा ऐप्स के लिए token सीमाएँ हटाने के बारे में जानने हेतु [पहुँच बढ़ाने](/hi/x-ads-api/getting-started/increasing-access) पर हमारी मार्गदर्शिका देखें।
+
+<div id="ad-account-level-permissions">
+  ### विज्ञापन खाते-स्तर की अनुमतियाँ
+</div>
+
+जिस प्रत्येक उपयोगकर्ता के पास किसी Ads Account का ऐक्सेस है, उसके पास खाते-स्तर की एक विशिष्ट अनुमति होगी: **Account administrator**, **Ad manager**, **Campaign analyst**, **Organic analyst**, और **Creative Manager**; खाते-स्तर की अनुमतियों से संबंधित नवीनतम दस्तावेज़ के लिए **business.x.com** देखें। यह तय करने के लिए कि वे किन API endpoints और Ads सुविधाओं का ऐक्सेस कर सकते हैं, ऐप्स को [Authenticated User Access](/hi/x-ads-api/campaign-management#authenticated-user-access) API endpoint के ज़रिए वर्तमान में प्रमाणित उपयोगकर्ता की अनुमतियाँ प्राप्त करनी चाहिए।
+
+**नोट:** [Conversion API](/hi/x-ads-api/measurement/web-conversions) के साथ उपयोग किए जाने वाले किसी भी उपयोगकर्ता टोकन ऐसे उपयोगकर्ताओं के होने चाहिए जिनके पास **Account administrator** या **Ad manager** की खाते-स्तर की अनुमतियाँ हों।                                                                                                                                              
+
+<div id="methods-of-obtaining-access-tokens">
+  ## एक्सेस टोकन प्राप्त करने के तरीके
+</div>
+
+<div id="1-obtain-an-advertisers-user-access-token">
+  ### 1. किसी विज्ञापनदाता का (User) access token प्राप्त करें
+</div>
+
+किसी विज्ञापनदाता का **access token** प्राप्त करने के दो तरीके हैं। सबसे सामान्य तरीका है, अपने web UI के भीतर से सीधे [3-legged OAuth flow](/hi/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) का उपयोग करना। जिन applications का कोई सार्वजनिक रूप से सुलभ UI विज्ञापनदाताओं के लिए उपलब्ध नहीं है, वे [PIN-based](/hi/resources/fundamentals/authentication#pin-based-authorization) OAuth प्रक्रिया लागू कर सकती हैं। उपयोगकर्ता द्वारा 3-legged flow पूरा करने के बाद, आपके application के पास API के माध्यम से उसके Ads account के लिए अनुरोध करने हेतु credentials होंगे।
+
+OAuth flow के माध्यम से user credentials प्राप्त करना वह तरीका है, जिसकी हम अधिकांश Ads API developers को विज्ञापनदाता खाते तक पहुंच पाने के लिए **दृढ़ता से अनुशंसा** करते हैं। इससे आप किसी उपयोगकर्ता की ओर से API call कर सकते हैं और उसी उपयोगकर्ता के रूप में कार्रवाइयां कर सकते हैं। ये tokens समाप्त नहीं होते, लेकिन उपयोगकर्ता इन्हें किसी भी समय revoke कर सकता है।
+
+<div id="2-obtain-your-developer-access-token">
+  ### 2. अपना (Developer) एक्सेस टोकन प्राप्त करें
+</div>
+
+इस विकल्प के लिए विज्ञापनदाता को business.x.com पर X UI के ज़रिए अपने X Ads खाते में आपके [@username को ऐक्सेस देना](https://business.x.com/en/help/troubleshooting/multi-user-login-faq.html) (या @usernames को) होगा। 3-legged OAuth फ़्लो के माध्यम से आपके खाते के लिए प्राप्त किए गए **ऐक्सेस टोकन** विज्ञापनदाता के X Ads खाते तक पहुँच सकेंगे।
+
+इससे आप विज्ञापनदाता के OAuth टोकनों के बजाय अपने स्वयं के @username के OAuth टोकनों का उपयोग करके API कॉल कर सकते हैं। इस विकल्प में मुख्य अंतर यह है कि आप Promoted-Only पोस्ट्स केवल तभी बना सकते हैं, जब आपके @username को Post delegation/composer की अनुमति दी गई हो।
+
+खाते पर `FULL` promotable user की ओर से Promoted-Only पोस्ट्स बनाने की पहुँच पाने के लिए, इस फ़्लो में आपको पोस्ट्स बनाने की अनुमति भी दी जानी चाहिए। इससे [GET accounts/:account&#95;id/authenticated&#95;user&#95;access](/hi/x-ads-api/campaign-management#accounts) endpoint पर `TWEET_COMPOSER` permission के ज़रिए ऐक्सेस सक्षम हो जाएगा।
+
+<div id="differences-between-these-methods">
+  ## इन विधियों के बीच अंतर
+</div>
+
+|                                                                    |                                      |                                                                   |
+| :----------------------------------------------------------------- | :----------------------------------- | :---------------------------------------------------------------- |
+|                                                                    | विज्ञापनदाता (उपयोगकर्ता) OAuth टोकन | (Developer) OAuth टोकन  <br /> (@username अलग खाते में जोड़ा गया) |
+| Ads अकाउंट तक पहुँच                                                | ✔                                    | ✔                                                                 |
+| उपयोगकर्ता की ओर से पोस्ट्स बनाना                                  | ✔                                    | ✔*                                                                |
+| Campaigns प्रबंधित करना                                            | ✔                                    | ✔                                                                 |
+| Analytics तक पहुँच                                                 | ✔                                    | ✔                                                                 |
+| उपयोगकर्ता की ओर से Cards बनाना                                    | ✔                                    | ✔                                                                 |
+| X Ads UI के ज़रिए पहुँचने की  <br />डेवलपर की क्षमता               |                                      | ✔                                                                 |
+| [रेट लिमिट्स](/hi/x-api/enterprise-gnip-2.0/fundamentals/rate-limits) | प्रत्येक विज्ञापनदाता के लिए अलग     | प्रत्येक विज्ञापनदाता अकाउंट के लिए अलग                           |
+
+<Note>
+  **नोट:** विवरण के लिए ऊपर दिया गया **[अपना (Developer) access token प्राप्त करें](/hi/x-ads-api/fundamentals/accessing-ads-accounts#2-obtain-your-developer-access-token)** अनुभाग देखें।
+</Note>
+
+<div id="sample-use-case">
+  ## उदाहरण उपयोग-परिदृश्य
+</div>
+
+<div id="advertisers-access-token-via-oauth-3-legged-web-flow">
+  ### OAuth 3-legged वेब फ़्लो के ज़रिए विज्ञापनदाता का access token
+</div>
+
+मानक फ़्लो वेब-आधारित है और [3-legged authorization](/hi/resources/fundamentals/authentication#obtaining-access-tokens-using-3-legged-oauth-flow) OAuth फ़्लो का उपयोग करता है। यहाँ दिखाए गए स्क्रीनशॉट एक सैंपल का हिस्सा हैं, जिसका सोर्स आप [https://github.com/xdevplatform/twauth-web](https://github.com/xdevplatform/twauth-web) पर देख सकते हैं।
+
+आपके ऐप में किसी चरण पर, अपने ऐप को अधिकृत करने के लिए आपको X पर रीडायरेक्ट करना होगा
+
+<Frame>
+  <img src="https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/images/twauth-web-2.png" alt="image0" />
+</Frame>
+
+जब आप request token के साथ X पर रीडायरेक्ट करते हैं, तो उपयोगकर्ता से आपके ऐप को अधिकृत करने के लिए कहा जाएगा
+
+<Frame>
+  <img src="https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/images/twauth-web-3.png" alt="image1" />
+</Frame>
+
+आपके ऐप को अधिकृत करने के बाद, उपयोगकर्ता को उस callback URL पर रीडायरेक्ट किया जाएगा जो आपने request token जनरेट करते समय दिया था। आप इसका उपयोग इस उपयोगकर्ता के लिए स्थायी access token प्राप्त करने और उसे स्थानीय रूप से स्टोर करने के लिए करेंगे!
+
+<Frame>
+  <img src="https://cdn.cms-twdigitalassets.com/content/dam/developer-twitter/images/twauth-web-4.png" alt="image" />
+</Frame>

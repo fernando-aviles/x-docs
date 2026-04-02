@@ -1,0 +1,174 @@
+---
+title: X API v2 के साथ किसी उपयोगकर्ता की पोस्ट्स और उल्लेखों को एक्सप्लोर करें
+description: "उपयोगकर्ता पोस्ट टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoint डेवलपर्स को किसी उपयोगकर्ता द्वारा की गई सार्वजनिक पोस्ट्स या उस उपयोगकर्ता का उल्लेख करने वाली सार्वजनिक पोस्ट्स प्राप्त करने की सुविधा देते हैं।"
+sidebarTitle: किसी उपयोगकर्ता की पोस्ट्स एक्सप्लोर करें
+mode: wide
+keywords: ["उपयोगकर्ता टाइमलाइन", "उपयोगकर्ता उल्लेख", "Tweet टाइमलाइन", "उल्लेख टाइमलाइन", "उपयोगकर्ता पोस्ट्स", "ट्यूटोरियल", "API ट्यूटोरियल", "उपयोगकर्ता Tweets"]
+---
+
+<div id="introduction">
+  ## परिचय
+</div>
+
+हालाँकि [recent search endpoint](/hi/x-api/posts/search/introduction) आपको केवल पिछले 7 दिनों में प्रकाशित पोस्ट्स प्राप्त करने की अनुमति देता है, user Post timeline और उपयोगकर्ता मेंशन टाइमलाइन endpoints आपको किसी अधिकृत उपयोगकर्ता (user ID का उपयोग करके) के लिए पिछले 7 दिनों से पुराने पोस्ट्स और मेंशन्स प्राप्त करने की अनुमति देते हैं। डेवलपर्स इन endpoints का उपयोग किसी उपयोगकर्ता की टाइमलाइन या मेंशन्स से पोस्ट्स के विषयों, इकाइयों और भावनात्मक रुझान का अध्ययन करने के लिए कर सकते हैं। इस ट्यूटोरियल में, हम आपको दिखाएँगे कि उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoints का उपयोग करके किसी उपयोगकर्ता के पोस्ट्स और मेंशन्स को कैसे एक्सप्लोर करें।
+ 
+
+<div id="prerequisites">
+  ## पूर्वापेक्षाएँ
+</div>
+
+* उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन एंडपॉइंट का उपयोग करने के लिए, आपके पास एक मान्य डेवलपर खाता होना चाहिए। 
+* आपके पास एक [Project](/hi/resources/fundamentals/developer-apps) भी बना हुआ होना चाहिए।
+* आपको डेवलपर खाते के लिए [साइन अप](https://developer.x.com/en/portal/petition/essential/basic-info) करना होगा और [नया डेवलपर कंसोल अनुभव](https://developer.x.com/en/portal/opt-in.html) सक्रिय करना होगा। 
+* उस डेवलपर ऐप के लिए सक्रिय कीज़ और टोकन के साथ एक्सेस उपलब्ध है, जो [डेवलपर कंसोल](/hi/resources/fundamentals/developer-portal) में बनाए गए [Project](/hi/resources/fundamentals/developer-apps) से जुड़ा हुआ है।
+* [X डेवलपर कंसोल](/hi/resources/fundamentals/developer-portal) में आपके ऐप का एक बेयरर टोकन।
+* यदि आपके पास स्वीकृत डेवलपर खाता नहीं है, तो आप [इसके लिए आवेदन कर सकते हैं](https://developer.x.com/en/apply-for-access)।
+
+<div id="approved-developer-account">
+  ## स्वीकृत डेवलपर खाता
+</div>
+
+यदि आपके पास अभी तक स्वीकृत डेवलपर खाता नहीं है, तो आप [इसके लिए आवेदन कर सकते हैं](https://developer.x.com/en/apply-for-access).
+
+<div id="create-a-project-and-connect-an-app">
+  ## एक Project बनाएँ और एक ऐप कनेक्ट करें
+</div>
+
+[डेवलपर कंसोल](https://developer.x.com/en/portal/dashboard) में, create a new App पर क्लिक करें।
+
+<Frame>
+  <img src="/images/projects.png.twimg.1920.png" />
+</Frame>
+
+इसे एक नाम दें, उपयुक्त use case चुनें, और Project का विवरण दर्ज करें। इसके बाद, आप या तो एक नया ऐप बना सकते हैं, या किसी मौजूदा [ऐप](/hi/resources/fundamentals/developer-apps) को कनेक्ट कर सकते हैं (ऐप आपकी API keys के लिए एक कंटेनर है, जिनकी आपको X API में HTTP अनुरोध करने के लिए आवश्यकता होती है)।
+
+<Frame>
+  <img src="/images/add-your-app.png.twimg.1920.png" />
+</Frame>
+
+नया ऐप बनाने के लिए ‘create a new App instead’ पर क्लिक करें और अपने ऐप को एक नाम दें।
+
+<Frame>
+  <img src="/images/last-step-name-your-app.png.twimg.1920.png" />
+</Frame>
+
+complete पर क्लिक करने के बाद, आपको अपनी API keys और बेयरर टोकन मिल जाएगा, जिनका उपयोग आप फिर X API v2 के नए endpoints से कनेक्ट करने के लिए कर सकते हैं।
+
+<Frame>
+  <img src="/images/here-are-your-keys.png.twimg.1920.png" />
+</Frame>
+
+API key, API secret key और Bearer token के बगल में (+) पर क्लिक करें और इन मानों को अपनी local machine पर किसी सुरक्षित स्थान पर कॉपी कर लें। अगले चरण में API calls करने के लिए आपको इनकी आवश्यकता होगी।
+
+Note: ऊपर दिए गए screenshot में keys छिपाई गई हैं, लेकिन अपने डेवलपर कंसोल में आप API key, API secret key और Bearer token के वास्तविक मान देख पाएँगे।
+ 
+
+<div id="how-to-get-the-user-id-for-a-user-to-use-in-the-user-tweet-timeline-and-user-mention-timeline-endpoints">
+  ## उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoints में उपयोग के लिए किसी उपयोगकर्ता की user ID कैसे प्राप्त करें
+</div>
+
+उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoints आपको user ID का उपयोग करके पोस्ट्स प्राप्त करने देते हैं। किसी username से user ID प्राप्त करने के लिए, आप नए [user lookup endpoint v2](/hi/x-api/users/lookup/quickstart/user-lookup) का उपयोग कर सकते हैं। USER&#95;NAME को अपनी पसंद के username से और XXXX को अपने उस बेयरर टोकन से बदलें, जो आपने ऊपर प्राप्त किया था
+
+```bash
+  curl --request GET 'https://api.x.com/2/users/by/username/USER_NAME --header 'Authorization: Bearer XXXXXX'
+```
+
+जैसा कि नीचे दिखाया गया है, आपको response में उपयोगकर्ता id दिखाई देगी:
+
+```json
+{
+   "data": {
+       "id": "2244994945",
+       "name": "Developers",
+       "username": "XDevelopers"
+   }
+}
+```
+
+<div id="connecting-to-the-user-tweet-timeline-and-user-mention-timeline-endpoints">
+  ## उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoint से कनेक्ट करना
+</div>
+
+किसी उपयोगकर्ता की उपयोगकर्ता Tweet टाइमलाइन प्राप्त करने के लिए, अपने टर्मिनल में नीचे दिया गया curl कमांड चलाएँ (ध्यान रखें कि USER&#95;ID को अपनी पसंद के उपयोगकर्ता id से और XXXX को अपने बेयरर टोकन से बदल दें, जो आपने ऊपर प्राप्त किया था)
+
+```bash
+curl --request GET 'https://api.x.com/2/users/USER_ID/tweets' --header 'Authorization: Bearer XXXXXX'
+```
+
+आप देखेंगे कि इन अनुरोधों के लिए JSON response में डिफ़ॉल्ट रूप से पोस्ट्स की ID और text शामिल होते हैं (नीचे उदाहरण देखें)।
+
+```yaml
+{
+   "id": "1334200897081987072",
+   "text": "👀 If you are new to the X API v2, check out this step-by-step guide to making your first request https://t.co/4rZqThpSbp"
+}
+```
+
+यदि आप चाहते हैं कि रिस्पॉन्स के हिस्से के रूप में अतिरिक्त फ़ील्ड्स लौटाए जाएँ (जैसे उपयोगकर्ता की जानकारी, context annotations जैसे अतिरिक्त Tweet फ़ील्ड्स आदि), तो आपको उन फ़ील्ड्स को अपने रिस्पॉन्स में स्पष्ट रूप से निर्दिष्ट करना होगा। यह कैसे करना है, यह जानने के लिए [फ़ील्ड्स और expansions के उपयोग पर मार्गदर्शिका](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) देखें।
+
+आप अपनी पसंद की प्रोग्रामिंग भाषाओं का उपयोग करके भी ये पोस्ट्स प्राप्त कर सकते हैं। user Tweet timeline और user mention timeline endpoints के लिए Python, Node (JavaScript), Java और Ruby में हमारा सैंपल कोड हमारे [GitHub repository](https://github.com/xdevplatform/Twitter-API-v2-sample-code) पर देखें।
+
+<div id="exploring-the-users-posts">
+  ## उपयोगकर्ता की पोस्ट्स की पड़ताल
+</div>
+
+एक बार जब आप उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoints का उपयोग करके पोस्ट्स प्राप्त करना सीख लेते हैं, तो आप उनकी पोस्ट्स की पड़ताल शुरू कर सकते हैं। उदाहरण के लिए, अगर आप किसी उपयोगकर्ता के mentions में मौजूद आम named entities की पहचान करना चाहते हैं, तो आप निम्न कार्य कर सकते हैं:
+
+API अनुरोध में, यह निर्दिष्ट करें कि Tweet responses में context&#95;annotations object लौटाया जाए:
+
+```bash
+curl --request GET 'https://api.x.com/2/users/USER_ID/mentions?tweet.fields=context_annotations' --header 'Authorization: Bearer XXXXXX'
+```
+
+रिस्पॉन्स में, आप देखेंगे कि mentions में कोई नामित एंटिटी मौजूद हैं या नहीं। यहाँ एक उदाहरण दिया गया है:
+
+```json
+{
+   "domain": {
+       "id": "47",
+       "name": "Brand",
+       "description": "Brands and Companies"
+   },
+   "entity": {
+       "id": "783214",
+       "name": "X"
+   }
+}
+```
+
+यदि आप यह देखना चाहते हैं कि आपके मेंशन्स में कौन-सी लोकप्रिय इकाइयाँ दिखाई देती हैं, तो आप मेंशन्स में मौजूद प्रत्येक Tweet को पार्स करके लोकप्रिय इकाइयों की गिनती रख सकते हैं।
+
+यदि आप अपनी टाइमलाइन में मीडिया वाली सभी पोस्ट्स के लिए preview image URL देखना चाहते हैं, तो आप निम्न कार्य कर सकते हैं:
+
+API अनुरोध में, यह निर्दिष्ट करें कि आपको tweet.media फ़ील्ड्स में preview&#95;image&#95;url और attachments.media&#95;keys expansions चाहिए
+
+```bash
+curl --request GET 'https://api.x.com/2/users/2244994945/mentions?max_results=100&media.fields=preview_image_url&expansions=attachments.media_keys' --header 'Authorization: Bearer XXXXXX'
+```
+
+रिस्पॉन्स में, जैसा कि नीचे दिखाया गया है, आपको includes ऑब्जेक्ट में preview&#95;image&#95;url दिखाई देगा:
+
+```json
+{
+   "includes": {
+       "media": [
+           {
+               "media_key": "16_1334657439640121344",
+               "preview_image_url": "https://pbs.twimg.com/tweet_video_thumb/EoWn3rqU8AAtFWL.jpg",
+               "type": "animated_gif"
+           }
+       ]
+   }
+}
+```
+
+जब आप यह समझ लेते हैं कि किसी उपयोगकर्ता के पोस्ट्स में कैसे नेविगेट करना है, तो पोस्ट्स के साथ और भी काम करने के लिए आप अन्य APIs और सेवाओं का भी उपयोग कर सकते हैं। नीचे कुछ संसाधन दिए गए हैं, जिन्हें उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoints का उपयोग करते समय अपने पास रखना उपयोगी रहेगा।
+
+<div id="resources">
+  ## संसाधन
+</div>
+
+* [उपयोगकर्ता Tweet टाइमलाइन और उपयोगकर्ता मेंशन टाइमलाइन endpoints](/hi/x-api/posts/timelines/introduction) के बारे में और जानें।
+* क्या-क्या उपलब्ध है, यह जानने के लिए [उपयोगकर्ता Tweet टाइमलाइन endpoint के लिए API संदर्भ](/hi/x-api/posts/user-posts-timeline-by-user-id) देखें।
+* क्या-क्या उपलब्ध है, यह जानने के लिए [उपयोगकर्ता मेंशन टाइमलाइन endpoint के लिए API संदर्भ](/hi/x-api/posts/user-mention-timeline-by-user-id) देखें।
+* हमारे अन्य [ट्यूटोरियल्स](/hi/tutorials) पढ़कर प्रेरणा लें।

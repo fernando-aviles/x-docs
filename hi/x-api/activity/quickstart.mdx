@@ -1,0 +1,194 @@
+---
+title: त्वरित शुरुआत
+sidebarTitle: त्वरित शुरुआत
+description: गतिविधि स्ट्रीम सदस्यताएँ सेट अप करें और इवेंट प्राप्त करें
+keywords: ["गतिविधि त्वरित शुरुआत", "गतिविधि स्ट्रीम ट्यूटोरियल", "सदस्यता गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको रीयल-टाइम खाता गतिविधि ईवेंट प्राप्त करने के लिए activity stream सदस्यताएँ सेट अप करने की प्रक्रिया से परिचित कराती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपके पास ये होने चाहिए:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन
+</Note>
+
+***
+
+<Steps>
+  <Step title="सदस्यता बनाएँ" icon="bell">
+    किसी उपयोगकर्ता की गतिविधि से जुड़े ईवेंट की सदस्यता लें:
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST "https://api.x.com/2/activity/subscriptions" \
+          -H "Authorization: Bearer $BEARER_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "user_id": "2244994945",
+            "event_types": ["tweet_create_events", "favorite_events", "follow_events"]
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/activity/subscriptions"
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "user_id": "2244994945",
+            "event_types": ["tweet_create_events", "favorite_events", "follow_events"]
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        print(response.json())
+        ```
+      </Tab>
+    </Tabs>
+
+    **प्रतिक्रिया:**
+
+    ```json
+    {
+      "data": {
+        "id": "1234567890",
+        "user_id": "2244994945",
+        "event_types": ["tweet_create_events", "favorite_events", "follow_events"],
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="स्ट्रीम से कनेक्ट करें" icon="plug">
+    ईवेंट प्राप्त करने के लिए एक स्थायी कनेक्शन खोलें:
+
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl "https://api.x.com/2/activity/stream" \
+          -H "Authorization: Bearer $BEARER_TOKEN"
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        bearer_token = "YOUR_BEARER_TOKEN"
+
+        url = "https://api.x.com/2/activity/stream"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+
+        response = requests.get(url, headers=headers, stream=True)
+
+        for line in response.iter_lines():
+            if line:
+                print(line.decode("utf-8"))
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="आने वाले ईवेंट प्रोसेस करें" icon="message">
+    ईवेंट JSON ऑब्जेक्ट के रूप में स्ट्रीम होते हैं:
+
+    ```json
+    {
+      "for_user_id": "2244994945",
+      "event_type": "tweet_create_events",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "tweet_create_events": [
+        {
+          "id": "1234567890",
+          "text": "Hello from the stream!",
+          "author_id": "2244994945"
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="available-event-types">
+  ## उपलब्ध इवेंट टाइप
+</div>
+
+| Event                   | विवरण                                                     |
+| :---------------------- | :-------------------------------------------------------- |
+| `tweet_create_events`   | उपयोगकर्ता नई पोस्ट करता है                               |
+| `favorite_events`       | उपयोगकर्ता किसी पोस्ट को लाइक करता है                     |
+| `follow_events`         | उपयोगकर्ता किसी को फ़ॉलो करता है या कोई उसे फ़ॉलो करता है |
+| `direct_message_events` | उपयोगकर्ता DM भेजता है या प्राप्त करता है                 |
+| `block_events`          | उपयोगकर्ता ब्लॉक या अनब्लॉक करता है                       |
+| `mute_events`           | उपयोगकर्ता म्यूट या अनम्यूट करता है                       |
+
+***
+
+<div id="manage-subscriptions">
+  ## सदस्यताएँ प्रबंधित करें
+</div>
+
+<AccordionGroup>
+  <Accordion title="सदस्यताओं की सूची देखें">
+    सभी सक्रिय सदस्यताएँ प्राप्त करें:
+
+    ```bash
+    curl "https://api.x.com/2/activity/subscriptions" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Accordion>
+
+  <Accordion title="किसी सदस्यता को अपडेट करें">
+    किसी सदस्यता के इवेंट टाइप संशोधित करें:
+
+    ```bash
+    curl -X PUT "https://api.x.com/2/activity/subscriptions/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "event_types": ["tweet_create_events", "favorite_events"]
+      }'
+    ```
+  </Accordion>
+
+  <Accordion title="किसी सदस्यता को हटाएँ">
+    किसी सदस्यता को हटाएँ:
+
+    ```bash
+    curl -X DELETE "https://api.x.com/2/activity/subscriptions/1234567890" \
+      -H "Authorization: Bearer $BEARER_TOKEN"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Account Activity API" icon="bell" href="/hi/x-api/account-activity/introduction">
+    Webhook-आधारित वैकल्पिक तरीका
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/activity/activity-stream">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

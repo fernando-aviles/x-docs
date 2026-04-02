@@ -1,0 +1,220 @@
+---
+title: पेजिनेशन
+sidebarTitle: पेजिनेशन
+description: बड़े परिणाम सेटों में नेविगेट करें
+keywords: ["पेजिनेशन", "पेजिनेशन टोकन", "अगला टोकन", "परिणामों के पेजों में जाएँ", "कर्सर पेजिनेशन"]
+---
+
+जब किसी API response में एक बार में लौटाए जा सकने वाले परिणामों से अधिक परिणाम हों, तो डेटा के सभी पेज प्राप्त करने के लिए पेजिनेशन का उपयोग करें।
+
+***
+
+<div id="how-pagination-works">
+  ## पेजिनेशन कैसे काम करता है
+</div>
+
+1. `max_results` के साथ अपना शुरुआती अनुरोध करें
+2. रिस्पॉन्स के `meta` ऑब्जेक्ट में `next_token` देखें
+3. अगर मौजूद हो, तो उस टोकन को `pagination_token` के रूप में इस्तेमाल करके एक और अनुरोध करें
+4. इसे तब तक दोहराएँ, जब तक `next_token` वापस आना बंद न हो जाए
+
+```bash
+# प्रारंभिक अनुरोध
+curl "https://api.x.com/2/users/12345/tweets?max_results=100" \
+  -H "Authorization: Bearer $TOKEN"
+
+# प्रतिक्रिया में next_token शामिल है
+# {"data": [...], "meta": {"next_token": "abc123", ...}}
+
+# अगला पृष्ठ
+curl "https://api.x.com/2/users/12345/tweets?max_results=100&pagination_token=abc123" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+***
+
+<div id="pagination-tokens">
+  ## पेजिनेशन टोकन
+</div>
+
+| टोकन               | विवरण                                                                     |
+| :----------------- | :------------------------------------------------------------------------ |
+| `next_token`       | प्रतिक्रिया के `meta` में। अगले पेज को पाने के लिए उपयोग करें।            |
+| `previous_token`   | प्रतिक्रिया के `meta` में। एक पेज पीछे जाने के लिए उपयोग करें।            |
+| `pagination_token` | अनुरोध पैरामीटर। इसे `next_token` या `previous_token` के मान पर सेट करें। |
+
+***
+
+<div id="response-structure">
+  ## रिस्पॉन्स की संरचना
+</div>
+
+```json
+{
+  "data": [
+    {"id": "1234", "text": "..."},
+    {"id": "1235", "text": "..."}
+  ],
+  "meta": {
+    "result_count": 100,
+    "next_token": "7140w9gefhslx3",
+    "previous_token": "77qp89slxjd"
+  }
+}
+```
+
+जब कोई और परिणाम नहीं होते, तो `next_token` शामिल नहीं किया जाता:
+
+```json
+{
+  "data": [...],
+  "meta": {
+    "result_count": 42,
+    "previous_token": "77qp89abc"
+  }
+}
+```
+
+***
+
+<div id="pagination-parameters">
+  ## पेजिनेशन पैरामीटर
+</div>
+
+| पैरामीटर           | विवरण                   | डिफ़ॉल्ट         |
+| :----------------- | :---------------------- | :--------------- |
+| `max_results`      | प्रति पेज परिणाम        | एंडपॉइंट-विशिष्ट |
+| `pagination_token` | पिछले रिस्पॉन्स से टोकन | कोई नहीं         |
+
+`max_results` की विशिष्ट सीमाओं के लिए हर एंडपॉइंट का API संदर्भ देखें।
+
+***
+
+<div id="example-paginating-through-all-results">
+  ## उदाहरण: सभी परिणामों में पेजिनेशन
+</div>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    def get_all_tweets(user_id, bearer_token):
+        url = f"https://api.x.com/2/users/{user_id}/tweets"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        params = {"max_results": 100}
+        
+        all_tweets = []
+        
+        while True:
+            response = requests.get(url, headers=headers, params=params)
+            data = response.json()
+            
+            if "data" in data:
+                all_tweets.extend(data["data"])
+            
+            # अगले पेज की जांच करें
+            next_token = data.get("meta", {}).get("next_token")
+            if not next_token:
+                break
+                
+            params["pagination_token"] = next_token
+        
+        return all_tweets
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllTweets(userId, bearerToken) {
+      const url = `https://api.x.com/2/users/${userId}/tweets`;
+      const headers = { Authorization: `Bearer ${bearerToken}` };
+      
+      let allTweets = [];
+      let paginationToken = null;
+      
+      do {
+        const params = new URLSearchParams({ max_results: 100 });
+        if (paginationToken) {
+          params.set("pagination_token", paginationToken);
+        }
+        
+        const response = await fetch(`${url}?${params}`, { headers });
+        const data = await response.json();
+        
+        if (data.data) {
+          allTweets.push(...data.data);
+        }
+        
+        paginationToken = data.meta?.next_token;
+      } while (paginationToken);
+      
+      return allTweets;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="best-practices">
+  ## सर्वोत्तम तरीके
+</div>
+
+<CardGroup cols={2}>
+  <Card title="अधिकतम परिणामों का उपयोग करें" icon="arrow-up-1-9">
+    API कॉल कम करने के लिए अनुमत अधिकतम `max_results` का अनुरोध करें।
+  </Card>
+
+  <Card title="आंशिक पृष्ठों का ध्यान रखें" icon="square-check">
+    अंतिम पृष्ठ में `max_results` से कम परिणाम हो सकते हैं।
+  </Card>
+
+  <Card title="टोकन सहेजें" icon="database">
+    अगर आपको बाद में पेजिनेशन फिर से शुरू करना हो, तो `next_token` सहेजें।
+  </Card>
+
+  <Card title="पेजिनेशन के साथ पोलिंग न करें" icon="clock">
+    नए डेटा के लिए, बार-बार पेजिनेशन करने के बजाय `since_id` का उपयोग करें।
+  </Card>
+</CardGroup>
+
+***
+
+<div id="result-ordering">
+  ## परिणामों का क्रम
+</div>
+
+परिणाम **उल्टे कालक्रम** में लौटाए जाते हैं:
+
+* पहले पेज का पहला परिणाम = सबसे नया
+* आखिरी पेज का आखिरी परिणाम = सबसे पुराना
+
+यह पेजों के भीतर और पेजों के बीच, दोनों पर लागू होता है।
+
+***
+
+<div id="notes">
+  ## नोट्स
+</div>
+
+* पेजिनेशन टोकन opaque स्ट्रिंग होते हैं—इन्हें parse या modify न करें
+* कुछ समय बाद टोकन की समय-सीमा समाप्त हो सकती है
+* अगर आपको `max_results` से कम परिणाम मिलते हैं, तो भी और परिणाम मौजूद हो सकते हैं (`next_token` न मिलने तक जारी रखें)
+* पेजिनेशन को स्वचालित रूप से संभालने के लिए [SDKs](/hi/x-api/tools-and-libraries/sdks) का उपयोग करें
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="रेट लिमिट्स" icon="gauge-high" href="/hi/x-api/fundamentals/rate-limits">
+    पेजिनेशन करते समय अनुरोध सीमाओं को समझें।
+  </Card>
+
+  <Card title="SDKs" icon="cube" href="/hi/x-api/tools-and-libraries/sdks">
+    बिल्ट-इन पेजिनेशन वाली लाइब्रेरीज़।
+  </Card>
+</CardGroup>

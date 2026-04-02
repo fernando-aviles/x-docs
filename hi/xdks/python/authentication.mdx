@@ -1,0 +1,173 @@
+---
+title: प्रमाणीकरण
+sidebarTitle: प्रमाणीकरण
+---
+
+X API के सभी एंडपॉइंट्स के लिए प्रमाणीकरण आवश्यक है। XDK तीन प्रमाणीकरण विधियों का समर्थन करता है:
+
+1. बेयरर टोकन (केवल ऐप)
+2. PKCE के साथ OAuth 2.0
+3. OAuth 1.0a (उपयोगकर्ता संदर्भ)
+
+* **Bearer Token**: इसका उपयोग उन एंडपॉइंट्स के लिए केवल-पठन एक्सेस हेतु करें जो ऐप-प्रमाणीकरण का समर्थन करते हैं (उदा., पोस्ट खोजना, स्ट्रीमिंग एंडपॉइंट्स)।
+* **OAuth 2.0 PKCE**: स्कोप-आधारित, उपयोगकर्ता-अधिकृत एक्सेस के लिए सुरक्षित प्रमाणीकरण (उदा. प्रमाणित उपयोगकर्ता की पोस्ट के non&#95;public metrics प्राप्त करना)
+* **OAuth 1.0a**: उपयोगकर्ता-विशिष्ट कार्रवाइयों के लिए लेगेसी प्रमाणीकरण (उदा., किसी उपयोगकर्ता की ओर से पोस्ट करना, सूचियों का प्रबंधन करना)
+  क्रेडेंशियल्स [X डेवलपर कंसोल](https://developer.x.com/en/portal/dashboard) से प्राप्त करें। इसके लिए आपको एक स्वीकृत डेवलपर खाता और उपयुक्त अनुमतियों वाला एक ऐप चाहिए होगा (उदा., Read + Write)।
+
+<div id="creating-a-client">
+  ## Client बनाना
+</div>
+
+सभी प्रमाणीकरण फ़्लो एक `Client` इंस्टेंस बनाते हैं:
+
+```python
+from xdk import Client
+```
+
+
+<div id="1-bearer-token-app-only">
+  ### 1. बेयरर टोकन (केवल ऐप)
+</div>
+
+उपयोगकर्ता संदर्भ के बिना केवल-पठन कार्रवाइयों के लिए।
+**चरण**:
+
+1. डेवलपर कंसोल में, अपने ऐप के लिए एक बेयरर टोकन जनरेट करें।
+2. इसे `Client` को पास करें।
+   **उदाहरण**:
+
+```python
+client = Client(bearer_token="XXXXX")
+```
+
+**उपयोग**:
+
+```python
+# search_recent एक Iterator लौटाता है, इसलिए इसे iterate करें
+for page in client.posts.search_recent(query="python", max_results=10):
+    if page.data and len(page.data) > 0:
+        first_post = page.data[0]
+        post_text = first_post.text if hasattr(first_post, 'text') else first_post.get('text', '')
+        print(post_text)  # पहली पोस्ट access करें
+        break
+```
+
+
+<div id="2-oauth-20-with-pkce-user-context">
+  ### 2. PKCE के साथ OAuth 2.0 (उपयोगकर्ता संदर्भ)
+</div>
+
+यह उदाहरण दिखाता है कि Proof Key for Code Exchange (PKCE) के साथ OAuth 2.0 का उपयोग कैसे किया जाता है। इसका उपयोग उपयोगकर्ता-विशिष्ट एक्सेस के लिए करें (उदा., किसी उपयोगकर्ता की ओर से पोस्ट करना), किसी उपयोगकर्ता के लिए मीडिया अपलोड करना आदि।
+**चरण**:
+
+1. डेवलपर कंसोल में, अपनी ऐप को redirect URI के साथ पंजीकृत करें (उदा., `http://localhost:8080/callback`)।
+2. Client ID प्राप्त करें (PKCE के लिए secret की आवश्यकता नहीं होती)।
+3. फ़्लो शुरू करें, उपयोगकर्ता को auth URL पर भेजें, और callback को हैंडल करें।
+   **उदाहरण** (callback के लिए वेब सर्वर का उपयोग करते हुए):
+
+```python
+from xdk.oauth2_auth import OAuth2PKCEAuth
+from urllib.parse import urlparse
+import webbrowser
+# चरण 1: PKCE इंस्टेंस बनाएं
+auth = OAuth2PKCEAuth(
+    client_id="YOUR_CLIENT_ID",
+    redirect_uri="YOUR_CALLBACK_URL",
+    scope="tweet.read users.read offline.access"
+)
+# चरण 2: authorization URL प्राप्त करें
+auth_url = auth.get_authorization_url()
+print(f"authorize करने के लिए इस URL पर जाएं: {auth_url}")
+webbrowser.open(auth_url)
+# चरण 3: callback संभालें (वास्तविक ऐप में Flask जैसा web framework इस्तेमाल करें)
+# मान लें callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE"
+callback_url = input("यहाँ पूरा callback URL पेस्ट करें: ")
+# चरण 4: code को tokens से एक्सचेंज करें
+tokens = auth.fetch_token(authorization_response=callback_url)
+access_token = tokens["access_token"]
+refresh_token = tokens["refresh_token"]  # नवीनीकरण के लिए स्टोर करें
+# चरण 5: Client बनाएं
+# विकल्प 1: bearer_token इस्तेमाल करें (OAuth2 access tokens, बेयरर टोकन के रूप में काम करते हैं)
+client = Client(bearer_token=access_token)
+# विकल्प 2: स्वचालित refresh सपोर्ट के लिए पूरा token dict पास करें
+# client = Client(token=tokens)
+```
+
+**टोकन रिफ्रेश** (लंबे समय तक चलने वाले सत्रों के लिए SDK में स्वचालित):
+
+```python
+# यदि access token समाप्त हो जाए, तो संग्रहीत refresh_token का उपयोग करके रिफ्रेश करें
+# refresh_token मेथड OAuth2PKCEAuth इंस्टेंस से संग्रहीत token का उपयोग करता है
+tokens = auth.refresh_token()
+# रिफ्रेश किए गए token का उपयोग करें
+client = Client(bearer_token=tokens["access_token"])
+# या पूरा token dict पास करें: client = Client(token=tokens)
+```
+
+
+<div id="3-oauth-10a-user-context">
+  ### 3. OAuth 1.0a (उपयोगकर्ता संदर्भ)
+</div>
+
+लीगेसी एप्लिकेशन या उन विशिष्ट उपयोग मामलों के लिए, जिनमें OAuth 1.0a प्रमाणीकरण की आवश्यकता होती है:
+**चरण**:
+
+1. डेवलपर कंसोल में अपनी API Key और API Secret प्राप्त करें।
+2. यदि आपके पास पहले से एक्सेस टोकन हैं, तो उनका सीधे उपयोग करें। अन्यथा, उन्हें प्राप्त करने के लिए OAuth 1.0a फ्लो पूरा करें।
+3. एक OAuth1 instance बनाएँ और उसे Client को पास करें।
+   **उदाहरण** (मौजूदा एक्सेस टोकन के साथ):
+
+```python
+from xdk import Client
+from xdk.oauth1_auth import OAuth1
+# चरण 1: क्रेडेंशियल के साथ OAuth1 इंस्टेंस बनाएं
+oauth1 = OAuth1(
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+    callback="http://localhost:8080/callback",
+    access_token="YOUR_ACCESS_TOKEN",
+    access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+)
+# चरण 2: OAuth1 के साथ Client बनाएं
+client = Client(auth=oauth1)
+# चरण 3: Client का उपयोग करें
+response = client.users.get_me()
+me = response.data
+print(me)
+```
+
+**उदाहरण** (पूरा OAuth 1.0a फ़्लो):
+
+```python
+from xdk import Client
+from xdk.oauth1_auth import OAuth1
+import webbrowser
+# चरण 1: OAuth1 इंस्टेंस बनाएं
+oauth1 = OAuth1(
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+    callback="http://localhost:8080/callback"
+)
+# चरण 2: रिक्वेस्ट टोकन प्राप्त करें
+request_token = oauth1.get_request_token()
+# चरण 3: ऑथराइज़ेशन URL प्राप्त करें
+auth_url = oauth1.get_authorization_url(login_with_x=False)
+print(f"ऑथराइज़ करने के लिए इस URL पर जाएं: {auth_url}")
+webbrowser.open(auth_url)
+# चरण 4: यूज़र ऑथराइज़ करता है और आपको oauth_verifier मिलता है
+# असली ऐप में, इसे callback URL के ज़रिए हैंडल करें
+oauth_verifier = input("callback से OAuth verifier दर्ज करें: ")
+# चरण 5: access token के लिए एक्सचेंज करें
+access_token = oauth1.get_access_token(oauth_verifier)
+# चरण 6: Client बनाएं
+client = Client(auth=oauth1)
+# अब आप Client का इस्तेमाल कर सकते हैं
+response = client.users.get_me()
+```
+
+**नोट**:
+
+* प्रोडक्शन में secrets को कभी हार्डकोड न करें; environment variables या secret managers का इस्तेमाल करें (उदा., `os.getenv("X_BEARER_TOKEN")`).
+* PKCE के लिए, प्रोडक्शन में redirect URI के लिए HTTPS सुनिश्चित करें।
+* SDK tokens का सत्यापन करता है और विफल होने पर `xdk.AuthenticationError` उत्पन्न करता है।
+  Python XDK का उपयोग करने वाले विस्तृत code examples के लिए, हमारा [code samples GitHub repo](https://github.com/xdevplatform/samples/tree/main/python) देखें।

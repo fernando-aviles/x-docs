@@ -1,0 +1,423 @@
+---
+title: Decahose API
+keywords: ["Decahose", "10% स्ट्रीम", "decahose API", "enterprise decahose", "10% सैंपल्ड स्ट्रीम", "enterprise स्ट्रीमिंग"]
+---
+
+<Note>
+  इस एंडपॉइंट को पोस्ट संपादन मेटाडेटा शामिल करने के लिए अपडेट किया गया है। इस मेटाडेटा के बारे में अधिक जानने के लिए [&quot;Edit Posts&quot; fundamentals page](/hi/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) देखें। 
+</Note>
+
+<div id="decahose-stream">
+  ### Decahose स्ट्रीम
+</div>
+
+[Enterprise](https://developer.x.com/en/products/x-api/enterprise)
+
+*यह एक एंटरप्राइज़ API है, जो केवल हमारे managed access levels में उपलब्ध है। इस API का उपयोग करने के लिए, आपको पहले हमारी enterprise sales team के साथ एक खाता सेट अप करना होगा। [और जानें](https://developer.x.com/en/products/x-api/enterprise)*
+
+Decahose, स्ट्रीमिंग कनेक्शन के माध्यम से रीयलटाइम X Firehose का 10% यादृच्छिक सैंपल उपलब्ध कराता है। यह रीयलटाइम sampling algorithm के जरिए किया जाता है, जो डेटा को यादृच्छिक रूप से चुनता है, साथ ही X द्वारा firehose के माध्यम से भेजे जाते समय डेटा की अपेक्षित low-latency डिलीवरी भी सुनिश्चित करता है।
+
+नीचे Decahose के साथ उपलब्ध कुछ सुविधाएँ दी गई हैं:
+
+* **Expanded और enhanced URLs:** - छोटे किए गए URLs को पूरी तरह विस्तृत करता है और अतिरिक्त metadata (पेज title और description) प्रदान करता है
+* **स्ट्रीम partitioning** - 2 partitions, जिनमें से प्रत्येक में Decahose स्ट्रीम के वॉल्यूम का 50% शामिल होता है
+* **बेहतर विश्वसनीयता** - backend systems की भौगोलिक विविधता
+
+नोट: यह डेटा bulk में डिलीवर किया जाता है और अतिरिक्त filtering (जैसे, keywords के लिए) का समर्थन नहीं करता।
+
+`ENTERPRISE`
+
+<div id="streaming-likes">
+  ### लाइक की स्ट्रीमिंग
+</div>
+
+*यह एक enterprise API है, जो केवल हमारे managed access levels में उपलब्ध है। इस API का उपयोग करने के लिए, आपको पहले हमारी enterprise sales team के साथ एक खाता सेट अप करना होगा। [और जानें](https://developer.x.com/en/products/x-api/enterprise)*
+
+लाइक से यह समझने में मदद मिलती है कि पोस्ट्स को कौन लाइक करता है, और यह लाइक की सटीक संख्या भी उपलब्ध कराते हैं। Gnip का Firehose और Decahose, Gnip के माध्यम से डिलीवर की गई पोस्ट्स से संबंधित सार्वजनिक लाइक डिलीवर कर सकते हैं। इससे किसी पोस्ट से जुड़े रीयल-टाइम सार्वजनिक एंगेजमेंट और ऑडियंस मेट्रिक्स मिलते हैं।
+ 
+
+**लाइक के साथ शुरुआत करना**
+
+लाइक डेटा का उपयोग करने की तैयारी करते समय, आपको यह जानना चाहिए कि:
+
+* लाइक एक स्वतंत्र, अलग स्ट्रीम के माध्यम से डिलीवर किए जाते हैं
+* ऐतिहासिक रूप से लाइक को “Favorites” कहा जाता था। enriched native format payload में यही नामकरण बना रहता है
+* स्ट्रीम्स में केवल सार्वजनिक लाइक शामिल होते हैं
+  * सार्वजनिक का मतलब है कि लाइक करने वाला उपयोगकर्ता, पोस्ट बनाने वाला उपयोगकर्ता, और पोस्ट — तीनों ही प्लेटफ़ॉर्म पर सार्वजनिक हों
+* लाइक, Retweets से काफ़ी मिलते-जुलते हैं और एंगेजमेंट का एक सार्वजनिक संकेत होते हैं
+* Payload तत्वों में शामिल हैं:
+  * मूल पोस्ट ऑब्जेक्ट
+  * मूल पोस्ट बनाने वाला Actor ऑब्जेक्ट
+  * like कार्रवाई करने वाला Actor ऑब्जेक्ट
+* केवल मूल सामग्री को ही लाइक किया जा सकता है
+  * Retweets को लाइक नहीं किया जा सकता। किसी Retweet पर किया गया like मूल पोस्ट पर लागू होता है
+  * Quoted Tweets को लाइक किया *जा सकता* है
+* Like activities में लागू Gnip Enrichments शामिल होते हैं (जहां खरीदे/लागू किए गए हों)
+* समर्थित Products / Features
+  * लाइक streams, बैकफ़िल को सपोर्ट करती हैं (जहां खरीदा/लागू किया गया हो)
+  * लाइक streams के लिए Replay सपोर्ट नहीं है
+  * लाइक के लिए Search या Historical सपोर्ट नहीं है
+  * PowerTrack में लाइक सपोर्ट जोड़ने की कोई तत्काल योजना नहीं है
+
+**Decahose**
+
+* Decahose में डिलीवर किए गए 10% sample Posts के लिए, स्ट्रीम में लागू सार्वजनिक लाइक का 100% शामिल होता है
+* **Partitions:** 2
+* **URL संरचना**
+  * https://gnip-stream.x.com/stream/sample10-likes/accounts/&lt;accountName&gt;/publishers/twitter/&lt;streamLabel&gt;.json?partition=1
+
+**Native enriched format payload**
+
+```json
+{
+   "id":"43560406e0ad9f68374445f5f30c33fc",
+   "created_at":"Thu Dec 01 22:27:39 +0000 2016",
+   "timestamp_ms":1480631259353,
+   "favorited_status":{
+      "created_at":"Thu Dec 01 22:27:16 +0000 2016",
+      "id":804451830033948672,
+      "id_str":"804451830033948672",
+      "text":"@kafammheppduman",
+      "source":"\u003ca href=\"http:\/\/x.com\/download\/android\" rel=\"nofollow\"\u003eX for Android\u003c\/a\u003e",
+      "truncated":false,
+      "in_reply_to_status_id":803694205163814912,
+      "in_reply_to_status_id_str":"803694205163814912",
+      "in_reply_to_user_id":2855759795,
+      "in_reply_to_user_id_str":"2855759795",
+      "in_reply_to_screen_name":"kafammheppduman",
+      "user":{
+         "id":2855759795,
+         "id_str":"2855759795",
+         "name":"delirdim kanka",
+         "screen_name":"kafammheppduman",
+         "location":"sanane",
+         "url":"http:\/\/instagram.com\/kafammheppduman",
+         "description":"Manit @GalatasaraySk \ud83d\udc9e",
+         "translator_type":"none",
+         "protected":false,
+         "verified":false,
+         "followers_count":3702,
+         "friends_count":607,
+         "listed_count":1,
+         "favourites_count":113338,
+         "statuses_count":389,
+         "created_at":"Sat Nov 01 22:38:25 +0000 2014",
+         "utc_offset":null,
+         "time_zone":null,
+         "geo_enabled":true,
+         "lang":"tr",
+         "contributors_enabled":false,
+         "is_translator":false,
+         "profile_background_color":"C0DEED",
+         "profile_background_image_url":"",
+         "profile_background_image_url_https":"",
+         "profile_background_tile":false,
+         "profile_link_color":"1DA1F2",
+         "profile_sidebar_border_color":"C0DEED",
+         "profile_sidebar_fill_color":"DDEEF6",
+         "profile_text_color":"333333",
+         "profile_use_background_image":true,
+       "Profile_image_url": "http:\/\/pbs.twimg.com\/profile_images\/804421763945861121\/v3bp9pnq_normal.jpg",
+         "Profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/804421763945861121\/v3bp9pnq_normal.jpg",
+         "profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/2855759795\/1480630085",
+         "default_profile":true,
+         "default_profile_image":false,
+         "following":null,
+         "follow_request_sent":null,
+         "notifications":null
+      },
+      "geo":null,
+      "coordinates":null,
+      "place":null,
+      "contributors":null,
+      "is_quote_status":false,
+      "retweet_count":0,
+      "favorite_count":0,
+      "entities":{
+         "hashtags":[],
+         "urls":[],
+         "user_mentions":[
+            {
+               "screen_name":"kafammheppduman",
+               "name":"delirdim kanka",
+               "id":2855759795,
+               "id_str":"2855759795",
+               "indices":[
+                  0,
+                  16
+               ]
+            }
+         ],
+         "symbols":[]
+      },
+      "favorited":false,
+      "retweeted":false,
+      "filter_level":"low",
+      "lang":"und"
+   },
+   "user":{
+      "id":774146932365070336,
+      "id_str":"774146932365070336",
+      "name":"Uyuyan Adam",
+      "screen_name":"saykoMenn",
+      "location":"Tarsus, T\u00fcrkiye",
+      "url":"http:\/\/connected2.me\/pmc1i",
+      "description":null,
+      "translator_type":"none",
+      "protected":false,
+      "verified":false,
+      "followers_count":414,
+      "friends_count":393,
+      "listed_count":0,
+      "favourites_count":9868,
+      "statuses_count":370,
+      "created_at":"Fri Sep 09 07:26:26 +0000 2016",
+      "utc_offset":null,
+      "time_zone":null,
+      "geo_enabled":false,
+      "lang":"tr",
+      "contributors_enabled":false,
+      "is_translator":false,
+      "profile_background_color":"F5F8FA",
+      "profile_background_image_url":"",
+      "profile_background_image_url_https":"",
+      "profile_background_tile":false,
+      "profile_link_color":"1DA1F2",
+      "profile_sidebar_border_color":"C0DEED",
+      "profile_sidebar_fill_color":"DDEEF6",
+      "profile_text_color":"333333",
+      "profile_use_background_image":true,
+      "Profile_image_url": "http:\/\/pbs.twimg.com\/profile_images\/802992813424201728\/VMzcTL3x_normal.jpg",
+      "Profile_image_url_https": "https:\/\/pbs.twimg.com\/profile_images\/802992813424201728\/VMzcTL3x_normal.jpg",
+      "profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/774146932365070336\/1480283382",
+      "default_profile":true,
+      "default_profile_image":false,
+      "following":null,
+      "follow_request_sent":null,
+      "notifications":null
+   }
+}
+```
+
+**लाइक हटाने / “Unlike” पेलोड**
+
+```json
+{
+   "delete":{
+      "favorite":{
+         "tweet_id":696615514970279937,
+         "tweet_id_str":"696615514970279937",
+         "user_id":2510287578,
+         "user_id_str":"2510287578"
+      },
+      "timestamp_ms":"1480437031205"
+   }
+}
+```
+
+<div id="guides">
+  ## मार्गदर्शिकाएँ
+</div>
+
+<div id="recovery-and-redundency">
+  ### Recovery और रिडंडेंसी
+</div>
+
+**परिचय** 
+
+रीयलटाइम पोस्ट्स की बड़ी मात्रा की स्ट्रीमिंग के साथ कुछ सर्वोत्तम पद्धतियाँ जुड़ी होती हैं, जो डेटा की विश्वसनीयता और पूर्ण निष्ठा, दोनों को बनाए रखने में मदद करती हैं। रीयलटाइम डेटा का उपभोग करते समय, कनेक्शन समय को अधिकतम करना एक बुनियादी लक्ष्य है। जब डिस्कनेक्ट होते हैं, तो उनका अपने-आप पता लगना और फिर से कनेक्ट होना महत्वपूर्ण है। दोबारा कनेक्ट होने के बाद यह आकलन करना भी ज़रूरी है कि क्या किसी अवधि के लिए डेटा बैकफ़िल करना है। इन विवरणों को प्रबंधित करने और रीयलटाइम पोस्ट्स का उपभोग करने वाला कॉम्पोनेंट, ऐसे सिस्टम का केवल एक हिस्सा होता है जिसमें नेटवर्क, datastore, server और storage से जुड़ी चिंताएँ भी शामिल होती हैं। इन सिस्टम्स की जटिलता को देखते हुए, एक और सर्वोत्तम पद्धति यह है कि अलग-अलग स्ट्रीमिंग परिवेश हों, जिनमें कम से कम development/testing और production के लिए अलग-अलग स्ट्रीम्स हों।
+
+Decahose में ऐसी कई सुविधाएँ हैं जो इन प्रयासों में मदद करती हैं।
+
+1. कई परिवेशों के समर्थन के लिए, हम आपके खाते के लिए [अतिरिक्त स्ट्रीम्स](#AdditionalStreams) तैनात कर सकते हैं। ये स्ट्रीम्स एक-दूसरे से स्वतंत्र होती हैं और इनमें अंतर स्पष्ट करने के लिए इनका stream&#95;label  अलग होता है।
+2. कनेक्शन बनाए रखने में सहायता के लिए, प्रत्येक Decahose स्ट्रीम [रिडंडेंट कनेक्शंस](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#additional-streams) का समर्थन करती है। सबसे सामान्य आर्किटेक्चर में एक स्ट्रीम के दो कनेक्शन होते हैं, और client-side पर दो स्वतंत्र consumers होते हैं – आदर्श रूप से अलग-अलग नेटवर्क्स पर। इस डिज़ाइन में client-side नेटवर्क्स, servers और datastore pathways के बीच रिडंडेंसी हो सकती है। ध्यान दें कि प्रत्येक कनेक्शन पर डेटा की पूरी कॉपी दी जाती है, इसलिए client-side को डुप्लिकेट डेटा को संभालने और प्रबंधित करने में सक्षम होना चाहिए।
+3. हर 10 सेकंड में एक &#39;**heartbeat**&#39; प्रदान किया जाएगा; हालांकि, Decahose स्ट्रीम में डेटा की मात्रा इतनी अधिक होती है कि पोस्ट्स का थोड़ी-सी अवधि (उदाहरण के लिए, कुछ सेकंड) तक भी न आना कनेक्शन समस्या का संकेत हो सकता है। इसलिए, डिस्कनेक्ट का पता लगाने के लिए &#39;data silence&#39; और heartbeat का न मिलना, दोनों का उपयोग किया जा सकता है।
+
+चूँकि डिस्कनेक्ट होना स्वाभाविक है, Decahose स्ट्रीम में एक समर्पित [Recovery](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#overview) और एक [बैकफ़िल](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#backfill) सुविधा है, जो डिस्कनेक्शन और अन्य परिचालन समस्याओं के कारण छूट गए डेटा को पुनर्प्राप्त करने में मदद करती है।
+
+<div id="additional-streams">
+  #### अतिरिक्त स्ट्रीम्स
+</div>
+
+अतिरिक्त Decahose स्ट्रीम्स रखना आपके समाधान में विश्वसनीयता बढ़ाने का एक और तरीका है। हर अतिरिक्त स्ट्रीम पूरी तरह स्वतंत्र होती है और उसका अपना अलग एंडपॉइंट होता है। प्रत्येक स्ट्रीम को उसका अपना stream&#95;label दिया जाता है, और यह label आपके account name के साथ मिलकर उस स्ट्रीम के URL का हिस्सा बनता है। नीचे दिया गया उदाहरण देखें:
+
+https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json
+
+सबसे सामान्य प्रचलन यह है कि आपके production system के लिए एक realtime स्ट्रीम समर्पित हो, और development तथा testing के लिए एक अतिरिक्त स्ट्रीम उपलब्ध हो। test/development स्ट्रीम होने से Decahose ग्राहकों को client consumer updates का परीक्षण करने के लिए एक स्ट्रीम मिलती है। हालाँकि किसी स्ट्रीम को कोई भी (अद्वितीय) label दिया जा सकता है, एक सामान्य प्रचलन production स्ट्रीम के लिए ‘prod’ और अतिरिक्त development स्ट्रीम के for ‘dev’ या ‘sandbox’ का उपयोग करना है।
+
+स्ट्रीम्स की संख्या और उनके अद्वितीय labels आपके account representative द्वारा कॉन्फ़िगर किए जा सकते हैं।
+
+**रिडंडेंट कनेक्शन**
+
+रिडंडेंट कनेक्शन आपको data स्ट्रीम के लिए एक से अधिक simultaneous connections स्थापित करने की सुविधा देता है। यह रिडंडेंसी इस तरह प्रदान करता है कि आप एक ही स्ट्रीम से दो अलग-अलग consumers के साथ जुड़ सकते हैं और दोनों connections के माध्यम से वही data प्राप्त कर सकते हैं। इस प्रकार, आपके ऐप के पास अलग-अलग परिस्थितियों के लिए hot failover होता है, जैसे जब कोई एक स्ट्रीम disconnect हो जाए या आपके ऐप का primary server विफल हो जाए।
+
+किसी भी स्ट्रीम के लिए अनुमत connections की संख्या आपके account representative द्वारा कॉन्फ़िगर की जा सकती है। रिडंडेंट स्ट्रीम का उपयोग करने के लिए, बस उसी URL से connect करें जिसका उपयोग आप अपने primary connection के लिए करते हैं। आपकी स्ट्रीम का data दोनों connections के माध्यम से भेजा जाएगा, और स्ट्रीम dashboard पर दोनों स्ट्रीम connections दिखाई देंगे।
+
+ध्यान दें कि billing के उद्देश्यों के लिए, हम multiple connections के माध्यम से आपको प्राप्त होने वाली activity counts को deduplicate करते हैं, ताकि आपसे प्रत्येक अद्वितीय activity के लिए केवल एक बार शुल्क लिया जाए। चूँकि Decahose में दो partitions हैं, नीचे यह उदाहरण दिया गया है कि connection count कैसे काम करता है:
+
+decahose partition=1 से connect करें
+decahose partition=1 से connect करें
+decahose partition=2 से connect करें
+
+ऊपर की स्थिति में कुल तीन connections बनते हैं – partition=1 से दो connections और partition=2 से एक connection। सामान्यतः, आप प्रत्येक partition के लिए समान संख्या में connections रखना चाहेंगे, इसलिए यह उदाहरण ऐसी स्थिति को दर्शाता है जहाँ partition=2 का रिडंडेंट connection गिर गया है और आप इसकी आगे जाँच करना चाहते हैं।
+
+**रिकवरी**
+
+<div id="overview">
+  #### अवलोकन
+</div>
+
+Recovery एक डेटा रिकवरी टूल है (जिसका उपयोग प्राथमिक डेटा संग्रह के लिए नहीं किया जाना चाहिए) जो हाल के X ऐतिहासिक डेटा की लगातार आगे बढ़ने वाली 5-दिवसीय विंडो तक स्ट्रीमिंग ऐक्सेस प्रदान करता है। इसका उपयोग उन स्थितियों में डेटा रिकवर करने के लिए किया जाना चाहिए, जब आपका consuming application realtime स्ट्रीम में डेटा मिस कर देता है—चाहे वह थोड़े समय के लिए disconnect होने के कारण हो, या किसी अन्य स्थिति में, जहाँ आप कुछ समय तक realtime डेटा ingest नहीं कर पाते।
+
+<div id="using-recovery">
+  #### Recovery का उपयोग
+</div>
+
+Recovery स्ट्रीम के साथ, आपका ऐप उस पर ऐसे अनुरोध कर सकता है जो रीयलटाइम स्ट्रीम्स के अनुरोधों की तरह ही काम करते हैं। हालांकि, आपके ऐप को URL में ऐसे पैरामीटर निर्दिष्ट करने होंगे जो उस समय-विंडो को दर्शाएँ जिसके लिए आप अनुरोध कर रहे हैं। दूसरे शब्दों में, Recovery अनुरोध API से &quot;समय A से समय B तक के पोस्ट्स&quot; मांगता है। इसके बाद ये पोस्ट्स आपके streaming connection के माध्यम से इस तरह भेजे जाते हैं कि वह रीयलटाइम स्ट्रीम जैसा लगे, लेकिन रीयलटाइम से थोड़ी धीमी दर पर। उदाहरण के लिए, नीचे देखें:
+
+&quot;https://stream-data-api.x.com/stream/powertrack/accounts/someAccountName/publishers/twitter/powertrack.json?startTime=2023-07-05T17:09:12.070Z&quot;
+
+पोस्ट्स की डिलीवरी निर्दिष्ट समयावधि के पहले (सबसे पुराने) मिनट से शुरू होती है और अंतिम मिनट डिलीवर होने तक कालानुक्रमिक क्रम में जारी रहती है। उस समय, कनेक्शन के माध्यम से एक Recovery Request Completed संदेश भेजा जाता है, और फिर सर्वर कनेक्शन बंद कर देता है। यदि आपका अनुरोध दिन के ऐसे समय से शुरू होता है जब बहुत कम या कोई मिलते-जुलते परिणाम नहीं आए थे, तो संभव है कि पहले परिणाम डिलीवर होने से पहले कुछ समय लगे — डेटा तब डिलीवर किया जाएगा जब Recovery उस आर्काइव के उस हिस्से में मेल पाएगा जिसे उस समय प्रोसेस किया जा रहा है। जब डिलीवर करने के लिए कोई परिणाम उपलब्ध नहीं होते, तो stream आपको time out होने से बचाने के लिए कनेक्शन के माध्यम से carriage-return, या &quot;heartbeats&quot;, भेजना जारी रखेगी।
+
+Recovery का उद्देश्य कम अवधि के disconnects के कारण छूटे हुए डेटा को आसानी से पुनर्प्राप्त करने का साधन होना है, न कि पूरे दिन जैसी बहुत लंबी समयावधियों के लिए। यदि लंबे समय के लिए डेटा पुनर्प्राप्त करने की आवश्यकता हो, तो हम लंबी requests को छोटे समय-विंडो (उदाहरण के लिए, दो घंटे) में विभाजित करने की सलाह देते हैं, ताकि internet की अस्थिरता या अन्य कारणों से request के बीच में disconnect होने की संभावना कम हो, और लंबी requests की प्रगति के बारे में बेहतर दृश्यता मिल सके।
+
+<div id="data-availability">
+  #### डेटा उपलब्धता
+</div>
+
+यदि आप 5 मिनट की backfill विंडो के भीतर फिर से कनेक्ट नहीं कर पाते हैं, तो पिछले 24 घंटों के दौरान छूटा हुआ डेटा वापस पाने के लिए आप Recovery सुविधा का उपयोग कर सकते हैं।
+
+Streaming recovery सुविधा आपको 24 घंटों की विस्तारित backfill विंडो का उपयोग करने देती है। Recovery आपको छूटे हुए डेटा की समयावधि को ‘रिकवर’ करने में सक्षम बनाती है। जब आप &#39;start&#95;time&#39; और &#39;end&#95;time&#39; अनुरोध पैरामीटर का उपयोग करके कनेक्शन अनुरोध भेजते हैं, तो एक recovery स्ट्रीम शुरू होती है। कनेक्ट होने के बाद, Recovery बताई गई समयावधि का डेटा फिर से स्ट्रीम करेगी और उसके बाद डिस्कनेक्ट हो जाएगी।  
+
+आप एक ही समय में recovery के लिए 2 समवर्ती अनुरोध कर सकते हैं, यानी “two recovery jobs”। तकनीकी रूप से Recovery, backfill की तरह ही काम करती है, बस इसमें start और end time निर्धारित किए जाते हैं। एक recovery period केवल एक ही समय-सीमा के लिए होता है।
+
+<div id="backfill">
+  #### बैकफिल
+</div>
+
+बैकफिल का अनुरोध करने के लिए, आपको अपने कनेक्शन अनुरोध में `backfillMinutes=N` पैरामीटर जोड़ना होगा, जहाँ N उन मिनटों की संख्या है (1-5, केवल पूर्णांक) जिनके लिए कनेक्शन स्थापित होने पर बैकफिल किया जाएगा। उदाहरण के लिए, यदि आपका कनेक्शन 90 सेकंड के लिए टूट जाता है, तो आपको अपने कनेक्शन अनुरोध में `backfillMinutes=2` जोड़ना चाहिए। चूँकि यह अनुरोध 2 मिनट का बैकफिल देगा, जिसमें आपके डिस्कनेक्ट होने से पहले के 30 सेकंड भी शामिल हैं, इसलिए आपका *consumer ऐप डुप्लिकेट डेटा को संभालने में सक्षम होना चाहिए*।
+
+partition 1 के लिए 5 मिनट का बैकफिल माँगने वाला एक उदाहरण Decahose कनेक्शन अनुरोध URL इस प्रकार है:
+
+https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json?partition=1&amp;backfillMinutes=5
+
+**नोट्स:**
+
+* आपके पास यह विकल्प भी है कि कनेक्ट करते समय हमेशा `backfillMinutes=5` का उपयोग करें, और फिर प्राप्त होने वाले किसी भी डुप्लिकेट डेटा को संभालें।
+
+* यदि आपका कनेक्शन पाँच मिनट से अधिक समय के लिए टूट जाता है, तो आप Recovery का उपयोग करके डेटा पुनर्प्राप्त कर सकते हैं।
+
+**डिस्कनेक्ट से उबरना**
+
+डिस्कनेक्ट के बाद दोबारा शुरू करना और उससे उबरना कई चरणों में होता है:
+
+* डिस्कनेक्ट अवधि की लंबाई निर्धारित करना।
+  * 5 मिनट या उससे कम?
+    * यदि आपके स्ट्रीम के लिए Backfill सक्षम है, तो उपयुक्त `backfillMinutes` पैरामीटर के साथ कनेक्शन अनुरोध तैयार करें।
+  * 5 मिनट से अधिक?
+    * यदि आपके पास Recovery स्ट्रीम है, तो डिस्कनेक्ट अवधि के लिए Recovery अनुरोध करें (आदर्श रूप से अपने मौजूदा realtime rule set के साथ, और आवश्यकता होने पर Rules API का उपयोग करते हुए)।
+* नए कनेक्शन का अनुरोध करें।
+
+जब आपको डिस्कनेक्ट या डाउनटाइम का सामना करना पड़े, तो इस स्थिति में प्रभाव कम करने और रिकवर करने के लिए ये रणनीतियाँ अपनाएँ:
+
+1. **बैकफिल लागू करें**
+   बैकफिल आपको स्ट्रीम कनेक्शन से डिस्कनेक्ट होने से पहले के किसी बिंदु से फिर से कनेक्ट करने देता है, और 5 मिनट तक के डिस्कनेक्ट को कवर करता है। इसे कनेक्शन अनुरोध में एक पैरामीटर शामिल करके लागू किया जाता है।
+
+2. **किसी अन्य स्थान से रिडंडेंट स्ट्रीम कंज्यूम करें**
+   यदि रिडंडेंट स्ट्रीम को उसी live environment में स्ट्रीम किया जा सकता है और डेटा को डुप्लिकेट-मुक्त किया जा सकता है, तो आपको recovery की आवश्यकता नहीं होगी, जब तक कि सामान्य स्ट्रीम और रिडंडेंट स्ट्रीम दोनों में एक साथ डाउनटाइम या डिस्कनेक्ट न हो। यदि रिडंडेंट स्ट्रीम को production environment में live स्ट्रीम नहीं किया जा सकता, तो इसे एक अलग “emergency” data store में लिखा जा सकता है। फिर, primary स्ट्रीम कनेक्शन पर डिस्कनेक्ट या डाउनटाइम होने की स्थिति में, आपके सिस्टम के पास उस अवधि का डेटा उपलब्ध रहेगा जिसमें डेटा गायब है, ताकि आपके primary database की कमी पूरी की जा सके
+
+3. **Recovery लागू करें**
+   जहाँ डिस्कनेक्ट या डाउनटाइम primary स्ट्रीम और रिडंडेंट स्ट्रीम दोनों को प्रभावित करते हैं, वहाँ छूटे हुए डेटा को पुनर्प्राप्त करने के लिए Decahose Recovery का उपयोग करें। API archive के 5 दिनों को कवर करने वाली एक rolling window प्रदान करता है, और इसका सर्वोत्तम उपयोग यही है कि एक बार में उस window के एक घंटे से अधिक का अनुरोध न किया जाए और उसे स्ट्रीम किया जाए। यह realtime स्ट्रीम के समानांतर किया जाता है। ध्यान दें कि Recovery द्वारा प्रदान की गई 5-दिन की window से आगे के Decahose डेटा को पुनर्प्राप्त करने के लिए हमारे पास कोई समाधान नहीं है, इसलिए यह महत्वपूर्ण है कि आप रिडंडेंट स्ट्रीम का उपयोग करें, ताकि आपकी ओर से गंभीर डाउनटाइम की स्थिति में आपके पास डेटा की पूर्ण प्रति मौजूद रहे।
+
+जब आप संग्रहीत डेटा की मात्रा में असामान्य बदलाव देखें- 
+डिस्कनेक्ट या डाउनटाइम न होने पर भी गायब डेटा का पता लगाने के संभावित तरीके…
+
+1. आने वाले पोस्ट्स की गणना करें
+   आपके सिस्टम को अपने ingestion ऐप की शुरुआत में ही प्राप्त होने वाले पोस्ट्स की कुल संख्या गिननी चाहिए, और फिर उन संख्याओं की तुलना आपके अंतिम data store तक पहुँचने वाले पोस्ट्स की संख्या से करने का कोई तरीका होना चाहिए। किसी भी अंतर की निगरानी की जा सकती है, और आपकी टीम को उन समस्याओं के बारे में सतर्क किया जा सकता है जिनकी वजह से डेटा प्राप्त होने के बाद छूट रहा है।
+
+2. संग्रहीत मात्रा में असामान्य गिरावट का विश्लेषण करें
+   आप अपने अंतिम database में संग्रहीत डेटा की मात्रा का विश्लेषण भी करना चाह सकते हैं, ताकि असामान्य गिरावटों की पहचान की जा सके। यह भी समस्याओं का संकेत हो सकता है, हालाँकि ऐसी परिस्थितियाँ भी हो सकती हैं जिनमें मात्रा में गिरावट सामान्य हो (उदाहरण के लिए, यदि X प्लेटफ़ॉर्म उपलब्ध न हो और लोग कुछ समय तक पोस्ट्स न बना सकें)।
+
+<div id="api-reference">
+  ## API संदर्भ
+</div>
+
+<div id="decahose-stream">
+  ### Decahose स्ट्रीम
+</div>
+
+इस पेज पर जाएँ
+
+[विधियाँ](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#methods)
+
+[प्रमाणीकरण](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#authentication)
+
+[GET /&#123;stream-type&#125;/:stream](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#get-stream-type-stream)
+
+[Replay API](/hi/x-api/enterprise-gnip-2.0/fundamentals/decahose-api#replay-api)
+
+<div id="methods">
+  #### विधि
+</div>
+
+| मेथड                                            | विवरण                       |
+| :---------------------------------------------- | :-------------------------- |
+| [GET /&#123;stream-type&#125;/:stream](#Stream) | डेटा स्ट्रीम से कनेक्ट करें |
+
+<div id="authentication">
+  #### प्रमाणीकरण[](#authentication- "इस शीर्षक का स्थायी लिंक")
+</div>
+
+Volume Stream APIs के लिए सभी अनुरोधों में HTTP Basic Authentication का उपयोग करना आवश्यक है, जिसे console.gnip.com पर अपने खाते में लॉग इन करने के लिए इस्तेमाल किए जाने वाले वैध ईमेल पते और पासवर्ड के संयोजन से बनाया जाता है। प्रत्येक अनुरोध में क्रेडेंशियल्स को Authorization header के रूप में भेजना आवश्यक है। इसलिए सुनिश्चित करें कि आपका क्लाइंट सभी API अनुरोधों में &quot;Authentication: Basic&quot; HTTP header (HTTPS पर एन्कोड किए गए क्रेडेंशियल्स के साथ) जोड़ रहा हो।
+
+#### GET {stream-type}:stream
+
+Firehose stream के लिए एक स्थायी कनेक्शन स्थापित करता है, जिसके माध्यम से रीयल-टाइम डेटा वितरित किया जाता है।
+
+<div id="request-specifications">
+  #### अनुरोध विनिर्देश
+</div>
+
+|                                  |                                                                                                                                                                                                                                                                                                                                                                                    |
+| :------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **अनुरोध विधि**                  | HTTP GET                                                                                                                                                                                                                                                                                                                                                                           |
+| **कनेक्शन प्रकार**               | Keep-Alive  <br />  <br />इसे अनुरोध के header में निर्दिष्ट किया जाना चाहिए।                                                                                                                                                                                                                                                                                                      |
+| **URL**                          | यह आपके dashboard में स्ट्रीम के API Help पेज पर, निम्न संरचना का उपयोग करते हुए, उपलब्ध होगा:  <br />  <br />Decahose:<br /><br />[https://gnip-stream.x.com/stream/sample10/accounts/:account&#95;name/publishers/twitter/:stream&#95;label.json?partition=1](https://gnip-stream.x.com/stream/sample10/accounts/:account_name/publishers/twitter/:stream_label.json?partition=1) |
+| **Partition (आवश्यक)**           | `partition=\{#}` - अब पूरी स्ट्रीम प्राप्त करने के लिए partitioning आवश्यक है। आपको निर्दिष्ट partition parameter के साथ स्ट्रीम से कनेक्ट करना होगा। नीचे प्रत्येक स्ट्रीम के लिए partitions की संख्या दी गई है:<br /><br />* Decahose: 2 partitions                                                                                                                                 |
+| **कम्प्रेशन**                    | Gzip. Gzip compression का उपयोग करके स्ट्रीम से कनेक्ट करने के लिए, connection अनुरोध में केवल Accept-Encoding header भेजें। header इस प्रकार होना चाहिए:  <br />  <br />Accept-Encoding: gzip                                                                                                                                                                                      |
+| **करेक्टर एन्कोडिंग**            | UTF-8                                                                                                                                                                                                                                                                                                                                                                              |
+| **रिस्पॉन्स प्रारूप**            | JSON. आपके अनुरोध के header में रिस्पॉन्स के लिए JSON format निर्दिष्ट होना चाहिए।                                                                                                                                                                                                                                                                                                 |
+| **रेट लिमिट**                    | 60 सेकंड में 10 अनुरोध।                                                                                                                                                                                                                                                                                                                                                            |
+| **बैकफ़िल parameter**           | यदि आपने बैकफ़िल enabled वाली स्ट्रीम खरीदी है, तो इसे सक्षम करने के लिए आपको GET अनुरोध में &quot;backfillMinutes&quot; parameter जोड़ना होगा।                                                                                                                                                                                                                                    |
+| **रीड टाइमआउट**                  | अपने client पर read timeout सेट करें, और सुनिश्चित करें कि यह 30 सेकंड से अधिक के मान पर सेट हो।                                                                                                                                                                                                                                                                                   |
+| **Tweet संपादनों के लिए समर्थन** | सभी Tweet objects में Tweet edit metadata शामिल होगा, जो Tweet के edit history का वर्णन करता है। अधिक जानकारी के लिए [&quot;Edit Tweets&quot; fundamentals page](/hi/x-api/enterprise-gnip-2.0/fundamentals/edit-tweets) देखें।                                                                                                                                                       |
+
+<div id="responses">
+  #### रिस्पॉन्स
+</div>
+
+इन अनुरोधों के लिए API निम्नलिखित रिस्पॉन्स लौटा सकता है। अधिकांश त्रुटि कोड, बॉडी में अतिरिक्त विवरण वाली एक स्ट्रिंग के साथ लौटते हैं। non-200 रिस्पॉन्स के लिए, क्लाइंट्स को दोबारा कनेक्ट करने का प्रयास करना चाहिए।
+
+| Status | Text           | Description                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| :----- | :------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 200    | सफलता          | कनेक्शन सफलतापूर्वक स्थापित हो गया, और नई गतिविधियाँ उपलब्ध होते ही भेजी जाएँगी।                                                                                                                                                                                                                                                                                                                                                                    |
+| 401    | अनधिकृत        | अमान्य क्रेडेंशियल्स के कारण HTTP प्रमाणीकरण विफल हो गया। अपने क्रेडेंशियल्स के साथ console.gnip.com में लॉग इन करें, ताकि यह सुनिश्चित किया जा सके कि आप उन्हें अपने अनुरोध में सही तरीके से उपयोग कर रहे हैं।                                                                                                                                                                                                                                     |
+| 406    | स्वीकार्य नहीं | आम तौर पर, यह तब होता है जब आपका क्लाइंट स्ट्रीम से gzip एन्कोडिंग स्वीकार करने के लिए आवश्यक हेडर्स सही तरीके से शामिल नहीं करता, लेकिन यह अन्य परिस्थितियों में भी हो सकता है।  <br />  <br />इसमें &quot;This connection requires compression. To enable compression, send an &#39;Accept-Encoding: gzip&#39; header in your request and be ready to uncompress the stream as it is read on the client end.&quot; जैसा एक JSON संदेश शामिल होगा। |
+| 429    | दर-सीमा पार    | आपके ऐप ने कनेक्शन अनुरोधों की सीमा पार कर ली है।                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 503    | सेवा अनुपलब्ध  | Twitter सर्वर में समस्या। exponential backoff पैटर्न का उपयोग करके दोबारा कनेक्ट करें। यदि इस समस्या के बारे में [X API Status Page](https://api.twitterstat.us/) पर कोई सूचना पोस्ट नहीं की गई है, तो 10 मिनट बाद भी कनेक्ट न हो पाने पर support या emergency से संपर्क करें।                                                                                                                                                                      |
+
+<div id="example-curl-request">
+  #### उदाहरण curl अनुरोध
+</div>
+
+निम्नलिखित उदाहरण अनुरोध को कमांड लाइन पर cURL का उपयोग करके पूरा किया गया है। हालांकि, ध्यान दें कि ये अनुरोध आपकी पसंद की प्रोग्रामिंग भाषा से भी भेजे जा सकते हैं:
+
+```
+curl --compressed -v -uexample@customer.com "https://gnip-stream.x.com/stream/firehose/accounts/:account\_name/publishers/twitter/:stream\_label.json?partition={#}"
+```
+
+<div id="replay-api">
+  #### Replay API
+</div>
+
+Replay API, रीयलटाइम Volume स्ट्रीम्स का एक महत्वपूर्ण पूरक है। Replay एक डेटा रिकवरी टूल है, जो हाल के X ऐतिहासिक डेटा की एक रोलिंग विंडो तक स्ट्रीमिंग ऐक्सेस प्रदान करता है।

@@ -1,0 +1,302 @@
+---
+title: एकीकरण मार्गदर्शिका
+sidebarTitle: एकीकरण मार्गदर्शिका
+description: सूची लुकअप को एकीकृत करने के लिए प्रमुख अवधारणाएँ और सर्वोत्तम प्रथाएँ
+keywords: ["सूची लुकअप एकीकरण", "सूची एकीकरण मार्गदर्शिका", "सूची लुकअप कार्यान्वयन"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका उन प्रमुख अवधारणाओं को शामिल करती है, जिनकी आपको सूची लुकअप endpoint को अपने अनुप्रयोग में एकीकृत करने के लिए आवश्यकता होगी।
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+सूची लुकअप एंडपॉइंट कई प्रमाणीकरण विधियों का समर्थन करते हैं:
+
+| विधि                                                                                                                           | किसके लिए सबसे उपयुक्त | निजी सूचियों तक पहुँच? |
+| :----------------------------------------------------------------------------------------------------------------------------- | :--------------------- | :--------------------- |
+| [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#oauth-2-0)                                                         | सार्वजनिक सूची डेटा    | नहीं                   |
+| [OAuth 2.0 Authorization Code with PKCE](/hi/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | उपयोगकर्ता-उन्मुख ऐप   | हाँ (आपकी/फ़ॉलो की गई) |
+| [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication)                                                              | लेगेसी इंटीग्रेशन      | हाँ (आपकी/फ़ॉलो की गई) |
+
+<div id="example-request">
+  ### उदाहरण अनुरोध
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,private" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ID से एक सूची प्राप्त करें
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "private"]
+  )
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "private"],
+  });
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+***
+
+<div id="endpoints-overview">
+  ## एंडपॉइंट्स का अवलोकन
+</div>
+
+| Method | Endpoint                                                   | Description                                       |
+| :----- | :--------------------------------------------------------- | :------------------------------------------------ |
+| GET    | [`/2/lists/:id`](/hi/x-api/lists/get-list)                    | id द्वारा सूची प्राप्त करें                       |
+| GET    | [`/2/users/:id/owned_lists`](/hi/x-api/users/get-owned-lists) | उपयोगकर्ता के स्वामित्व वाली सूचियाँ प्राप्त करें |
+
+***
+
+<div id="fields-and-expansions">
+  ## फ़ील्ड्स और expansions
+</div>
+
+<div id="default-response">
+  ### डिफ़ॉल्ट रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News"
+  }
+}
+```
+
+<div id="available-fields">
+  ### उपलब्ध फ़ील्ड्स
+</div>
+
+<Accordion title="list.fields">
+  | फ़ील्ड           | विवरण                         |
+  | :--------------- | :---------------------------- |
+  | `created_at`     | सूची बनाए जाने का टाइमस्टैम्प |
+  | `description`    | सूची का विवरण                 |
+  | `follower_count` | फ़ॉलोअर्स की संख्या           |
+  | `member_count`   | सदस्यों की संख्या             |
+  | `owner_id`       | स्वामी की उपयोगकर्ता ID       |
+  | `private`        | क्या सूची निजी है             |
+</Accordion>
+
+<Accordion title="user.fields (requires owner_id विस्तार)">
+  | फ़ील्ड              | विवरण                    |
+  | :------------------ | :----------------------- |
+  | `username`          | स्वामी का @handle        |
+  | `name`              | swामी का प्रदर्शित नाम   |
+  | `verified`          | स्वामी की सत्यापन स्थिति |
+  | `profile_image_url` | स्वामी के अवतार का URL   |
+</Accordion>
+
+<div id="example-with-expansions">
+  ### विस्तारs के साथ उदाहरण
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/lists/84839422?\
+  list.fields=description,member_count,follower_count,owner_id&\
+  expansions=owner_id&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # मालिक की विस्तृत जानकारी के साथ सूची प्राप्त करें
+  response = client.lists.get(
+      list_id="84839422",
+      list_fields=["description", "member_count", "follower_count", "owner_id"],
+      expansions=["owner_id"],
+      user_fields=["username", "verified"]
+  )
+
+  print(response.data)
+  print(response.includes)  # इसमें मालिक का यूज़र ऑब्जेक्ट शामिल है
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.lists.get("84839422", {
+    listFields: ["description", "member_count", "follower_count", "owner_id"],
+    expansions: ["owner_id"],
+    userFields: ["username", "verified"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // इसमें मालिक का यूज़र ऑब्जेक्ट शामिल है
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### विस्तार के साथ रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": {
+    "id": "84839422",
+    "name": "Tech News",
+    "description": "Top tech journalists",
+    "member_count": 50,
+    "follower_count": 1250,
+    "owner_id": "2244994945"
+  },
+  "includes": {
+    "users": [
+      {
+        "id": "2244994945",
+        "username": "XDevelopers",
+        "verified": true
+      }
+    ]
+  }
+}
+```
+
+<Card title="फ़ील्ड्स और expansions मार्गदर्शिका" icon="sliders" href="/hi/x-api/fundamentals/fields">
+  रिस्पॉन्स को कस्टमाइज़ करने के बारे में और जानें
+</Card>
+
+***
+
+<div id="pagination">
+  ## पेजिनेशन
+</div>
+
+स्वामित्व वाली सूचियाँ प्राप्त करते समय, परिणाम पेजिनेट किए जाते हैं:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # पहला अनुरोध
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # पेजिनेशन टोकन के साथ अगला अनुरोध
+  curl "https://api.x.com/2/users/123/owned_lists?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK पेजिनेशन को अपने-आप संभालता है
+  all_lists = []
+
+  for page in client.lists.get_user_owned_lists(user_id="123", max_results=100):
+      if page.data:
+          all_lists.extend(page.data)
+
+  print(f"Found {len(all_lists)} lists")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllOwnedLists(userId) {
+    const allLists = [];
+
+    // SDK पेजिनेशन को अपने-आप संभालता है
+    const paginator = client.lists.getUserOwnedLists(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allLists.push(...page.data);
+      }
+    }
+
+    return allLists;
+  }
+
+  // उपयोग
+  const lists = await getAllOwnedLists("123");
+  console.log(`Found ${lists.length} lists`);
+  ```
+</CodeGroup>
+
+<Card title="पेजिनेशन गाइड" icon="arrow-right" href="/hi/x-api/fundamentals/pagination">
+  पेजिनेशन के बारे में और जानें
+</Card>
+
+***
+
+<div id="private-lists">
+  ## निजी सूचियाँ
+</div>
+
+* निजी सूचियाँ केवल स्वामी को दिखाई देती हैं
+* निजी सूची का विवरण प्राप्त करने के लिए आपको स्वामी के रूप में प्रमाणित होना होगा
+* `private` फ़ील्ड यह बताती है कि कोई सूची निजी है या नहीं
+
+***
+
+<div id="error-handling">
+  ## त्रुटि प्रबंधन
+</div>
+
+| स्थिति | त्रुटि           | समाधान                               |
+| :----- | :--------------- | :----------------------------------- |
+| 400    | अमान्य अनुरोध    | सूची ID का प्रारूप जाँचें            |
+| 401    | अनधिकृत          | प्रमाणीकरण सत्यापित करें             |
+| 403    | निषिद्ध          | सूची निजी हो सकती है                 |
+| 404    | नहीं मिला        | सूची मौजूद नहीं है                   |
+| 429    | बहुत अधिक अनुरोध | प्रतीक्षा करें और फिर से प्रयास करें |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="त्वरित शुरुआत" icon="rocket" href="/hi/x-api/lists/list-lookup/quickstart">
+    अपना पहला सूची लुकअप अनुरोध भेजें
+  </Card>
+
+  <Card title="सूची पोस्ट्स" icon="list" href="/hi/x-api/lists/list-tweets/introduction">
+    किसी सूची से पोस्ट्स प्राप्त करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/lists/get-list">
+    एंडपॉइंट का पूरा दस्तावेज़ीकरण
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    कार्यशील कोड उदाहरण
+  </Card>
+</CardGroup>

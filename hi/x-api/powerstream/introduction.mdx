@@ -1,0 +1,392 @@
+---
+title: परिचय
+sidebarTitle: परिचय
+keywords: ["powerstream", "powerstream API", "real-time streaming", "streaming rules", "filtered stream", "enterprise streaming", "GNIP powerstream"]
+---
+
+Powerstream सार्वजनिक X डेटा तक पहुँचने के लिए हमारा सबसे तेज़, रियल-टाइम स्ट्रीमिंग API है। पुराने GNIP Powetrack API की तरह, यह कीवर्ड, ऑपरेटर और मेटाडेटा के आधार पर पोस्ट्स को फ़िल्टर करने के लिए नियमों का उपयोग करता है। Powerstream endpoint के साथ एक स्थायी HTTP कनेक्शन स्थापित होने के बाद, आप लगभग रियल-टाइम में मेल खाने वाले पोस्ट्स प्राप्त करना शुरू कर सकते हैं।
+
+फ़िलहाल, Powerstream अधिकतम 1,000 नियमों का समर्थन करता है, और प्रत्येक नियम 2048 वर्णों तक का हो सकता है।
+
+<div id="key-features">
+  ## मुख्य विशेषताएँ:
+</div>
+
+* **रीयल-टाइम डेटा डिलीवरी**: अपने नियमों से मेल खाने वाला डेटा लगभग रीयल-टाइम में प्राप्त करें।
+* **सटीक फ़िल्टरिंग**: operators के साथ Boolean queries का उपयोग करके ठीक वही डेटा फ़िल्टर करें, जिसकी आप तलाश कर रहे हैं।
+* **डिलीवरी**: HTTP/1.1 chunked transfer encoding पर JSON रिस्पॉन्स।
+* **स्थानीय डेटासेंटर समर्थन**: replication lag से बचकर latency कम करने के लिए पोस्ट्स को केवल स्थानीय डेटासेंटर से फ़ेच करें।
+
+<Note>
+  Powerstream API एक प्रीमियम पेशकश है, जो चुनिंदा Enterprise plans के अंतर्गत उपलब्ध है।
+
+  अगर आप Powerstream का एक्सेस प्राप्त करना चाहते हैं या हमारी Enterprise पेशकशों के बारे में अधिक जानना चाहते हैं, तो कृपया [Enterprise Request Form](/hi/forms/enterprise-api-interest) सबमिट करके हमारी Sales team से संपर्क करें।
+  हमें यह बताने में खुशी होगी कि Powerstream आपकी ज़रूरतों को कैसे पूरा कर सकता है।
+</Note>
+
+<div id="quick-start">
+  ## त्वरित शुरुआत
+</div>
+
+इस अनुभाग में दिखाया गया है कि `requests` लाइब्रेरी के साथ Python का उपयोग करके PowerStream endpoints के साथ जल्दी शुरुआत कैसे करें। इसे `pip install requests` के ज़रिए इंस्टॉल करें। सभी उदाहरण OAuth 2.0 बेयरर टोकन प्रमाणीकरण का उपयोग करते हैं। `YOUR_BEARER_TOKEN` को अपने वास्तविक टोकन से बदलें (इसे सुरक्षित रूप से संग्रहीत करें, उदाहरण के लिए `os.getenv('BEARER_TOKEN')` के ज़रिए)।
+
+हम हर endpoint कोड स्निपेट्स के साथ समझाएँगे। मान लें कि सबसे ऊपर ये imports हैं:
+
+```python
+import requests
+import json
+import time
+import sys
+import os  # एनवायरनमेंट वेरिएबल्स के लिए
+```
+
+<div id="setup">
+  ### सेटअप
+</div>
+
+```python
+bearer_token = os.getenv('BEARER_TOKEN') or "YOUR_BEARER_TOKEN"  # सुरक्षा के लिए env var का उपयोग करें
+base_url = "https://api.x.com/2/powerstream"
+rules_url = f"{base_url}/rules"  # नियम प्रबंधन के लिए
+headers = {
+   "Authorization": f"Bearer {bearer_token}",
+   "Content-Type": "application/json"
+}
+```
+
+<div id="1-create-rules-post-rules">
+  ### 1. नियम बनाएँ (POST /rules)
+</div>
+
+अपनी स्ट्रीम को फ़िल्टर करने के लिए नियम जोड़ें।
+
+```python
+data = {
+   "rules": [
+       {
+           "value": "(cat OR dog) lang:en -is:retweet",
+           "tag": "pet-monitor"
+       },
+       # आवश्यकतानुसार और नियम जोड़ें (अधिकतम 100 तक)
+   ]
+}
+
+response = requests.post(rules_url, headers=headers, json=data)
+if response.status_code == 201:
+   rules_added = response.json().get("data", {}).get("rules", [])
+   print("नियम जोड़े गए:")
+   for rule in rules_added:
+       print(f"ID: {rule['id']}, Value: {rule['value']}, Tag: {rule.get('tag', 'N/A')}")
+else:
+   print(f"Error {response.status_code}: {response.text}")
+```
+
+<div id="2-delete-rules-post-rules">
+  ### 2. नियम हटाएं (POST /rules)
+</div>
+
+ID (अनुशंसित) या मान के आधार पर नियम हटाएं।
+
+```python
+data = {
+   "rules": [
+       {
+           "value": "(cat OR dog) lang:en -is:retweet",
+           "tag": "pet-monitor"
+       },
+       # आवश्यकतानुसार और नियम जोड़ें (अधिकतम 100)
+   ]
+}
+
+response = requests.delete(rules_url, headers=headers, json=data)
+if response.status_code == 200:
+   deleted = response.json().get("data", {})
+   print(f"Deleted count: {deleted.get('deleted', 'N/A')}")
+   if 'not_deleted' in deleted:
+       print("Not deleted:", deleted['not_deleted'])
+else:
+   print(f"Error {response.status_code}: {response.text}")
+```
+
+**सुझाव**: सभी नियमों को हटाने के लिए, पहले उन्हें GET करें, उनके id निकालें, फिर उन्हें एक साथ हटाएँ।
+
+<div id="3-get-rules-get-rules">
+  ### 3. नियम प्राप्त करें (GET /rules)
+</div>
+
+सभी सक्रिय नियम प्राप्त करें।
+
+```python
+response = requests.get(rules_url, headers=headers)
+if response.status_code == 200:
+   rules = response.json().get("data", {}).get("rules", [])
+   if rules:
+       print("Active rules:")
+       for rule in rules:
+           print(f"ID: {rule['id']}, Value: {rule['value']}, Tag: {rule.get('tag', 'N/A')}")
+   else:
+       print("No active rules.")
+else:
+   print(f"Error {response.status_code}: {response.text}")
+```
+
+<div id="4-powerstream-get-stream">
+  ### 4. PowerStream (GET /stream)
+</div>
+
+रियल-टाइम पोस्ट्स के लिए स्ट्रीम से कनेक्ट करें। पंक्ति-दर-पंक्ति पढ़ने के लिए `stream=True` का उपयोग करें। विश्वसनीयता के लिए पुनःकनेक्शन लॉजिक लागू करें।
+
+```python
+stream_url = base_url
+
+def main():
+   while True:
+       response = requests.request("GET", stream_url, headers=headers, stream=True)
+       print(response.status_code)
+       for response_line in response.iter_lines():
+           if response_line:
+               json_response = json.loads(response_line)
+               print(json.dumps(json_response, indent=4, sort_keys=True))
+               if response.status_code != 200:
+                   print(response.headers)
+                   raise Exception(
+                       "Request returned an error: {} {}".format(
+                           response.status_code, response.text
+                       )
+                   )
+```
+
+<div id="local-datacenter-support">
+  #### स्थानीय डेटासेंटर समर्थन
+</div>
+
+विलंबता को अनुकूलित करने के लिए, Powerstream केवल उन पोस्ट्स को फ़ेच करने का विकल्प देता है जो उसी स्थानीय डेटासेंटर में उत्पन्न या बनाई गई हों जहाँ कनेक्शन स्थापित है। इससे replication lag से बचाव होता है, जिसके परिणामस्वरूप दूसरे डेटासेंटर्स की पोस्ट्स की तुलना में डिलीवरी तेज़ होती है। इसे सक्षम करने के लिए, stream endpoint में query parameter `?localDcOnly=true` जोड़ें (उदाहरण के लिए, `/2/powerstream?localDcOnly=true`)। आप जिस डेटासेंटर से जुड़े हैं, उसका संकेत stream के initial data payload में भी और रिस्पॉन्स में HTTP header के रूप में भी दिया जाएगा।
+
+कोड में उपयोग करने के लिए:
+
+```python
+# केवल स्थानीय डेटासेंटर के लिए:
+stream_url = "https://api.x.com/2/powerstream?localDcOnly=true"
+```
+
+यदि `localDcOnly` पैरामीटर सक्षम है, तो स्ट्रीम के पहली बार कनेक्ट होने पर उसमें निम्नलिखित रिस्पॉन्स हेडर शामिल होंगे, जो यह दर्शाते हैं कि कौन-सा स्थानीय डेटासेंटर उपयोग में है:
+
+```bash
+'x-powerstream-datacenter': 'atla',
+'x-powerstream-localdconly': 'true'
+```
+
+इसके अतिरिक्त, यह डेटासेंटर निर्दिष्ट करने वाला एक शुरुआती payload भी भेजेगा:
+
+```bash
+{
+    "type": "connection_metadata",
+    "datacenter": "atla",
+    "timestamp": 1762557264155
+}
+```
+
+<Note>
+  **सुझाव:** विलंबता को बेहतर बनाने के लिए, अलग-अलग भौगोलिक स्थानों से कनेक्शन सेट अप करें (उदाहरण के लिए, एक US East Coast पर Atlanta के पास और दूसरा US West Coast पर Portland के पास) और प्रत्येक के लिए `localDcOnly=true` सक्षम करें। इससे हर संबंधित डेटासेंटर से पोस्ट्स तक तेज़ पहुंच मिलती है। cross-datacenter डेटा को मिलाने के लिए, अपनी तरफ़ streams को एग्रीगेट करें।
+</Note>
+
+<div id="operators">
+  ## ऑपरेटर
+</div>
+
+फ़िल्टरिंग के लिए नियम सेट करने हेतु, आप कीवर्ड और ऑपरेटरों का उपयोग कर सकते हैं। नीचे उपलब्ध ऑपरेटरों की सूची देखें।
+
+<div id="field-based-operators">
+  ### फ़ील्ड-आधारित ऑपरेटर
+</div>
+
+<div id="user-operators">
+  #### उपयोगकर्ता ऑपरेटर
+</div>
+
+| ऑपरेटर         | सारांश                                                | उदाहरण                              |
+| -------------- | ----------------------------------------------------- | ----------------------------------- |
+| `from:`        | किसी खास उपयोगकर्ता की पोस्ट्स से मेल खाता है         | `from:xdevelopers` या `from:123456` |
+| `to:`          | किसी खास उपयोगकर्ता को संबोधित पोस्ट्स से मेल खाता है | `to:jvaleski`                       |
+| `retweets_of:` | किसी खास उपयोगकर्ता के रीपोस्ट्स से मेल खाता है       | `retweets_of:xdevelopers`           |
+
+<div id="content-operators">
+  #### कंटेंट ऑपरेटर्स
+</div>
+
+| ऑपरेटर          | सारांश                                                     | उदाहरण                                   |
+| --------------- | ---------------------------------------------------------- | ---------------------------------------- |
+| `contains:`     | विशिष्ट टेक्स्ट/कीवर्ड वाली पोस्ट्स से मेल खाता है         | `contains:hello` or `contains:-2345.432` |
+| `url_contains:` | उन पोस्ट्स से मेल खाता है जिनके URL में विशिष्ट टेक्स्ट हो | `url_contains:"com/willplayforfood"`     |
+| `lang:`         | विशिष्ट भाषाओं की पोस्ट्स से मेल खाता है                   | `lang:en`                                |
+
+<div id="entity-operators">
+  #### एंटिटी ऑपरेटर
+</div>
+
+| ऑपरेटर | सारांश                                                                                                          | उदाहरण                                  |
+| ------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `has:` | विशिष्ट एंटिटी वाले पोस्ट्स से मेल खाता है (विकल्प: mentions, geo, links, media, lang, symbols, images, videos) | `has:images`, `has:geo`, `has:mentions` |
+| `is:`  | विशिष्ट प्रकार के या विशिष्ट गुणों वाले पोस्ट्स से मेल खाता है (विकल्प: retweet, reply)                         | `is:retweet`, `is:reply`                |
+
+<div id="location-operators">
+  #### स्थान ऑपरेटर
+</div>
+
+| ऑपरेटर          | सारांश                                                                    | उदाहरण                                                                                   |
+| --------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `place:`        | विशिष्ट स्थानों से पोस्ट्स का मिलान करता है                               | `place:"Belmont Central"`, `place:02763fa2a7611cf3`                                      |
+| `bounding_box:` | किसी भौगोलिक बाउंडिंग बॉक्स के भीतर की पोस्ट्स का मिलान करता है           | `bounding_box:[-112.424083 42.355283 -112.409111 42.792311]`                             |
+| `point_radius:` | किसी बिंदु के चारों ओर दी गई त्रिज्या के भीतर की पोस्ट्स का मिलान करता है | `point_radius:[-111.464973 46.371179 25mi]`, `point_radius:[-111.464973 46.371179 15km]` |
+
+<div id="advancedcontent-operators">
+  #### उन्नत/कंटेंट ऑपरेटर
+</div>
+
+| ऑपरेटर      | सारांश                                                                                             | उदाहरण    |
+| ----------- | -------------------------------------------------------------------------------------------------- | --------- |
+| `bio:`      | विशिष्ट बायो सामग्री वाले उपयोगकर्ताओं के पोस्ट्स से मेल खाता है (वाक्यांश मिलान का उपयोग करता है) | लागू नहीं |
+| `bio_name:` | बायो में विशिष्ट नाम वाले उपयोगकर्ताओं के पोस्ट्स से मेल खाता है (वाक्यांश मिलान का उपयोग करता है) | लागू नहीं |
+
+<div id="additional-operators">
+  #### अतिरिक्त ऑपरेटर
+</div>
+
+| ऑपरेटर                 | सारांश                                    | उदाहरण                                      |
+| ------------------------ | ----------------------------------------- | ------------------------------------------- |
+| `retweets_of_status_id:` | विशिष्ट पोस्ट्स के रीपोस्ट से मेल खाता है | `retweets_of_status_id:1234567890123456789` |
+| `in_reply_to_status_id:` | विशिष्ट पोस्ट्स के जवाबों से मेल खाता है  | `in_reply_to_status_id:1234567890123456789` |
+
+<div id="non-field-operators">
+  ### फ़ील्ड-रहित ऑपरेटर
+</div>
+
+<div id="special-syntax-operators">
+  #### विशेष सिंटैक्स ऑपरेटर
+</div>
+
+| ऑपरेटर         | सारांश                           | उदाहरण           |
+| -------------- | -------------------------------- | ---------------- |
+| `@`            | मेंशन ऑपरेटर                     | `@username`      |
+| वाक्यांश मिलान | सटीक वाक्यांशों का मिलान करता है | `"exact phrase"` |
+
+<div id="logical-operators">
+  #### तार्किक ऑपरेटर
+</div>
+
+| ऑपरेटर  | Summary                                 | Example                                    |
+| --------- | --------------------------------------- | ------------------------------------------ |
+| `OR`      | अभिव्यक्तियों के बीच तार्किक OR         | `x OR facebook`                            |
+| Space/AND | अभिव्यक्तियों के बीच तार्किक AND        | `x facebook` (दोनों शब्द मौजूद होने चाहिए) |
+| `()`      | जटिल अभिव्यक्तियों के लिए समूहबद्ध करना | `(x OR facebook) iphone`                   |
+| `-`       | निषेध/बहिष्करण                          | `x -facebook` (x, लेकिन facebook नहीं)     |
+
+<div id="responses">
+  ## रिस्पॉन्स
+</div>
+
+Powestream API का payload, legacy GNIP Powertrack API के समान फ़ॉर्मैट में होता है। एक नमूना json रिस्पॉन्स इस तरह दिखता है:
+
+```json
+[
+   {
+       "created_at": "Tue Mar 21 20:50:14 +0000 2006",
+       "id": 20,
+       "id_str": "20",
+       "text": "just setting up my twttr",
+       "truncated": false,
+       "entities": {
+           "hashtags": [],
+           "symbols": [],
+           "user_mentions": [],
+           "urls": []
+       },
+       "source": "<a href=\"http://x.com\" rel=\"nofollow\">X Web Client</a>",
+       "in_reply_to_status_id": null,
+       "in_reply_to_status_id_str": null,
+       "in_reply_to_user_id": null,
+       "in_reply_to_user_id_str": null,
+       "in_reply_to_screen_name": null,
+       "user": {
+           "id": 12,
+           "id_str": "12",
+           "name": "jack",
+           "screen_name": "jack",
+           "location": "",
+           "description": "no state is the best state",
+           "url": "https://t.co/ZEpOg6rn5L",
+           "entities": {
+               "url": {
+                   "urls": [
+                       {
+                           "url": "https://t.co/ZEpOg6rn5L",
+                           "expanded_url": "http://primal.net/jack",
+                           "display_url": "primal.net/jack",
+                           "indices": [
+                               0,
+                               23
+                           ]
+                       }
+                   ]
+               },
+               "description": {
+                   "urls": []
+               }
+           },
+           "protected": false,
+           "followers_count": 6427829,
+           "friends_count": 3,
+           "listed_count": 32968,
+           "created_at": "Tue Mar 21 20:50:14 +0000 2006",
+           "favourites_count": 36306,
+           "utc_offset": null,
+           "time_zone": null,
+           "geo_enabled": true,
+           "verified": false,
+           "statuses_count": 30134,
+           "lang": null,
+           "contributors_enabled": false,
+           "is_translator": false,
+           "is_translation_enabled": false,
+           "profile_background_color": "EBEBEB",
+           "profile_background_image_url": "http://abs.twimg.com/images/themes/theme7/bg.gif",
+           "profile_background_image_url_https": "https://abs.twimg.com/images/themes/theme7/bg.gif",
+           "profile_background_tile": false,
+           "profile_image_url": "http://pbs.twimg.com/profile_images/1661201415899951105/azNjKOSH_normal.jpg",
+           "profile_image_url_https": "https://pbs.twimg.com/profile_images/1661201415899951105/azNjKOSH_normal.jpg",
+           "profile_banner_url": "https://pbs.twimg.com/profile_banners/12/1742427520",
+           "profile_link_color": "990000",
+           "profile_sidebar_border_color": "DFDFDF",
+           "profile_sidebar_fill_color": "F3F3F3",
+           "profile_text_color": "333333",
+           "profile_use_background_image": true,
+           "has_extended_profile": true,
+           "default_profile": false,
+           "default_profile_image": false,
+           "following": null,
+           "follow_request_sent": null,
+           "notifications": null,
+           "translator_type": "regular",
+           "withheld_in_countries": []
+       },
+       "geo": null,
+       "coordinates": null,
+       "place": null,
+       "contributors": null,
+       "is_quote_status": false,
+       "retweet_count": 122086,
+       "favorite_count": 263321,
+       "favorited": false,
+       "retweeted": false,
+       "lang": "en"
+   }
+]
+```
+
+<div id="limits-best-practices">
+  ## सीमाएँ और सर्वोत्तम प्रथाएँ
+</div>
+
+* रेट लिमिट्स: नियम प्रबंधन के लिए 50 अनुरोध/24h; स्ट्रीम्स पर कोई सीमा नहीं है (लेकिन कनेक्शन सीमाएँ लागू होती हैं)।
+* रीकनेक्शन: डिस्कनेक्ट होने पर एक्सपोनेंशियल बैकऑफ़।
+* निगरानी: `Connection: keep-alive` हेडर्स का उपयोग करें।

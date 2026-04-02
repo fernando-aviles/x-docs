@@ -1,0 +1,377 @@
+---
+title: एकीकरण मार्गदर्शिका
+sidebarTitle: एकीकरण मार्गदर्शिका
+description: Timelines एंडपॉइंट्स के एकीकरण के लिए मुख्य अवधारणाएँ और सर्वोत्तम तरीके
+keywords: ["टाइमलाइन एकीकरण", "टाइमलाइन मार्गदर्शिका", "टाइमलाइन कार्यान्वयन", "होम टाइमलाइन एकीकरण", "उपयोगकर्ता टाइमलाइन एकीकरण"]
+---
+
+यह मार्गदर्शिका उन मुख्य अवधारणाओं को कवर करती है जिनकी आपको Timelines एंडपॉइंट्स को अपने ऐप में एकीकृत करने के लिए आवश्यकता है।
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+<div id="endpoint-requirements">
+  ### एंडपॉइंट आवश्यकताएँ
+</div>
+
+| एंडपॉइंट                    | App-Only | उपयोगकर्ता संदर्भ |
+| :-------------------------- | :------ | :---------------- |
+| उपयोगकर्ता पोस्ट्स टाइमलाइन | ✓       | ✓                 |
+| उपयोगकर्ता मेंशन्स टाइमलाइन | ✓       | ✓                 |
+| होम टाइमलाइन                | —       | ✓ (आवश्यक)        |
+
+<div id="private-metrics">
+  ### निजी मेट्रिक्स
+</div>
+
+निजी मेट्रिक्स तक पहुँचने के लिए, आपको पोस्ट के लेखक की ओर से प्रमाणित होना होगा:
+
+<Warning>
+  इन फ़ील्ड्स के लिए User Context प्रमाणीकरण आवश्यक है:
+
+  * `tweet.fields.non_public_metrics`
+  * `tweet.fields.promoted_metrics`
+  * `tweet.fields.organic_metrics`
+  * `media.fields.non_public_metrics`
+  * `media.fields.promoted_metrics`
+  * `media.fields.organic_metrics`
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## फ़ील्ड्स और expansions
+</div>
+
+डिफ़ॉल्ट रूप से, रिस्पॉन्स में केवल `id`, `text`, और `edit_history_tweet_ids` शामिल होते हैं। अतिरिक्त डेटा का अनुरोध करें:
+
+<div id="example-request">
+  ### उदाहरण अनुरोध
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/tweets?\
+  tweet.fields=created_at,public_metrics,author_id&\
+  expansions=author_id,attachments.media_keys&\
+  user.fields=username,verified&\
+  media.fields=url,type" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # उपयोगकर्ता की पोस्ट्स टाइमलाइन प्राप्त करें
+  for page in client.posts.get_user_posts(
+      user_id="123",
+      tweet_fields=["created_at", "public_metrics", "author_id"],
+      expansions=["author_id", "attachments.media_keys"],
+      user_fields=["username", "verified"],
+      media_fields=["url", "type"],
+      max_results=100
+  ):
+      for post in page.data:
+          print(f"{post.text} - {post.public_metrics}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // पेजिनेशन के साथ उपयोगकर्ता की पोस्ट्स टाइमलाइन प्राप्त करें
+  const paginator = client.posts.getUserPosts("123", {
+    tweetFields: ["created_at", "public_metrics", "author_id"],
+    expansions: ["author_id", "attachments.media_keys"],
+    userFields: ["username", "verified"],
+    mediaFields: ["url", "type"],
+    maxResults: 100,
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => {
+      console.log(`${post.text} - ${JSON.stringify(post.public_metrics)}`);
+    });
+  }
+  ```
+</CodeGroup>
+
+<div id="key-fields">
+  ### मुख्य फ़ील्ड्स
+</div>
+
+| फ़ील्ड                | विवरण                          |
+| :-------------------- | :----------------------------- |
+| `created_at`          | पोस्ट बनाए जाने का टाइमस्टैम्प |
+| `public_metrics`      | एंगेजमेंट की संख्या            |
+| `conversation_id`     | थ्रेड पहचानकर्ता               |
+| `context_annotations` | विषय वर्गीकरण                  |
+| `entities`            | हैशटैग, मेंशन, URL             |
+
+<Card title="फ़ील्ड्स और expansions गाइड" icon="sliders" href="/hi/x-api/fundamentals/fields">
+  रिस्पॉन्स को कस्टमाइज़ करने के बारे में और जानें
+</Card>
+
+***
+
+<div id="pagination">
+  ## पेजिनेशन
+</div>
+
+Timelines हर अनुरोध पर अधिकतम 100 पोस्ट्स लौटाती हैं। बड़े परिणाम सेट के लिए पेजिनेशन का उपयोग करें।
+
+<div id="how-it-works">
+  ### यह कैसे काम करता है
+</div>
+
+1. `max_results` के साथ शुरुआती अनुरोध करें
+2. `meta` ऑब्जेक्ट से `next_token` प्राप्त करें
+3. अगले अनुरोध में `pagination_token` शामिल करें
+4. जब तक `next_token` वापस मिलना बंद न हो जाए, दोहराएँ
+
+<div id="example">
+  ### उदाहरण
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  # पहला अनुरोध
+  curl "https://api.x.com/2/users/123/tweets?max_results=100" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+
+  # पेजिनेशन टोकन के साथ अगला अनुरोध
+  curl "https://api.x.com/2/users/123/tweets?max_results=100&pagination_token=NEXT_TOKEN" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # SDK पेजिनेशन को अपने आप संभालता है
+  all_posts = []
+
+  for page in client.posts.get_user_posts(user_id="123", max_results=100):
+      if page.data:
+          all_posts.extend(page.data)
+
+  print(f"Found {len(all_posts)} posts")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  async function getAllTimelinePosts(userId) {
+    const allPosts = [];
+
+    // SDK async iteration के साथ पेजिनेशन को अपने आप संभालता है
+    const paginator = client.posts.getUserPosts(userId, { maxResults: 100 });
+
+    for await (const page of paginator) {
+      if (page.data) {
+        allPosts.push(...page.data);
+      }
+    }
+
+    return allPosts;
+  }
+
+  // इस्तेमाल
+  const posts = await getAllTimelinePosts("123");
+  console.log(`Found ${posts.length} posts`);
+  ```
+</CodeGroup>
+
+<Card title="पेजिनेशन गाइड" icon="arrow-right" href="/hi/x-api/fundamentals/pagination">
+  पेजिनेशन के बारे में और जानें
+</Card>
+
+***
+
+<div id="filtering-results">
+  ## परिणामों को फ़िल्टर करना
+</div>
+
+<div id="time-based-filtering">
+  ### समय-आधारित फ़िल्टरिंग
+</div>
+
+| पैरामीटर     | विवरण                                       |
+| :----------- | :------------------------------------------ |
+| `start_time` | सबसे पुरानी पोस्ट का टाइमस्टैम्प (ISO 8601) |
+| `end_time`   | सबसे नई पोस्ट का टाइमस्टैम्प (ISO 8601)     |
+| `since_id`   | इस ID के बाद की पोस्ट्स लौटाएँ              |
+| `until_id`   | इस ID से पहले की पोस्ट्स लौटाएँ             |
+
+<div id="exclude-parameter">
+  ### Exclude पैरामीटर
+</div>
+
+परिणामों से विशिष्ट पोस्ट प्रकारों को हटाएँ:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123/tweets?exclude=retweets,replies" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # रीट्वीट और जवाबों को शामिल न करें
+  for page in client.posts.get_user_posts(
+      user_id="123",
+      exclude=["retweets", "replies"]
+  ):
+      for post in page.data:
+          print(post.text)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // रीट्वीट और जवाबों को शामिल न करें
+  const paginator = client.posts.getUserPosts("123", {
+    exclude: ["retweets", "replies"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((post) => console.log(post.text));
+  }
+  ```
+</CodeGroup>
+
+| मान        | प्रभाव               |
+| :--------- | :------------------- |
+| `retweets` | रीट्वीट शामिल न करें |
+| `replies`  | जवाब शामिल न करें    |
+
+***
+
+<div id="volume-limits">
+  ## वॉल्यूम सीमाएँ
+</div>
+
+प्रत्येक टाइमलाइन के लिए अधिकतम रिट्रीवल सीमाएँ हैं:
+
+| एंडपॉइंट                             | अधिकतम पोस्ट्स    |
+| :----------------------------------- | :---------------- |
+| उपयोगकर्ता पोस्ट्स टाइमलाइन          | सबसे हाल के 3,200 |
+| उपयोगकर्ता पोस्ट्स (exclude=replies) | सबसे हाल के 800   |
+| उपयोगकर्ता मेंशन टाइमलाइन            | सबसे हाल के 800   |
+| होम टाइमलाइन                         | 3,200 या 7 दिन    |
+
+<Note>
+  इन सीमाओं से आगे के पोस्ट्स का अनुरोध करने पर बिना डेटा के सफल रिस्पॉन्स मिलता है।
+</Note>
+
+***
+
+<div id="post-edits">
+  ## पोस्ट संपादन
+</div>
+
+पोस्ट्स को 30 मिनट के भीतर अधिकतम 5 बार संपादित किया जा सकता है। टाइमलाइन एंडपॉइंट्स हमेशा सबसे नवीनतम संस्करण लौटाते हैं।
+
+<div id="considerations">
+  ### ध्यान देने योग्य बातें
+</div>
+
+* 30 मिनट से अधिक पुराने पोस्ट्स उनके अंतिम संस्करण को दर्शाते हैं
+* निकट-वास्तविक-समय वाले उपयोग के मामलों में संभावित संपादनों को ध्यान में रखना चाहिए
+* ज़रूरत पड़ने पर अंतिम स्थिति की पुष्टि करने के लिए Post lookup का उपयोग करें
+
+<Card title="पोस्ट संपादन की बुनियादी बातें" icon="clock-rotate-left" href="/hi/x-api/fundamentals/edit-posts">
+  पोस्ट संपादनों के बारे में और जानें
+</Card>
+
+***
+
+<div id="post-metrics">
+  ## पोस्ट मेट्रिक्स
+</div>
+
+<div id="public-metrics">
+  ### सार्वजनिक मेट्रिक्स
+</div>
+
+App-Only या User Context प्रमाणीकरण के साथ सभी पोस्ट्स के लिए उपलब्ध:
+
+```json
+{
+  "public_metrics": {
+    "retweet_count": 156,
+    "reply_count": 23,
+    "like_count": 892,
+    "quote_count": 12
+  }
+}
+```
+
+<div id="private-metrics">
+  ### निजी मेट्रिक्स
+</div>
+
+पोस्ट के लेखक से User Context प्रमाणीकरण आवश्यक है:
+
+* केवल पिछले 30 दिनों की पोस्ट्स के लिए उपलब्ध
+* केवल प्रमाणित उपयोगकर्ता द्वारा लिखी गई पोस्ट्स के लिए ही लौटाया जाता है
+* अन्य उपयोगकर्ताओं की पोस्ट्स के लिए त्रुटि लौटाई जाती है
+
+***
+
+<div id="edge-cases">
+  ## एज केस
+</div>
+
+<Accordion title="गैर-सार्वजनिक मेट्रिक्स और पेजिनेशन">
+  30 दिनों से पुराने पोस्ट्स के लिए गैर-सार्वजनिक मेट्रिक्स का अनुरोध करते समय, आपको `result_count: 0` के साथ `next_token` मिल सकता है। इससे बचने के लिए:
+
+  * अनुरोधों को पिछले 30 दिनों के भीतर सीमित रखें
+  * `max_results` कम से कम 10 रखें
+</Accordion>
+
+<Accordion title="गैर-प्रमोट किए गए पोस्ट्स के लिए प्रमोटेड मेट्रिक्स">
+  जिन पोस्ट्स को प्रमोट नहीं किया गया था, उनके लिए प्रमोटेड मेट्रिक्स का अनुरोध करने पर खाली रिस्पॉन्स मिलता है। यह एक ज्ञात समस्या है।
+</Accordion>
+
+<Accordion title="ट्रंकेट किया गया Retweet टेक्स्ट">
+  140 वर्णों से अधिक टेक्स्ट वाले Retweets के लिए, `text` फ़ील्ड ट्रंकेट हो जाता है। पूरा टेक्स्ट पाने के लिए `referenced_tweets.id` expansion का उपयोग करें।
+</Accordion>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="होम टाइमलाइन त्वरित शुरुआत" icon="house" href="/hi/x-api/posts/timelines/quickstart/reverse-chron-quickstart">
+    किसी उपयोगकर्ता की होम फ़ीड प्राप्त करें
+  </Card>
+
+  <Card title="मेंशन की त्वरित शुरुआत" icon="at" href="/hi/x-api/posts/timelines/quickstart/user-mention-quickstart">
+    किसी उपयोगकर्ता के मेंशन प्राप्त करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/user-posts-timeline-by-user-id">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+
+  <Card title="पेजिनेशन" icon="arrow-right" href="/hi/x-api/fundamentals/pagination">
+    बड़े परिणाम सेट को संभालें
+  </Card>
+</CardGroup>

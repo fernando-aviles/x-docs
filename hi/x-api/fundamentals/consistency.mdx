@@ -1,0 +1,215 @@
+---
+title: API एकरूपता
+sidebarTitle: एकरूपता
+description: X API v2 एंडपॉइंट्स में एकसमान पैटर्न
+keywords: ["एकरूपता", "API एकरूपता", "एकसमान API", "एकसमान एंडपॉइंट्स", "API डिज़ाइन"]
+---
+
+X API v2 को सभी एंडपॉइंट्स में एकसमान पैटर्न के साथ डिज़ाइन किया गया है। एक बार आप समझ लें कि कोई एक एंडपॉइंट कैसे काम करता है, तो वही पैटर्न हर जगह लागू होते हैं।
+
+***
+
+<div id="consistent-patterns">
+  ## सुसंगत पैटर्न
+</div>
+
+<div id="url-structure">
+  ### URL संरचना
+</div>
+
+सभी v2 एंडपॉइंट एक अनुमानित पैटर्न का पालन करते हैं:
+
+```
+/version/resource/{id}?parameters
+/version/resource/verb?parameters
+```
+
+उदाहरण:
+
+```
+/2/tweets/1234567890                    # एक विशिष्ट पोस्ट प्राप्त करें
+/2/tweets/search/recent                 # हाल की पोस्ट्स खोजें
+/2/users/by/username/xdevelopers        # उपयोगकर्ता नाम द्वारा उपयोगकर्ता प्राप्त करें
+/2/users/1234/followers                 # उपयोगकर्ता के फ़ॉलोअर्स प्राप्त करें
+```
+
+<div id="response-structure">
+  ### रिस्पॉन्स संरचना
+</div>
+
+सभी रिस्पॉन्स एक ही शीर्ष-स्तरीय संरचना का उपयोग करते हैं:
+
+```json
+{
+  "data": { ... },       // प्राथमिक ऑब्जेक्ट(s)
+  "includes": { ... },   // विस्तारित ऑब्जेक्ट
+  "meta": { ... },       // पेजिनेशन, गणना
+  "errors": [ ... ]      // आंशिक त्रुटियाँ (यदि कोई हों)
+}
+```
+
+<div id="id-format">
+  ### ID का प्रारूप
+</div>
+
+विभिन्न भाषाओं के साथ संगतता सुनिश्चित करने के लिए सभी ID स्ट्रिंग के रूप में लौटाई जाती हैं:
+
+```json
+{
+  "id": "1234567890123456789",
+  "author_id": "2244994945"
+}
+```
+
+***
+
+<div id="fields-and-expansions">
+  ## फ़ील्ड्स और expansions
+</div>
+
+एक ही [फ़ील्ड्स](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) पैरामीटर हर जगह एक जैसे तरीके से काम करते हैं:
+
+| ऑब्जेक्ट   | फ़ील्ड्स पैरामीटर | इन सभी में काम करता है                     |
+| :--------- | :---------------- | :----------------------------------------- |
+| पोस्ट      | `tweet.fields`    | पोस्ट्स लौटाने वाले सभी एंडपॉइंट्स         |
+| उपयोगकर्ता | `user.fields`     | उपयोगकर्ताओं को लौटाने वाले सभी एंडपॉइंट्स |
+| मीडिया     | `media.fields`    | मीडिया expansions वाले सभी एंडपॉइंट्स      |
+| पोल        | `poll.fields`     | पोल expansions वाले सभी एंडपॉइंट्स         |
+| स्थान      | `place.fields`    | स्थान expansions वाले सभी एंडपॉइंट्स       |
+
+***
+
+<div id="object-schemas">
+  ## ऑब्जेक्ट स्कीमा
+</div>
+
+एक ही ऑब्जेक्ट type में हमेशा वही फ़ील्ड्स होते हैं, चाहे उसे कोई भी एंडपॉइंट रिटर्न करे:
+
+* search से मिला पोस्ट, lookup से मिले पोस्ट के समान फ़ील्ड्स रखता है
+* followers से मिला User, search से मिले User के समान फ़ील्ड्स रखता है
+* Expanded ऑब्जेक्ट्स अपने standalone समकक्षों से मेल खाते हैं
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+सभी एंडपॉइंट एक ही प्रमाणीकरण विधियों का उपयोग करते हैं:
+
+| विधि       | हेडर फ़ॉर्मैट                        |
+| :--------- | :----------------------------------- |
+| बेयरर टोकन | `Authorization: Bearer {token}`      |
+| OAuth 1.0a | `Authorization: OAuth {parameters}`  |
+| OAuth 2.0  | `Authorization: Bearer {user_token}` |
+
+***
+
+<div id="error-handling">
+  ## त्रुटि प्रबंधन
+</div>
+
+त्रुटियाँ एक समान प्रारूप में होती हैं:
+
+```json
+{
+  "title": "Invalid Request",
+  "detail": "The query parameter is missing",
+  "type": "https://api.x.com/2/problems/invalid-request"
+}
+```
+
+[सभी error type देखें →](/hi/x-api/fundamentals/response-codes-and-errors)
+
+***
+
+<div id="pagination">
+  ## पेजिनेशन
+</div>
+
+सभी पेजिनेट किए गए एंडपॉइंट एक ही टोकन सिस्टम का उपयोग करते हैं:
+
+| Parameter          | Description                                   |
+| :----------------- | :-------------------------------------------- |
+| `max_results`      | प्रति पेज परिणाम                              |
+| `pagination_token` | `next_token` या `previous_token` से मिला टोकन |
+
+[पेजिनेशन के बारे में और जानें →](/hi/x-api/fundamentals/pagination)
+
+***
+
+<div id="naming-conventions">
+  ## नामकरण परंपराएं
+</div>
+
+* अमेरिकी अंग्रेज़ी वर्तनी (`favorites`, न कि `favourites`)
+* फ़ील्ड नामों के लिए snake&#95;case (`author_id`, `created_at`)
+* सुसंगत शब्दावली (`retweet_count`, फ़ील्ड्स में `repost_count` नहीं)
+
+***
+
+<div id="empty-values">
+  ## रिक्त मान
+</div>
+
+जिन फ़ील्ड्स का कोई मान नहीं होता, उन्हें `null` के रूप में लौटाने के बजाय शामिल नहीं किया जाता है:
+
+```json
+// बिना बायो वाला उपयोगकर्ता
+{
+  "id": "1234",
+  "name": "Example User",
+  "username": "example"
+  // "description" छोड़ा गया है, null नहीं
+}
+```
+
+***
+
+<div id="entity-consistency">
+  ## इकाई की संगति
+</div>
+
+`entities` ऑब्जेक्ट में केवल वे इकाइयाँ शामिल होती हैं, जिन्हें टेक्स्ट से पार्स किया गया है:
+
+* `urls`
+* `hashtags`
+* `mentions`
+* `cashtags`
+
+मीडिया और पोल `attachments` में होते हैं, `entities` में नहीं।
+
+***
+
+<div id="what-this-means-for-you">
+  ## आपके लिए इसका क्या मतलब है
+</div>
+
+<CardGroup cols={2}>
+  <Card title="एक बार सीखें, हर जगह इस्तेमाल करें" icon="graduation-cap">
+    जो पैटर्न आप एक एंडपॉइंट पर सीखते हैं, वे सभी एंडपॉइंट्स पर लागू होते हैं।
+  </Card>
+
+  <Card title="अनुमानित रिस्पॉन्स" icon="square-check">
+    पूरे API में समान object types की संरचना एक जैसी रहती है।
+  </Card>
+
+  <Card title="ज़्यादा सरल कोड" icon="code">
+    सामान्य पैटर्न के लिए पुन: प्रयोज्य functions बनाएँ।
+  </Card>
+
+  <Card title="आसान डिबगिंग" icon="bug">
+    एकसमान error formats समस्या-निवारण को आसान बनाते हैं।
+  </Card>
+</CardGroup>
+
+***
+
+<div id="report-inconsistencies">
+  ## असंगतियों की रिपोर्ट करें
+</div>
+
+कोई असंगति मिली? हमें बताएँ:
+
+* [Developer Forum](https://devcommunity.x.com)
+* [Developer Feedback](https://t.co/devfeedback)

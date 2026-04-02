@@ -1,0 +1,202 @@
+---
+title: v1 से v2
+sidebarTitle: v1 से v2
+keywords: ["v1.1 से v2 माइग्रेशन", "फॉलो माइग्रेशन", "फॉलो माइग्रेट करें", "स्टैंडर्ड से v2 फॉलो", "v1 से v2 फॉलो", "माइग्रेशन गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="manage-follows-standard-v11-compared-to-x-api-v2">
+  #### फ़ॉलो प्रबंधित करना: मानक v1.1 की X API v2 से तुलना
+</div>
+
+अगर आप मानक v1.1 के [POST friendships/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/post-friendships-create) और [POST friendships/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/post-friendships-destroy) एंडपॉइंट के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य आपको मानक और X API v2 के फ़ॉलो प्रबंधन एंडपॉइंट के बीच समानताओं और अंतरों को समझने में मदद करना है।
+
+* **समानताएँ**
+  * OAuth 1.0a उपयोगकर्ता संदर्भ
+* **अंतर**
+  * एंडपॉइंट URL
+  * ऐप और प्रोजेक्ट की आवश्यकताएँ
+  * HTTP मेथड
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**OAuth 1.0a उपयोगकर्ता संदर्भ प्रमाणीकरण विधि**
+
+एंडपॉइंट के दोनों संस्करण [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication#oauth-1-0a-2) का समर्थन करते हैं। इसलिए, यदि आप पहले v1.1 के मानक manage follows एंडपॉइंट्स में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर माइग्रेट करने के बाद भी आप उसी प्रमाणीकरण विधि का उपयोग जारी रख सकते हैं।
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URL**
+
+* मानक v1.1 एंडपॉइंट:
+  * POST https://api.x.com/1.1/friendships/create.json
+    (किसी उपयोगकर्ता को फ़ॉलो करें)
+  * POST https://api.x.com/1.1/friendships/destroy.json
+    (किसी उपयोगकर्ता को अनफ़ॉलो करें)
+* X API v2 एंडपॉइंट:
+  * POST https://api.x.com/2/users/:id/following
+    (किसी उपयोगकर्ता को फ़ॉलो करें)
+  * DELETE https://api.x.com/2/users/:source&#95;user&#95;id/following/:target&#95;user&#95;id
+    (किसी उपयोगकर्ता को अनफ़ॉलो करें)
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 एंडपॉइंट्स के लिए यह आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के क्रेडेंशियल्स का उपयोग करें, जो किसी [Project](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट्स ऐप्स या किसी प्रोजेक्ट से संबद्ध ऐप्स के क्रेडेंशियल्स का उपयोग कर सकते हैं।
+
+**अनुरोध पैरामीटर**
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटरों के X API v2 में समकक्ष हैं:
+
+| Standard v1.1   | X API v2                                   |
+| :-------------- | :----------------------------------------- |
+| कोई समकक्ष नहीं | id (POST), source&#95;user&#95;id (DELETE) |
+| user&#95;id     | target&#95;user&#95;id                     |
+| screen&#95;name | कोई समकक्ष नहीं                            |
+
+कृपया ध्यान दें कि Standard v1.1 पैरामीटर query parameters के रूप में भेजे जाते हैं, जबकि X API v2 पैरामीटर body parameters (POST एंडपॉइंट के लिए) या path parameters (DELETE एंडपॉइंट के लिए) के रूप में भेजे जाते हैं।
+
+इसके अलावा, v2 के id और source&#95;user&#95;id मानक v1.1 एंडपॉइंट्स का उपयोग करते समय आवश्यक नहीं होते, क्योंकि OAuth 1.0a उपयोगकर्ता संदर्भ के साथ भेजे गए Access Tokens से यह अनुमान लगाया जाता था कि फ़ॉलो/अनफ़ॉलो शुरू करने वाला उपयोगकर्ता कौन था।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="follow-a-user-v2">
+  ### किसी उपयोगकर्ता को फ़ॉलो करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/following" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/following"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को फ़ॉलो करें
+  response = client.users.follow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को फ़ॉलो करें
+  const response = await client.users.follow("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>
+
+<div id="unfollow-a-user-v2">
+  ### किसी उपयोगकर्ता को अनफ़ॉलो करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/following/2244994945" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/following/2244994945"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को अनफ़ॉलो करें
+  response = client.users.unfollow(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Following: {response.data.following}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को अनफ़ॉलो करें
+  const response = await client.users.unfollow("123456789", "2244994945");
+  console.log(`Following: ${response.data?.following}`);
+  ```
+</CodeGroup>

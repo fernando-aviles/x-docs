@@ -49,7 +49,7 @@ for page in client.posts.search_recent(query="python", max_results=10):
     if page.data and len(page.data) > 0:
         first_post = page.data[0]
         post_text = first_post.text if hasattr(first_post, 'text') else first_post.get('text', '')
-        print(post_text)  # Accéder à la première Publication
+        print(post_text)  # Access first Post
         break
 ```
 
@@ -70,39 +70,39 @@ Cet exemple montre comment utiliser OAuth 2.0 avec Proof Key for Code Exchange (
 from xdk.oauth2_auth import OAuth2PKCEAuth
 from urllib.parse import urlparse
 import webbrowser
-# Étape 1 : Créer une instance PKCE
+# Step 1: Create PKCE instance
 auth = OAuth2PKCEAuth(
     client_id="YOUR_CLIENT_ID",
     redirect_uri="YOUR_CALLBACK_URL",
     scope="tweet.read users.read offline.access"
 )
-# Étape 2 : Obtenir l'URL d'autorisation
+# Step 2: Get authorization URL
 auth_url = auth.get_authorization_url()
-print(f"Visitez cette URL pour autoriser : {auth_url}")
+print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
-# Étape 3 : Gérer le callback (dans une vraie application, utilisez un framework web comme Flask)
-# Supposons callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE"
-callback_url = input("Collez l'URL complète du callback ici : ")
-# Étape 4 : Échanger le code contre des jetons
+# Step 3: Handle callback (in a real app, use a web framework like Flask)
+# Assume callback_url = "http://localhost:8080/callback?code=AUTH_CODE_HERE"
+callback_url = input("Paste the full callback URL here: ")
+# Step 4: Exchange code for tokens
 tokens = auth.fetch_token(authorization_response=callback_url)
 access_token = tokens["access_token"]
-refresh_token = tokens["refresh_token"]  # Stocker pour le renouvellement
-# Étape 5 : Créer le client
+refresh_token = tokens["refresh_token"]  # Store for renewal
+# Step 5: Create client
 # Option 1 : Utiliser bearer_token (les jetons d'accès OAuth2 fonctionnent comme des jetons Bearer)
 client = Client(bearer_token=access_token)
-# Option 2 : Passer le dictionnaire complet des jetons pour le support de rafraîchissement automatique
+# Option 2: Pass the full token dict for automatic refresh support
 # client = Client(token=tokens)
 ```
 
 **Rafraîchissement du jeton** (automatique dans le SDK pour les sessions longues) :
 
 ```python
-# Si le jeton d'accès expire, rafraîchissez-le avec le refresh_token stocké
+# If access token expires, refresh using stored refresh_token
 # La méthode refresh_token utilise le jeton stocké de l'instance OAuth2PKCEAuth
 tokens = auth.refresh_token()
-# Utiliser le jeton rafraîchi
+# Use the refreshed token
 client = Client(bearer_token=tokens["access_token"])
-# Ou passer le dictionnaire complet des jetons : client = Client(token=tokens)
+# Or pass the full token dict: client = Client(token=tokens)
 ```
 
 
@@ -143,26 +143,26 @@ print(me)
 from xdk import Client
 from xdk.oauth1_auth import OAuth1
 import webbrowser
-# Étape 1 : Créer une instance OAuth1
+# Step 1: Create OAuth1 instance
 oauth1 = OAuth1(
     api_key="YOUR_API_KEY",
     api_secret="YOUR_API_SECRET",
     callback="http://localhost:8080/callback"
 )
-# Étape 2 : Obtenir le jeton de requête
+# Step 2: Get request token
 request_token = oauth1.get_request_token()
-# Étape 3 : Obtenir l'URL d'autorisation
+# Step 3: Get authorization URL
 auth_url = oauth1.get_authorization_url(login_with_x=False)
-print(f"Visitez cette URL pour autoriser : {auth_url}")
+print(f"Visit this URL to authorize: {auth_url}")
 webbrowser.open(auth_url)
 # Étape 4 : L'utilisateur autorise et vous recevez oauth_verifier
 # Dans une application réelle, gérez cela via l'URL de callback
-oauth_verifier = input("Entrez le vérificateur OAuth du callback : ")
-# Étape 5 : Échanger contre un jeton d'accès
+oauth_verifier = input("Enter the OAuth verifier from the callback: ")
+# Step 5: Exchange for access token
 access_token = oauth1.get_access_token(oauth_verifier)
-# Étape 6 : Créer le client
+# Step 6: Create client
 client = Client(auth=oauth1)
-# Vous pouvez maintenant utiliser le client
+# Now you can use the client
 response = client.users.get_me()
 ```
 

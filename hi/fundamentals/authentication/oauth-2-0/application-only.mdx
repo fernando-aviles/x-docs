@@ -1,0 +1,239 @@
+---
+title: ऐप-केवल प्रमाणीकरण और OAuth 2.0 बेयरर टोकन
+sidebarTitle: OAuth 2.0 ऐप-ओनली (बेयरर टोकन)
+keywords: ["ऐप-केवल प्रमाणीकरण", "OAuth 2.0 ऐप-ओनली", "बेयरर टोकन प्रमाणीकरण", "ऐप-ओनली ऑथ", "रीड-ओनली एक्सेस", "सार्वजनिक डेटा एक्सेस"]
+---
+
+<div id="app-only-authentication-and-oauth-20-bearer-token">
+  ### ऐप-केवल प्रमाणीकरण और OAuth 2.0 बेयरर टोकन
+</div>
+
+X, ऐप्लिकेशन को किसी विशिष्ट उपयोगकर्ता की ओर से नहीं, बल्कि स्वयं ऐप्लिकेशन की ओर से प्रमाणीकृत अनुरोध भेजने की सुविधा देता है। X का यह कार्यान्वयन [OAuth 2 specification](http://tools.ietf.org/html/rfc6749) के [Client Credentials Grant](http://tools.ietf.org/html/rfc6749#section-4.4) फ़्लो पर आधारित है।
+
+ऐप्लिकेशन-केवल प्रमाणीकरण में कोई user-context शामिल नहीं होता। यह प्रमाणीकरण का ऐसा तरीका है, जिसमें कोई ऐप्लिकेशन अपनी ओर से API अनुरोध करता है। यह तरीका उन डेवलपरों के लिए है जिन्हें सार्वजनिक जानकारी तक केवल read-only पहुँच चाहिए। 
+
+आप अपने ऐप की consumer API keys का उपयोग करके या ऐप-केवल एक्सेस टोकन (बेयरर टोकन) का उपयोग करके ऐप्लिकेशन-केवल प्रमाणीकरण कर सकते हैं। इसका मतलब है कि आप X API पर केवल वही अनुरोध कर सकते हैं जिनके लिए किसी प्रमाणीकृत उपयोगकर्ता की आवश्यकता न हो।
+
+ऐप्लिकेशन-केवल प्रमाणीकरण के साथ, आप ये कार्रवाइयाँ कर सकते हैं:
+
+* उपयोगकर्ता टाइमलाइन प्राप्त करें
+* किसी भी अकाउंट के friends और followers तक पहुँचें
+* सूची संसाधनों तक पहुँचें
+* Tweets खोजें
+
+कृपया ध्यान दें कि उपयोगकर्ताओं की ओर से अनुरोध जारी करने के लिए केवल [OAuth 1.0a](/hi/resources/fundamentals/authentication/oauth-1-0a/api-key-and-secret) या PKCE के साथ [OAuth 2.0 Authorization Code Flow](/hi/resources/fundamentals/authentication/oauth-2-0/authorization-code) की आवश्यकता होती है। [API संदर्भ](/hi/resources/fundamentals/authentication/api-reference) पृष्ठ बताता है कि किसी API का उपयोग करने के लिए कौन-सी प्रमाणीकरण विधि आवश्यक है। निम्न कार्य करने के लिए आपको [access token](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) के साथ user-authentication और user-context की आवश्यकता होगी:
+
+* Tweets या अन्य संसाधन पोस्ट करें
+* उपयोगकर्ताओं को खोजें
+* किसी भी geo endpoint का उपयोग करें
+* Direct Messages या अकाउंट क्रेडेंशियल्स तक पहुँचें
+* उपयोगकर्ताओं के ईमेल पते प्राप्त करें
+
+<div id="auth-flow">
+  #### ऑथ फ़्लो
+</div>
+
+इस विधि का उपयोग करने के लिए, आपको [ऐप-ओनली एक्सेस टोकन](/hi/resources/fundamentals/authentication/oauth-2-0/application-only) (जिसे [बेयरर टोकन](/hi/resources/fundamentals/authentication/oauth-2-0/bearer-tokens) भी कहा जाता है) का उपयोग करना होगा। आप [POST oauth2/token](/hi/resources/fundamentals/authentication/api-reference#post-oauth2-token) एंडपॉइंट के ज़रिए अपनी consumer key और secret भेजकर एक ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) जनरेट कर सकते हैं। 
+
+एप्लिकेशन-ओनली ऑथ फ़्लो में ये चरण शामिल हैं:
+
+* एक एप्लिकेशन अपनी consumer key और secret को विशेष रूप से एन्कोड किए गए क्रेडेंशियल्स के एक सेट में एन्कोड करता है।
+* एक एप्लिकेशन इन क्रेडेंशियल्स के बदले [ऐप-ओनली एक्सेस टोकन](/hi/resources/fundamentals/authentication/oauth-2-0/application-only) प्राप्त करने के लिए [POST oauth2/token](/hi/resources/fundamentals/authentication/api-reference#post-oauth2-token) एंडपॉइंट पर अनुरोध करता है।
+* REST API को एक्सेस करते समय, एप्लिकेशन प्रमाणीकरण के लिए ऐप-ओनली एक्सेस टोकन का उपयोग करता है।
+
+क्योंकि अनुरोध पर हस्ताक्षर करने की आवश्यकता नहीं होती, यह तरीका मानक OAuth 1.0a मॉडल की तुलना में काफ़ी सरल है।
+
+<Frame>
+  <img src="/images/auth-5.png.twimg.1920.png" alt="" />
+</Frame>
+
+<div id="about-application-only-auth">
+  #### केवल-ऐप प्रमाणीकरण के बारे में
+</div>
+
+**टोकन पासवर्ड की तरह होते हैं**
+
+ध्यान रखें कि consumer key &amp; secret और स्वयं ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) किसी ऐप की ओर से अनुरोध करने की अनुमति देते हैं। इन मानों को पासवर्ड जितना ही संवेदनशील माना जाना चाहिए, और इन्हें अविश्वसनीय पक्षों के साथ साझा या वितरित नहीं किया जाना चाहिए।
+
+**SSL आवश्यक है**
+
+सभी अनुरोधों में (टोकन प्राप्त करने और उनका उपयोग करने, दोनों के लिए) *अनिवार्य रूप से* HTTPS endpoints का उपयोग होना चाहिए। [TLS का उपयोग करके X API से कनेक्ट करना](/hi/resources/fundamentals/authentication/guides/tls) में दी गई सर्वोत्तम प्रक्रियाओं का पालन करें — peers का **हमेशा** सत्यापन किया जाना चाहिए।
+
+**कोई user-context नहीं**
+
+केवल-ऐप प्रमाणीकरण का उपयोग करके अनुरोध जारी करते समय, &quot;current user&quot; जैसी कोई अवधारणा नहीं होती। इसलिए, [POST statuses/update](/hi/x-api/posts/creation-of-a-post) जैसे endpoints केवल-ऐप प्रमाणीकरण के साथ काम नहीं करेंगे। किसी उपयोगकर्ता की ओर से अनुरोध जारी करने के बारे में अधिक जानकारी के लिए [OAuth का उपयोग करना](/hi/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens) देखें।
+
+**रेट लिमिटिंग**
+
+ऐप्लिकेशनों के लिए रेट लिमिटिंग पूल दो प्रकार के होते हैं।
+
+Access Token के साथ उपयोगकर्ताओं की ओर से किए गए अनुरोध, जिन्हें user-context भी कहा जाता है, ऐप्लिकेशन-केवल प्रमाणीकरण में उपयोग होने वाले रेट लिमिटिंग संदर्भ से अलग रेट लिमिटिंग संदर्भ का उपयोग करते हैं। यानी, दूसरे शब्दों में, उपयोगकर्ताओं की ओर से किए गए अनुरोध एप्लिकेशन-ओनली ऑथ के माध्यम से उपलब्ध रेट लिमिट्स को कम नहीं करेंगे, और एप्लिकेशन-ओनली ऑथ के माध्यम से किए गए अनुरोध user-based auth में उपयोग होने वाली रेट लिमिट्स को कम नहीं करेंगे।
+
+[API Rate Limiting](/hi/x-api/fundamentals/rate-limits) के बारे में और पढ़ें और [लिमिट्स की समीक्षा करें](https://developer.x.com/en/portal/products)।
+
+<div id="issuing-application-only-requests">
+  #### केवल-ऐप अनुरोध जारी करना
+</div>
+
+**चरण 1: consumer key और secret को एन्कोड करें**
+
+किसी ऐप के consumer key और secret को क्रेडेंशियल्स के एक सेट में एन्कोड करके बेयरर टोकन प्राप्त करने के चरण इस प्रकार हैं:
+
+1. [RFC 1738](http://www.ietf.org/rfc/rfc1738.txt) के अनुसार consumer key और consumer secret को URL-एन्कोड करें। ध्यान दें कि इसे लिखे जाने के समय इससे वास्तव में consumer key और secret में कोई बदलाव नहीं होगा, लेकिन फिर भी यह चरण किया जाना चाहिए, ताकि भविष्य में इन मानों का फ़ॉर्मैट बदलने पर भी यह सही रहे।
+2. एन्कोड किए गए consumer key, एक कोलन वर्ण &quot;:&quot;, और एन्कोड किए गए consumer secret को जोड़कर एकल स्ट्रिंग बनाएं।
+3. पिछले चरण में बनी स्ट्रिंग को [Base64 encode](http://en.wikipedia.org/wiki/Base64) करें।
+
+नीचे इस एल्गोरिद्म के परिणाम दिखाने वाले उदाहरण मान दिए गए हैं। ध्यान दें कि इस पेज में इस्तेमाल किया गया consumer secret केवल परीक्षण उद्देश्यों के लिए है और वास्तविक अनुरोधों के लिए काम नहीं करेगा।
+
+|                                                                  |                                                                                             |
+| :--------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| Consumer key                                                     | xvz1evFS4wEEPTGEFPHBog                                                                      |
+| Consumer secret                                                  | L8qq9PZyRg6ieKGEKhZolGC0vJWLw8iEJ88DRdyOg                                                   |
+| RFC 1738 एन्कोड किया गया consumer<br /><br />key (नहीं बदलता)    | xvz1evFS4wEEPTGEFPHBog                                                                      |
+| RFC 1738 एन्कोड किया गया consumer<br /><br />secret (नहीं बदलता) | L8qq9PZyRg6ieKGEKhZolGC0vJWLw8iEJ88DRdyOg                                                   |
+| बेयरर टोकन क्रेडेंशियल्स                                         | xvz1evFS4wEEPTGEFPHBog:L8qq9PZyRg6ieKGEKhZolGC0vJWLw8iEJ88DRdyOg                            |
+| Base64 एन्कोड किए गए बेयरर टोकन क्रेडेंशियल्स                    | :: eHZ6MWV2RlM0d0VFUFRHRUZQSEJvZzpMOHFxOVBaeVJnNmllS0dFS2hab2xHQzB2SldMdzhpRUo4OERSZHlPZw== |
+
+**चरण 2: ऐप-ओनली एक्सेस टोकन (Bearer Token) प्राप्त करें**
+
+चरण 1 में निकाले गए मान को [POST oauth2/token](/hi/resources/fundamentals/authentication/api-reference#post-oauth2-token) पर अनुरोध भेजकर ऐप-ओनली एक्सेस टोकन के बदले एक्सचेंज करना होगा:
+
+* अनुरोध एक HTTP POST अनुरोध होना चाहिए।
+* अनुरोध में `Authorization` हेडर शामिल होना चाहिए, जिसका मान `Basic <base64 encoded value from step 1>.` हो।
+* अनुरोध में `Content-Type` हेडर शामिल होना चाहिए, जिसका मान `application/x-www-form-urlencoded;charset=UTF-8.` हो।
+* अनुरोध की body `grant_type=client_credentials` होनी चाहिए।
+
+**उदाहरण अनुरोध (Authorization header को wrap किया गया है):**
+
+```json
+POST /oauth2/token HTTP/1.1
+Host: api.x.com
+User-Agent: My X App v1.0.23
+Authorization: Basic eHZ6MWV2RlM0d0VFUFRHRUZQSEJvZzpMOHFxOVBaeVJn
+                     NmllS0dFS2hab2xHQzB2SldMdzhpRUo4OERSZHlPZw==
+Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+Content-Length: 29
+Accept-Encoding: gzip
+
+grant\_type=client\_credentials
+```
+
+यदि अनुरोध सही तरीके से फ़ॉर्मैट किया गया है, तो सर्वर JSON-एन्कोडेड पेलोड के साथ रिस्पॉन्स देगा:
+
+**उदाहरण रिस्पॉन्स:**
+
+```json
+HTTP/1.1 200 OK
+Status: 200 OK
+Content-Type: application/json; charset=utf-8
+...
+Content-Encoding: gzip
+Content-Length: 140
+
+{"token\_type":"bearer","access\_token":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%2FAAAAAAAAAAAAAAAAAAAA%3DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
+```
+
+एप्लिकेशन को यह सत्यापित करना चाहिए कि लौटाए गए ऑब्जेक्ट में `token_type` कुंजी से संबद्ध मान `bearer` है। `access_token` कुंजी से संबद्ध मान ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) है।
+
+ध्यान दें कि किसी एप्लिकेशन के लिए एक समय में केवल एक ही ऐप-ओनली एक्सेस टोकन मान्य होता है। समान क्रेडेंशियल के साथ `/oauth2/token` पर एक और अनुरोध भेजने पर, उसे अमान्य किए जाने तक वही टोकन लौटाया जाएगा।
+
+**चरण 3: ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) के साथ API अनुरोध प्रमाणित करें**
+
+ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) का उपयोग उन API एंडपॉइंट पर अनुरोध भेजने के लिए किया जा सकता है जो एप्लिकेशन-ओनली ऑथ का समर्थन करते हैं। ऐप एक्सेस टोकन का उपयोग करने के लिए, एक सामान्य HTTPS अनुरोध बनाएँ और `Authorization` हेडर शामिल करें, जिसका मान `Bearer <base64 bearer token value from step 2>. Signing is not required.` हो।
+
+**उदाहरण अनुरोध (Authorization header को रैप किया गया है):**
+
+```
+GET /1.1/statuses/user\_timeline.json?count=100&screen\_name=twitterapi HTTP/1.1
+Host: api.x.com
+User-Agent: My X App v1.0.23
+Authorization: Bearer AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%2FAAAAAAAAAAAA
+                      AAAAAAAA%3DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Accept-Encoding: gzip
+```
+
+**ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) को अमान्य करना**
+
+यदि ऐप-ओनली एक्सेस टोकन से समझौता हो गया हो या किसी भी कारण से उसे अमान्य करना हो, तो [POST oauth2/invalidate&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth2-invalidate-token) पर कॉल करें।
+
+**उदाहरण अनुरोध (Authorization header को रैप किया गया है):**
+
+```bash
+POST /oauth2/invalidate_token HTTP/1.1
+Authorization: Basic eHZ6MWV2RlM0d0VFUFRHRUZQSEJvZzpMOHFxOVBaeVJn
+                     NmllS0dFS2hab2xHQzB2SldMdzhpRUo4OERSZHlPZw==
+User-Agent: My X App v1.0.23
+Host: api.x.com
+Accept: */*
+Content-Length: 119
+Content-Type: application/x-www-form-urlencoded
+
+access_token=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%2FAAAAAAAAAAAAAAAAAAAA%3DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+```
+
+**उदाहरण रिस्पॉन्स:**
+
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Length: 127
+...
+
+{"access_token":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%2FAAAAAAAAAAAAAAAAAAAA%3DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
+```
+
+<div id="common-error-cases">
+  #### सामान्य त्रुटि स्थितियाँ
+</div>
+
+यह अनुभाग बेयरर टोकन को प्राप्त करने और उनका उपयोग करने से जुड़ी कुछ सामान्य गलतियों का वर्णन करता है। ध्यान रखें कि यहाँ सभी संभावित त्रुटि रिस्पॉन्स शामिल नहीं किए गए हैं - जिन त्रुटि कोड और रिस्पॉन्स का यहाँ उल्लेख नहीं है, उन पर भी ध्यान दें।
+
+**ऐप-ओनली एक्सेस टोकन प्राप्त करने या रद्द करने के लिए अमान्य अनुरोध**
+
+निम्न प्रयास:
+
+* अमान्य अनुरोध के साथ ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) प्राप्त करना (उदाहरण के लिए, `grant_type=client_credentials` शामिल न करना)।
+* गलत या एक्सपायर हो चुके ऐप क्रेडेंशियल्स के साथ ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) प्राप्त करना या रद्द करना।
+* गलत या रद्द किए गए ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) को अमान्य करना।
+* कम समय में बहुत अधिक बार ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) प्राप्त करना।
+
+इनका परिणाम होगा:
+
+```json
+HTTP/1.1 403 Forbidden
+Content-Length: 105
+Content-Type: application/json; charset=utf-8
+...
+
+{"errors":\[{"code":99,"label":"authenticity\_token\_error","message":"Unable to verify your credentials"}\]}
+```
+
+<div id="api-request-contains-invalid-app-only-access-token-bearer-token">
+  #### API अनुरोध में अमान्य ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) है
+</div>
+
+API अनुरोध करने के लिए गलत या निरस्त एक्सेस टोकन का उपयोग करने पर निम्न परिणाम होगा:
+
+```json
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json; charset=utf-8
+Content-Length: 61
+...
+
+{"errors":\[{"message":"Invalid or expired token","code":89}\]}
+```
+
+<div id="app-only-access-token-bearer-token-used-on-endpoint-which-doesnt-support-application-only-auth">
+  #### उस एंडपॉइंट पर उपयोग किया गया ऐप-ओनली एक्सेस टोकन (बेयरर टोकन), जो एप्लिकेशन-ओनली ऑथ का समर्थन नहीं करता
+</div>
+
+ऐसे एंडपॉइंट का अनुरोध करने पर, जिसके लिए user context आवश्यक होता है (जैसे `statuses/home_timeline`), ऐप-ओनली एक्सेस टोकन (बेयरर टोकन) का उपयोग करने से यह परिणाम मिलेगा:
+
+```json
+HTTP/1.1 403 Forbidden
+Content-Type: application/json; charset=utf-8
+Content-Length: 91
+...
+
+{"errors":\[{"message":"Your credentials do not allow access to this resource","code":220}\]}
+```

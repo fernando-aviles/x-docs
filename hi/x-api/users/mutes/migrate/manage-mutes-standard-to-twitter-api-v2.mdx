@@ -1,0 +1,201 @@
+---
+title: म्यूट प्रबंधन
+sidebarTitle: म्यूट प्रबंधन
+keywords: ["म्यूट प्रबंधन माइग्रेशन", "v1.1 से v2 में म्यूट प्रबंधन", "म्यूट प्रबंधन माइग्रेट करें", "स्टैंडर्ड से v2 म्यूट", "म्यूट माइग्रेशन"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="manage-mutes-standard-v11-compared-to-x-api-v2">
+  ### म्यूट प्रबंधन: Standard v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप standard v1.1 [POST mutes/users/create](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/post-mutes-users-create) और [POST mutes/users/destroy](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/mute-block-report-users/api-reference/post-mutes-users-destroy) एंडपॉइंट के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य standard v1.1 और X API v2 के म्यूट प्रबंधन एंडपॉइंट के बीच समानताओं और अंतरों को समझने में आपकी मदद करना है।
+
+* **समानताएँ**
+  * OAuth 1.0a उपयोगकर्ता संदर्भ
+* **अंतर**
+  * एंडपॉइंट URL
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+  * HTTP मेथड
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**OAuth 1.0a उपयोगकर्ता संदर्भ प्रमाणीकरण विधि**
+
+दोनों endpoint संस्करण [OAuth 1.0a User Context](https://developer.x.com/content/developer-twitter/resources/fundamentals/authentication) का समर्थन करते हैं। इसलिए, यदि आप पहले standard v1.1 manage mutes endpoints में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर migrate करने के बाद भी आप उसी प्रमाणीकरण विधि का उपयोग जारी रख सकते हैं।
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**Endpoint URLs**
+
+* मानक v1.1 endpoint:
+  * POST https://api.x.com/1.1/mutes/users/create.json
+    (किसी उपयोगकर्ता को म्यूट करें)
+  * POST https://api.x.com/1.1/mutes/users/destroy.json
+    (किसी उपयोगकर्ता को अनम्यूट करें)
+* X API v2 endpoint:
+  * POST https://api.x.com/2/users/:id/muting
+    (किसी उपयोगकर्ता को म्यूट करें)
+  * DELETE https://api.x.com/2/users/:source&#95;user&#95;id/muting/:target&#95;user&#95;id
+    (किसी उपयोगकर्ता को अनम्यूट करें)
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 endpoint के लिए यह आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय ऐसे [developer ऐप](/hi/resources/fundamentals/developer-apps) के credentials का उपयोग करें, जो किसी [प्रोजेक्ट](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 endpoint, ऐप्स या किसी प्रोजेक्ट से संबद्ध ऐप्स के credentials का उपयोग कर सकते हैं।
+
+**अनुरोध पैरामीटर**
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटर के X API v2 में समकक्ष हैं:
+
+| Standard v1.1   | X API v2               |
+| :-------------- | :--------------------- |
+| user&#95;id     | target&#95;user&#95;id |
+| screen&#95;name | कोई समकक्ष नहीं        |
+
+कृपया ध्यान दें कि Standard v1.1 पैरामीटर query parameters के रूप में पास किए जाते हैं, जबकि X API v2 पैरामीटर body parameters (POST endpoint के लिए) या path parameters (DELETE endpoint के लिए) के रूप में पास किए जाते हैं।
+
+इसके अलावा, मानक v1.1 endpoint का उपयोग करते समय target उपयोगकर्ता को म्यूट करने वाले उपयोगकर्ता की id आवश्यक नहीं होती, क्योंकि [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication) के साथ भेजे गए access tokens से यह पता चल जाता था कि म्यूट/अनम्यूट शुरू करने वाला उपयोगकर्ता कौन था।
+
+***
+
+<div id="code-examples">
+  ## कोड उदाहरण
+</div>
+
+<div id="mute-a-user-v2">
+  ### किसी उपयोगकर्ता को म्यूट करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/users/123456789/muting" \
+    -H "Authorization: OAuth ..." \
+    -H "Content-Type: application/json" \
+    -d '{"target_user_id": "2244994945"}'
+  ```
+
+  ```python Python
+  # OAuth 1.0a उपयोगकर्ता संदर्भ प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting"
+  response = requests.post(url, auth=auth, json={"target_user_id": "2244994945"})
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को म्यूट करें
+  response = client.users.mute(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को म्यूट करें
+  const response = await client.users.mute("123456789", {
+    targetUserId: "2244994945",
+  });
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>
+
+<div id="unmute-a-user-v2">
+  ### किसी उपयोगकर्ता को अनम्यूट करें (v2)
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X DELETE "https://api.x.com/2/users/123456789/muting/2244994945" \
+    -H "Authorization: OAuth ..."
+  ```
+
+  ```python Python
+  # OAuth 1.0a User Context प्रमाणीकरण आवश्यक है
+  import requests
+  from requests_oauthlib import OAuth1
+
+  auth = OAuth1(
+      "API_KEY", "API_SECRET",
+      "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"
+  )
+
+  url = "https://api.x.com/2/users/123456789/muting/2244994945"
+  response = requests.delete(url, auth=auth)
+  print(response.json())
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  from xdk.oauth1_auth import OAuth1
+
+  oauth1 = OAuth1(
+      api_key="YOUR_API_KEY",
+      api_secret="YOUR_API_SECRET",
+      access_token="YOUR_ACCESS_TOKEN",
+      access_token_secret="YOUR_ACCESS_TOKEN_SECRET"
+  )
+
+  client = Client(auth=oauth1)
+
+  # किसी उपयोगकर्ता को अनम्यूट करें
+  response = client.users.unmute(
+      source_user_id="123456789",
+      target_user_id="2244994945"
+  )
+  print(f"Muting: {response.data.muting}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client, OAuth1 } from "@xdevplatform/xdk";
+
+  const oauth1 = new OAuth1({
+    apiKey: "YOUR_API_KEY",
+    apiSecret: "YOUR_API_SECRET",
+    accessToken: "YOUR_ACCESS_TOKEN",
+    accessTokenSecret: "YOUR_ACCESS_TOKEN_SECRET",
+  });
+
+  const client = new Client({ oauth1 });
+
+  // किसी उपयोगकर्ता को अनम्यूट करें
+  const response = await client.users.unmute("123456789", "2244994945");
+  console.log(`Muting: ${response.data?.muting}`);
+  ```
+</CodeGroup>

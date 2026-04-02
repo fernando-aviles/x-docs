@@ -1,0 +1,247 @@
+---
+title: X से लॉग इन करें
+keywords: ["X से लॉग इन करें", "X से साइन इन करें", "X लॉगिन", "OAuth लॉगिन", "सोशल लॉगिन", "X प्रमाणीकरण", "लॉगिन इंटीग्रेशन"]
+---
+
+import { Button } from "/snippets/hi/button.mdx";
+
+अपनी साइट या ऐप पर एक बटन जोड़ने के लिए Log in with X, जिसे Sign in with X भी कहा जाता है, का उपयोग करें. इससे X उपयोगकर्ता सिर्फ़ एक क्लिक में पंजीकृत उपयोगकर्ता खाते के लाभ पा सकते हैं. यह वेबसाइटों, iOS, मोबाइल और डेस्कटॉप ऐप्स पर काम करता है.
+
+<div id="features">
+  ## सुविधाएँ
+</div>
+
+* उपयोग में आसानी - आपकी साइट पर आने वाले नए उपयोगकर्ता को पहली बार लॉग इन करने के लिए केवल दो बटन क्लिक करने होते हैं।
+* X एकीकरण - X से लॉग इन फ़्लो आपके उपयोगकर्ताओं की ओर से X API का उपयोग करने के लिए प्राधिकरण दे सकता है।
+* OAuth-आधारित - X से लॉग इन API के साथ अनेक क्लाइंट लाइब्रेरीज़ और उदाहरण कोड संगत हैं।
+
+<div id="available-for">
+  ## इनके लिए उपलब्ध
+</div>
+
+* ब्राउज़र - अगर आपके उपयोगकर्ता ब्राउज़र एक्सेस कर सकते हैं, तो आप X से लॉग इन को एकीकृत कर सकते हैं। ब्राउज़र साइन-इन फ़्लो के बारे में जानें।
+* मोबाइल डिवाइस - इंटरनेट से जुड़ा कोई भी मोबाइल डिवाइस X से लॉग इन का उपयोग कर सकता है। मोबाइल साइन-इन फ़्लो के बारे में जानें।
+
+<div id="implementing-log-in-with-x">
+  ## X के साथ लॉग इन लागू करना
+</div>
+
+X के साथ लॉग इन के browser और mobile web कार्यान्वयन OAuth पर आधारित हैं। यह पेज sign in flow के लिए access token प्राप्त करने हेतु आवश्यक अनुरोधों को दिखाता है।
+
+“X से लॉग इन&quot; flow का उपयोग करने के लिए, कृपया अपनी [X app settings](/hi/resources/fundamentals/developer-apps) पर जाएँ और सुनिश्चित करें कि *&quot;Allow this app to be used to X से साइन इन?*” विकल्प सक्षम है।
+
+यह पेज मानकर चलता है कि पाठक OAuth 1.0a प्रोटोकॉल का उपयोग करके अनुरोधों पर हस्ताक्षर करना जानता है। अगर आप जानना चाहते हैं कि किसी अनुरोध पर हस्ताक्षर कैसे करें, तो [Authorizing a request](/hi/resources/fundamentals/authentication/oauth-1-0a/authorizing-a-request) पेज पढ़ें।
+
+अगर आप इस पेज पर दिए गए अनुरोधों के हस्ताक्षर की जाँच करना चाहते हैं, तो इस्तेमाल किया गया consumer secret यह है: L8qq9PZyRg6ieKGEKhZolGC0vJWLw8iEJ88DRdyOg। यह मान केवल परीक्षण उद्देश्यों के लिए है और वास्तविक अनुरोधों के लिए काम नहीं करेगा।
+
+request token प्राप्त करके, उपयोगकर्ता को redirect करके, और request token को access token में बदलकर X के साथ लॉग इन लागू करने के तीन चरण नीचे दिए गए हैं।
+
+<Tabs>
+  <Tab title="चरण 1">
+    ### चरण 1: अनुरोध टोकन प्राप्त करना
+
+    साइन-इन फ़्लो शुरू करने के लिए, आपके [X ऐप](/hi/resources/fundamentals/developer-apps) को [POST oauth/request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token) पर एक हस्ताक्षरित संदेश भेजकर अनुरोध टोकन प्राप्त करना होगा। इस अनुरोध में एकमात्र विशिष्ट पैरामीटर oauth&#95;callback है, जो उस URL का URL-encoded संस्करण होना चाहिए, जिस पर आप चाहते हैं कि चरण 2 पूरा होने के बाद आपके उपयोगकर्ता को रीडायरेक्ट किया जाए। बाकी पैरामीटर OAuth signing process द्वारा जोड़े जाते हैं।
+
+    <Note>
+      **नोट:** कोई भी [callback URL](/hi/resources/fundamentals/developer-apps#callback-urls) जिसका उपयोग आप [POST oauth/request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token) एंडपॉइंट के साथ करते हैं, उसे [Developer Console](/hi/resources/fundamentals/developer-portal) में [X ऐप settings](/hi/resources/fundamentals/developer-apps) के भीतर रजिस्टर करना होगा।
+    </Note>
+
+    <Frame>
+      <img src="/images/auth-4.png.twimg.1920.png" alt="" />
+    </Frame>
+
+    **उदाहरण अनुरोध (Authorization header को wrap किया गया है):**
+
+    ```
+    POST /oauth/request_token HTTP/1.1
+    User-Agent: themattharris' HTTP Client
+    Host: api.x.com
+    Accept: */*
+    Authorization:
+            OAuth oauth_callback="http%3A%2F%2Flocalhost%2Fsign-in-with-twitter%2F",
+                  oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w",
+                  oauth_nonce="ea9ec8429b68d6b77cd5600adbbb0456",
+                  oauth_signature="F1Li3tvehgcraF8DMJ7OyxO4w9Y%3D",
+                  oauth_signature_method="HMAC-SHA1",
+                  oauth_timestamp="1318467427",
+                  oauth_version="1.0"
+    ```
+
+    आपके ऐप को रिस्पॉन्स का HTTP स्टेटस जांचना चाहिए। 200 के अलावा कोई भी मान विफलता दर्शाता है। रिस्पॉन्स की बॉडी में oauth&#95;token, oauth&#95;token&#95;secret, और oauth&#95;callback&#95;confirmed पैरामीटर होंगे। आपके ऐप को यह सत्यापित करना चाहिए कि oauth&#95;callback&#95;confirmed का मान true है, और अगले चरणों के लिए बाकी दो मान संग्रहीत करने चाहिए।
+
+    **उदाहरण रिस्पॉन्स (रिस्पॉन्स बॉडी को रैप किया गया है):**
+
+    ```
+    HTTP/1.1 200 OK
+    Date: Thu, 13 Oct 2011 00:57:06 GMT
+    Status: 200 OK
+    Content-Type: text/html; charset=utf-8
+    Content-Length: 146
+    Pragma: no-cache
+    Expires: Tue, 31 Mar 1981 05:00:00 GMT
+    Cache-Control: no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+    Vary: Accept-Encoding
+    Server: tfe
+
+    oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&
+    oauth_token_secret=veNRnAWe6inFuo8o2u8SLLZLjolYDmDP7SzL0YfYI&
+    oauth_callback_confirmed=true
+
+    ```
+  </Tab>
+
+  <Tab title="चरण 2">
+    ### चरण 2: उपयोगकर्ता को रीडायरेक्ट करना
+
+    अगला चरण उपयोगकर्ता को X पर भेजना है, ताकि वे नीचे बताए गए Browser sign-in flow के अनुसार उपयुक्त प्रक्रिया पूरी कर सकें। उपयोगकर्ता को [GET oauth/authenticate](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) पर रीडायरेक्ट करें, और चरण 1 में प्राप्त अनुरोध टोकन को oauth&#95;token पैरामीटर के रूप में पास करें।
+
+    किसी वेबसाइट के लिए इसे लागू करने का सबसे सहज तरीका यह है कि मूल “sign in” अनुरोध के रिस्पॉन्स में HTTP 302 redirect जारी किया जाए। मोबाइल और डेस्कटॉप ऐप्स को नई ब्राउज़र विंडो खोलनी चाहिए या एम्बेडेड web view के माध्यम से URL खोलना चाहिए।
+
+    **रीडायरेक्ट करने के लिए उदाहरण URL:**
+
+    https://api.x.com/oauth/authenticate?oauth&#95;token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0
+
+    साइन-इन endpoint उपयोगकर्ता की स्थिति के आधार पर निम्न तीन तरीकों में से किसी एक तरह व्यवहार करेगा:
+
+    1. **साइन इन है और स्वीकृत है**: यदि उपयोगकर्ता x.com पर साइन इन है और कॉलिंग ऐप्लिकेशन को पहले ही स्वीकृति दे चुका है, तो उसे तुरंत प्रमाणित कर दिया जाएगा और मान्य OAuth request token के साथ callback URL पर वापस भेज दिया जाएगा। x.com पर रीडायरेक्ट होना उपयोगकर्ता के लिए लगभग ध्यान देने योग्य नहीं होता।
+    2. **साइन इन है लेकिन स्वीकृत नहीं है**: यदि उपयोगकर्ता x.com पर साइन इन है, लेकिन उसने कॉलिंग ऐप्लिकेशन को स्वीकृति नहीं दी है, तो कॉलिंग ऐप्लिकेशन के साथ एक्सेस साझा करने का अनुरोध दिखाया जाएगा। authorization अनुरोध स्वीकार करने के बाद, उपयोगकर्ता को मान्य OAuth request token के साथ callback URL पर रीडायरेक्ट कर दिया जाएगा।
+    3. **साइन इन नहीं है**: यदि उपयोगकर्ता x.com पर साइन इन नहीं है, तो उसे अपने credentials दर्ज करने और उसी स्क्रीन पर ऐप्लिकेशन को उसकी जानकारी तक पहुँच देने की अनुमति प्रदान करने के लिए कहा जाएगा। साइन इन होने के बाद, उपयोगकर्ता को मान्य OAuth request token के साथ callback URL पर वापस भेज दिया जाएगा।
+
+    सफल authentication के बाद, आपका callback&#95;url ऐसा अनुरोध प्राप्त करेगा जिसमें oauth&#95;token और oauth&#95;verifier पैरामीटर शामिल होंगे। आपके ऐप्लिकेशन को सत्यापित करना चाहिए कि यह टोकन चरण 1 में प्राप्त request token से मेल खाता है।
+
+    **Client के redirect से अनुरोध (querystring पैरामीटर wrap किए गए हैं):**
+
+    ```
+    GET /sign-in-with-twitter/?
+            oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0&
+            oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY HTTP/1.1
+    Host: localhost
+    User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/535.5 (KHTML, like Gecko) Chrome/16.0.891.1 Safari/535.5
+    Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+    Referer: http://localhost/sign-in-with-twitter/
+    Accept-Encoding: gzip,deflate,sdch
+    Accept-Language: en-US,en;q=0.8
+    Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+    ```
+  </Tab>
+
+  <Tab title="चरण 3">
+    ### चरण 3: अनुरोध टोकन को एक्सेस टोकन में बदलना
+
+    अनुरोध टोकन को उपयोगी एक्सेस टोकन में बदलने के लिए, आपके ऐप को [POST oauth/access&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-access-token) एंडपॉइंट पर एक अनुरोध करना होगा, जिसमें चरण 2 में प्राप्त oauth&#95;verifier मान शामिल हो। अनुरोध टोकन हेडर के oauth&#95;token भाग में भी पास किया जाता है, लेकिन यह साइनिंग प्रक्रिया के दौरान पहले ही जोड़ दिया गया होगा।
+
+    **उदाहरण अनुरोध (Authorization header रैप किया गया है):**
+
+    ```
+    POST /oauth/access_token HTTP/1.1
+    User-Agent: themattharris' HTTP Client
+    Host: api.x.com
+    Accept: */*
+    Authorization: OAuth oauth_consumer_key="cChZNFj6T5R0TigYB9yd1w",
+                          oauth_nonce="a9900fe68e2573b27a37f10fbad6a755",
+                          oauth_signature="39cipBtIOHEEnybAR4sATQTpl2I%3D",
+                          oauth_signature_method="HMAC-SHA1",
+                          oauth_timestamp="1318467427",
+                          oauth_token="NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0",
+                          oauth_version="1.0"
+    Content-Length: 57
+    Content-Type: application/x-www-form-urlencoded
+
+    oauth_verifier=uw7NjWHT6OJ1MpJOXsHfNxoAhPKpgI8BlYDhxEjIBY
+    ```
+
+    एक सफल रिस्पॉन्स में oauth&#95;token, oauth&#95;token&#95;secret पैरामीटर होते हैं। टोकन और टोकन सीक्रेट को सुरक्षित रखकर X API के लिए भविष्य के प्रमाणीकृत अनुरोधों में इस्तेमाल किया जाना चाहिए। उपयोगकर्ता की पहचान सत्यापित करने के लिए, [GET account/verify&#95;credentials](https://dev.x.com/rest/reference/get/account/verify_credentials) का उपयोग करें।
+
+    **उदाहरण रिस्पॉन्स (रिस्पॉन्स बॉडी को रैप किया गया है):**
+
+    ```
+    HTTP/1.1 200 OK
+    Date: Thu, 13 Oct 2011 00:57:08 GMT
+    Status: 200 OK
+    Content-Type: text/html; charset=utf-8
+    Content-Length: 157
+    Pragma: no-cache
+    Expires: Tue, 31 Mar 1981 05:00:00 GMT
+    Cache-Control: no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+    Vary: Accept-Encoding
+    Server: tfe
+
+    oauth_token=7588892-kagSNqWge8gB1WwE3plnFsJHAZVfxWD7Vb57p0b4&
+    oauth_token_secret=PbKfYqSryyeKDWz4ebtY3o5ogNLG11WJuZBc9fQrQo
+    ```
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="अतिरिक्त संसाधन">
+    ### X से लॉग इन के संसाधन
+
+    #### Client लाइब्रेरीज़
+
+    [X libraries](/hi/resources/tools-and-libraries) में सूचीबद्ध क्लाइंट लाइब्रेरीज़, X से लॉग इन लागू करने में मदद करेंगी। पिछले चरणों में बताए अनुसार /oauth/authenticate endpoint का उपयोग करें।
+
+    #### Brand Toolkit
+
+    X चाहता है कि आपका ऐप एकसमान ब्रांडिंग के लिए आधिकारिक [X Brand Toolkit](https://about.x.com/en/who-we-are/brand-toolkit) का उपयोग करे। इन assets को सहेजें और &#39;Login with X&#39; बटन बनाते समय उनका उपयोग करें।
+  </Tab>
+
+  <Tab title="ब्राउज़र साइन इन फ़्लो">
+    ब्राउज़र लॉग इन फ़्लो उन websites और applications के लिए उपयुक्त है जो web browser खोल सकते हैं या उसे embed कर सकते हैं। उच्च स्तर पर, यह प्रक्रिया इस प्रकार है:
+
+    * application “X से साइन इन” लिंक या बटन render करता है।
+    * उपयोगकर्ता साइन इन बटन पर क्लिक करता है।
+    * मौजूदा web browser को X पर redirect किया जाता है (या एक नया browser खोला जाता है और उसे X पर भेजा जाता है)।
+    * यदि आवश्यक हो, तो उपयोगकर्ता X पर लॉग इन और authorization का चरण पूरा करता है।
+    * X, उपयोगकर्ता की authorization जानकारी भेजते हुए, application के नियंत्रण वाले URL पर वापस redirect करता है।
+
+    X authorizations का रिकॉर्ड रखता है, इसलिए जो उपयोगकर्ता पहले से X.com में signed in हैं और application को authorize कर चुके हैं, उनके लिए कोई UI नहीं दिखाया जाता - इसके बजाय, उन्हें अपने-आप application पर वापस redirect कर दिया जाता है।
+
+    ### Desktop फ़्लो
+
+    <Frame>
+      <img src="/images/browser_111.png" alt="" />
+    </Frame>
+
+    फ़्लो समझाने के लिए, मान लें कि ऊपर दिखाई गई website (“अब तक बनाई गई सबसे शानदार website”) ने यह API लागू की है, जैसा कि landing page पर मौजूद X से साइन इन बटन से दिखता है।
+
+    जब उपयोगकर्ता Sign in बटन पर क्लिक करता है, तो उसे कौन-सा पेज दिखाई देगा, यह इस बात पर निर्भर करता है कि वह signed in है या नहीं, और क्या उसने पहले application को अपने account तक पहुँच की अनुमति दी है।
+
+    जब उपयोगकर्ता x.com में signed in होता है लेकिन उसने access नहीं दिया होता, तो अनुरोधित permissions की सूची के साथ Sign In और Cancel बटन दिखाए जाते हैं।
+
+    जब उपयोगकर्ता x.com में signed in नहीं होता, तो username और password के लिए input fields दिखाई जाएँगी। ध्यान दें कि भले ही उपयोगकर्ता पहले ही application को access दे चुका हो, permissions की सूची फिर भी दिखाई जाएगी।
+
+    <Frame>
+      <img src="/images/browser_2.png" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/browser_3.png" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/browser_4.png" alt="" />
+    </Frame>
+
+    उपयोगकर्ता द्वारा मान्य credentials दर्ज करने (यदि आवश्यक हो) और “Sign In” पर क्लिक करने के बाद, X उपयोगकर्ता को उस website पर redirect कर देगा जहाँ से साइन इन फ़्लो शुरू हुआ था।
+
+    यदि उपयोगकर्ता पहले से x.com में signed in है और website को access दे चुका है, तो यह redirect तुरंत हो जाता है।
+  </Tab>
+
+  <Tab title="मोबाइल साइन इन फ़्लो">
+    मोबाइल web browsers के लिए UI फ़्लो, ब्राउज़र साइन इन फ़्लो की तरह ही काम करता है, लेकिन इसे मोबाइल browsers के लिए अनुकूलित किया गया है।
+
+    नीचे signed in, signed out, और redirect screens के screenshots दिए गए हैं:
+
+    <Frame>
+      <img src="/images/authorize-login-screenshot.png" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/authorize-logged-in" alt="" />
+    </Frame>
+
+    <Frame>
+      <img src="/images/redirect-application.png" alt="" />
+    </Frame>
+  </Tab>
+</Tabs>

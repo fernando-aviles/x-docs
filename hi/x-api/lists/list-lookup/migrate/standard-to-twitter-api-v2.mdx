@@ -1,0 +1,133 @@
+---
+title: v1 से v2
+sidebarTitle: v1 से v2
+keywords: ["v1.1 से v2 माइग्रेशन", "सूची लुकअप माइग्रेशन", "सूची लुकअप को माइग्रेट करें", "Standard v1.1 से v2 सूची लुकअप", "v1 से v2 सूची लुकअप", "माइग्रेशन गाइड"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="list-lookup-standard-v11-compared-to-x-api-v2">
+  ### सूची लुकअप: Standard v1.1 की X API v2 से तुलना
+</div>
+
+यदि आप Standard v1.1 के [GET lists/show](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-show) और  [GET lists/ownerships](https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/create-manage-lists/api-reference/get-lists-ownerships) एंडपॉइंट्स के साथ काम कर रहे हैं, तो इस गाइड का उद्देश्य आपको Standard v1.1 और X API v2 के सूची लुकअप एंडपॉइंट्स के बीच समानताओं और अंतरों को समझने में मदद करना है।
+
+* **समानताएँ**
+  * प्रमाणीकरण के तरीके
+  * रेट लिमिट्स
+* **अंतर**
+  * एंडपॉइंट URL
+  * ऐप और प्रोजेक्ट आवश्यकताएँ
+  * प्रति अनुरोध डेटा ऑब्जेक्ट की सीमाएँ
+  * रिस्पॉन्स डेटा फ़ॉर्मैट
+  * अनुरोध पैरामीटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**प्रमाणीकरण**
+
+दोनों एंडपॉइंट संस्करण [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication#oauth-1-0a-2) और [केवल ऐप](/hi/resources/fundamentals/authentication#app-only-authentication-and-oauth-2-0-bearer-token), दोनों को सपोर्ट करते हैं। इसलिए, यदि आप पहले standard v1.1 सूची लुकअप एंडपॉइंट्स में से किसी एक का उपयोग कर रहे थे, तो X API v2 संस्करण पर migrate करने के बाद भी आप वही प्रमाणीकरण विधि इस्तेमाल करना जारी रख सकते हैं।
+
+आपकी चुनी हुई authentication library/package के आधार पर, केवल ऐप प्रमाणीकरण संभवतः शुरुआत करने का सबसे आसान तरीका है, और इसे एक साधारण request header के साथ सेट किया जा सकता है। केवल ऐप Access Token जनरेट करने का तरीका जानने के लिए [यह केवल ऐप guide](/hi/resources/fundamentals/authentication#using-and-generating-an-app-only-bearer-token) देखें।
+
+**रेट लिमिट्स**
+
+|                                                                                                                                                              |                                                                                                                                                                                                                                                        |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Standard v1.1**                                                                                                                                            | **X API v2**                                                                                                                                                                                                                                           |
+| /1.1/lists/show.json<br /><br />OAuth 1.0a User Context के साथ 15 मिनट की विंडो में 75 अनुरोध<br /><br />केवल ऐप के साथ 15 मिनट की विंडो में 75 अनुरोध       | /2/lists/:id<br /><br />OAuth 1.0a User Context के साथ 15 मिनट की विंडो में 75 अनुरोध<br /><br />OAuth 2.0 Authorization Code with PKCE के साथ 15 मिनट की विंडो में 75 अनुरोध                                                                          |
+| /1.1/lists/ownerships.json<br /><br />OAuth 1.0a User Context के साथ 15 मिनट की विंडो में 15 अनुरोध<br /><br />केवल ऐप के साथ 15 मिनट की विंडो में 15 अनुरोध | /2/users/:id/owned&#95;lists<br /><br />OAuth 1.0a User Context के साथ 15 मिनट की विंडो में 15 अनुरोध<br /><br />OAuth 2.0 Authorization Code with PKCE के साथ 15 मिनट की विंडो में 15 अनुरोध<br /><br />केवल ऐप के साथ 15 मिनट की विंडो में 15 अनुरोध |
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URL**
+
+* Standard v1.1 एंडपॉइंट्स:
+  * GET https://api.x.com/1.1/lists/show.json
+    (निर्दिष्ट सूची को लुक अप करें)
+  * GET https://api.x.com/1.1/lists/ownerships.json
+    (निर्दिष्ट उपयोगकर्ता के स्वामित्व वाली सूचियों को लुक अप करें)
+* X API v2 एंडपॉइंट:
+  * GET https://api.x.com/2/lists/:id
+    (निर्दिष्ट सूची को लुक अप करें)
+
+  * GET https://api.x.com/2/users/:id/owned&#95;lists
+    (निर्दिष्ट उपयोगकर्ता के स्वामित्व वाली सूचियों को लुक अप करें)
+
+**ऐप और प्रोजेक्ट आवश्यकताएँ**
+
+X API v2 एंडपॉइंट्स के लिए यह आवश्यक है कि आप अपनी रिक्वेस्ट्स को प्रमाणित करते समय ऐसे [developer App](/hi/resources/fundamentals/developer-apps) के क्रेडेंशियल्स का उपयोग करें, जो किसी [Project](/hi/resources/fundamentals/developer-apps) से संबद्ध हो। सभी X API v1.1 एंडपॉइंट्स, ऐप्स या किसी प्रोजेक्ट से संबद्ध ऐप्स के क्रेडेंशियल्स का उपयोग कर सकते हैं।
+
+**प्रति रिक्वेस्ट डेटा ऑब्जेक्ट सीमा**
+
+मानक v1.1 /lists/ownerships एंडपॉइंट आपको प्रति रिक्वेस्ट अधिकतम 1000 सूचियाँ लौटाने की अनुमति देता है। नए v2 एंडपॉइंट्स आपको प्रति रिक्वेस्ट अधिकतम 100 सूचियाँ लौटाने की अनुमति देते हैं। डिफ़ॉल्ट रूप से 100 user ऑब्जेक्ट्स लौटाए जाते हैं। परिणामों की संख्या बदलने के लिए आपको 1-100 के बीच किसी संख्या के साथ query parameter max&#95;results= पास करना होगा; इसके बाद आप response payload में लौटाए गए next&#95;token को अपनी अगली रिक्वेस्ट में pagination&#95;token query parameter में पास कर सकते हैं।
+
+**response डेटा फ़ॉर्मैट**
+
+मानक v1.1 और X API v2 एंडपॉइंट संस्करणों के बीच सबसे बड़े अंतरों में से एक यह है कि आप यह कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें।
+
+मानक एंडपॉइंट्स में आपको कई response फ़ील्ड्स डिफ़ॉल्ट रूप से मिलते हैं, और फिर parameters का उपयोग करके यह निर्धारित करने का विकल्प होता है कि payload में कौन-से अतिरिक्त फ़ील्ड्स या फ़ील्ड्स के समूह लौटाए जाएँ।
+
+X API v2 संस्करण डिफ़ॉल्ट रूप से केवल सूची के id और name फ़ील्ड्स देता है। किसी भी अतिरिक्त फ़ील्ड्स या ऑब्जेक्ट्स का अनुरोध करने के लिए, आपको [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) parameters का उपयोग करना होगा। इस एंडपॉइंट से अनुरोध किए गए कोई भी सूची फ़ील्ड्स प्राथमिक सूची ऑब्जेक्ट में लौटेंगे। कोई भी expanded पोस्ट या user ऑब्जेक्ट और फ़ील्ड्स आपकी response के भीतर includes ऑब्जेक्ट में लौटेंगे। इसके बाद आप user और expanded पोस्ट ऑब्जेक्ट, दोनों में मौजूद IDs का मिलान करके expanded ऑब्जेक्ट्स को फिर से सूची ऑब्जेक्ट से जोड़ सकते हैं। 
+
+यहाँ संभावित सूची फ़ील्ड्स और expansions के उदाहरण दिए गए हैं:
+
+* created&#95;at
+
+* follower&#95;count
+
+* member&#95;count
+
+* owner&#95;id
+
+* description
+
+* private
+
+|                              |               |
+| :--------------------------- | :------------ |
+| **एंडपॉइंट**                 | **Expansion** |
+| /2/lists/:id                 | owner&#95;id  |
+| /2/users/:id/owned&#95;lists | owner&#95;id  |
+
+हम आपको प्रोत्साहित करते हैं कि आप इन नए parameters के बारे में उनकी संबंधित guides में और पढ़ें, या [fields और expansions का उपयोग कैसे करें](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) पर हमारी guide पढ़ें। 
+
+हमने एक [data format migration guide](/hi/x-api/migrate/data-format-migration) भी तैयार की है, जो मानक v1.1 फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में आपकी मदद कर सकती है। यह guide आपको वह विशिष्ट expansion और field parameter भी बताएगी, जिसे आपको अपने v2 अनुरोध के साथ पास करना होगा ताकि विशिष्ट फ़ील्ड्स लौटाए जा सकें। 
+
+कुछ फ़ील्ड्स का अनुरोध करने के तरीके में हुए बदलावों के अलावा, X API v2 APIs द्वारा लौटाए गए ऑब्जेक्ट्स के लिए नए JSON डिज़ाइन भी पेश कर रहा है, जिनमें [Post](/hi/x-api/fundamentals/data-dictionary#tweet) और [user](/hi/x-api/fundamentals/data-dictionary#user) ऑब्जेक्ट्स शामिल हैं।
+
+* JSON root स्तर पर, मानक एंडपॉइंट्स statuses array में पोस्ट ऑब्जेक्ट्स लौटाते हैं, जबकि X API v2 एक data array लौटाता है। 
+
+* Retweeted और Quoted &quot;statuses&quot; का संदर्भ देने के बजाय, X API v2 JSON Retweeted और Quoted Tweets का संदर्भ देता है। कई legacy और deprecated फ़ील्ड्स, जैसे contributors और user.translator&#95;type, हटाए जा रहे हैं। 
+
+* पोस्ट ऑब्जेक्ट में favorites और user ऑब्जेक्ट में favourites, दोनों का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है। 
+
+* X उस परंपरा को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, null), उन्हें payload में नहीं लिखा जाता। पोस्ट और user attributes केवल तभी शामिल किए जाते हैं जब उनके मान non-null हों।
+
+**अनुरोध पैरामीटर**
+
+निम्नलिखित मानक v1.1 अनुरोध पैरामीटर के X API v2 में समकक्ष हैं:
+
+**ID द्वारा सूची लुक अप**
+
+|                           |                                                        |
+| :------------------------ | :----------------------------------------------------- |
+| **Standard v1.1**         | **X API v2**                                           |
+| list&#95;id               | id                                                     |
+| slug                      | कोई समकक्ष नहीं                                        |
+| owner&#95;screen&#95;name | कोई समकक्ष नहीं                                        |
+| owner&#95;id              | expansions/fields parameter के साथ अनुरोध किया जाता है |
+
+**उपयोगकर्ता-स्वामित्व वाली सूची लुक अप**
+
+|                   |                      |
+| :---------------- | :------------------- |
+| **Standard v1.1** | **X API v2**         |
+| user&#95;id       | id                   |
+| screen&#95;name   | कोई समकक्ष नहीं      |
+| count             | max&#95;results      |
+| cursor            | pagination&#95;token |

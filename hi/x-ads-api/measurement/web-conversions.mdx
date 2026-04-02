@@ -1,0 +1,918 @@
+---
+title: वेब कन्वर्ज़न
+keywords: ["वेब कन्वर्ज़न", "कन्वर्ज़न ट्रैकिंग", "वेब कन्वर्ज़न ट्रैकिंग", "कन्वर्ज़न", "कन्वर्ज़न ट्रैक करें", "कन्वर्ज़न API"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="conversion-api-set-up">
+  ## कन्वर्ज़न API सेट अप
+</div>
+
+<div id="prerequisites">
+  ### पूर्व-आवश्यकताएँ
+</div>
+
+<div id="ads-api-access-new-applications">
+  #### **Ads API एक्सेस - नए ऐप्लिकेशन**
+</div>
+
+* Conversion API के लिए मुख्य आवश्यकता एक [डेवलपर खाता](https://developer.x.com/en/portal/dashboard) और [Ads API एक्सेस](https://developer.x.com/en/docs/twitter-ads-api/getting-started) होना है। इसकी प्रक्रिया [Ads API Getting Started](https://developer.x.com/en/docs/twitter-ads-api/getting-started) गाइड में दी गई है। कृपया निम्नलिखित बातों पर ध्यान दें:
+
+**चरण 1: डेवलपर खाता**
+
+* [डेवलपर खाता](https://developer.x.com/en/portal/dashboard) के लिए आवेदन करते समय, तुरंत स्वीकृति पाने के लिए हमारी सदस्यता [plans](https://developer.x.com/en/portal/products/) में से किसी एक को चुनें। 
+* **नोट**: सर्वोत्तम अभ्यास के तौर पर, हम दृढ़ता से सलाह देते हैं कि डेवलपर खाता बनाने और Ads API एक्सेस के लिए आवेदन करने हेतु आप अपनी कंपनी के आधिकारिक X handle का उपयोग करें। यदि डेवलपर खाता किसी डेवलपर handle से जुड़ा है, तो आवश्यकता पड़ने पर उन credentials को ट्रांसफ़र करने का कोई तरीका नहीं है। बेहतर होगा कि इसे निरंतर प्रबंधन के लिए कंपनी खाते के अंतर्गत रखा जाए और आवश्यकता अनुसार [Multi-user login](https://business.x.com/en/help/troubleshooting/multi-user-login-faq.html) का उपयोग किया जाए। अन्यथा, कम से कम खाते को non-default settings (header image, avatar, bio description, और bio URL) के साथ सेट अप किया जाना चाहिए और Two-Factor Authentication का उपयोग होना चाहिए।
+
+**चरण 2: Ads API Application**
+
+* सुनिश्चित करें कि आपके Ads API Application के लिए सही **App** **ID** तैयार हो। App ID, [डेवलपर कंसोल](https://developer.x.com/en/portal/dashboard) में Projects &amp; Apps के अंतर्गत मिल सकती है। उदाहरण: 16489123
+* अपने X प्रतिनिधि से संपर्क करके Ads API एक्सेस का अनुरोध करें।
+
+<div id="ads-api-access-existing-applications">
+  #### **Ads API एक्सेस - मौजूदा ऐप्स**
+</div>
+
+* यदि आपके पास पहले से सक्रिय रूप से उपयोग में लाई जा रही कोई Ads API ऐप है, तो उस ऐप और मौजूदा access tokens, दोनों का उपयोग Conversion API के लिए किया जा सकता है।
+
+<div id="access-tokens">
+  #### **एक्सेस टोकन**
+</div>
+
+* Ads API ऐप के स्वामी उपयोगकर्ता हैंडल के लिए User Access Tokens सीधे डेवलपर कंसोल से जनरेट और प्राप्त किए जा सकते हैं। इसे आपका “personal access token” कहा जाता है, क्योंकि इसका उपयोग आपके अपने X हैंडल के लिए किया जाना होता है। प्रमाणीकरण और डेवलपर कंसोल के बारे में सामान्य जानकारी [यहाँ](/hi/resources/fundamentals/authentication/overview) उपलब्ध है।
+* Ads API ऐप के स्वामी हैंडल के अलावा अन्य उपयोगकर्ता हैंडल के लिए User Access Tokens, 3-legged OAuth flow का उपयोग करके जनरेट किए जाने चाहिए। 3-legged OAuth के साथ Access Token जनरेट करने के विकल्पों में शामिल हैं:
+  * [twurl utility के माध्यम से वेब-आधारित authorization के साथ Command Line](https://github.com/twitter/twurl#getting-started)
+  * [PIN-आधारित authorization के साथ Command Line](https://developer.x.com/resources/fundamentals/authentication/pin-based-oauth)
+  * [3-legged OAuth pattern को लागू करने वाला कस्टम वेब flow](https://developer.x.com/resources/fundamentals/authentication/obtaining-user-access-tokens)
+* Conversion API के साथ उपयोग किए जाने वाले किसी भी user token ऐसे उपयोगकर्ताओं के लिए होने चाहिए जिनके पास AD&#95;MANAGER या ACCOUNT&#95;ADMIN access level हो। इसे [authenticated&#95;user&#95;access](https://developer.x.com/en/docs/twitter-ads-api/campaign-management/api-reference/authenticated-user-access) endpoint के माध्यम से जाँचा जा सकता है।
+* **नोट:** टोकन स्वयं (ऊपर बताए अनुसार बनाए जाने के बाद) उपयोग के लिए ऐसे उपयोगकर्ताओं के साथ साझा किए जा सकते हैं जिनके पास AD&#95;MANAGER या ACCOUNT&#95;ADMIN access level नहीं है।
+
+<div id="steps">
+  ### **चरण**
+</div>
+
+<div id="creating-the-conversion-api-event">
+  ### Conversion API इवेंट बनाना
+</div>
+
+Conversion API का उपयोग करने के लिए, आपको Ads Manager में एक नया conversion event बनाना होगा या ऐसा मौजूदा event इस्तेमाल करना होगा जो पहले से बनाया जा चुका हो और X Pixel के साथ उपयोग में हो। यदि आप pixel और Conversion API events के बीच डिडुप्लिकेशन करना चाहते हैं, तो आपको वही मौजूदा event इस्तेमाल करना होगा जो आपने Pixel के लिए बनाया था। 
+
+<div id="option-1-using-an-existing-conversion-event-in-ads-manager">
+  ##### विकल्प 1: Ads Manager में किसी मौजूदा Conversion Event का उपयोग करना
+</div>
+
+यदि आप किसी ऐसे मौजूदा event का उपयोग करना चाहते हैं, जिसका उपयोग आप पहले से X pixel के साथ कर रहे हैं, तो यह संभव है और आपको उस event से Event ID लेनी होगी। यदि आप एक ही event के लिए pixel और Conversion API दोनों का उपयोग करते हैं, तो यह सुनिश्चित करें कि उसी event के लिए Pixel और Conversion API के बीच events की डुप्लिकेशन हटाने हेतु आप Pixel code snippet और Conversion API request दोनों में डिडुप्लिकेशन key का उपयोग करें (`conversion_id` के रूप में)। अधिक जानकारी के लिए section d. Testing Events and Deduplication देखें। 
+
+<div id="option-2-creating-a-new-conversion-event-in-ads-manager">
+  ##### विकल्प 2: Ads Manager में नया Conversion Event बनाना:
+</div>
+
+इवेंट बनाने से पहले यह ज़रूरी है कि Events Manager में एक Event Source बनाया गया हो। यह जांचने के लिए कि आपके अकाउंट में Event Source (X Pixel) जोड़ा गया है या नहीं, Events Manager पर जाएँ और देखें कि बाएँ मेनू में X Pixel दिखाई दे रहा है या नहीं। 
+
+अगर आपने अभी तक कोई Event Source नहीं जोड़ा है, तो Event Source बनाने के लिए नीचे दिए गए चरणों का पालन करें।
+
+1. ads.x.com पर जाएँ
+2. ऊपर बाईं ओर **Tools** सेक्शन में जाएँ और **Events Manager** पर क्लिक करें
+3. ऊपर दाईं ओर **Add event source** चुनें, अगर आपके बाएँ साइडबार में अभी तक X pixel event source नहीं है
+   1. X pixel event source की ID आपकी **Pixel ID** है
+
+अब आपके पास एक Event Source और Pixel ID है। जिन conversion events को आप ट्रैक करना चाहते हैं, उनके लिए आपको इस Event Source के अंदर एक event बनाना होगा:
+
+1. X pixel event source के अंदर, दाईं ओर **Add events** चुनें
+2. **Conversion API** के साथ Install चुनें
+3. आपको इस event की **Pixel ID** और **Event ID** दिखाई देंगी, जिनका उपयोग API में किया जाएगा
+   1. event की ID आपकी Event ID है
+4. **Save** पर क्लिक करें, और आपका conversion event बन जाएगा तथा उपयोग के लिए तैयार होगा
+
+<div id="preparing-identifiers-for-conversion-events">
+  ### कन्वर्ज़न ईवेंट के लिए पहचानकर्ता तैयार करना
+</div>
+
+फ़िलहाल, कम से कम एक पहचानकर्ता भेजना आवश्यक है, जैसे Click ID (`twclid`), ईमेल पता या फ़ोन नंबर। यदि आप IP पता या user agent का उपयोग कर रहे हैं, तो सही कन्वर्ज़न मिलान के लिए दूसरा पहचानकर्ता भी भेजना होगा।
+
+ज़्यादा पहचानकर्ता भेजने से कन्वर्ज़न मिलान दर बेहतर होती है।
+
+|                     |                                                                                                                                                   |                   |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------- |
+| ग्राहक मिलान फ़ील्ड | फ़ॉर्मैट                                                                                                                                          | हैशिंग आवश्यक है? |
+| X Click ID          | X द्वारा जनरेट किया गया ([और जानें](https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites.html#faq)) | नहीं              |
+| ईमेल पता            | शुरुआत और अंत के रिक्त स्थान हटाएँ                                                                                                                | आवश्यक (SHA256)   |
+| फ़ोन नंबर           | [E164 Standard](https://en.wikipedia.org/wiki/E.164)                                                                                              | आवश्यक (SHA256)   |
+
+|            |                                    |      |
+| :--------- | :--------------------------------- | :--- |
+| IP पता     | शुरुआत और अंत के रिक्त स्थान हटाएँ | नहीं |
+| User Agent | शुरुआत और अंत के रिक्त स्थान हटाएँ | नहीं |
+
+<div id="1-prepare-x-click-id-identifier">
+  #### 1. X Click ID पहचानकर्ता तैयार करें
+</div>
+
+कन्वर्ज़न अनुरोध में हमेशा Click ID शामिल करने की अनुशंसा की जाती है
+
+उपयोगकर्ता के गंतव्य वेबसाइट पर पहुँचने के बाद, यदि `twclid` क्वेरी स्ट्रिंग पैरामीटर उपलब्ध हो, तो उससे Click ID पार्स किया जाना चाहिए। 
+
+बुनियादी JavaScript कोड उदाहरण:
+
+```js
+var queryString = document.location.search;
+if (queryString.has('twclid') {
+  twitterClickID = getParam(queryString, 'twclid');
+  // अनुशंसित अगले चरण: लॉगिंग, लोकल स्टोरेज में डालें
+}
+```
+
+यह अनुशंसा की जाती है कि: 
+
+1. जब भी URL क्वेरी पैरामीटर में `twclid` मान मौजूद हो, उसे हमेशा पार्स करें।
+
+2. डेटा को संबंधित फ़ॉर्म फ़ील्ड्स या conversion event की जानकारी के साथ संग्रहीत करें।
+
+Click ID को conversion events और workflow जानकारी से जोड़ने से batch processing, कई website navigation flows के आधार पर conversion events का विश्लेषण और निर्माण करने वाले algorithms, तथा bulk uploads जैसे परिदृश्य संभव हो पाते हैं।
+
+Event Source URL [URL Encoded](https://en.wikipedia.org/wiki/Percent-encoding) होना चाहिए और इसका उद्देश्य उस web page को दर्शाना है जिसने event को ट्रिगर किया।
+
+<div id="2-prepare-email-identifier">
+  #### 2. ईमेल पहचानकर्ता तैयार करें
+</div>
+
+समर्थित ग्राहक मिलान फ़ील्ड्स भेजे जा सकते हैं, लेकिन उन्हें सामान्यीकृत किया जाना चाहिए और, जहाँ आवश्यक हो, गोपनीयता की सुरक्षा के लिए हैश किया जाना चाहिए।
+
+जानकारी को बिना salt के SHA256 का उपयोग करके हैश किया जाना चाहिए। 
+
+उदाहरण के लिए, email address test@x.com के लिए, इसे हमें hashed format में भेजा जाना चाहिए: d360d510a224510f373931ce2d6215a799f5a9c1cef221b0149b6b6b50cced62.
+
+<div id="3-prepare-phone-identifier">
+  #### 3. फ़ोन पहचानकर्ता तैयार करें
+</div>
+
+फ़ोन नंबर [E164 Standard](https://en.wikipedia.org/wiki/E.164) के अनुसार दिया जाना चाहिए, और जानकारी को बिना salt के SHA256 का उपयोग करके hash किया जाना चाहिए। 
+
+उदाहरण के लिए, किसी US फ़ोन नंबर के लिए: +11234567890, इसे hash किए गए फ़ॉर्मैट में हमें भेजा जाना चाहिए: 1fa6b8d986d9b9cd01bf36951815158bbde9f520c0567c835dfe34783d0a4231.
+
+<div id="4-prepare-ip-address-identifier">
+  #### 4. IP Address पहचानकर्ता तैयार करें
+</div>
+
+IP Address को किसी अन्य पहचानकर्ता (twclid, email address, phone number या user agent) के साथ भेजना आवश्यक है। इस पहचानकर्ता के लिए hashing की आवश्यकता नहीं है।
+
+यह मान बिंदु-दशमलव संकेतन में लिखा जाता है, जिसमें पूर्णविरामों से अलग की गई चार संख्याएँ होती हैं। उदाहरण के लिए, किसी उपयोगकर्ता का IP Address 8.25.197.25 हो सकता है।
+
+<div id="5-prepare-user-agent-identifier">
+  #### 5. यूज़र एजेंट पहचानकर्ता तैयार करें
+</div>
+
+यूज़र एजेंट को किसी अन्य पहचानकर्ता (twclid, ईमेल पता, फ़ोन नंबर या IP पता) के साथ भेजना आवश्यक है। इस पहचानकर्ता के लिए हैशिंग आवश्यक नहीं है।
+
+यह पहचानकर्ता सर्वर को अनुरोध करने वाले यूज़र एजेंट के ऐप, ऑपरेटिंग सिस्टम, विक्रेता और/या संस्करण की पहचान करने में सक्षम बनाता है। उदाहरण के लिए, यह मान Mozilla/5.0 (Macintosh; Intel Mac OS X 10&#95;15&#95;7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 के रूप में भेजा जा सकता है।
+
+<div id="constructing-the-conversion-event-request">
+  ### कन्वर्ज़न इवेंट अनुरोध तैयार करना
+</div>
+
+`POST: version/measurement/conversions/:pixel_id`
+
+किसी विशेष विज्ञापन खाते के लिए कन्वर्ज़न इवेंट भेजें। सफलता सुनिश्चित करने के लिए रिस्पॉन्स कोड (HTTP 200 OK) की जांच करें। यह अनुशंसा की जाती है कि त्रुटि कोड लौटने की स्थिति में पुनः प्रयास की व्यवस्था और बुनियादी लॉगिंग मौजूद हो।
+
+एंडपॉइंट के URL और POST बॉडी पैरामीटर के बारे में विस्तृत जानकारी के लिए, कृपया [API संदर्भ](https://developer.x.com/en/docs/twitter-ads-api/measurement/api-reference/conversions) अनुभाग देखें। 
+
+<div id="example-request-formatted-for-readability">
+  ### उदाहरण अनुरोध (पठनीयता के लिए स्वरूपित)
+</div>
+
+```json
+
+    twurl -H 'ads-api.x.com' -X POST '/12/measurement/conversions/oka17' --data '
+    {
+      "conversions":[
+         {
+            "conversion_time":"2022-02-18T01:14:00.603Z",
+            "event_id":"ol288",
+            "identifiers":[
+               {
+                  "twclid":"23opevjt88psuo13lu8d020qkn"
+               },
+               {
+                  "hashed_email":"d360d510a224510f373931ce2d6215a799f5a9c1cef221b0149b6b6b50cced62"
+               },
+               {
+                  "hashed_phone_number":"1fa6b8d986d9b9cd01bf36951815158bbde9f520c0567c835dfe34783d0a4231"
+               },
+               {
+                  "ip_address":"1.0.0.0",
+                  "user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+               }
+            ],
+            "value":"20.00",
+            "number_items":3,
+            "conversion_id":"23294827",
+            "description":"Pet supply purchases",
+            "contents":[
+               {
+                  "content_id":"1",
+                  "content_name":"Blankets",
+                  "content_type":"Pet supplies",
+                  "content_price":100.99,
+                  "num_items":1,
+                  "content_group_id":"123"
+               }
+            ]
+         }
+      ]
+    }' --header 'Content-Type: application/json'
+
+```
+
+### उदाहरण रिस्पॉन्स
+
+```json
+{"request": {
+ "params": {
+     "account_id":"18ce552mlaq"}
+ },
+ "data": {
+    "conversions_processed":1,
+     "debug_id":"ff02e052-36e4-47d6-bdf0-6d8986446562"}
+}
+```
+
+<div id="rate-limit">
+  ### रेट लिमिट
+</div>
+
+रेट लिमिट प्रति अकाउंट, हर 15 मिनट के अंतराल में 60,000 इवेंट्स होगी।
+
+ध्यान दें कि इस अनुरोध कॉल के अलावा भी आपके सर्वर कोड में कुछ लॉजिक लागू करना आवश्यक हो सकता है, जिसमें ये शामिल हैं:
+
+1. हर इवेंट के लिए सही कन्वर्ज़न डेटा भेजने हेतु उपयोगकर्ता कार्रवाइयों का इंस्ट्रूमेंटेशन (लॉगिंग)
+
+2. उन उपयोगकर्ताओं के कन्वर्ज़न इवेंट्स को फ़िल्टर करने के लिए आवश्यक लॉजिक, जिन्होंने संबंधित गोपनीयता विकल्प चुने हैं - उदाहरण के लिए, अगर उन्होंने विज्ञापनदाता की वेबसाइट पर ट्रैकिंग या अपनी व्यक्तिगत जानकारी की बिक्री से बाहर निकलने का विकल्प चुना है
+
+3. इवेंट्स को कैप्चर करने और कन्वर्ज़न भेजने के लिए इवेंट ट्रिगर्स और पेजों के साथ इंटीग्रेशन
+
+<div id="testing-events-and-deduplication">
+  ### इवेंट्स का परीक्षण और डीडुप्लिकेशन
+</div>
+
+<div id="testing-events">
+  ### इवेंट का परीक्षण
+</div>
+
+जब आपके इवेंट को conversion events सफलतापूर्वक मिलने लगते हैं, तो 12 से 24 घंटों के भीतर Ads Manager के Conversion Tracking पेज पर ‘Single event web tag’ की स्थिति TRACKING दिखनी चाहिए।  Conversion API के ज़रिए conversions भेजने से चल रहे campaigns पर कोई असर नहीं पड़ेगा। 
+
+आप tag ID के आधार पर अपने conversion event के analytics परिणाम इन तरीकों से भी देख सकते हैं:
+
+* Ads Manager data export ([Website Conversion Tracking के लिए Analytics सहायता पेज](https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites.html))
+
+* Ads API के ज़रिए data export करना (segmentation&#95;type=CONVERSION&#95;TAGS) 
+
+<div id="duplication-between-pixel-and-conversion-api">
+  ### Pixel और Conversion API के बीच डुप्लिकेशन
+</div>
+
+यदि आप Pixel और Conversion API अनुरोधों के बीच conversions का डिडुप्लिकेशन करना चाहते हैं, तो डिडुप्लिकेशन कुंजी के रूप में conversion&#95;id उपलब्ध है। डिडुप्लिकेशन केवल event स्तर पर होता है। दूसरे शब्दों में, pixel और CAPI अनुरोधों के बीच डिडुप्लिकेशन करने के लिए, किसी विज्ञापनदाता को एक ही conversion&#95;id का उपयोग करने के साथ-साथ, pixel और CAPI दोनों अनुरोधों में वही event भी उपयोग करना होगा। डिडुप्लिकेशन केवल उन्हीं events के लिए हो सकता है, जो 48h की समय-सीमा के भीतर प्राप्त होते हैं
+
+<div id="conversion-tracking-overview">
+  ## कन्वर्ज़न ट्रैकिंग (अवलोकन)
+</div>
+
+<div id="summary">
+  ### सारांश
+</div>
+
+कन्वर्ज़न ट्रैकिंग की मदद से आप उन X उपयोगकर्ताओं की संख्या माप सकते हैं, जो X पर आपके विज्ञापनों को देखने और उनसे इंटरैक्ट करने के बाद कोई वांछित कार्रवाई करते हैं। इससे आप यह माप सकते हैं कि आपके कौन-से अभियान साइट विज़िट, साइन अप और खरीदारी जैसी कार्रवाइयाँ करवाते हैं। यह विज्ञापनदाताओं को X के बाहर की मापन क्षमता भी देता है, ताकि वे अपने डायरेक्ट-रिस्पॉन्स विज्ञापनों के प्रदर्शन को समझ सकें और किफ़ायती तरीके से ग्राहक हासिल कर सकें।
+
+कन्वर्ज़न टैग का उपयोग करके, विज्ञापनदाता उपयोगकर्ता कन्वर्ज़न को ट्रैक कर सकते हैं और उन्हें X पर चलाए गए विज्ञापन अभियानों से जोड़ सकते हैं। इससे उन्हें अपने अभियानों को इस तरह ऑप्टिमाइज़ करने की बेहतर दृश्यता मिलती है कि वे अपने प्रति-अधिग्रहण लागत (CPA) लक्ष्यों को पूरा कर सकें।
+
+वेबसाइट पर होने वाली कई तरह की कार्रवाइयाँ हैं, जिन्हें विज्ञापनदाता कन्वर्ज़न ट्रैकिंग के जरिए माप सकते हैं। वे इनमें से एक या अधिक विकल्प चुन सकते हैं, इस आधार पर कि वे अपने विज्ञापन अभियान से कौन-सी कार्रवाई(यों) करवाना चाहते हैं:
+
+* साइट विज़िट: उपयोगकर्ता विज्ञापनदाता की साइट पर किसी लैंडिंग पेज पर जाता है
+* खरीदारी: उपयोगकर्ता विज्ञापनदाता की साइट पर किसी उत्पाद या सेवा की खरीद पूरी करता है
+* डाउनलोड: उपयोगकर्ता विज्ञापनदाता की साइट से कोई फ़ाइल, जैसे श्वेतपत्र या सॉफ़्टवेयर पैकेज, डाउनलोड करता है
+* साइन अप: उपयोगकर्ता विज्ञापनदाता की सेवा, न्यूज़लेटर या ईमेल संचार के लिए साइन अप करता है
+* कस्टम: यह ऐसी कस्टम कार्रवाई के लिए एक व्यापक श्रेणी है, जो ऊपर दी गई श्रेणियों में से किसी में नहीं आती
+
+X की कन्वर्ज़न ट्रैकिंग विज्ञापनदाताओं को कन्वर्ज़न एट्रिब्यूशन का पूरा व्यू देती है। उन तृतीय-पक्ष मापन प्रणालियों की तुलना में, जिनका इस्तेमाल क्लाइंट X की अपनी कन्वर्ज़न ट्रैकिंग क्षमता के बजाय करते रहे हों—जैसे तृतीय-पक्ष ट्रैकिंग टैग के साथ जोड़े गए यूनिक क्लिक-URL—X का कन्वर्ज़न टैग विज्ञापनदाताओं को उन कन्वर्ज़न को ट्रैक करने की सुविधा देता है, जो mid और upper funnel एंगेजमेंट, जैसे Tweet expands, Retweets, favorites, replies, और follows, के साथ-साथ impressions से भी एट्रिब्यूट किए जाते हैं।
+
+<div id="faq">
+  ### अक्सर पूछे जाने वाले प्रश्न
+</div>
+
+<AccordionGroup>
+  <Accordion title="कन्वर्ज़न ट्रैकिंग टैग कैसे काम करता है?">
+    सबसे पहले, कोई विज्ञापनदाता एक कन्वर्ज़न टैग बनाता है, जो X द्वारा दिया गया कोड का एक स्निपेट होता है, और उसे अपनी वेबसाइट पर जोड़ता है। इसके बाद, जब कोई उपयोगकर्ता दी गई कार्रवाई पूरी करता है, तो यह टैग कन्वर्ज़न मापने के लिए तैयार हो जाता है।
+
+    इसके बाद उपयोगकर्ताओं को X क्लाइंट पर विज्ञापनदाता का विज्ञापन दिखाया जाता है, जो उन्हें विज्ञापनदाता की वेबसाइट और उस कार्रवाई तक ले जाता है जिसे टैग किया गया है। अगर उपयोगकर्ता टैग सेटअप के दौरान विज्ञापनदाता द्वारा निर्दिष्ट एट्रिब्यूशन विंडो के भीतर वह कार्रवाई पूरी करता है, तो टैग पहचान लेता है कि उपयोगकर्ता ने पहले X विज्ञापन के साथ इंटरैक्ट किया था। इसके बाद टैग “fire” होता है, यानी X के सर्वरों को एक सूचना भेजता है, ताकि उस विज्ञापन को कन्वर्ज़न का श्रेय दिया जा सके जिसने कन्वर्ज़न उत्पन्न किया।
+  </Accordion>
+
+  <Accordion title="क्या campaign setup प्रक्रिया के भीतर ऐसा कोई तरीका है जो उपयोगकर्ता को यह चुनने देता हो कि उस campaign के लिए कौन-से tracking pixels प्रासंगिक हैं?">
+    नहीं, हमारा product इस तरह से सेट नहीं किया गया है कि specific conversion tags को specific campaigns से जोड़ा जा सके। इसके बजाय, एक बार टैग सेट हो जाने पर, system अपने-आप यह ट्रैक करता है कि किस विज्ञापन ने किसी खास टैग पर कन्वर्ज़न लाए।
+  </Accordion>
+
+  <Accordion title="कन्वर्ज़न टैग्स के लिए हमारी default attribution window settings क्या हैं?">
+    Default post-view attribution window: 1 दिन
+
+    Default post-engagement attribution: 14 दिन
+
+    इन defaults को conversion tag setup के दौरान या tag बन जाने के बाद किसी भी समय बदला जा सकता है। post-engagement attribution windows के विकल्प 1, 7, 14, 30, 60, और 90 दिन हैं। post-view attribution windows के विकल्प none, 1, 7, 14, 30, 60, और 90 दिन हैं।
+  </Accordion>
+
+  <Accordion title="प्रभावी DR creatives और strategies के लिए कुछ ऐसे विचार क्या हैं जो प्रभावी रूप से conversions बढ़ाएँ?">
+    हालाँकि हर client के लक्ष्य, स्थिति, और रणनीतियाँ अलग होती हैं, यहाँ कुछ विचार दिए गए हैं जो उन clients के लिए कारगर रहे जिन्होंने conversion tracking alpha या beta में भाग लिया:
+
+    **Creative:**
+
+    * **ऑफ़र**: कार्रवाई में अधिक रुचि पैदा करने के लिए Promoted Tweet के साथ discount, promotion, या free shipping offer जोड़ें
+    * **Sweepstakes और contests**: खास तौर पर प्रसिद्ध brands के लिए, sweepstakes और contests ने conversions बढ़ाए
+    * **Tweet copy experimentation**: सभी अक्षर बड़े लिखने बनाम छोटे अक्षरों में लिखने का परीक्षण (FREE बनाम free या NOW बनाम now)
+    * **समय-सीमाएँ**: लोगों को तुरंत कार्रवाई करने के लिए प्रोत्साहित करने हेतु एक अंतिम तिथि दें (Offer Expires December 12!)
+    * **आकर्षक फ़ोटो जोड़ना**: यह जाँचना उपयोगी है कि Tweet creative में दृश्य रूप से आकर्षक फ़ोटो conversions बढ़ाने में प्रभावी हैं या नहीं; नतीजे अलग-अलग हो सकते हैं या client offering के अनुसार विशिष्ट हो सकते हैं।
+
+    **Targeting:**
+
+    * @handle targeting और interest category targeting: Tweet copy और @handles का Tweet की इच्छित audience के साथ करीबी मेल conversions बढ़ाने में सहायक रहा
+    * niche लेकिन high volume keywords का उपयोग: concert space में, artist/musician से जुड़े keywords (जैसे उनका नाम) का उपयोग प्रभावी साबित हुआ।
+    * Tailored audiences: जिन clients ने TA web और conversion tracking का एक साथ उपयोग किया, उन्होंने अन्य targeting का उपयोग करने वाले control groups की तुलना में कम CPAs हासिल किए
+
+    आपकी campaign segmentation जितनी अधिक granular होगी, आपके reported conversion results उतने ही अधिक actionable होंगे। उदाहरण के लिए, 50 keywords वाली campaign को optimize करने की तुलना में 4 keywords वाली campaign को optimize करना कहीं आसान है।
+  </Accordion>
+</AccordionGroup>
+
+<div id="troubleshooting-and-support-for-conversion-api">
+  ## Conversion API के लिए समस्या निवारण और सहायता
+</div>
+
+API कॉल करने के बाद त्रुटि कोड से जुड़े सवालों के लिए, कृपया नीचे दिया गया अनुभाग देखें। अन्य सभी सवालों के लिए, कृपया अपने Twitter प्रतिनिधि से संपर्क करने में संकोच न करें। हम उन्हें यथाशीघ्र हल करने का प्रयास करेंगे। 
+
+<div id="error-handling-and-explanation">
+  ### त्रुटि प्रबंधन और व्याख्या
+</div>
+
+कोई एकल अनुरोध तभी सफल होगा, जब उसमें शामिल सभी conversions में शून्य त्रुटियाँ हों। यदि किसी एक conversion में कोई त्रुटि होती है, तो endpoint सभी लागू errors की सूची लौटाएगा।
+
+<div id="x-ads-api-error-codes-overview">
+  ### X Ads API त्रुटि कोड का अवलोकन
+</div>
+
+यहाँ Ads API के त्रुटि कोड की एक विस्तृत सूची दी गई है:
+
+[https://developer.x.com/en/docs/twitter-ads-api/response-codes](https://developer.x.com/en/docs/twitter-ads-api/response-codes)
+
+सफल Conversion API रिस्पॉन्स 200-सीरीज़ HTTP कोड और अनुरोधित ऑब्जेक्ट वाला JSON-आधारित पेलोड दिखाते हैं।
+
+<div id="when-there-is-a-500-series-http-code-its-related-to-a-server-issue-instead-of-your-request-or-account-set-up-please-check-the-x-api-status-page-or-the-developer-community-forum-in-case-others-are-having-similar-issues">
+  #### **जब 500-सीरीज़ का HTTP कोड मिलता है**, तो यह आपके अनुरोध या खाता सेटअप के बजाय सर्वर से जुड़ी समस्या को दर्शाता है। कृपया [X API status page](https://api.twitterstat.us/) या [developer community forum](https://devcommunity.x.com/) देखें, ताकि पता चल सके कि क्या अन्य लोगों को भी इसी तरह की समस्या हो रही है।
+</div>
+
+<div id="when-there-is-a-400-series-http-code-the-common-cases-are">
+  #### जब HTTP कोड 400-सीरीज़ का हो, तो सामान्य स्थितियाँ ये हैं
+</div>
+
+* 400 Bad Request (अनुरोध मानकों के अनुरूप नहीं है)
+
+* 401 Unauthorized (प्रमाणीकरण संबंधी समस्याएँ)
+
+* 403 Forbidden (उस डेवलपर खाते से जुड़ी API ऐक्सेस समस्याएँ)
+
+* 404 Not Found (हो सकता है कि एंडपॉइंट के लिए URL या params सही न हों)
+
+<div id="conversion-api-error-codes">
+  ### Conversion API के त्रुटि कोड
+</div>
+
+<div id="400-bad-request-scenarios">
+  #### 400 Bad Request की स्थितियाँ
+</div>
+
+| **कारण**                                                                              | **Type**        | **त्रुटि संदेश**                                                |
+| :------------------------------------------------------------------------------------ | :-------------- | :-------------------------------------------------------------- |
+| पहचानकर्ता अनुपस्थित होने की त्रुटि (वर्तमान में hashed email या X click ID - twclid) | 400 Bad Request | कम से कम एक उपयोगकर्ता पहचानकर्ता प्रदान किया जाना चाहिए        |
+| अमान्य hashed email                                                                   | 400 Bad Request | Hashed&#95;email मान्य SHA-256 hash नहीं है                     |
+| event&#95;id का type एकल event tag (SET) नहीं है                                      | 400 Bad Request | Event&#95;id (&lt;event&#95;id&gt;) एकल event tag (SET) नहीं है |
+| अनुरोधित conversion events सीमा से अधिक हैं (वर्तमान में प्रति अनुरोध 500 events)     | 400 Bad Request | Conversion count सीमा 500 है                                    |
+| Event ID अनुपस्थित है                                                                 | 400 Bad Request | Event ID नहीं मिला                                              |
+
+<div id="json-error-code-example">
+  #### JSON त्रुटि कोड का उदाहरण
+</div>
+
+<div id="request">
+  ##### अनुरोध:
+</div>
+
+`POST '/11/measurement/conversions/o6dkt'  --data '{"conversions":[{"conversion_time": "2022-06-16T01:14:00.603Z", "event_id":"o6dkt", "identifiers": [{"twclid": "23opevjt88psuo13lu8d020qkn"}]}]}' --header 'Content-Type: application/json'`
+
+<div id="error-message">
+  #### त्रुटि संदेश:
+</div>
+
+`{"errors":[{"code":"INVALID_PARAMETER","message":"event_id (o6dkt) is not a single event tag (SET)","parameter":"event_id"}],"request":{"params":{"account_id":"18ce552mlaq"}}}`
+
+#### अनुरोध:
+
+`twurl_ads -X POST '/11/measurement/conversions/o6dkt'  --data '{"conversions":[{"conversion_time": "2022-06-16T01:14:00.603Z", "event_id":"o6dl3", "identifiers": [{"twclid": ""}]}]}' --header 'Content-Type: application/json' `
+
+<div id="error-message">
+  #### त्रुटि संदेश:
+</div>
+
+`{"errors":[{"code":"INVALID_PARAMETER","message":"At least one user identifier must be provided","parameter":""}],"request":{"params":{"account_id":"18ce552mlaq"}}}`
+
+#### अनुरोध:
+
+`twurl_ads -X POST '/11/measurement/conversions/o6dkt'  --data '{"conversions":[{"conversion_time": "2022-06-16T01:14:00.603Z", "event_id":"o6dl3", "identifiers": [{"hashed_email": "abc"}]}]}' --header 'Content-Type: application/json'`
+
+<div id="error-message">
+  #### त्रुटि संदेश:
+</div>
+
+`{"errors":[{"code":"INVALID_PARAMETER","message":"hashed_email (abc) is not a valid SHA-256 hash","parameter":"hashed_email"}],"request":{"params":{"account_id":"18ce552mlaq"}}}`
+
+#### अनुरोध:
+
+`twurl_ads -X POST '/11/measurement/conversions/o6dkt'  --data '{"conversions":[{"conversion_time": "2022-06-16T01:14:00.603", "event_id":"o6dl3", "identifiers": [{"twclid": "23opevjt88psuo13lu8d020qkn"}]}]}' --header 'Content-Type: application/json'`
+
+<div id="error-message">
+  #### त्रुटि संदेश:
+</div>
+
+`{"errors":[{"code":"INVALID_PARAMETER","message":"Expected Time in yyyy-MM-ddTHH:mm:ss.SSSZ, got \"2022-06-16T01:14:00.603\" for conversion_time","parameter":"conversion_time"}],"request":{"params":{"account_id":"18ce552mlaq"}}}`
+
+<div id="401-unauthorized">
+  ### 401 अनधिकृत
+</div>
+
+**कारण**: प्रमाणीकरण क्रेडेंशियल मौजूद नहीं हैं या गलत हैं 
+
+**समाधान**: 3 प्रमाणीकरण विधियों में से किसी एक का उपयोग करके [Set Up दस्तावेज़](https://developer.x.com/en/docs/twitter-ads-api/measurement/guides/conversion-api) में दिए गए प्रमाणीकरण चरणों का पालन करें:
+
+Ads API ऐप के स्वामी वाले हैंडल के अलावा अन्य उपयोगकर्ता हैंडल के लिए User Access Tokens, 3-legged OAuth flow का उपयोग करके जनरेट किए जाने चाहिए. 3-legged OAuth के साथ Access Token जनरेट करने के विकल्पों में शामिल हैं
+
+* [twurl utility के माध्यम से वेब-आधारित ऑथराइज़ेशन के साथ Command Line](https://github.com/twitter/twurl#getting-started)
+
+* [PIN-आधारित ऑथराइज़ेशन के साथ Command Line](https://developer.x.com/resources/fundamentals/authentication/pin-based-oauth)
+
+* [3-legged OAuth pattern को लागू करने वाला कस्टम web flow](https://developer.x.com/resources/fundamentals/authentication/obtaining-user-access-tokens)
+
+Conversion API के साथ उपयोग किए जाने वाले सभी user token ऐसे उपयोगकर्ताओं के होने चाहिए जिनका access level AD&#95;MANAGER या ACCOUNT&#95;ADMIN हो*, जिसे [authenticated&#95;user&#95;access](https://developer.x.com/en/docs/twitter-ads-api/campaign-management/api-reference/authenticated-user-access) endpoint के ज़रिए जांचा जा सकता है.
+
+<div id="403-access-forbidden">
+  ### 403 एक्सेस निषिद्ध
+</div>
+
+| कारण                                                                                                                                                                | type               | त्रुटि संदेश                                                                                                                                                                                                                                                                                                           |
+| :------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| आप जिस डेवलपर खाते का उपयोग कर रहे हैं, उसके पास Ads API का एक्सेस नहीं है। [एक्सेस के लिए यहाँ आवेदन करें](https://developer.x.com/en/docs/twitter-ads-api/apply). | 403 अनधिकृत Client | यह अनुरोध करने वाले id &lt;&gt; वाले क्लाइंट ऐप्लिकेशन के पास X Ads API का एक्सेस नहीं है। सुनिश्चित करें कि आपके ऐप्लिकेशन के पास advertiser-api access हो। आप जिस ऐप्लिकेशन का उपयोग कर रहे हैं उसे बदलने के लिए &#39;twurl accounts&#39; और &#39;twurl set default &lt;username&gt; &lt;key&gt;&#39; का उपयोग करें। |
+
+<div id="404-not-found">
+  ### 404 Not Found
+</div>
+
+| कारण                                                                           | type               | त्रुटि संदेश                                                                                                                                                                                                                                                             |
+| :----------------------------------------------------------------------------- | :------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| एंडपॉइंट के लिए अनुरोध URL या params सही नहीं हैं                              | 404 Route Not Found | The requested resource could not be found                                                                                                                                                                                                                                |
+| आपके पास उस खाते की पहुँच नहीं है, जिसका pixel&#95;id/Universal website tag है | 404 Not Found       | User &lt;user&#95;id&gt; does not have access to account &lt;account&#95;id&gt;. Type &#39;sn &lt;user&#95;id&gt;’ to get the handle of the user. Use &#39;twurl accounts&#39; and &#39;twurl set default \u003Cusername\u003E&#39; to change the user you&#39;re using. |
+| event id, pixel ID (UWT ID) से जुड़े दिए गए खाते का हिस्सा नहीं है             | 404 Not Found       | event&#95;id &lt;event&#95;id&gt; does not belong to provided account                                                                                                                                                                                                    |
+
+### JSON त्रुटि कोड का उदाहरण
+
+#### अनुरोध:
+
+`twurl_ads -X POST '/11/measurement/conversions/o8z6j'  --data '{"conversions":[{"conversion_time": "2022-06-16T01:14:00.603Z", "event_id":"abc", "identifiers": [{"twclid": "23opevjt88psuo13lu8d020qkn"}]}]}' --header 'Content-Type: application/json'`
+
+**त्रुटि संदेश:**
+
+`{"errors":[{"code":"NOT_FOUND","message":"event_id (abc) does not belong to provided account","parameter":"event_id"},{"code":"INVALID_PARAMETER","message":"event_id (abc) is not a single event tag (SET)","parameter":"event_id"}],"request":{"params":{"account_id":"18ce55gze09"}}}`
+
+<div id="api-reference-index">
+  ## API संदर्भ सूचकांक
+</div>
+
+पूरा API संदर्भ देखने के लिए, सूची में से कोई endpoint चुनें:
+
+<div id="web-conversions">
+  ### वेब कन्वर्ज़न
+</div>
+
+|               |                                                                                                                                                       |
+| :------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| कन्वर्ज़न API | [measurement/conversions/:pixel&#95;id](https://developer.x.com/en/docs/x-ads-api/measurement/web-conversions/api-reference/conversions)              |
+| वेब इवेंट टैग | [accounts/:account&#95;id/web&#95;event&#95;tags](https://developer.x.com/en/docs/x-ads-api/measurement/web-conversions/api-reference/web-event-tags) |
+
+<div id="web-conversions">
+  ### वेब कन्वर्ज़न
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman में चलाएँ
+</Button>
+
+`POST version/measurement/conversions/:pixel_id`
+
+एक Event Tag ID के लिए वेबसाइट कन्वर्ज़न इवेंट भेजें।
+
+सफलता सुनिश्चित करने के लिए रिस्पॉन्स कोड (HTTP 200 OK) की जाँच करें। यदि त्रुटि कोड लौटें, तो पुनःप्रयास की व्यवस्था और बुनियादी लॉगिंग रखना अनुशंसित है।
+
+रेट लिमिट प्रति खाते 15 मिनट के अंतराल में 100,000 अनुरोध है (प्रत्येक अनुरोध में 500 इवेंट की अनुमति है)।
+
+<div id="resource-url">
+  ##### संसाधन URL
+</div>
+
+`https://ads-api.x.com/12/measurement/conversions/:pixel_id`
+
+<div id="request-url-parameters">
+  ##### अनुरोध URL पैरामीटर
+</div>
+
+| Name                           | Description                                                                                                                                                                                                                                                                                                                                                                                        |
+| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pixel&#95;id  <br />*required* | किसी विज्ञापन खाते की Base Tag ID। यह किसी विज्ञापन खाते की Base Tag ID के लिए base36-एन्कोड किया गया मान दर्शाता है।<br /><br />Type: string<br /><br />Example: `o8z6j`                                                                                                                                                                                                                          |
+| conversions  <br />*required*  | API अनुरोध की POST body में मौजूद ऑब्जेक्ट। यह रूपांतरण ईवेंट्स की सूची है। अधिकतम 500 रूपांतरण ईवेंट्स दिए जा सकते हैं। समर्थित फ़ील्ड्स के लिए नीचे दी गई तालिका देखें।<br /><br />Type: array<br /><br />Example: `"conversions":[{"conversion_time": "2022-02-18T01:14:00.603Z", "event_id":"o87ne", "identifiers": [{"twclid": "23opevjt88psuo13lu8d020qkn"}], "conversion_id": "23294827"}]` |
+
+<div id="conversions-object">
+  ###### conversions ऑब्जेक्ट
+</div>
+
+| नाम                                   | विवरण                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| :------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| conversion&#95;time  <br />*required* | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) में व्यक्त समय।<br /><br />Type: string<br /><br />Example: `2017-10-05T00:00:00Z`                                                                                                                                                                                                                                                                                                                                                                 |
+| event&#95;id  <br />*required*        | किसी विशिष्ट इवेंट का base-36 ID। यह इस ad account में शामिल पहले से कॉन्फ़िगर किए गए इवेंट से मेल खाता है। Events Manager में संबंधित इवेंट में इसे ID कहा जाता है।<br /><br />Type: string<br /><br />Example: `o87ne` or `tw-o8z6j-o87ne` (`tw-pixel_id-event-id`) both accepted                                                                                                                                                                                                                   |
+| identifiers  <br />*required*         | conversion इवेंट का मिलान करने के लिए identifier ऑब्जेक्ट्स की एक सूची। समर्थित फ़ील्ड्स नीचे दी गई तालिका में सूचीबद्ध हैं। कम से कम एक identifier ऑब्जेक्ट आवश्यक है।<br /><br />यदि IP address या user agent का उपयोग किया जा रहा है, तो सही conversion मिलान के लिए दूसरा identifier भेजना आवश्यक है।<br /><br />Type: array<br /><br />Example: `"identifiers": [{"twclid": "23opevjt88psuo13lu8d020qkn"},{"hashed_email": "e586883b2b4faf78d48300a79e0e15138d664cdf796ffb86e533170a9893eda8"}]` |
+| number&#95;items  <br />*optional*    | इवेंट में खरीदी जा रही वस्तुओं की संख्या। यह शून्य से बड़ी धनात्मक संख्या होनी चाहिए।<br /><br />Type: integer<br /><br />Example: `4`                                                                                                                                                                                                                                                                                                                                                                |
+| price&#95;currency  <br />*optional*  | इवेंट में खरीदी जा रही वस्तुओं की मुद्रा, जिसे [ISO-4217](https://en.wikipedia.org/wiki/ISO_4217) में व्यक्त किया जाता है। विस्तृत जानकारी के लिए [Currency](https://developer.x.com/en/docs/twitter-ads-api/currency) देखें।<br /><br />Type: string<br /><br />Default: `USD`<br /><br />Example: `JPY`                                                                                                                                                                                             |
+| value  <br />*optional*               | इवेंट में खरीदी जा रही वस्तुओं का मूल्य, जिसे `price_currency` मुद्रा में दर्शाया गया है।<br /><br />Type: double<br /><br />Example: `100.00`                                                                                                                                                                                                                                                                                                                                                        |
+| conversion&#95;id  <br />*optional*   | pixel और Conversion API conversions के बीच deduplication के लिए। conversion इवेंट का एक identifier, जिसका उपयोग *same event tag* में Web Pixel और Conversion API conversions के बीच de-duplication के लिए किया जा सकता है। अधिक जानकारी के लिए [Conversions Guide](https://developer.x.com/en/docs/twitter-ads-api/measurement/guides/conversion-api) के Testing Events and Deduplication अनुभाग को देखें।<br /><br />Type: string<br /><br />Example: `23294827`                                     |
+| description  <br />*optional*         | conversions से संबंधित किसी भी अतिरिक्त जानकारी का विवरण।<br /><br />Type: string<br /><br />Example: `test conversion`                                                                                                                                                                                                                                                                                                                                                                               |
+| contents  <br />*optional*            | अधिक विस्तृत जानकारी देने के लिए किसी विशिष्ट product/content से संबंधित विवरणों की सूची। समर्थित फ़ील्ड्स के लिए नीचे दी गई तालिका देखें।<br /><br />Type: array<br /><br />Example: `contents": [{"content_id": "1", "content_name": "Blankets", "content_type": "home improvement", "content_price": 100.99, "num_items": 1, "content_group_id": "123"}, {"content_id": "2"}]`                                                                                                                     |
+
+<div id="identifiers-object">
+  ###### identifiers ऑब्जेक्ट
+</div>
+
+| नाम                                                                 | विवरण                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| :------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ********twclid********  <br />*कभी-कभी आवश्यक*                      | क्लिक-थ्रू URL से पार्स किया गया Click ID। यदि कोई अन्य पहचानकर्ता नहीं जोड़ा गया है, तो यह आवश्यक है।<br /><br />Type: string<br /><br />उदाहरण: `26l6412g5p4iyj65a2oic2ayg2`                                                                                                                                                                                                                                               |
+| ********hashed&#95;email********  <br />*कभी-कभी आवश्यक*            | [SHA256](https://en.wikipedia.org/wiki/SHA-2) से हैश किया गया ईमेल पता। हैश करने से पहले टेक्स्ट लोअरकेस में होना चाहिए और शुरुआत या अंत के सभी स्पेस हटा देने चाहिए। यदि कोई अन्य पहचानकर्ता नहीं जोड़ा गया है, तो यह आवश्यक है।<br /><br />Type: string<br /><br />उदाहरण: `test-email@test.com` के लिए = `e586883b2b4faf78d48300a79e0e15138d664cdf796ffb86e533170a9893eda8`                                               |
+| ********hashed&#95;phone&#95;number********  <br />*कभी-कभी आवश्यक* | [E164](https://en.wikipedia.org/wiki/E.164) फ़ॉर्मैट में फ़ोन नंबर, जिसे [SHA256](https://en.wikipedia.org/wiki/SHA-2) से हैश किया गया हो। हैश करने से पहले फ़ोन नंबर E164 फ़ॉर्मैट में होना चाहिए। यदि कोई अन्य पहचानकर्ता नहीं जोड़ा गया है, तो यह आवश्यक है।<br /><br />Type: string<br /><br />उदाहरण: `+11234567890` के लिए = `1fa6b8d986d9b9cd01bf36951815158bbde9f520c0567c835dfe34783d0a4231 `                       |
+| **ip&#95;address**  <br />*कभी-कभी आवश्यक*                          | यह मान डॉटेड-डेसिमल नोटेशन में लिखा जाता है, जिसमें चार संख्याएँ पूर्णविराम से अलग होती हैं।<br /><br />IP पता किसी अन्य पहचानकर्ता (twclid, ईमेल पता, फ़ोन नंबर या user agent) के साथ देना आवश्यक है।<br /><br />Type: string<br /><br />उदाहरण: 8.25.197.25                                                                                                                                                                |
+| **user&#95;agent **  <br />*कभी-कभी आवश्यक*                         | यह पहचानकर्ता सर्वर को अनुरोध करने वाले user agent के एप्लिकेशन, ऑपरेटिंग सिस्टम, वेंडर और/या वर्शन की पहचान करने में सक्षम बनाता है।<br /><br />User Agent को किसी अन्य पहचानकर्ता (twclid, ईमेल पता, फ़ोन नंबर या IP पता) के साथ देना आवश्यक है।<br /><br />Type: string<br /><br />उदाहरण: Mozilla/5.0 (Macintosh; Intel Mac OS X 10&#95;15&#95;7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36. |
+
+<div id="contents-object">
+  ###### contents ऑब्जेक्ट
+</div>
+
+| नाम                                        | विवरण                                                                                                   |
+| :----------------------------------------- | :------------------------------------------------------------------------------------------------------ |
+| content&#95;id  <br />*वैकल्पिक*           | SKU या GTIN; वह पहचानकर्ता जो इस आइटम को दर्शाता है।<br /><br />type: string<br /><br />उदाहरण: `jhp` |
+| content&#95;group&#95;id  <br />*वैकल्पिक* | उत्पाद वैरिएंट के समूह से संबद्ध ID<br /><br />type: integer<br /><br />उदाहरण: `group 1`             |
+| content&#95;name  <br />*वैकल्पिक*         | उत्पाद या सेवा का नाम।<br /><br />type: string<br /><br />उदाहरण: `radio flyer`                       |
+| content&#95;price  <br />*वैकल्पिक*        | उत्पाद या सेवा की कीमत।<br /><br />type: double<br /><br />उदाहरण: `5.00`                             |
+| content&#95;type  <br />*वैकल्पिक*         | खरीदे गए उत्पाद की श्रेणी।<br /><br />type: string<br /><br />उदाहरण: `clothes`                       |
+| num&#95;items  <br />*वैकल्पिक*            | खरीदे गए उत्पादों की संख्या<br /><br />type: integer<br /><br />उदाहरण: `1`                           |
+
+<div id="response-parameters">
+  ##### रिस्पॉन्स पैरामीटर
+</div>
+
+| Name                      | Description                                                                                                                                     |
+| :------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| conversions&#95;processed | सफलतापूर्वक प्रोसेस किए गए कन्वर्ज़न की संख्या<br /><br />Type: integer<br /><br />उदाहरण: `1`                                                  |
+| debug&#95;id              | एक debug UUID, जिसका उपयोग आगे की जांच के लिए किया जा सकता है<br /><br />Type: string<br /><br />उदाहरण: `ff02e052-36e4-47d6-bdf0-6d8986446562` |
+
+<div id="example-request">
+  ##### अनुरोध का उदाहरण
+</div>
+
+```json
+    twurl -H 'ads-api.x.com' -X POST '/12/measurement/conversions/oka17' --data '
+    {
+      "conversions":[
+         {
+            "conversion_time":"2022-02-18T01:14:00.603Z",
+            "event_id":"ol288",
+            "identifiers":[
+               {
+                  "twclid":"23opevjt88psuo13lu8d020qkn"
+               },
+               {
+                  "hashed_email":"d360d510a224510f373931ce2d6215a799f5a9c1cef221b0149b6b6b50cced62"
+               },
+               {
+                  "hashed_phone_number":"1fa6b8d986d9b9cd01bf36951815158bbde9f520c0567c835dfe34783d0a4231"
+               },
+               {
+                  "ip_address":"1.0.0.0",
+                  "user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+               }
+            ],
+            "value":"20.00",
+            "number_items":3,
+            "conversion_id":"23294827",
+            "description":"Pet supply purchases",
+            "contents":[
+               {
+                  "content_id":"1",
+                  "content_name":"Blankets",
+                  "content_type":"Pet supplies",
+                  "content_price":100.99,
+                  "num_items":1,
+                  "content_group_id":"123"
+               }
+            ]
+         }
+      ]
+    }' --header 'Content-Type: application/json'
+```
+
+##### उदाहरण अनुरोध
+
+```json
+    {
+       "request":{
+          "params":{
+             "account_id":"18ce552mlaq"
+          }
+       },
+       "data":{
+          "conversions_processed":1,
+          "debug_id":"ff02e052-36e4-47d6-bdf0-6d8986446562"
+       }
+    }
+```
+
+<div id="web-event-tags">
+  ### वेब इवेंट टैग्स
+</div>
+
+<Button href="https://app.getpostman.com/run-collection/1d12b9fc623b8e149f87">
+  Postman में चलाएँ
+</Button>
+
+`GET accounts/:account_id/web_event_tags`
+
+वर्तमान खाते से जुड़े कुछ या सभी वेब इवेंट टैग्स का विवरण प्राप्त करें।
+
+#### संसाधन URL
+
+`https://ads-api.x.com/12/accounts/:account_id/web_event_tags`
+
+#### पैरामीटर
+
+| नाम                                             | विवरण                                                                                                                                                                                                                                                                                                                                                        |
+| :---------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account&#95;id  <br />*required*                | leveraged account का पहचानकर्ता। यह resource के path में दिखाई देता है और आम तौर पर [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API अनुरोधों के लिए एक आवश्यक पैरामीटर होता है। निर्दिष्ट account प्रमाणित उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />उदाहरण: `18ce54d4x5t`                    |
+| count  <br />*optional*                         | प्रत्येक अलग request में प्राप्त करने का प्रयास किए जाने वाले records की संख्या निर्दिष्ट करता है।<br /><br />Type: int<br /><br />डिफ़ॉल्ट: `200`  <br />न्यूनतम, अधिकतम: `1`, `1000`                                                                                                                                                                       |
+| cursor  <br />*optional*                        | परिणामों का अगला page प्राप्त करने के लिए cursor निर्दिष्ट करता है। अधिक जानकारी के लिए [Pagination](/hi/x-ads-api/introduction) देखें।<br /><br />Type: string<br /><br />उदाहरण: `8x7v00oow`                                                                                                                                                                  |
+| sort&#95;by  <br />*optional*                   | समर्थित attribute के आधार पर आरोही या अवरोही क्रम में sort करता है। अधिक जानकारी के लिए [Sorting](/hi/x-ads-api/fundamentals/sorting) देखें।<br /><br />Type: string<br /><br />उदाहरण: `created_at-asc`                                                                                                                                                        |
+| web&#95;event&#95;tag&#95;ids  <br />*optional* | कॉमा से अलग की गई identifiers की सूची निर्दिष्ट करके रिस्पॉन्स को केवल इच्छित वेब इवेंट टैग्स तक सीमित करता है। अधिकतम 200 IDs दिए जा सकते हैं।<br /><br />Type: string<br /><br />उदाहरण: `o3bk1`                                                                                                                                                            |
+| with&#95;deleted  <br />*optional*              | अपनी request में deleted results शामिल करें।<br /><br />Type: boolean<br /><br />डिफ़ॉल्ट: `false`  <br />संभावित मान: `true`, `false`                                                                                                                                                                                                                       |
+| with&#95;total&#95;count  <br />*optional*      | `total_count` रिस्पॉन्स attribute शामिल करें।<br /><br />**नोट**: यह पैरामीटर और `cursor` एक साथ उपयोग नहीं किए जा सकते।<br /><br />**नोट**: जिन requests में `total_count` शामिल होता है, उनकी रेट लिमिट्स कम होंगी, जो वर्तमान में प्रति 15 मिनट 200 पर सेट हैं।<br /><br />Type: boolean<br /><br />डिफ़ॉल्ट: `false`  <br />संभावित मान: `true`, `false` |
+
+#### उदाहरण अनुरोध
+
+`GET https://ads-api.x.com/12/accounts/18ce54d4x5t/web_event_tags?web_event_tag_ids=o3bk1`
+
+#### उदाहरण रिस्पॉन्स
+
+```json
+    {
+      "request": {
+        "params": {
+          "web_event_tag_ids": [
+            "o3bk1"
+          ],
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "next_cursor": null,
+      "data": [
+        {
+          "name": "web event tag",
+          "view_through_window": 7,
+          "click_window": 7,
+          "embed_code": "<script src="//platform.x.com/oct.js" type="text/javascript"></script><script type="text/javascript">twttr.conversion.trackPid('ny3od',  { tw_sale_amount: 0, tw_order_quantity: 0 });</script><noscript><img height="1" width="1" style="display:none;" alt=""  src="https://analytics.x.com/i/adsct?txn_id=ny3od&amp;p_id=Twitter&amp;tw_sale_amount=0&amp;tw_order_quantity=0" /><img height="1" width="1" style="display:none;" alt=""  src="//t.co/i/adsct?txn_id=ny3od&amp;p_id=Twitter&amp;tw_sale_amount=0&amp;tw_order_quantity=0" /></noscript>",
+          "id": "o3bk1",
+          "retargeting_enabled": false,
+          "last_tracked_at": "2021-05-22T17:00:04Z",
+          "status": "TRACKING",
+          "type": "DOWNLOAD",
+          "website_tag_id": "ny3od",
+          "deleted": false
+        }
+      ]
+    }
+```
+
+<div id="get-accountsaccount_idweb_event_tagsweb_event_tag_id">
+  #### GET accounts/:account_id/web_event_tags/:web_event_tag_id
+</div>
+
+वर्तमान खाते से संबद्ध किसी विशिष्ट वेब इवेंट टैग को प्राप्त करें।
+
+<div id="resource-url">
+  ##### संसाधन URL
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/web_event_tags/:web_event_tag_id`
+
+<div id="parameters">
+  ##### पैरामीटर
+</div>
+
+| नाम                                            | विवरण                                                                                                                                                                                                                                                                                                                                     |
+| :--------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account&#95;id  <br />*required*               | लीवरेज्ड account का पहचानकर्ता। यह resource के path में शामिल होता है और [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर आम तौर पर सभी Advertiser API requests के लिए एक आवश्यक parameter होता है। निर्दिष्ट account प्रमाणित उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />उदाहरण: `18ce54d4x5t` |
+| web&#95;event&#95;tag&#95;id  <br />*required* | उस वेब इवेंट टैग का संदर्भ, जिस पर आप request में कार्य कर रहे हैं।<br /><br />Type: string<br /><br />उदाहरण: `o3bk1`                                                                                                                                                                                                                    |
+| with&#95;deleted  <br />*optional*             | अपनी request में deleted results शामिल करें।<br /><br />Type: boolean<br /><br />डिफ़ॉल्ट: `false`  <br />संभावित मान: `true`, `false`                                                                                                                                                                                                    |
+
+##### उदाहरण अनुरोध
+
+`GET https://ads-api.x.com/12/accounts/18ce54d4x5t/web_event_tags/o3bk1`
+
+##### उदाहरण रिस्पॉन्स
+
+```json
+    {
+      "request": {
+        "params": {
+          "web_event_tag_id": "o3bk1",
+          "account_id": "18ce54d4x5t"
+        }
+      },
+      "data": {
+        "name": "web event tag",
+        "view_through_window": 7,
+        "click_window": 7,
+        "embed_code": "<script src="//platform.x.com/oct.js" type="text/javascript"></script><script type="text/javascript">twttr.conversion.trackPid('ny3od',  { tw_sale_amount: 0, tw_order_quantity: 0 });</script><noscript><img height="1" width="1" style="display:none;" alt=""  src="https://analytics.x.com/i/adsct?txn_id=ny3od&amp;p_id=Twitter&amp;tw_sale_amount=0&amp;tw_order_quantity=0" /><img height="1" width="1" style="display:none;" alt=""  src="//t.co/i/adsct?txn_id=ny3od&amp;p_id=Twitter&amp;tw_sale_amount=0&amp;tw_order_quantity=0" /></noscript>",
+        "id": "o3bk1",
+        "retargeting_enabled": false,
+        "last_tracked_at": "2021-05-22T17:00:04Z",
+        "status": "TRACKING",
+        "type": "DOWNLOAD",
+        "website_tag_id": "ny3od",
+        "deleted": false
+      }
+    }
+```
+
+<div id="post-accountsaccount_idweb_event_tags">
+  #### POST accounts/:account_id/web_event_tags
+</div>
+
+वर्तमान खाते से संबद्ध नया वेब इवेंट टैग बनाएं।
+
+#### संसाधन URL
+
+`https://ads-api.x.com/12/accounts/:account_id/web_event_tags`
+
+#### पैरामीटर
+
+| नाम                                           | विवरण                                                                                                                                                                                                                                                                                                                                                                                         |
+| :-------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account&#95;id  <br />*required*              | लीवरेज्ड account का पहचानकर्ता। यह resource के path में दिखाई देता है और आम तौर पर [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API अनुरोधों के लिए एक आवश्यक पैरामीटर होता है। निर्दिष्ट account, authenticated user से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />Example: `18ce54d4x5t`                                                     |
+| click&#95;window  <br />*required*            | इस वेब टैग के लिए click window।<br /><br />**Note**: नीचे सूचीबद्ध संभावित मानों में से केवल इन्हीं को स्वीकार किया जाता है।<br /><br />Type: int<br /><br />Possible values: `1`, `7`, `14`, `30`                                                                                                                                                                                            |
+| name  <br />*required*                        | इस वेब टैग का नाम।<br /><br />Type: string<br /><br />Example: `Sample single conversion event`                                                                                                                                                                                                                                                                                               |
+| retargeting&#95;enabled  <br />*required*     | यह बताता है कि इस वेब टैग के लिए retargeting सक्षम होना चाहिए या नहीं।<br /><br />Type: boolean<br /><br />Possible values: `true`, `false`                                                                                                                                                                                                                                                   |
+| type  <br />*required*                        | इस वेब टैग का type।<br /><br />Type: enum<br /><br />Possible values: `ADDED_PAYMENT_INFO`, `ADD_TO_CART`, `ADD_TO_WISHLIST`, `CHECKOUT_INITIATED`, `CONTENT_VIEW`, `CUSTOM`, `DOWNLOAD`, `PRODUCT_CUSTOMIZATION`,`PURCHASE`, `SEARCH`, `SIGN_UP`, `SITE_VISIT`, `START_TRIAL`, `SUBSCRIBE`<br /><br />(UI में, `SITE_VISIT` को “Page view” और `SIGN_UP` को “Lead” के रूप में दिखाया जाता है) |
+| view&#95;through&#95;window  <br />*required* | इस वेब टैग के लिए view through window। यह मान हमेशा `click_window` के मान से कम या उसके बराबर होना चाहिए।<br /><br />**Note**: नीचे सूचीबद्ध संभावित मानों में से केवल इन्हीं को स्वीकार किया जाता है।<br /><br />Type: int<br /><br />Possible values: `0`, `1`, `7`, `14`, `30`                                                                                                             |
+
+##### उदाहरण अनुरोध
+
+`POST https://ads-api.x.com/12/accounts/18ce54d4x5t/web_event_tags?click_window=7&name=web event tag&retargeting_enabled=false&type=SITE_VISIT&view_through_window=7`
+
+#### उदाहरण रिस्पॉन्स
+
+```json
+    {
+      "data": {
+        "name": "web event tag",
+        "view_through_window": 7,
+        "click_window": 7,
+        "embed_code": "<script src='"//platform.x.com/oct.js"' type='"text/javascript"'></script><script type='"text/javascript"'>twttr.conversion.trackPid('ny3od',  { tw_sale_amount: 0, tw_order_quantity: 0 });</script><noscript><img alt='""' height='"1"' src='"https://analytics.x.com/i/adsct?txn_id=ny3od&p_id=Twitter&tw_sale_amount=0&tw_order_quantity=0"' style='"display:none;"' width='"1"'/><img alt='""' height='"1"' src='"//t.co/i/adsct?txn_id=ny3od&p_id=Twitter&tw_sale_amount=0&tw_order_quantity=0"' style='"display:none;"' width='"1"'/></noscript>",
+        "id": "o3bk1",
+        "retargeting_enabled": false,
+        "last_tracked_at": null,
+        "status": "UNVERIFIED",
+        "type": "SITE_VISIT",
+        "website_tag_id": "ny3od",
+        "deleted": false
+      },
+      "request": {
+        "params": {
+          "name": "web event tag",
+          "view_through_window": 7,
+          "click_window": 7,
+          "retargeting_enabled": false,
+          "account_id": "18ce54d4x5t",
+          "type": "SITE_VISIT"
+        }
+      }
+    }
+```
+
+<div id="put-accountsaccount_idweb_event_tagsweb_event_tag_id">
+  #### PUT accounts/:account_id/web_event_tags/:web_event_tag_id
+</div>
+
+वर्तमान खाते से संबद्ध वेब इवेंट टैग को अपडेट करें।
+
+<div id="resource-url">
+  ##### संसाधन URL
+</div>
+
+`https://ads-api.x.com/12/accounts/:account_id/web_event_tags/:web_event_tag_id`
+
+#### पैरामीटर
+
+| Name                                           | Description                                                                                                                                                                                                                                                                                                                                                                              |
+| :--------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account&#95;id  <br />*required*               | लीवरेज्ड खाते का पहचानकर्ता। यह संसाधन के पथ में दिखाई देता है और सामान्यतः [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर सभी Advertiser API अनुरोधों के लिए आवश्यक पैरामीटर होता है। निर्दिष्ट खाता प्रमाणित उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />Type: string<br /><br />उदाहरण: `18ce54d4x5t`                                                              |
+| web&#95;event&#95;tag&#95;id  <br />*required* | मौजूदा खाते के वेब टैग का पहचानकर्ता।<br /><br />Type: string<br /><br />उदाहरण: `o3bk1`                                                                                                                                                                                                                                                                                                 |
+| click&#95;window  <br />*optional*             | इस वेब टैग के लिए क्लिक विंडो।<br /><br />**नोट**: केवल नीचे सूचीबद्ध संभावित मान स्वीकार किए जाते हैं।<br /><br />Type: int<br /><br />संभावित मान: `1`, `7`, `14`, `30`                                                                                                                                                                                                                |
+| name  <br />*optional*                         | वेब टैग का नाम।<br /><br />Type: string<br /><br />उदाहरण: `Sample single conversion event`                                                                                                                                                                                                                                                                                              |
+| retargeting&#95;enabled  <br />*optional*      | यह दर्शाता है कि इस वेब टैग के लिए retargeting सक्षम किया जाना चाहिए या नहीं।<br /><br />Type: boolean<br /><br />संभावित मान: `true`, `false`                                                                                                                                                                                                                                           |
+| type  <br />*optional*                         | वेब टैग का प्रकार।<br /><br />Type: enum<br /><br />संभावित मान: `ADDED_PAYMENT_INFO`, `ADD_TO_CART`, `ADD_TO_WISHLIST`, `CHECKOUT_INITIATED`, `CONTENT_VIEW`, `CUSTOM`, `DOWNLOAD`, `PRODUCT_CUSTOMIZATION`,`PURCHASE`, `SEARCH`, `SIGN_UP`, `SITE_VISIT`, `START_TRIAL`, `SUBSCRIBE`<br /><br />(UI में, `SITE_VISIT` को “Page view” और `SIGN_UP` को “Lead” के रूप में दिखाया जाता है) |
+| view&#95;through&#95;window  <br />*optional*  | इस वेब टैग के लिए व्यू-थ्रू विंडो। यह मान हमेशा `click_window` के मान से कम या उसके बराबर होना चाहिए।<br /><br />**नोट**: केवल नीचे सूचीबद्ध संभावित मान स्वीकार किए जाते हैं।<br /><br />Type: int<br /><br />संभावित मान: `0`, `1`, `7`, `14`, `30`                                                                                                                                    |
+
+#### उदाहरण अनुरोध
+
+`PUT https://ads-api.x.com/12/accounts/18ce54d4x5t/web_event_tags/o3bk1?type=DOWNLOAD`
+
+<div id="example-response">
+  #### रिस्पॉन्स का उदाहरण
+</div>
+
+```json
+    {
+      "data": {
+        "name": "web event tag",
+        "view_through_window": 7,
+        "click_window": 7,
+        "embed_code": "<script src='"//platform.x.com/oct.js"' type='"text/javascript"'></script><script type='"text/javascript"'>twttr.conversion.trackPid('ny3od',  { tw_sale_amount: 0, tw_order_quantity: 0 });</script><noscript><img alt='""' height='"1"' src='"https://analytics.x.com/i/adsct?txn_id=ny3od&p_id=Twitter&tw_sale_amount=0&tw_order_quantity=0"' style='"display:none;"' width='"1"'/><img alt='""' height='"1"' src='"//t.co/i/adsct?txn_id=ny3od&p_id=Twitter&tw_sale_amount=0&tw_order_quantity=0"' style='"display:none;"' width='"1"'/></noscript>",
+        "id": "o3bk1",
+        "retargeting_enabled": false,
+        "last_tracked_at": "2021-05-22T17:00:04Z",
+        "status": "UNVERIFIED",
+        "type": "DOWNLOAD",
+        "website_tag_id": "ny3od",
+        "deleted": false
+      },
+      "request": {
+        "params": {
+          "web_event_tag_id": "o3bk1",
+          "type": "DOWNLOAD",
+          "account_id": "18ce54d4x5t"
+        }
+      }
+    }
+```
+
+<div id="delete-accountsaccount_idweb_event_tagsweb_event_tag_id">
+  #### DELETE accounts/:account_id/web_event_tags/:web_event_tag_id
+</div>
+
+वर्तमान खाते से संबद्ध किसी विशिष्ट वेब इवेंट टैग को हटाएं।
+
+#### संसाधन URL
+
+`https://ads-api.x.com/12/accounts/:account_id/web_event_tags/:web_event_tag_id`
+
+<div id="parameters">
+  ##### पैरामीटर
+</div>
+
+| Name                                           | Description                                                                                                                                                                                                                                                                                                                           |
+| :--------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| account&#95;id  <br />*required*               | leveraged खाते का पहचानकर्ता। यह resource के path में दिखाई देता है और [GET accounts](/hi/x-ads-api/campaign-management#accounts) को छोड़कर आम तौर पर सभी Advertiser API अनुरोधों के लिए एक आवश्यक पैरामीटर होता है। निर्दिष्ट खाता प्रमाणीकृत उपयोगकर्ता से संबद्ध होना चाहिए।<br /><br />type: string<br /><br />उदाहरण: `18ce54d4x5t` |
+| web&#95;event&#95;tag&#95;id  <br />*required* | मौजूदा खाते पर web tag का पहचानकर्ता।<br /><br />type: string<br /><br />उदाहरण: `o3bk1`                                                                                                                                                                                                                                              |
+
+##### उदाहरण अनुरोध
+
+`DELETE https://ads-api.x.com/12/accounts/18ce54d4x5t/web_event_tags/o3bk1`
+
+##### उदाहरण रिस्पॉन्स
+
+```json
+    {
+      "data": {
+        "name": "web event tag",
+        "view_through_window": 7,
+        "click_window": 7,
+        "embed_code": "<script src='"//platform.x.com/oct.js"' type='"text/javascript"'></script><script type='"text/javascript"'>twttr.conversion.trackPid('ny3od',  { tw_sale_amount: 0, tw_order_quantity: 0 });</script><noscript><img alt='""' height='"1"' src='"https://analytics.x.com/i/adsct?txn_id=ny3od&p_id=Twitter&tw_sale_amount=0&tw_order_quantity=0"' style='"display:none;"' width='"1"'/><img alt='""' height='"1"' src='"//t.co/i/adsct?txn_id=ny3od&p_id=Twitter&tw_sale_amount=0&tw_order_quantity=0"' style='"display:none;"' width='"1"'/></noscript>",
+        "id": "o3bk1",
+        "retargeting_enabled": false,
+        "last_tracked_at": "2021-05-22T17:00:04Z",
+        "status": "UNVERIFIED",
+        "type": "DOWNLOAD",
+        "website_tag_id": "ny3od",
+        "deleted": true
+      },
+      "request": {
+        "params": {
+          "web_event_tag_id": "o3bk1",
+          "account_id": "18ce54d4x5t"
+        }
+      }
+    }
+```

@@ -1,0 +1,211 @@
+---
+title: म्यूट किए गए उपयोगकर्ताओं की सूची
+sidebarTitle: म्यूट किए गए उपयोगकर्ताओं की सूची
+description: आपके द्वारा म्यूट किए गए उपयोगकर्ताओं की सूची प्राप्त करें
+keywords: ["म्यूट किए गए उपयोगकर्ताओं की सूची त्वरित शुरुआत", "म्यूट उपयोगकर्ता सूची त्वरित शुरुआत", "म्यूट किए गए उपयोगकर्ताओं की सूची ट्यूटोरियल", "म्यूट उपयोगकर्ता सूची गाइड", "म्यूट्स त्वरित शुरुआत"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका आपको X API का उपयोग करके अपनी म्यूट की गई उपयोगकर्ताओं की सूची प्राप्त करने में मार्गदर्शन करती है।
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * स्वीकृत ऐप के साथ एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * User Access Token (OAuth 1.0a या OAuth 2.0 PKCE)
+</Note>
+
+***
+
+<div id="get-your-muted-users">
+  ## अपने म्यूट किए गए उपयोगकर्ता प्राप्त करें
+</div>
+
+<Steps>
+  <Step title="अपनी उपयोगकर्ता ID प्राप्त करें">
+    आपको अपने प्रमाणीकृत उपयोगकर्ता की ID चाहिए। आप इसे [user lookup endpoint](/hi/x-api/users/lookup/introduction) का उपयोग करके या अपने Access Token से पता कर सकते हैं (उसका संख्यात्मक भाग आपकी उपयोगकर्ता ID है)।
+  </Step>
+
+  <Step title="म्यूट किए गए उपयोगकर्ताओं का अनुरोध करें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/users/123456789/muting?\
+      user.fields=created_at,username,verified&\
+      max_results=100" \
+        -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+      # पेजिनेशन के साथ म्यूट किए गए उपयोगकर्ताओं को प्राप्त करें
+      for page in client.users.get_muting(
+          "123456789",
+          user_fields=["created_at", "username", "verified"],
+          max_results=100
+      ):
+          for user in page.data:
+              print(f"{user.username} - Muted")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+      // पेजिनेशन के साथ म्यूट किए गए उपयोगकर्ताओं को प्राप्त करें
+      const paginator = client.users.getMuting("123456789", {
+        userFields: ["created_at", "username", "verified"],
+        maxResults: 100,
+      });
+
+      for await (const page of paginator) {
+        page.data?.forEach((user) => {
+          console.log(`${user.username} - Muted`);
+        });
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers",
+          "created_at": "2013-12-14T04:35:55.000Z",
+          "verified": true
+        }
+      ],
+      "meta": {
+        "result_count": 1,
+        "next_token": "1710819323648428707"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="include-additional-data">
+  ## अतिरिक्त डेटा शामिल करें
+</div>
+
+पिन की गई पोस्ट्स जैसे संबंधित डेटा पाने के लिए expansions का इस्तेमाल करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/123456789/muting?\
+  user.fields=created_at&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # expansions के साथ म्यूट किए गए उपयोगकर्ता प्राप्त करें
+  for page in client.users.get_muting(
+      "123456789",
+      user_fields=["created_at"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at"]
+  ):
+      for user in page.data:
+          print(f"{user.username}")
+      # पिन की गई पोस्ट्स page.includes.tweets में होती हैं
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // expansions के साथ म्यूट किए गए उपयोगकर्ता प्राप्त करें
+  const paginator = client.users.getMuting("123456789", {
+    userFields: ["created_at"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at"],
+  });
+
+  for await (const page of paginator) {
+    page.data?.forEach((user) => {
+      console.log(user.username);
+    });
+    // पिन की गई पोस्ट्स page.includes?.tweets में होती हैं
+  }
+  ```
+</CodeGroup>
+
+<div id="response-with-expansion">
+  ### एक्सपैंशन सहित रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": [
+    {
+      "username": "XDevelopers",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "id": "2244994945",
+      "name": "X Developers",
+      "pinned_tweet_id": "1430984356139470849"
+    }
+  ],
+  "includes": {
+    "tweets": [
+      {
+        "created_at": "2021-08-26T20:03:51.000Z",
+        "id": "1430984356139470849",
+        "text": "Help us build a better X Developer Platform!..."
+      }
+    ]
+  },
+  "meta": {
+    "result_count": 1
+  }
+}
+```
+
+***
+
+<div id="paginate-through-results">
+  ## परिणामों को पेज-दर-पेज देखें
+</div>
+
+SDKs पेजिनेशन को अपने आप संभालते हैं। cURL के लिए, रिस्पॉन्स से `next_token` का उपयोग करें:
+
+```bash
+curl "https://api.x.com/2/users/123456789/muting?\
+max_results=100&\
+pagination_token=1710819323648428707" \
+  -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+```
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="म्यूट प्रबंधित करें" icon="volume-xmark" href="/hi/x-api/users/mutes/quickstart/manage-mutes-quickstart">
+    उपयोगकर्ताओं को म्यूट और अनम्यूट करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/users/get-muted-users">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+</CardGroup>

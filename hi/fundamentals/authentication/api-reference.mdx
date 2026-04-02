@@ -1,0 +1,336 @@
+---
+title: OAuth API संदर्भ सूची
+sidebarTitle: API संदर्भ
+keywords: ["OAuth API संदर्भ", "प्रमाणीकरण API", "OAuth एंडपॉइंट्स", "auth एंडपॉइंट्स", "OAuth संदर्भ", "API संदर्भ"]
+---
+
+<div id="oauth-10a">
+  ### OAuth 1.0a
+</div>
+
+|                                                                                                                                                                                    |                                                                                                                     |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------ |
+| **उद्देश्य**                                                                                                                                                                       | मेथड                                                                                                                |
+| 3-legged OAuth flow और X के साथ साइन इन का चरण 1  <br />किसी Consumer एप्लिकेशन को उपयोगकर्ता प्राधिकरण का अनुरोध करने के लिए OAuth Request Token प्राप्त करने की अनुमति देता है।  | [POST oauth/request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token)       |
+| 3-legged OAuth flow और X के साथ साइन इन का चरण 2  <br />किसी Consumer एप्लिकेशन को उपयोगकर्ता प्राधिकरण का अनुरोध करने के लिए OAuth Request Token का उपयोग करने की अनुमति देता है। | [GET oauth/authenticate](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authenticate)               |
+| 3-legged OAuth flow और X के साथ साइन इन का चरण 2  <br />किसी Consumer एप्लिकेशन को उपयोगकर्ता प्राधिकरण का अनुरोध करने के लिए OAuth Request Token का उपयोग करने की अनुमति देता है। | [GET oauth/authorize](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authorize)                     |
+| 3-legged OAuth flow और X के साथ साइन इन का चरण 3  <br />किसी Consumer एप्लिकेशन को OAuth Request Token के बदले OAuth Access Token प्राप्त करने की अनुमति देता है।                  | [POST oauth/access&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-access-token)         |
+| किसी पंजीकृत एप्लिकेशन को जारी किए गए OAuth Access Token को निरस्त करने की अनुमति देता है।                                                                                         | [POST oauth/invalidate&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-invalidate-token) |
+
+<div id="oauth-20-bearer-token">
+  ### OAuth 2.0 बेयरर टोकन
+</div>
+
+|                                                                                                                                                                             |                                                                                                                       |
+| :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **उद्देश्य**                                                                                                                                                                | मेथड                                                                                                                  |
+| किसी पंजीकृत ऐप को OAuth 2 app-only बेयरर टोकन जनरेट करने की अनुमति देता है, जिसका उपयोग उपयोगकर्ता कॉन्टेक्स्ट के बिना ऐप की ओर से API अनुरोध करने के लिए किया जा सकता है। | [POST oauth2/token](/hi/resources/fundamentals/authentication/api-reference#post-oauth2-token)                           |
+| किसी पंजीकृत ऐप को जारी किए गए OAuth 2 app-only बेयरर टोकन को रद्द करने की अनुमति देता है।                                                                                  | [POST oauth2/invalidate&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth2-invalidate-token) |
+
+<div id="post-oauthrequest_token">
+  ### POST oauth/request_token
+</div>
+
+किसी Consumer application को उपयोगकर्ता की अनुमति का अनुरोध करने के लिए OAuth Request Token प्राप्त करने देता है। यह मेथड [OAuth 1.0 authentication flow](http://oauth.net/core/1.0/#anchor9) के [Section 6.1](https://oauth.net/core/1.0/#auth_step1) को पूरा करता है।
+
+**हम चाहते हैं कि आप OAuth authorization के सभी चरणों के लिए HTTPS का उपयोग करें।**
+
+**उपयोग संबंधी नोट:** `oauth_nonce` के लिए केवल ASCII मान स्वीकार किए जाते हैं
+
+**संसाधन URL[](#resource-url "Permalink to this headline")**
+
+`https://api.x.com/oauth/request_token`
+
+**संसाधन जानकारी[](#resource-information "Permalink to this headline")**
+
+|                       |      |
+| :-------------------- | :--- |
+| रिस्पॉन्स प्रारूप    | JSON |
+| प्रमाणीकरण आवश्यक है? | नहीं |
+| रेट लिमिट लागू          | हाँ  |
+
+**पैरामीटर[](#parameters "Permalink to this headline")**
+
+| Name                           | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Example                                                          |
+| :----------------------------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
+| oauth&#95;callback             | required | OAuth 1.0a अनुपालन के लिए यह पैरामीटर **required** है। यहाँ आप जो मान देते हैं, उसका उपयोग उस URL के रूप में किया जाएगा, जिस पर उपयोगकर्ता को रीडायरेक्ट किया जाएगा, यदि वह आपके application को अपने खाते तक पहुँच की अनुमति देता है। out-of-band pin mode के लिए इसे `oob` पर सेट करें। desktop/mobile applications में उपयोग के लिए custom callbacks निर्दिष्ट करने का यह भी तरीका है। pre-registered callback की परवाह किए बिना, इस चरण में हमेशा `oauth_callback` भेजें।<br /><br />हम चाहते हैं कि इस endpoint के साथ उपयोग की जाने वाली किसी भी callback URL को developer.x.com पर ऐप की settings में कॉन्फ़िगर किया गया हो* | `http://themattharris.local/auth.php` `twitterclient://callback` |
+| x&#95;auth&#95;access&#95;type | optional | किसी application द्वारा उपयोगकर्ता के खाते के लिए अनुरोधित access level को override करता है। समर्थित मान `read` या `write` हैं। इस पैरामीटर का उद्देश्य डेवलपर को एक read/write application रजिस्टर करने देना है, साथ ही जहाँ उपयुक्त हो वहाँ केवल read access का अनुरोध करने की सुविधा देना भी है।                                                                                                                                                                                                                                                                                                                                |                                                                  |
+
+अपने callback URLs को स्वीकृत करने के तरीके के बारे में [इस पेज](/hi/resources/fundamentals/developer-apps#callback-urls) पर और जानें।
+
+**कृपया ध्यान दें** - यदि आप developer.x.com पर अपने X खाते में लॉग इन हैं, तो आप [X apps](/hi/resources/fundamentals/developer-apps) को [X app dashboard](https://developer.x.com/en/apps) के माध्यम से देख और संपादित कर सकते हैं।
+
+**उदाहरण अनुरोध[](#example-request "Permalink to this headline")**
+
+अनुरोध URL: `POST https://api.x.com/oauth/request_token`
+
+अनुरोध POST Body: *N/A*
+
+Authorization Header: `OAuth oauth_nonce="K7ny27JTpKVsTgdyLdDfmQQWVLERj2zAK5BslRsqyw", oauth_callback="http%3A%2F%2Fmyapp.com%3A3005%2Ftwitter%2Fprocess_callback", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1300228849", oauth_consumer_key="OqEqJeafRSF11jBMStrZz", oauth_signature="Pc%2BMLdv028fxCErFyi8KXFM%2BddU%3D", oauth_version="1.0"`
+
+रिस्पॉन्स: `oauth_token=Z6eEdO8MOmk394WozF5oKyuAv855l4Mlqo7hhlSLik&oauth_token_secret=Kd75W4OQfb2oJTV0vzGzeXftVAwgMnEK9MumzYcM&oauth_callback_confirmed=true`
+
+<div id="get-oauthauthorize">
+  ### GET oauth/authorize
+</div>
+
+किसी Consumer ऐप को उपयोगकर्ता की अनुमति का अनुरोध करने के लिए OAuth Request Token का उपयोग करने की अनुमति देता है। यह मेथड [OAuth 1.0 authentication flow](http://oauth.net/core/1.0/#anchor9) के [Section 6.2](http://oauth.net/core/1.0/#auth_step2) को पूरा करता है। डेस्कटॉप ऐप्लिकेशन को इसी मेथड का उपयोग करना चाहिए (और वे [GET oauth / authenticate](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authenticate) का उपयोग नहीं कर सकते)।
+
+**उपयोग संबंधी नोट:** इस मेथड में `oauth_callback` कभी नहीं भेजा जाता; इसके बजाय, इसे [POST oauth / request&#95;token](/hi/resources/fundamentals/authentication/api-reference#post-oauth-request-token) में दें।
+
+**संसाधन URL[](#resource-url "Permalink to this headline")**
+
+`https://api.x.com/oauth/authorize`
+
+**संसाधन जानकारी[](#resource-information "Permalink to this headline")**
+
+|                       |      |
+| :-------------------- | :--- |
+| रिस्पॉन्स प्रारूप     | JSON |
+| प्रमाणीकरण आवश्यक है? | हाँ  |
+| रेट लिमिट लागू है?    | हाँ  |
+
+**पैरामीटर[](#parameters "Permalink to this headline")**
+
+|                 |          |                                                                                                                               |              |        |
+| :-------------- | :------- | :---------------------------------------------------------------------------------------------------------------------------- | :----------- | :----- |
+| नाम             | आवश्यक   | विवरण                                                                                                                         | डिफ़ॉल्ट मान | उदाहरण |
+| force&#95;login | वैकल्पिक | यह सुनिश्चित करने के लिए उपयोगकर्ता को अपने क्रेडेंशियल दर्ज करने के लिए बाध्य करता है कि सही उपयोगकर्ता खाते को अनुमति मिले। |              |        |
+| screen&#95;name | वैकल्पिक | OAuth लॉगिन स्क्रीन के उपयोगकर्ता नाम इनपुट बॉक्स में दिए गए मान को पहले से भर देता है।                                       |              |        |
+
+**उदाहरण अनुरोध[](#example-request "Permalink to this headline")**
+
+उपयोगकर्ता को वेब ब्राउज़र में `oauth/authorize` चरण पर भेजें, जिसमें `oauth_token` पैरामीटर शामिल हो:
+`https://api.x.com/oauth/authorize?oauth_token=Z6eEdO8MOmk394WozF5oKyuAv855l4Mlqo7hhlSLik`
+
+<div id="get-oauthauthenticate">
+  ### GET oauth/authenticate
+</div>
+
+किसी Consumer ऐप को उपयोगकर्ता से प्राधिकरण का अनुरोध करने के लिए OAuth `request_token` का उपयोग करने की अनुमति देता है।
+
+यह मेथड callback authentication flow का उपयोग करने वाले ऐप्लिकेशनों के लिए [OAuth 1.0 authentication flow](http://oauth.net/core/1.0/#anchor9) के [Section 6.2](http://oauth.net/core/1.0/#auth_step2) का विकल्प है। जब तक `force_login` पैरामीटर को `true` पर सेट नहीं किया जाता, यह मेथड एक्सेस प्राधिकरण के लिए वर्तमान में लॉग इन उपयोगकर्ता को खाते के रूप में उपयोग करेगा।
+
+यह मेथड [GET oauth / authorize](/hi/resources/fundamentals/authentication/api-reference#get-oauth-authorize) से इस मामले में अलग है कि अगर उपयोगकर्ता पहले ही ऐप को अनुमति दे चुका है, तो उपयोगकर्ता को ऐप को दोबारा स्वीकृति दिए बिना ही रीडायरेक्ट कर दिया जाएगा। इस व्यवहार को सक्षम करने के लिए, आपको अपने [application record](https://developer.x.com/apps) में *Use Sign in with X* सेटिंग को सक्षम करना होगा।
+
+**संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")**
+
+`https://api.x.com/oauth/authenticate`
+
+**संसाधन जानकारी[](#resource-information "इस शीर्षक का स्थायी लिंक")**
+
+|                       |      |
+| :-------------------- | :--- |
+| रिस्पॉन्स प्रारूप     | JSON |
+| प्रमाणीकरण आवश्यक है? | हाँ  |
+| रेट लिमिट लागू             | हाँ  |
+
+**पैरामीटर[](#parameters "इस शीर्षक का स्थायी लिंक")**
+
+|                 |          |                                                                                                                           |              |        |
+| :-------------- | :------- | :------------------------------------------------------------------------------------------------------------------------ | :----------- | :----- |
+| नाम             | आवश्यक   | विवरण                                                                                                                     | डिफ़ॉल्ट मान | उदाहरण |
+| force&#95;login | optional | यह सुनिश्चित करने के लिए कि सही उपयोगकर्ता खाता अधिकृत हो, उपयोगकर्ता को अपने क्रेडेंशियल दर्ज करने के लिए बाध्य करता है। |              | *true* |
+| screen&#95;name | optional | दिए गए मान से OAuth लॉगिन स्क्रीन के उपयोगकर्ता नाम इनपुट बॉक्स को पहले से भर देता है।                                    |              |        |
+
+**उदाहरण अनुरोध[](#example-request "इस शीर्षक का स्थायी लिंक")**
+
+उपयोगकर्ता को वेब ब्राउज़र में `oauth/authenticate` चरण पर भेजें, जिसमें oauth&#95;token पैरामीटर शामिल हो:
+`https://api.x.com/oauth/authenticate?oauth_token=Z6eEdO8MOmk394WozF5oKyuAv855l4Mlqo7hhlSLik`
+
+<div id="post-oauthaccess_token">
+  ### POST oauth/access_token
+</div>
+
+एक Consumer एप्लिकेशन को OAuth Request Token के बदले OAuth Access Token का आदान-प्रदान करने की अनुमति देता है। यह मेथड [OAuth 1.0 authentication flow](http://oauth.net/core/1.0/#anchor9) के [Section 6.3](http://oauth.net/core/1.0/#auth_step3) को पूरा करता है।
+
+**संसाधन URL[](#resource-url "Permalink to this headline")**
+
+`https://api.x.com/oauth/access_token`
+
+**संसाधन जानकारी[](#resource-information "Permalink to this headline")**
+
+|                           |      |
+| :------------------------ | :--- |
+| रिस्पॉन्स प्रारूप        | JSON |
+| प्रमाणीकरण आवश्यक है? | हाँ  |
+| रेट लिमिट लागू है?        | हाँ  |
+
+**पैरामीटर[](#parameters "Permalink to this headline")**
+
+|                    |          |                                                                                                                                                                                                                                                                                                                                                                                                          |              |        |
+| :----------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------- | :----- |
+| नाम                | आवश्यक   | विवरण                                                                                                                                                                                                                                                                                                                                                                                                    | डिफ़ॉल्ट मान | उदाहरण |
+| oauth&#95;token    | required | यहाँ oauth&#95;token वही होना चाहिए जो request&#95;token चरण में लौटाए गए oauth&#95;token के समान हो।                                                                                                                                                                                                                                                                                                    |              |        |
+| oauth&#95;verifier | required | अगर आप OAuth web-flow का उपयोग कर रहे हैं, तो इस पैरामीटर को callback URL में लौटाए गए *oauth&#95;verifier* के मान पर सेट करें। अगर आप out-of-band OAuth का उपयोग कर रहे हैं, तो इस मान को PIN code पर सेट करें। OAuth 1.0a अनुपालन के लिए यह पैरामीटर **required** है। OAuth 1.0a को सख्ती से लागू किया जाता है, और *oauth&#95;verifier* का उपयोग न करने वाले एप्लिकेशन OAuth flow पूरा नहीं कर पाएंगे। |              |        |
+
+**उदाहरण अनुरोध[](#example-request "Permalink to this headline")**
+
+`POST https://api.x.com/oauth/access_token?oauth_token=qLBVyoAAAAAAx72QAAATZxQWU6P&oauth_verifier=ghLM8lYmAxDbaqL912RZSRjCCEXKDIzx`
+
+PIN-आधारित `POST https://api.x.com/oauth/access_token?oauth_token=9Npq8AAAAAAAx72QBRABZ4DAfY9&oauth_verifier=4868795`
+
+**उदाहरण रिस्पॉन्स[](#example-response "Permalink to this headline")**
+
+`oauth_token=6253282-eWudHldSbIaelX7swmsiHImEL4KinwaGloHANdrY&oauth_token_secret=2EEfA6BG5ly3sR3XjE0IBSnlQu4ZrUzPiYTmrkVU&user_id=6253282&screen_name=xapi`
+
+<div id="post-oauthinvalidate_token">
+  ### POST oauth/invalidate_token
+</div>
+
+किसी पंजीकृत ऐप को अपने क्लाइंट क्रेडेंशियल प्रस्तुत करके जारी किए गए OAuth access&#95;token को निरस्त करने की अनुमति देता है। access&#95;token अमान्य हो जाने के बाद, उसे दोबारा बनाने के नए प्रयास पर एक अलग Access Token मिलेगा और अमान्य किए गए token का उपयोग अब नहीं किया जा सकेगा।
+
+**संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")**
+
+`https://api.x.com/1.1/oauth/invalidate_token`
+
+**संसाधन जानकारी[](#resource-information "इस शीर्षक का स्थायी लिंक")**
+
+|                       |                                                                                  |
+| :-------------------- | :------------------------------------------------------------------------------- |
+| रिस्पॉन्स प्रारूप     | JSON                                                                             |
+| प्रमाणीकरण आवश्यक है? | हाँ - उन access token के साथ उपयोगकर्ता संदर्भ, जिन्हें आप अमान्य करना चाहते हैं |
+| रेट लिमिट लागू है?    | हाँ                                                                              |
+
+**उदाहरण अनुरोध[](#example-request "इस शीर्षक का स्थायी लिंक")**
+
+```bash
+        curl --request POST
+          --url 'https://api.x.com/1.1/oauth/invalidate_token.json'
+          --header 'authorization: OAuth oauth_consumer_key="CLIENT_KEY",
+         oauth_nonce="AUTO_GENERATED_NONCE", oauth_signature="AUTO_GENERATED_SIGNATURE",
+         oauth_signature_method="HMAC-SHA1", oauth_timestamp="AUTO_GENERATED_TIMESTAMP",
+         oauth_token="ACCESS_TOKEN", oauth_version="1.0"'
+```
+
+**उदाहरण रिस्पॉन्स[](#example-response "इस शीर्षक का स्थायी लिंक")**
+
+```bash
+        HTTP/1.1 200 OK
+        Content-Type: application/json; charset=utf-8
+        Content-Length: 127
+        ...
+
+        {"access_token":"ACCESS_TOKEN"}
+```
+
+**टोकन अमान्य होने के बाद त्रुटि रिस्पॉन्स का उदाहरण[](#example-error-response-after-token-has-been-invalidated "इस शीर्षक का स्थायी लिंक")**
+
+```bash
+        HTTP/1.1 401 Authorization Required
+        ...
+
+        {"errors": [{
+          "code": 89,
+          "message": "Invalid or expired token."}
+        ]}
+```
+
+<div id="post-oauth2token">
+  ### POST oauth2/token
+</div>
+
+यह किसी पंजीकृत ऐप को OAuth 2 बेयरर टोकन प्राप्त करने की अनुमति देता है, जिसका उपयोग उपयोगकर्ता संदर्भ के बिना ऐप की ओर से API अनुरोध करने के लिए किया जा सकता है। इसे [केवल-ऐप प्रमाणीकरण](/hi/resources/fundamentals/authentication/oauth-2-0/application-only) कहा जाता है।
+
+oauth2/invalidate&#95;token का उपयोग करके बेयरर टोकन को अमान्य किया जा सकता है। एक बार बेयरर टोकन अमान्य हो जाने पर, नया टोकन बनाने के प्रयासों से एक अलग बेयरर टोकन मिलेगा और पिछले टोकन का उपयोग फिर स्वीकार नहीं किया जाएगा।
+
+किसी ऐप के लिए एक समय में केवल एक ही बेयरर टोकन सक्रिय हो सकता है, और इस मेथड पर बार-बार किए गए अनुरोध तब तक वही पहले से मौजूद टोकन लौटाएँगे, जब तक उसे अमान्य न कर दिया जाए।
+
+सफल रिस्पॉन्स में जारी किए गए बेयरर टोकन का विवरण देने वाली JSON संरचना शामिल होती है।
+
+इस मेथड से प्राप्त टोकन को कैश किया जाना चाहिए। यदि बहुत अधिक बार प्रयास किया जाता है, तो अनुरोध HTTP 403 और code 99 के साथ अस्वीकार कर दिए जाएँगे।
+
+**संसाधन URL[](#resource-url "इस शीर्षक के लिए स्थायी लिंक")**
+
+`https://api.x.com/oauth2/token`
+
+**संसाधन जानकारी[](#resource-information "इस शीर्षक के लिए स्थायी लिंक")**
+
+|                            |                                                                                                   |
+| :------------------------- | :------------------------------------------------------------------------------------------------ |
+| रिस्पॉन्स प्रारूप          | JSON                                                                                              |
+| क्या प्रमाणीकरण आवश्यक है? | हाँ - अपने API key को username और API key secret को password के रूप में उपयोग करते हुए Basic auth |
+| क्या रेट लिमिट लागू है?    | हाँ                                                                                               |
+
+**पैरामीटर[](#parameters "इस शीर्षक के लिए स्थायी लिंक")**
+
+|                |          |                                                                                                                                                                                                                                      |              |                          |
+| :------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------- | :----------------------- |
+| नाम            | आवश्यक   | विवरण                                                                                                                                                                                                                                | डिफ़ॉल्ट मान | उदाहरण                   |
+| grant&#95;type | required | यह ऐप द्वारा अनुरोधित grant के type को निर्दिष्ट करता है। वर्तमान में केवल *client&#95;credentials* की अनुमति है। अधिक जानकारी के लिए [केवल-ऐप प्रमाणीकरण](/hi/resources/fundamentals/authentication/oauth-2-0/application-only) देखें। |              | *client&#95;credentials* |
+
+**उदाहरण अनुरोध[](#example-request "इस शीर्षक के लिए स्थायी लिंक")**
+
+```bash
+    POST /oauth2/token HTTP/1.1
+    Host: api.x.com
+    User-Agent: My X App v1.0.23
+    Authorization: Basic eHZ6MWV2R ... o4OERSZHlPZw==
+    Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+    Content-Length: 29
+    Accept-Encoding: gzip
+
+    grant_type=client_credentials
+```
+
+**उदाहरण रिस्पॉन्स:**
+
+```bash
+    HTTP/1.1 200 OK
+    Status: 200 OK
+    Content-Type: application/json; charset=utf-8
+    ...
+    Content-Encoding: gzip
+    Content-Length: 140
+
+    {"token_type":"bearer","access_token":"AAAA%2FAAA%3DAAAAAAAA"}
+```
+
+<div id="post-oauth2invalidate_token">
+  ### POST oauth2/invalidate_token
+</div>
+
+किसी पंजीकृत ऐप को अपने client credentials प्रस्तुत करके जारी किए गए OAuth 2.0 बेयरर टोकन को निरस्त करने की अनुमति देता है। एक बार बेयरर टोकन अमान्य हो जाने पर, नया बनाने के प्रयासों में एक अलग बेयरर टोकन मिलेगा और अमान्य किए गए टोकन का उपयोग अब नहीं किया जा सकेगा।
+
+सफल रिस्पॉन्स में निरस्त किए गए बेयरर टोकन का विवरण देने वाली JSON-संरचना शामिल होती है।
+
+**संसाधन URL[](#resource-url "इस शीर्षक का स्थायी लिंक")**
+
+`https://api.x.com/oauth2/invalidate_token`
+
+**संसाधन जानकारी[](#resource-information "इस शीर्षक का स्थायी लिंक")**
+
+|                       |                                                                                                                                                             |
+| :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| रिस्पॉन्स प्रारूप    | JSON                                                                                                                                                        |
+| प्रमाणीकरण आवश्यक है? | हाँ - [OAuth 1.0a](/hi/resources/fundamentals/authentication/oauth-1-0a) के साथ ऐप की consumer API keys और ऐप के स्वामी का access token और access token secret |
+| रेट लिमिट लागू             | हाँ                                                                                                                                                         |
+
+**पैरामीटर[](#parameters "इस शीर्षक का स्थायी लिंक")**
+
+| नाम              | आवश्यक | विवरण                                                |
+| :--------------- | :----- | :--------------------------------------------------- |
+| access&#95;token | आवश्यक | उस बेयरर टोकन का मान जिसे आप अमान्य करना चाहते हैं |
+
+**उदाहरण अनुरोध[](#example-request "इस शीर्षक का स्थायी लिंक")**
+
+```
+        curl --request POST
+          --url 'https://api.x.com/oauth2/invalidate_token?access_token=AAAA%2FAAA%3DAAAAAAAA'
+          --header 'authorization: OAuth oauth_consumer_key="CLIENT_KEY",
+         oauth_nonce="AUTO_GENERATED_NONCE", oauth_signature="AUTO_GENERATED_SIGNATURE",
+         oauth_signature_method="HMAC-SHA1", oauth_timestamp="AUTO_GENERATED_TIMESTAMP",
+         oauth_token="ACCESS_TOKEN", oauth_version="1.0"'
+```
+
+**उदाहरण रिस्पॉन्स[](#example-response "इस शीर्षक का स्थायी लिंक")**
+
+```
+         Status: 200 OK
+         Content-Type: application/json; charset=utf-8
+         Content-Length: 135
+         ...
+       {
+        "access_token": "AAAA%2FAAA%3DAAAAAAAA"
+        }
+```

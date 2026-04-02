@@ -1,0 +1,61 @@
+---
+title: v2 Account Activity API माइग्रेशन गाइड
+keywords: ["Account Activity API माइग्रेशन", "AAA माइग्रेशन", "v2 माइग्रेशन", "API माइग्रेशन गाइड", "v2 पर माइग्रेट करें", "Account Activity API v2"]
+---
+
+यह गाइड आपको पुराने Enterprise Account Activity API से v2 Account Activity API पर माइग्रेट करने में मदद करती है। इसकी मुख्य कार्यक्षमता वही रहती है, लेकिन X API v2 के साथ एकरूपता बनाए रखने के लिए एंडपॉइंट की संरचना और प्रमाणीकरण के तरीकों को अपडेट किया गया है।
+
+<div id="summary-of-changes">
+  ### परिवर्तनों का सारांश
+</div>
+
+* **API प्रारूप**: एंडपॉइंट /1.1/account&#95;activity/ के बजाय /2/account&#95;activity/ बेस पथ का उपयोग करते हैं।
+* **वेबहुक प्रबंधन**: वेबहुक का निर्माण, सूचीकरण, वैलिडेशन (CRC) और हटाना [V2 Webhooks API](https://github.com/m-rosinsky/XWebhookTest/blob/main/app.py) द्वारा किया जाता है।
+* **प्रमाणीकरण**: V2 एंडपॉइंट के लिए इनमें से किसी एक की आवश्यकता होती है:
+  * **OAuthUser** (3-legged OAuth), उपयोगकर्ता-विशिष्ट कार्रवाइयों के लिए (उदा., किसी उपयोगकर्ता को subscribe करना)।
+  * **OAuth2 App Only** (बेयरर टोकन), ऐप-स्तरीय कार्रवाइयों के लिए (उदा., सब्सक्रिप्शन को सूचीबद्ध करना/हटाना)।
+  * V1.1 में आवश्यकताएँ अलग-अलग थीं और अक्सर OAuth 1.0a का उपयोग होता था।
+* **Endpoint मैपिंग**:
+
+| V1.1 Endpoint                                                                            | V2 समकक्ष / कार्रवाई                                                                   | टिप्पणियाँ                                                                                           |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| POST /1.1/account&#95;activity/webhooks.json?url=&lt;URL&gt;                             | POST /2/webhooks                                                                       | [Docs](https://docs.x.com/x-api/webhooks/introduction). OAuth2AppOnly आवश्यक है।                     |
+| GET /1.1/account&#95;activity/webhooks.json                                              | GET /2/webhooks                                                                        | [Docs](https://docs.x.com/x-api/webhooks/introduction). OAuth2AppOnly आवश्यक है।                     |
+| PUT /1.1/account&#95;activity/webhooks/:webhook&#95;id.json                              | PUT /2/webhooks/:webhook&#95;id                                                        | CRC ट्रिगर करता है। [Docs](https://docs.x.com/x-api/webhooks/introduction). OAuth2AppOnly आवश्यक है। |
+| DELETE /1.1/account&#95;activity/webhooks/:webhook&#95;id.json                           | DELETE /2/webhooks/:webhook&#95;id                                                     | [Docs](https://docs.x.com/x-api/webhooks/introduction). OAuth2AppOnly आवश्यक है।                     |
+| POST /1.1/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all.json           | POST /2/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all                | OAuthUser आवश्यक है।                                                                                 |
+| GET /1.1/account&#95;activity/subscriptions/count.json                                   | GET /2/account&#95;activity/subscriptions/count                                        | OAuth2AppOnly आवश्यक है।                                                                             |
+| GET /1.1/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all.json            | GET /2/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all                 | OAuthUser आवश्यक है।                                                                                 |
+| GET /1.1/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all/list.json       | GET /2/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all/list            | OAuth2AppOnly आवश्यक है।                                                                             |
+| DELETE /1.1/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/:user&#95;id/all | DELETE /2/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/:user&#95;id/all | OAuth2AppOnly आवश्यक है।                                                                             |
+| DELETE /1.1/account&#95;activity/webhooks/:webhook&#95;id/subscriptions/all              | अप्रचलित / कोई प्रत्यक्ष समकक्ष नहीं                                                   | अलग-अलग delete का उपयोग करें या DELETE /2/webhooks/:webhook&#95;id के माध्यम से वेबहुक हटा दें।     |
+
+* **रिस्पॉन्स प्रारूप**: AAAPI दस्तावेज़ में success और error रिस्पॉन्स संरचनाओं की समीक्षा करें।
+
+माइग्रेट करते समय, नए बेस पथों का उपयोग करने के लिए अपना code अपडेट करें, प्रमाणीकरण flow समायोजित करें, और [V2 Webhooks API](https://docs.x.com/x-api/webhooks/introduction) का उपयोग करके वेबहुक प्रबंधित करें।
+
+<div id="how-to-migrate">
+  ### माइग्रेट कैसे करें
+</div>
+
+* **एक पैकेज चुनें**:
+  * Account Activity API एक्सेस के लिए Enterprise या Self-serve पैकेज चुनें। चुनते समय इन बातों पर विचार करें:
+    * आवश्यक वेबहुक्स की संख्या।
+    * मौजूदा/अनुमानित सब्सक्रिप्शन या अधिकृत उपयोगकर्ताओं की संख्या।
+    * X क्लाइंट ऐप्लिकेशनों की संख्या।
+    * आवश्यक सहायता स्तर (फ़ोरम बनाम प्रबंधित Enterprise 1:1 सहायता)।
+    * कीमत से जुड़ी जानकारी (Enterprise के लिए sales से संपर्क करें)।
+* **अपने प्रमाणीकरण को OAuth 2.0 पर अपडेट करें**:
+  * सुनिश्चित करें कि आपके X ऐप के पास “Read, Write, and Access Direct Messages” अनुमतियाँ हैं।
+  * V2 endpoints के लिए OAuth 2.0 का उपयोग करें। अगर scopes बदल गए हैं, तो उपयोगकर्ताओं को फिर से अधिकृत करें।
+  * इनका प्रबंधन करने के लिए डेवलपर कंसोल का उपयोग करें:
+    * OAuth 2.0 Access Token।
+    * Client ID और Client Secret।
+* **अपने वेबहुक की पुष्टि करें या उसे फिर से कॉन्फ़िगर करें**:
+  * अपने मौजूदा वेबहुक URL का उपयोग करें या नया सेट अप करें (उदा., https://your&#95;domain.com/webhook/twitter)।
+  * अपने वेबहुक को रजिस्टर और प्रबंधित करने के लिए [V2 Webhooks API दस्तावेज़](https://docs.x.com/x-api/webhooks/introduction) देखें।
+* **नमूना ऐप्स:**
+  * [Simple webhook server](https://github.com/m-rosinsky/XWebhookTest/blob/main/app.py)
+    * एक Python स्क्रिप्ट, जो दिखाती है कि CRC जाँच का जवाब कैसे देना है और POST events कैसे स्वीकार करने हैं।
+  * [Account Activity API sample dashboard](https://github.com/xdevplatform/account-activity-dashboard-enterprise/tree/master)
+    * [bun.sh](http://bun.sh) के साथ बनाया गया एक वेब ऐप, जो आपको वेबहुक्स और सब्सक्रिप्शंस प्रबंधित करने तथा सीधे ऐप में लाइव events प्राप्त करने की सुविधा देता है।

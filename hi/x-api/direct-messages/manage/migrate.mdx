@@ -1,0 +1,80 @@
+---
+title: माइग्रेशन मार्गदर्शिका
+sidebarTitle: माइग्रेशन मार्गदर्शिका
+keywords: ["डायरेक्ट मैसेज प्रबंधन माइग्रेशन", "DM प्रबंधन माइग्रेशन", "v1.1 से v2 DM प्रबंधन", "DM माइग्रेशन मार्गदर्शिका", "DM प्रबंधन माइग्रेट करें"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+<div id="comparing-v11-and-v2-manage-direct-message-endpoints">
+  ## v1.1 और v2 Manage Direct Message एंडपॉइंट्स की तुलना
+</div>
+
+Direct Messages एंडपॉइंट्स के v1.1 और v2, दोनों संस्करण Direct Message संदेश बनाने के तरीके उपलब्ध कराते हैं। यह गाइड इन अंतरों को समझने और v2 पर माइग्रेट करने के लिए जानकारी देने के उद्देश्य से है। 
+
+दोनों संस्करणों के बीच एक बड़ा अंतर यह है कि v1.1 केवल one-to-one बातचीतों का समर्थन करता है, जबकि v2 group बातचीतों के लिए भी समर्थन जोड़ता है। इसका एक परिणाम यह है कि v1.1 केवल &quot;message created&quot; events का समर्थन करता है, जबकि v2 उन events का भी समर्थन करता है जो participants के बातचीत में शामिल होने और उससे बाहर जाने से संबंधित हैं। वास्तव में, v2 का एक मूलभूत अपडेट dm&#95;conversations को एक मुख्य API object के रूप में स्थापित करना है।   
+
+v1.1 में Direct Messages को प्रबंधित करने के लिए दो एंडपॉइंट्स हैं:
+
+* POST direct&#95;messages/events/new - एक one-to-one Direct Message बनाता है। यह v1.1 एंडपॉइंट केवल one-to-one messages बना सकता है और group messages का समर्थन नहीं करता।  
+
+* DELETE direct&#95;messages/events/destroy - authenticating user के view से एक one-to-one message हटाता है। 
+
+इस v2 release में, Direct Messages बनाने के लिए तीन POST methods हैं: 
+
+* **POST /2/dm&#95;conversations/with/:participant&#95;id/messages** - एक one-to-one Direct Message बनाता है। यह method या तो message को किसी मौजूदा one-to-one बातचीत में जोड़ता है या एक नई बातचीत बनाता है। :participant&#95;id path parameter उस account का User ID है जो message प्राप्त कर रहा है। 
+
+* **POST /2/dm&#95;conversations** - एक नई group बातचीत बनाता है और उसमें एक Direct Message जोड़ता है। इन requests के लिए बातचीत participants की एक सूची आवश्यक होती है। ध्यान दें कि आप एक ही participant list के साथ कई बातचीतें बना सकते हैं। ये requests हमेशा एक नया बातचीत ID लौटाएँगी। 
+
+* **POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages** - एक Direct Message बनाता है और उसे किसी मौजूदा बातचीत में जोड़ता है। :dm&#95;conversation&#95;id path parameter उस बातचीत की ID है, जिसमें message जोड़ा जाएगा। 
+
+एक महत्वपूर्ण बात यह है कि बातचीत और event IDs, X Platform के v1.1 और v2 संस्करणों में साझा होती हैं। इसका मतलब है कि दोनों संस्करणों का साथ में उपयोग किया जा सकता है। उदाहरण के लिए, Direct Messages v1.1 एंडपॉइंट्स किसी single event को लौटाने और events को हटाने के तरीके उपलब्ध कराते हैं, जो v2 में अभी उपलब्ध नहीं हैं। चूँकि IDs, v1.1 और v2 में समान हैं, आप v2 द्वारा दी गई IDs के आधार पर v1.1 requests कर सकते हैं, या X application में बातचीत URLs में दिखाई देने वाली बातचीत IDs का संदर्भ ले सकते हैं।
+
+नीचे दी गई तालिका v1.1 और v2 manage Direct Messages एंडपॉइंट्स के मूलभूत पहलुओं की तुलना करती है। यहाँ साझा की गई X API v2 की विशेषताएँ सभी Direct Message lookup एंडपॉइंट्स में सामान्य हैं।
+
+|                                                                                                                                                               |                                                                                     |                                                                                                                                                                                                                                                                                         |
+| :------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **विवरण**                                                                                                                                                     | **Standard v1.1**                                                                   | **X API v2**                                                                                                                                                                                                                                                                            |
+| Host domain                                                                                                                                                   | https://api.x.com                                                                   | https://api.x.com                                                                                                                                                                                                                                                                       |
+| एंडपॉइंट root path                                                                                                                                            | [/1.1/direct&#95;messages](https://api.x.com/1.1/direct_messages)                   | [/2/dm&#95;conversations](https://api.x.com/2/users/:id/dm_conversations)<br /><br />Direct Messages बातचीतों को एक मूलभूत API object के रूप में प्रस्तुत किया गया है।   <br /><br />ये एंडपॉइंट्स MessageCreate, ParticipantsJoin, और ParticipantLeave events को प्राप्त करते हैं। |
+| समर्थित HTTP methods                                                                                                                                          | POST                                                                                | POST                                                                                                                                                                                                                                                                                    |
+| Group Direct Messages का समर्थन                                                                                                                               |                                                                                     | ✔                                                                                                                                                                                                                                                                                       |
+| समर्थित event types                                                                                                                                           | message&#95;create                                                                  | MessageCreate, ParticipantsJoin, ParticipantsLeave                                                                                                                                                                                                                                      |
+| [Authentication](/hi/resources/fundamentals/authentication)                                                                                                      | OAuth 1.0a User Context                                                             | OAuth 1.0a User Context<br /><br />OAuth 2 User Context (scopes: dm.read, dm.write)                                                                                                                                                                                                     |
+| X API v2 [Project](/hi/resources/fundamentals/developer-apps) से जुड़े [developer App](/hi/resources/fundamentals/authentication) के credentials का उपयोग आवश्यक है |                                                                                     | ✔                                                                                                                                                                                                                                                                                       |
+| डिफ़ॉल्ट request [रेट लिमिट्स](/hi/x-api/fundamentals/rate-limits)*  <br />*सभी requests के लिए user tokens आवश्यक हैं                                           | प्रति user प्रति 24 घंटे 1000 requests  <br />प्रति ऐप प्रति 24 घंटे 15000 requests | प्रति user प्रति 15 मिनट 200 requests<br /><br />प्रति user प्रति 24 घंटे 1000 requests<br /><br />प्रति ऐप प्रति 24 घंटे 15000 requests<br /><br />ये रेट लिमिट्स सभी dm&#95;conversations POST एंडपॉइंट्स में साझा हैं।                                                                |
+
+नीचे दी गई तालिकाएँ v2 POST methods की v1.1 संस्करण से तुलना करती हैं। ध्यान दें कि ये v2 offerings group बातचीतों का समर्थन करके उपलब्ध क्षमताओं का विस्तार करती हैं। 
+
+**एक नया one-to-one Direct Message बनाएँ**
+
+Path: POST /2/dm&#95;conversations/with/:participant&#95;id/messages
+
+|                                                                |                                                                                         |                                                                                                                                                                                                                                    |
+| :------------------------------------------------------------- | :-------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **विवरण**                                                      | **Standard v1.1**                                                                       | **X API v2**                                                                                                                                                                                                                       |
+| एंडपॉइंट पाथ                                                   | POST direct&#95;messages/events/new (message&#95;create)                                | POST /2/dm&#95;conversations/with/:participant&#95;id/messages                                                                                                                                                                     |
+| डिफ़ॉल्ट अनुरोध [रेट लिमिट्स](/hi/x-api/fundamentals/rate-limits) | प्रति उपयोगकर्ता, प्रति 24 घंटे 1000 अनुरोध  <br />प्रति ऐप, प्रति 24 घंटे 15000 अनुरोध | प्रति उपयोगकर्ता, प्रति 15 मिनट 200 अनुरोध<br /><br />प्रति उपयोगकर्ता, प्रति 24 घंटे 1000 अनुरोध<br /><br />प्रति ऐप, प्रति 24 घंटे 15000 अनुरोध<br /><br />ये रेट लिमिट्स सभी dm&#95;conversations POST एंडपॉइंट्स में साझा हैं। |
+| समूह Direct Messages का समर्थन करता है                         |                                                                                         | ✔                                                                                                                                                                                                                                  |
+
+**नई Direct Message समूह बातचीत बनाएँ और उसमें एक संदेश जोड़ें**
+
+Path: POST /2/dm&#95;conversations
+
+|                                                                |                   |                                                                                                                                                                                                                                    |
+| :------------------------------------------------------------- | :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **विवरण**                                                      | **Standard v1.1** | **X API v2**                                                                                                                                                                                                                       |
+| एंडपॉइंट पाथ                                                   | समर्थित नहीं है   | POST /2/dm&#95;conversations                                                                                                                                                                                                       |
+| डिफ़ॉल्ट अनुरोध [रेट लिमिट्स](/hi/x-api/fundamentals/rate-limits) |                   | प्रति उपयोगकर्ता, प्रति 15 मिनट 200 अनुरोध<br /><br />प्रति उपयोगकर्ता, प्रति 24 घंटे 1000 अनुरोध<br /><br />प्रति ऐप, प्रति 24 घंटे 15000 अनुरोध<br /><br />ये रेट लिमिट्स सभी dm&#95;conversations POST एंडपॉइंट्स में साझा हैं। |
+| समूह Direct Messages का समर्थन करता है                         |                   | ✔                                                                                                                                                                                                                                  |
+
+**ID के आधार पर किसी मौजूदा बातचीत में Direct Message जोड़ें**
+
+Path: POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages
+
+|                                                                |                   |                                                                                                                                                                                                                                    |
+| :------------------------------------------------------------- | :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **विवरण**                                                      | **Standard v1.1** | **X API v2**                                                                                                                                                                                                                       |
+| एंडपॉइंट पाथ                                                   | समर्थित नहीं है   | POST /2/dm&#95;conversations/:dm&#95;conversation&#95;id/messages                                                                                                                                                                  |
+| डिफ़ॉल्ट अनुरोध [रेट लिमिट्स](/hi/x-api/fundamentals/rate-limits) |                   | प्रति उपयोगकर्ता, प्रति 15 मिनट 200 अनुरोध<br /><br />प्रति उपयोगकर्ता, प्रति 24 घंटे 1000 अनुरोध<br /><br />प्रति ऐप, प्रति 24 घंटे 15000 अनुरोध<br /><br />ये रेट लिमिट्स सभी dm&#95;conversations POST एंडपॉइंट्स में साझा हैं। |
+| समूह Direct Messages का समर्थन करता है                         |                   | ✔                                                                                                                                                                                                                                  |

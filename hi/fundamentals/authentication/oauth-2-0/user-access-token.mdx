@@ -1,0 +1,166 @@
+---
+title: PKCE के साथ OAuth 2.0 Authorization Code Flow का उपयोग करके एंडपॉइंट्स से कैसे कनेक्ट करें
+sidebarTitle: OAuth 2.0 में उपयोगकर्ताओं की ओर से अनुरोध करना
+keywords: ["OAuth 2.0 उपयोगकर्ता एक्सेस टोकन", "उपयोगकर्ता एक्सेस टोकन", "OAuth 2.0 उपयोगकर्ता संदर्भ", "उपयोगकर्ता प्रमाणीकरण", "OAuth 2.0 उपयोगकर्ता", "एक्सेस टोकन"]
+---
+
+<div id="how-to-connect-to-endpoints-using-oauth-20-authorization-code-flow-with-pkce">
+  ### PKCE के साथ OAuth 2.0 Authorization Code Flow का उपयोग करके एंडपॉइंट्स से कैसे कनेक्ट करें
+</div>
+
+<div id="how-to-connect-to-the-endpoints">
+  #### एंडपॉइंट्स से कैसे कनेक्ट करें
+</div>
+
+अपने उपयोगकर्ताओं का प्रमाणीकरण करने के लिए, आपके ऐप को एक ऑथराइज़ेशन फ़्लो लागू करना होगा। यह ऑथराइज़ेशन फ़्लो आपको अपने उपयोगकर्ताओं को X पर मौजूद एक ऑथराइज़ेशन डायलॉग पर भेजने की सुविधा देता है। वहां, X का मुख्य अनुभव ऑथराइज़ेशन डायलॉग दिखाएगा और आपके ऐप की ओर से ऑथराइज़ेशन प्रक्रिया को संभालेगा। आपके उपयोगकर्ता आपके ऐप को अधिकृत कर सकेंगे या अनुमति देने से मना कर सकेंगे। उपयोगकर्ता के अपना विकल्प चुन लेने के बाद, X उपयोगकर्ता को आपके ऐप पर वापस रीडायरेक्ट कर देगा, जहां आप ऑथराइज़ेशन कोड के बदले एक एक्सेस टोकन प्राप्त कर सकते हैं (अगर उपयोगकर्ता ने आपके ऐप को अधिकृत किया है), या अस्वीकृति को संभाल सकते हैं (अगर उपयोगकर्ता ने आपके ऐप को अधिकृत नहीं किया है)।
+
+<div id="working-with-confidential-clients">
+  #### कॉन्फिडेंशियल क्लाइंट के साथ काम करना
+</div>
+
+यदि आप कॉन्फिडेंशियल क्लाइंट के साथ काम कर रहे हैं, तो token endpoints पर अनुरोध करते समय base64 encoding के साथ authorization header जनरेट करने के लिए आपको [basic authentication](https://datatracker.ietf.org/doc/html/rfc2617#section-2) स्कीम का उपयोग करना होगा।
+
+क्रेडेंशियल्स में, base64 encoded string के भीतर `userid` और `password` को एक कोलन (&quot;:&quot;) वर्ण से अलग किया जाता है।
+
+यह कुछ इस तरह दिखेगा:
+
+`-header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='`
+
+यदि user agent Client ID &quot;Aladdin&quot; और password &quot;open sesame,” भेजना चाहता है, तो वह निम्न header field का उपयोग करेगा:
+
+`Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==`
+
+basic authorization header बनाने के लिए आपको अपने Client ID और Client Secret की base64 encoding करनी होगी, जिन्हें आप [डेवलपर कंसोल](https://developer.x.com/en/portal/dashboard) में अपने ऐप के “Keys and Tokens” पेज से प्राप्त कर सकते हैं।
+
+<div id="steps-to-connect-using-oauth-20">
+  #### OAuth 2.0 का उपयोग करके कनेक्ट करने के चरण
+</div>
+
+**चरण 1: एक Authorize URL बनाएँ**
+
+आपके ऐप को X के लिए एक authorize URL बनाना होगा, जिसमें यह बताया जाए कि आपके ऐप को किन scopes के लिए authorization चाहिए। उदाहरण के लिए, अगर आपके ऐप को Tweets और users lookup करने हैं और follows को मैनेज करना है, तो उसे निम्न scopes का अनुरोध करना चाहिए:
+
+`tweet.read%20users.read%20follows.read%20follows.write`
+
+अन्य आवश्यक parameters के अलावा, URL में `code_challenge` और state parameters भी शामिल होंगे। production में आपको `code_challenge` के लिए एक random string का उपयोग करना चाहिए।
+
+**चरण 2: GET oauth2/authorize**
+
+उपयोगकर्ता से authenticate करवाएँ और application को एक ऑथराइज़ेशन कोड भेजें। अगर आपने अपने ऐप के लिए OAuth 2.0 सक्षम किया है, तो आप अपने ऐप के “Keys and Tokens” पेज में अपना Client ID पा सकते हैं।
+
+उपयोगकर्ता को redirect करने के लिए एक उदाहरण URL इस तरह दिखेगा:
+
+```
+https://x.com/i/oauth2/authorize?response_type=code&client_id=M1M5R3BMVy13QmpScXkzTUt5OE46MTpjaQ&redirect_uri=https://www.example.com&scope=tweet.read%20users.read%20follows.read%20follows.write&state=state&code_challenge=challenge&code_challenge_method=plain
+```
+
+offline&#95;access के साथ एक उदाहरण URL कुछ ऐसा दिखेगा:
+
+```
+https://x.com/i/oauth2/authorize?response_type=code&client_id=M1M5R3BMVy13QmpScXkzTUt5OE46MTpjaQ&redirect_uri=https://www.example.com&scope=tweet.read%20users.read%20follows.read%20offline.access&state=state&code_challenge=challenge&code_challenge_method=plain
+```
+
+सफल प्रमाणीकरण के बाद, redirect&#95;uri  पर आपको auth&#95;code पैरामीटर वाला एक अनुरोध प्राप्त होगा। आपके एप्लिकेशन को state पैरामीटर का सत्यापन करना चाहिए।
+
+क्लाइंट के redirect से आने वाला एक उदाहरण अनुरोध इस प्रकार होगा:
+
+```
+https://www.example.com/?state=state&code=VGNibzFWSWREZm01bjN1N3dicWlNUG1oa2xRRVNNdmVHelJGY2hPWGxNd2dxOjE2MjIxNjA4MjU4MjU6MToxOmFjOjE
+```
+
+**चरण 3: POST oauth2/token - एक्सेस टोकन**
+
+इस चरण पर, आप ऑथराइज़ेशन कोड का उपयोग करके access token और refresh token बना सकते हैं (केवल तभी, जब `offline.access` scope का अनुरोध किया गया हो)। आप निम्न endpoint पर POST अनुरोध कर सकते हैं:
+
+```
+https://api.x.com/2/oauth2/token
+```
+
+आपको हेडर के माध्यम से `application/x-www-form-urlencoded` का `Content-Type` पास करना होगा।  इसके अलावा, आपके अनुरोध में `code`, `grant_type`, `client_id`, `redirect_uri` और `code_verifier` भी होने चाहिए।
+
+यहाँ एक public client के लिए टोकन अनुरोध का उदाहरण दिया गया है:
+
+```json
+curl --location --request POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'code=VGNibzFWSWREZm01bjN1N3dicWlNUG1oa2xRRVNNdmVHelJGY2hPWGxNd2dxOjE2MjIxNjA4MjU4MjU6MToxOmFjOjE' \
+--data-urlencode 'grant_type=authorization_code' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ' \
+--data-urlencode 'redirect_uri=https://www.example.com' \
+--data-urlencode 'code_verifier=challenge'
+```
+
+यहाँ कॉन्फिडेंशियल क्लाइंट का उपयोग करने का एक उदाहरण दिया गया है:
+
+```json
+curl --location --request POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='\\
+--data-urlencode 'code=VGNibzFWSWREZm01bjN1N3dicWlNUG1oa2xRRVNNdmVHelJGY2hPWGxNd2dxOjE2MjIxNjA4MjU4MjU6MToxOmFjOjE' \
+--data-urlencode 'grant_type=authorization_code' \
+--data-urlencode 'redirect_uri=https://www.example.com' \
+--data-urlencode 'code_verifier=challenge'
+```
+
+**चरण 4: APIs से कनेक्ट करें**
+
+अब आप OAuth 2.0 का उपयोग करके endpoints से कनेक्ट करने के लिए तैयार हैं। ऐसा करने के लिए, आप API को उसी तरह request करेंगे जैसे आप [Bearer Token authentication](/hi/resources/fundamentals/authentication/oauth-2-0/application-only) का उपयोग करते समय करते हैं। अपने Bearer Token को पास करने के बजाय, आपको पिछले चरण में जनरेट किया गया एक्सेस टोकन इस्तेमाल करना होगा। रिस्पॉन्स में, आपको उस endpoint के अनुरूप उपयुक्त payload दिखना चाहिए, जिसे आप request कर रहे हैं। यह request public और कॉन्फिडेंशियल, दोनों clients के लिए समान है। 
+
+आपके द्वारा की जाने वाली request का एक उदाहरण इस प्रकार होगा:
+
+```json
+curl --location --request GET 'https://api.x.com/2/tweets?ids=1261326399320715264,1278347468690915330' \
+--header 'Authorization: Bearer Q0Mzb0VhZ0V5dmNXSTEyNER2MFNfVW50RzdXdTN6STFxQlVkTGhTc1lCdlBiOjE2MjIxNDc3NDM5MTQ6MToxOmF0OjE'
+```
+
+**चरण 5: POST oauth2/token - रीफ़्रेश टोकन**
+
+रीफ़्रेश टोकन की मदद से कोई एप्लिकेशन उपयोगकर्ता से दोबारा पूछे बिना नया एक्सेस टोकन प्राप्त कर सकता है। आप निम्न endpoint पर POST अनुरोध भेजकर रीफ़्रेश टोकन बना सकते हैं: https://api.x.com/2/oauth2/token आपको header के जरिए `application/x-www-form-urlencoded` का `Content-Type` जोड़ना होगा। इसके अलावा, आपको अपना refresh&#95;token पास करना होगा, grant&#95;type को `refresh_token` पर सेट करना होगा, और अपना `client_id` निर्दिष्ट करना होगा।
+
+यह अनुरोध public clients के लिए काम करेगा:
+
+```json
+POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'refresh_token=bWRWa3gzdnk3WHRGU1o0bmRRcTJ5VUxWX1lZTDdJSUtmaWcxbTVxdEFXcW5tOjE2MjIxNDc3NDM5MTQ6MToxOnJ0OjE' \
+--data-urlencode 'grant_type=refresh_token' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ'
+```
+
+यहाँ कॉन्फिडेंशियल क्लाइंट के लिए एक उदाहरण दिया गया है:
+
+```json
+POST 'https://api.x.com/2/oauth2/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='\\
+--data-urlencode 'refresh_token=bWRWa3gzdnk3WHRGU1o0bmRRcTJ5VUxWX1lZTDdJSUtmaWcxbTVxdEFXcW5tOjE2MjIxNDc3NDM5MTQ6MToxOnJ0OjE'\\
+--data-urlencode 'grant_type=refresh_token'
+```
+
+**चरण 6: POST oauth2/revoke - टोकन रद्द करें**
+
+एक revoke token, एक्सेस टोकन या रीफ़्रेश टोकन को अमान्य कर देता है। इसका उपयोग clients में &quot;लॉग आउट&quot; सुविधा सक्षम करने के लिए किया जाता है, ताकि आप authorization flow से जुड़े ऐसे किसी भी security credentials को हटा सकें जिनकी अब आवश्यकता नहीं है। revoke token किसी उपयोगकर्ता के लिए नहीं, बल्कि किसी ऐप द्वारा token revoke करने के लिए होता है। यदि ऐप अपने को दी गई पहुँच को प्रोग्रामेटिक तरीके से revoke करना चाहता है, तो आप निम्न URL पर POST request करके revoke token request बना सकते हैं:
+
+```
+https://api.x.com/2/oauth2/revoke
+```
+
+आपको header के ज़रिए `application/x-www-form-urlencoded` का `Content-Type`, अपना token, और अपना client&#95;id पास करना होगा।
+
+कुछ मामलों में, कोई उपयोगकर्ता किसी ऐप को दी गई पहुँच वापस लेना चाह सकता है। ऐसा करने के लिए, वे [कनेक्टेड Apps पेज](https://x.com/settings/connected_apps) पर जाकर पहुँच रद्द कर सकते हैं।
+
+```bash
+curl --location --request POST 'https://api.x.com/2/oauth2/revoke' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'token=Q0Mzb0VhZ0V5dmNXSTEyNER2MFNfVW50RzdXdTN6STFxQlVkTGhTc1lCdlBiOjE2MjIxNDc3NDM5MTQ6MToxOmF0OjE' \
+--data-urlencode 'client_id=rG9n6402A3dbUJKzXTNX4oWHJ'
+```
+
+यह अनुरोध कॉन्फिडेंशियल क्लाइंट्स के लिए काम करेगा:
+
+```bash
+curl --location --request POST 'https://api.x.com/2/oauth2/revoke' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Basic V1ROclFTMTRiVWhwTWw4M2FVNWFkVGQyTldNNk1UcGphUTotUm9LeDN4NThKQThTbTlKSXQyZm1BanEzcTVHWC1icVozdmpKeFNlR3NkbUd0WEViUA=='\\
+--data-urlencode 'token=Q0Mzb0VhZ0V5dmNXSTEyNER2MFNfVW50RzdXdTN6STFxQlVkTGhTc1lCdlBiOjE2MjIxNDc3NDM5MTQ6MToxOmF0OjE'
+```

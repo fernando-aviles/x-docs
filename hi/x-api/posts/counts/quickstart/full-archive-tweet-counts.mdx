@@ -1,0 +1,252 @@
+---
+title: पूर्ण-आर्काइव पोस्ट की गिनती
+sidebarTitle: पूर्ण-आर्काइव पोस्ट की गिनती
+description: 2006 तक का ऐतिहासिक पोस्ट वॉल्यूम प्राप्त करें
+keywords: ["पूर्ण आर्काइव Tweet काउंट त्वरित शुरुआत", "आर्काइव काउंट त्वरित शुरुआत", "ऐतिहासिक काउंट त्वरित शुरुआत", "पूर्ण आर्काइव काउंट"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह गाइड आपको मार्च 2006 तक के ऐतिहासिक पोस्ट की गिनती प्राप्त करने की प्रक्रिया बताती है।
+
+<Warning>
+  पूर्ण-आर्काइव पोस्ट की गिनती के लिए [Self-serve](/hi/x-api/getting-started/about-x-api) या [Enterprise](/hi/x-api/getting-started/about-x-api) एक्सेस आवश्यक है।
+</Warning>
+
+<Note>
+  **पूर्वापेक्षाएँ**
+
+  शुरू करने से पहले, आपको इनकी आवश्यकता होगी:
+
+  * Self-serve या Enterprise एक्सेस वाला एक [डेवलपर खाता](https://developer.x.com/en/portal/petition/essential/basic-info)
+  * आपके ऐप का बेयरर टोकन
+</Note>
+
+***
+
+<div id="get-full-archive-post-counts">
+  ## पूर्ण-आर्काइव पोस्ट की गिनती प्राप्त करें
+</div>
+
+<Steps>
+  <Step title="एक क्वेरी बनाएँ">
+    पूर्ण-आर्काइव खोज जैसी ही क्वेरी सिंटैक्स का उपयोग करें। उदाहरण के लिए, @XDevelopers से पोस्ट्स की गिनती करने के लिए:
+
+    ```
+    from:XDevelopers
+    ```
+  </Step>
+
+  <Step title="समय सीमा सेट करें">
+    किसी खास ऐतिहासिक अवधि में खोजने के लिए `start_time` और `end_time` निर्दिष्ट करें:
+
+    | पैरामीटर     | फ़ॉर्मैट | उदाहरण                 |
+    | :----------- | :------- | :--------------------- |
+    | `start_time` | ISO 8601 | `2020-01-01T00:00:00Z` |
+    | `end_time`   | ISO 8601 | `2020-12-31T23:59:59Z` |
+  </Step>
+
+  <Step title="अनुरोध भेजें">
+    <CodeGroup dropdown>
+      ```bash cURL
+      curl "https://api.x.com/2/tweets/counts/all?\
+      query=from%3AXDevelopers&\
+      start_time=2020-01-01T00%3A00%3A00Z&\
+      end_time=2020-12-31T23%3A59%3A59Z&\
+      granularity=day" \
+        -H "Authorization: Bearer $BEARER_TOKEN"
+      ```
+
+      ```python Python SDK
+      from xdk import Client
+
+      client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+      # पूर्ण-आर्काइव पोस्ट की गिनती प्राप्त करें
+      response = client.posts.count_all(
+          query="from:XDevelopers",
+          start_time="2020-01-01T00:00:00Z",
+          end_time="2020-12-31T23:59:59Z",
+          granularity="day"
+      )
+
+      for bucket in response.data:
+          print(f"{bucket.start}: {bucket.tweet_count} पोस्ट्स")
+
+      print(f"कुल: {response.meta.total_tweet_count}")
+      ```
+
+      ```javascript JavaScript SDK
+      import { Client } from "@xdevplatform/xdk";
+
+      const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+      // पूर्ण-आर्काइव पोस्ट की गिनती प्राप्त करें
+      const response = await client.posts.countAll({
+        query: "from:XDevelopers",
+        startTime: "2020-01-01T00:00:00Z",
+        endTime: "2020-12-31T23:59:59Z",
+        granularity: "day",
+      });
+
+      response.data?.forEach((bucket) => {
+        console.log(`${bucket.start}: ${bucket.tweet_count} पोस्ट्स`);
+      });
+
+      console.log(`कुल: ${response.meta?.total_tweet_count}`);
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="रिस्पॉन्स की समीक्षा करें">
+    ```json
+    {
+      "data": [
+        {
+          "end": "2020-01-02T00:00:00.000Z",
+          "start": "2020-01-01T00:00:00.000Z",
+          "tweet_count": 3
+        },
+        {
+          "end": "2020-01-03T00:00:00.000Z",
+          "start": "2020-01-02T00:00:00.000Z",
+          "tweet_count": 5
+        }
+      ],
+      "meta": {
+        "total_tweet_count": 8
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+***
+
+<div id="granularity-options">
+  ## ग्रैन्युलैरिटी विकल्प
+</div>
+
+नियंत्रित करें कि गणनाओं को कैसे समूहीकृत किया जाता है:
+
+| Granularity | Description                |
+| :---------- | :------------------------- |
+| `minute`    | प्रति मिनट गणना            |
+| `hour`      | प्रति घंटा गणना (डिफ़ॉल्ट) |
+| `day`       | प्रति दिन गणना             |
+
+***
+
+<div id="paginate-through-results">
+  ## परिणामों को पेजिनेट करें
+</div>
+
+बड़ी समय-सीमाओं के लिए, रिस्पॉन्स से `next_token` का उपयोग करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/tweets/counts/all?\
+  query=from%3AXDevelopers&\
+  start_time=2015-01-01T00%3A00%3A00Z&\
+  end_time=2020-12-31T23%3A59%3A59Z&\
+  granularity=day&\
+  next_token=abc123" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # पेजिनेशन के साथ काउंट प्राप्त करें
+  next_token = None
+
+  while True:
+      response = client.posts.count_all(
+          query="from:XDevelopers",
+          start_time="2015-01-01T00:00:00Z",
+          end_time="2020-12-31T23:59:59Z",
+          granularity="day",
+          next_token=next_token
+      )
+      
+      for bucket in response.data:
+          print(f"{bucket.start}: {bucket.tweet_count}")
+      
+      next_token = response.meta.next_token
+      if not next_token:
+          break
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // पेजिनेशन के साथ काउंट प्राप्त करें
+  let nextToken = undefined;
+
+  do {
+    const response = await client.posts.countAll({
+      query: "from:XDevelopers",
+      startTime: "2015-01-01T00:00:00Z",
+      endTime: "2020-12-31T23:59:59Z",
+      granularity: "day",
+      nextToken,
+    });
+
+    response.data?.forEach((bucket) => {
+      console.log(`${bucket.start}: ${bucket.tweet_count}`);
+    });
+
+    nextToken = response.meta?.next_token;
+  } while (nextToken);
+  ```
+</CodeGroup>
+
+***
+
+<div id="key-differences-from-recent-counts">
+  ## हाल की गिनती से मुख्य अंतर
+</div>
+
+| Feature           | हाल की गिनती | पूर्ण-आर्काइव Counts     |
+| :---------------- | :------------ | :---------------------- |
+| समय सीमा          | पिछले 7 दिन   | मार्च 2006 से अब तक     |
+| आवश्यक एक्सेस     | सभी डेवलपर्स  | Pay-per-use, Enterprise |
+| डिफ़ॉल्ट समय सीमा | पिछले 7 दिन   | पिछले 30 दिन            |
+
+***
+
+<div id="common-parameters">
+  ## सामान्य पैरामीटर
+</div>
+
+| पैरामीटर      | विवरण                              | डिफ़ॉल्ट    |
+| :------------ | :--------------------------------- | :---------- |
+| `query`       | खोज क्वेरी (आवश्यक)                | —           |
+| `granularity` | समय बकेट का आकार                   | `hour`      |
+| `start_time`  | सबसे पुराना टाइमस्टैम्प (ISO 8601) | 30 दिन पहले |
+| `end_time`    | सबसे नया टाइमस्टैम्प (ISO 8601)    | वर्तमान समय |
+| `next_token`  | पेजिनेशन टोकन                      | —           |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="हाल की गिनती" icon="clock" href="/hi/x-api/posts/counts/quickstart/recent-tweet-counts">
+    हाल के पोस्ट की गिनती प्राप्त करें
+  </Card>
+
+  <Card title="क्वेरी बनाएँ" icon="magnifying-glass" href="/hi/x-api/posts/counts/integrate/build-a-query">
+    क्वेरी सिंटैक्स में महारत हासिल करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/posts/full-archive-post-count">
+    एंडपॉइंट का पूरा दस्तावेज़
+  </Card>
+</CardGroup>

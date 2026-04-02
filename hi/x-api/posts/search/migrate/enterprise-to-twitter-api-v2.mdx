@@ -1,0 +1,137 @@
+---
+title: v1 से v2 (एंटरप्राइज़)
+sidebarTitle: v1 से v2 (एंटरप्राइज़)
+keywords: ["एंटरप्राइज़ से v2", "एंटरप्राइज़ माइग्रेशन", "GNIP से v2", "एंटरप्राइज़ सर्च माइग्रेशन", "एंटरप्राइज़ माइग्रेट करें", "v1 से v2 एंटरप्राइज़"]
+---
+
+<div id="enterprise-compared-to-x-api-v2">
+  ### Enterprise बनाम X API v2
+</div>
+
+**समानताएँ**
+
+* पेजिनेशन
+* समय क्षेत्र
+* पोस्ट के संपादन इतिहास और मेटाडेटा के लिए समर्थन। 
+
+**अंतर**
+
+* एंडपॉइंट URL
+* ऐप और प्रोजेक्ट की आवश्यकता
+* उपलब्ध समयावधियाँ
+* प्रतिक्रिया डेटा का प्रारूप
+* HTTP मेथड
+* अनुरोध समय प्रारूप
+* अनुरोध पैरामीटर
+* फ़िल्टरिंग ऑपरेटर
+
+<div id="similarities">
+  #### समानताएँ
+</div>
+
+**पेजिनेशन**
+
+हालाँकि v2 में पेजिनेशन की अतिरिक्त सुविधाएँ हैं (नए पेजिनेशन पैरामीटर, जिनसे आप `since_id` और `until_id` के साथ पोस्ट IDs का उपयोग करके नेविगेट कर सकते हैं), enterprise और v2 दोनों में आप समय के आधार पर भी पेजिनेशन कर सकते हैं (enterprise में `fromDate` और `toDate`, और v2 में `start_time` और `end_time`)।
+ 
+
+**समय-क्षेत्र**
+
+जैसा कि पेजिनेशन सेक्शन में बताया गया है, enterprise और v2 दोनों में आप समय का उपयोग करके डेटा के अलग-अलग पेजों के बीच नेविगेट कर सकते हैं। दोनों ही स्थितियों में, इन पैरामीटरों का उपयोग करते समय टाइमज़ोन के रूप में UTC का उपयोग किया जाता है।
+
+**पोस्ट संपादन इतिहास और मेटाडेटा के लिए समर्थन**
+
+दोनों संस्करण ऐसा मेटाडेटा प्रदान करते हैं जो किसी भी संपादन इतिहास का विवरण देता है। अधिक जानकारी के लिए [search API संदर्भ](/hi/x-api/posts/recent-search) और [पोस्ट संपादन के मूल सिद्धांत पेज](/hi/x-api/fundamentals/edit-posts) देखें। 
+
+<div id="differences">
+  #### अंतर
+</div>
+
+**एंडपॉइंट URLs**
+
+* Enterprise एंडपॉइंट्स:
+  * 30 day - `http://gnip-api.x.com/search/30day/accounts/:account_name/:label.json`
+  * Full-archive - `http://gnip-api.x.com/search/fullarchive/accounts/:account_name/:label.json`
+* X API v2 एंडपॉइंट्स
+  * Recent (7 day) - `https://api.x.com/2/tweets/search/recent`
+  * Full-archive - `https://api.x.com/2/tweets/search/all`
+
+**ऐप और प्रोजेक्ट की आवश्यकता**
+
+X API v2 एंडपॉइंट्स के लिए आवश्यक है कि आप अपने अनुरोधों को प्रमाणित करते समय किसी प्रोजेक्ट के credentials का उपयोग करें। सभी X API v1.1 एंडपॉइंट्स, ऐप्स के credentials या किसी App से संबद्ध ऐप्स के credentials का उपयोग कर सकते हैं।
+ 
+
+**उपलब्ध समयावधियाँ**
+
+Enterprise API और X API v2, दोनों ऐसे एंडपॉइंट्स उपलब्ध कराते हैं जिनसे आप पोस्ट्स के full-archive के लिए फ़िल्टर किया गया पोस्ट डेटा प्राप्त कर सकते हैं।
+
+हालाँकि, X API v2, Enterprise API की तरह 30 day time period एंडपॉइंट उपलब्ध नहीं कराता। इसके बजाय, यह ऊपर बताए गए full-archive या 7 day time period की सुविधा देता है, जो Native Enriched to v2 और [Activity Streams to v2](/hi/x-api/migrate/data-format-migration#migrating-from-activity-streams-data-format-to-v2) के अनुरूप हैं। ये आपको Enterprise फ़ील्ड्स को नए v2 फ़ील्ड्स से मैप करने में मदद कर सकते हैं। यह गाइड आपको उन विशिष्ट expansions और fields पैरामीटर्स के बारे में भी बताएगी जिन्हें आपको अपने v2 अनुरोध के साथ पास करना होगा, ताकि विशेष फ़ील्ड्स वापस मिल सकें।
+ 
+
+**प्रतिक्रिया डेटा प्रारूप**
+
+[enterprise response format](https://developer.x.com/x-api/enterprise-gnip-2.0/fundamentals/data-dictionary) और [X API v2’s format](/hi/x-api/fundamentals/data-dictionary) के बीच सबसे बड़े अंतरों में से एक यह है कि आप यह कैसे चुनते हैं कि आपके payload में कौन-से फ़ील्ड्स लौटें।
+
+Enterprise Search API में, आपको डिफ़ॉल्ट रूप से रिस्पॉन्स के कई फ़ील्ड्स मिलते हैं, और फिर आपके पास पैरामीटर्स का उपयोग करके यह तय करने का विकल्प होता है कि payload में कौन-से फ़ील्ड्स या फ़ील्ड्स के कौन-से समूह लौटने चाहिए।
+
+X API v2 संस्करण डिफ़ॉल्ट रूप से केवल पोस्ट `id` और `text` फ़ील्ड्स ही लौटाता है। किसी भी अतिरिक्त फ़ील्ड्स या ऑब्जेक्ट्स का अनुरोध करने के लिए, आपको [fields](/hi/x-api/fundamentals/fields) और [expansions](/hi/x-api/fundamentals/expansions) पैरामीटर्स का उपयोग करना होगा। इन एंडपॉइंट्स से आप जिन भी पोस्ट फ़ील्ड्स का अनुरोध करेंगे, वे मुख्य पोस्ट ऑब्जेक्ट में लौटेंगी। कोई भी expanded user, media, poll, या place ऑब्जेक्ट्स और फ़ील्ड्स आपके रिस्पॉन्स के भीतर `includes` ऑब्जेक्ट में लौटेंगी। इसके बाद आप पोस्ट और expanded ऑब्जेक्ट, दोनों में मौजूद IDs का मिलान करके expanded ऑब्जेक्ट्स को फिर से पोस्ट ऑब्जेक्ट से जोड़ सकते हैं।
+
+हम आपको प्रोत्साहित करते हैं कि आप इन नए पैरामीटर्स के बारे में उनकी संबंधित guides में और अधिक पढ़ें, या [how to use fields and expansions](/hi/x-api/fundamentals/data-dictionary#how-to-use-fields-and-expansions) पर हमारी guide देखें।
+
+कुछ फ़ील्ड्स का अनुरोध करने के तरीके में हुए बदलावों के अलावा, X API v2, APIs द्वारा लौटाए गए ऑब्जेक्ट्स के लिए नए JSON designs भी पेश कर रहा है, जिनमें [Post](/hi/x-api/fundamentals/data-dictionary#tweet) और [user](/hi/x-api/fundamentals/data-dictionary#user) ऑब्जेक्ट्स शामिल हैं।
+
+* JSON root level पर, standard एंडपॉइंट्स पोस्ट ऑब्जेक्ट्स को `statuses` array में लौटाते हैं, जबकि X API v2 `data` array लौटाता है।
+* Retweeted और Quoted &quot;statuses&quot; कहने के बजाय, X API v2 JSON में Retweeted और Quoted Tweets का उल्लेख किया जाता है। कई legacy और deprecated फ़ील्ड्स, जैसे `contributors` और `user.translator_type`, हटाए जा रहे हैं।
+* पोस्ट ऑब्जेक्ट में `favorites` और user ऑब्जेक्ट में `favourites` दोनों का उपयोग करने के बजाय, X API v2 like शब्द का उपयोग करता है।
+* X इस परंपरा को अपना रहा है कि जिन JSON values का कोई मान नहीं होता (उदाहरण के लिए, `null`), उन्हें payload में नहीं लिखा जाता। पोस्ट और user attributes केवल तभी शामिल किए जाते हैं जब उनके values non-null हों।
+   
+
+हमने पोस्ट ऑब्जेक्ट में फ़ील्ड्स का एक नया सेट भी जोड़ा है, जिनमें निम्नलिखित शामिल हैं:
+
+* एक [conversation&#95;id](/hi/x-api/fundamentals/conversation-id) फ़ील्ड
+* दो नई [annotations](/hi/x-api/fundamentals/post-annotations) फ़ील्ड्स, जिनमें context और entities शामिल हैं
+* कई नई [metrics](/hi/x-api/fundamentals/metrics) फ़ील्ड्स
+* एक नई `reply_setting` फ़ील्ड, जो दिखाती है कि किसी दिए गए पोस्ट का जवाब कौन दे सकता है
+
+और अंत में एक बात। Premium रिस्पॉन्स में root level पर `requestParameters` ऑब्जेक्ट शामिल होता है, जिसमें वे पैरामीटर्स होते हैं जिन्हें आपने अपने अनुरोध में शामिल किया था। इसके विपरीत, v2 संस्करण में root level पर `meta` ऑब्जेक्ट होता है, जिसमें `newest_id`, `oldest_id`, `result_count`, और `next_token` शामिल होते हैं, यदि परिणामों का कोई अतिरिक्त पृष्ठ उपलब्ध हो।
+
+**HTTP मेथड**
+
+API का enterprise संस्करण आपको अनुरोध को JSON body के साथ POST HTTP method के रूप में या query string के साथ GET HTTP method के रूप में भेजने की अनुमति देता है।
+
+v2 में केवल query string के साथ GET HTTP method का उपयोग किया जा सकता है।
+ 
+
+**अनुरोध समय प्रारूप**
+
+इस एंडपॉइंट का enterprise संस्करण pagination पैरामीटर और `timePeriod` रिस्पॉन्स फ़ील्ड, दोनों में निम्न date/time format का उपयोग करता है: `YYYYMMDDHHmm`
+
+v2 एंडपॉइंट pagination पैरामीटर और `start` तथा `end` रिस्पॉन्स फ़ील्ड, दोनों में ISO 8601/RFC 3339 date/time format का उपयोग करता है: `YYYY-MM-DDTHH:mm:ssZ
+ `
+
+**अनुरोध पैरामीटर**
+
+नीचे enterprise और X API v2 के अनुरोध पैरामीटर की तालिका दी गई है:
+
+| Enterprise            | Search Posts v2                        |
+| :-------------------- | :------------------------------------- |
+| query                 | query                                  |
+| maxResults            | max&#95;results                        |
+| fromDate (YYMMDDHHmm) | start&#95;time (YYYY-MM-DDTHH:mm:ssZ)  |
+| toDate (YYMMDDHHmm)   | end&#95;time (YYYY-MM-DDTHH:mm:ssZ)    |
+|                       | since&#95;id                           |
+|                       | until&#95;id                           |
+| next                  | next&#95;token or pagination&#95;token |
+
+**फ़िल्टरिंग ऑपरेटर**
+
+हालाँकि enterprise और X API v2 के बीच ऑपरेटर अधिकांशतः समान हैं, फिर भी ऑपरेटर की उपलब्धता में कुछ अंतर हैं और कुछ नए ऑपरेटर केवल X API v2 संस्करण में जोड़े गए हैं।
+
+X API v2, enterprise, और यहाँ तक कि premium और standard के लिए उपलब्ध ऑपरेटरों की पूरी तालिका देखने के लिए, कृपया [Search Posts migration landing page](/hi/x-api/posts/search/migrate/overview) पर जाएँ।
+
+**अगले चरण**
+
+[X API v2 full-archive search के लिए हमारी त्वरित शुरुआत गाइड देखें](/hi/x-api/posts/search/quickstart/full-archive-search)
+
+[full-archive search के लिए API संदर्भ देखें](/hi/x-api/posts/full-archive-search)
+
+[इन एंडपॉइंट के लिए कुछ sample code देखें](https://github.com/xdevplatform/Twitter-API-v2-sample-code)

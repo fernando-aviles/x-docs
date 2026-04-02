@@ -1,0 +1,207 @@
+---
+title: वार्तालाप ID
+sidebarTitle: वार्तालाप ID
+description: वार्तालाप थ्रेड्स को ट्रैक करें और फिर से बनाएं
+keywords: ["वार्तालाप ID", "वार्तालाप थ्रेड्स", "उत्तर थ्रेड्स", "थ्रेड ट्रैकिंग", "वार्तालाप ट्रैकिंग"]
+---
+
+X पर हर उत्तर एक वार्तालाप थ्रेड का हिस्सा होता है। `conversation_id` फ़ील्ड की मदद से आप पूरे वार्तालाप ट्री की पहचान कर सकते हैं, उसे ट्रैक कर सकते हैं, और फिर से बना सकते हैं।
+
+***
+
+<div id="how-it-works">
+  ## यह कैसे काम करता है
+</div>
+
+जब कोई व्यक्ति पोस्ट करता है और दूसरे लोग जवाब देते हैं, तो सभी जवाबों का `conversation_id` एक ही होता है—यानी उस मूल पोस्ट की आईडी, जिससे वार्तालाप शुरू हुआ था।
+
+```
+Original post (ID: 1234567890)  ← conversation_id for all replies
+├── Reply 1 (ID: 1234567891)    → conversation_id: 1234567890
+│   └── Reply to Reply 1        → conversation_id: 1234567890
+└── Reply 2 (ID: 1234567892)    → conversation_id: 1234567890
+    └── Reply to Reply 2        → conversation_id: 1234567890
+```
+
+थ्रेड कितना भी गहरा क्यों न जाए, सभी पोस्ट्स का `conversation_id` एक ही होता है।
+
+***
+
+<div id="requesting-conversation_id">
+  ## `conversation_id` का अनुरोध
+</div>
+
+अपने `tweet.fields` में `conversation_id` जोड़ें:
+
+```bash
+curl "https://api.x.com/2/tweets/1234567891?tweet.fields=conversation_id,in_reply_to_user_id,referenced_tweets" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+रिस्पॉन्स:
+
+```json
+{
+  "data": {
+    "id": "1234567891",
+    "text": "@user Great point!",
+    "conversation_id": "1234567890",
+    "in_reply_to_user_id": "2244994945",
+    "referenced_tweets": [{
+      "type": "replied_to",
+      "id": "1234567890"
+    }]
+  }
+}
+```
+
+***
+
+<div id="getting-a-full-conversation">
+  ## पूरा वार्तालाप प्राप्त करना
+</div>
+
+किसी थ्रेड की सभी पोस्ट्स प्राप्त करने के लिए `conversation_id` का search operator के रूप में उपयोग करें:
+
+```bash
+curl "https://api.x.com/2/tweets/search/recent?\
+query=conversation_id:1234567890&\
+tweet.fields=author_id,created_at,in_reply_to_user_id&\
+expansions=author_id" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+यह मूल पोस्ट के सभी जवाब लौटाता है, जो नवीनतम से पुराने क्रम में व्यवस्थित होते हैं।
+
+***
+
+<div id="use-cases">
+  ## उपयोग के उदाहरण
+</div>
+
+<Tabs>
+  <Tab title="थ्रेड पुनर्निर्माण">
+    पूरा वार्तालाप ट्री बनाएं:
+
+    ```python
+    import requests
+
+    conversation_id = "1234567890"
+    url = f"https://api.x.com/2/tweets/search/recent"
+    params = {
+        "query": f"conversation_id:{conversation_id}",
+        "tweet.fields": "author_id,in_reply_to_user_id,referenced_tweets,created_at",
+        "max_results": 100
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    replies = response.json()["data"]
+
+    # कालानुक्रमिक क्रम पाने के लिए created_at के अनुसार क्रमबद्ध करें
+    replies.sort(key=lambda x: x["created_at"])
+    ```
+  </Tab>
+
+  <Tab title="वार्तालाप निगरानी">
+    विशिष्ट वार्तालापों के रिप्लाई को रीयल-टाइम में स्ट्रीम करें:
+
+    ```bash
+    # किसी वार्तालाप के लिए फ़िल्टर्ड स्ट्रीम नियम जोड़ें
+    curl -X POST "https://api.x.com/2/tweets/search/stream/rules" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"add": [{"value": "conversation_id:1234567890"}]}'
+    ```
+  </Tab>
+
+  <Tab title="वार्तालाप विश्लेषण">
+    किसी वार्तालाप में रिप्लाई की संख्या गिनें:
+
+    ```bash
+    curl "https://api.x.com/2/tweets/counts/recent?\
+    query=conversation_id:1234567890" \
+      -H "Authorization: Bearer $TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+***
+
+<div id="related-fields">
+  ## संबंधित फ़ील्ड्स
+</div>
+
+| Field                 | Description                                             |
+| :-------------------- | :------------------------------------------------------ |
+| `conversation_id`     | उस मूल पोस्ट की ID जिससे थ्रेड शुरू हुआ                 |
+| `in_reply_to_user_id` | जिस पोस्ट को जवाब दिया जा रहा है, उसके उपयोगकर्ता की ID |
+| `referenced_tweets`   | `type: "replied_to"` और पैरेंट पोस्ट ID वाला एरे        |
+
+***
+
+<div id="example-full-thread-retrieval">
+  ## उदाहरण: पूरे थ्रेड को प्राप्त करना
+</div>
+
+```json
+{
+  "data": [
+    {
+      "id": "1234567893",
+      "text": "@user2 @user1 I agree with you both!",
+      "conversation_id": "1234567890",
+      "author_id": "3333333333",
+      "created_at": "2024-01-15T12:05:00.000Z",
+      "in_reply_to_user_id": "2222222222",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567892"}]
+    },
+    {
+      "id": "1234567892",
+      "text": "@user1 That's interesting!",
+      "conversation_id": "1234567890",
+      "author_id": "2222222222",
+      "created_at": "2024-01-15T12:03:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    },
+    {
+      "id": "1234567891",
+      "text": "@user1 Great point!",
+      "conversation_id": "1234567890",
+      "author_id": "4444444444",
+      "created_at": "2024-01-15T12:02:00.000Z",
+      "in_reply_to_user_id": "1111111111",
+      "referenced_tweets": [{"type": "replied_to", "id": "1234567890"}]
+    }
+  ],
+  "meta": {
+    "result_count": 3
+  }
+}
+```
+
+***
+
+<div id="notes">
+  ## नोट्स
+</div>
+
+* मूल पोस्ट का `conversation_id`, उसके अपने `id` के बराबर होता है
+* `conversation_id` उन सभी v2 एंडपॉइंट्स पर उपलब्ध है जो पोस्ट्स लौटाते हैं
+* रीयल-टाइम में वार्तालापों की निगरानी के लिए [फ़िल्टर्ड स्ट्रीम](/hi/x-api/posts/filtered-stream/introduction) के साथ इसका उपयोग करें
+* बड़े थ्रेड्स के लिए इसे [पृष्ठांकन](/hi/x-api/fundamentals/pagination) के साथ मिलाकर उपयोग करें
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="पोस्ट्स खोजें" icon="magnifying-glass" href="/hi/x-api/posts/search/introduction">
+    conversation&#95;id से खोजें।
+  </Card>
+
+  <Card title="फ़िल्टर्ड स्ट्रीम" icon="signal-stream" href="/hi/x-api/posts/filtered-stream/introduction">
+    रीयल टाइम में वार्तालापों की निगरानी करें।
+  </Card>
+</CardGroup>

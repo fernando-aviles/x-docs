@@ -1,0 +1,368 @@
+---
+title: चंक्ड मीडिया अपलोड
+sidebarTitle: त्वरित शुरुआत
+description: चंक्ड अपलोड का उपयोग करके वीडियो और बड़ी मीडिया फ़ाइलें अपलोड करें
+keywords: ["चंक्ड अपलोड", "मीडिया अपलोड", "चंक्ड मीडिया", "वीडियो अपलोड", "बड़ी फ़ाइल अपलोड", "चंक्ड अपलोड गाइड"]
+---
+
+यह गाइड आपको चंक्ड अपलोड वर्कफ़्लो का उपयोग करके वीडियो और बड़ी मीडिया फ़ाइलें अपलोड करने की प्रक्रिया समझाती है।
+
+वीडियो या बड़ी मीडिया फ़ाइलें अपलोड करने के लिए, आपको यह करना होगा:
+
+1. **INIT** — अपलोड शुरू करें और एक `media_id` प्राप्त करें
+2. **APPEND** — फ़ाइल के हर चंक को अपलोड करें
+3. **FINALIZE** — अपलोड पूरा करें
+4. **STATUS** — (यदि ज़रूरत हो) प्रोसेसिंग पूरी होने तक प्रतीक्षा करें
+
+<Note>
+  पूरा Python उदाहरण देखने के लिए [यह सैंपल कोड](https://github.com/xdevplatform/large-video-upload-python) देखें।
+</Note>
+
+***
+
+<div id="step-1-initialize-upload-init">
+  ## चरण 1: अपलोड शुरू करें (INIT)
+</div>
+
+`media_id` पाने के लिए अपलोड सत्र शुरू करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=INIT" \
+    -F "media_type=video/mp4" \
+    -F "total_bytes=1048576" \
+    -F "media_category=amplify_video"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # चंक्ड अपलोड शुरू करें
+  response = client.media.init_upload(
+      media_type="video/mp4",
+      total_bytes=1048576,
+      media_category="amplify_video"
+  )
+
+  media_id = response.data.id
+  print(f"Media ID: {media_id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // चंक्ड अपलोड शुरू करें
+  const response = await client.media.initUpload({
+    mediaType: "video/mp4",
+    totalBytes: 1048576,
+    mediaCategory: "amplify_video",
+  });
+
+  const mediaId = response.data?.id;
+  console.log(`Media ID: ${mediaId}`);
+  ```
+</CodeGroup>
+
+**रिस्पॉन्स:**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "expires_after_secs": 1295999
+  }
+}
+```
+
+***
+
+<div id="step-2-upload-chunks-append">
+  ## चरण 2: चंक्स अपलोड करें (APPEND)
+</div>
+
+फ़ाइल के हर चंक को अपलोड करें। उदाहरण के लिए, 3 MB की फ़ाइल को 3 चंक्स में बाँटें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=APPEND" \
+    -F "media_id=1880028106020515840" \
+    -F "segment_index=0" \
+    -F "media=@/path/to/chunk1.mp4"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # चंक्स अपलोड करें
+  chunk_size = 1024 * 1024  # 1 MB चंक्स
+
+  with open("video.mp4", "rb") as f:
+      segment_index = 0
+      while True:
+          chunk = f.read(chunk_size)
+          if not chunk:
+              break
+          
+          client.media.append_upload(
+              media_id=media_id,
+              segment_index=segment_index,
+              media=chunk
+          )
+          segment_index += 1
+          print(f"Uploaded chunk {segment_index}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+  import fs from "fs";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // चंक्स अपलोड करें
+  const chunkSize = 1024 * 1024; // 1 MB चंक्स
+  const fileBuffer = fs.readFileSync("video.mp4");
+
+  let segmentIndex = 0;
+  for (let offset = 0; offset < fileBuffer.length; offset += chunkSize) {
+    const chunk = fileBuffer.slice(offset, offset + chunkSize);
+    
+    await client.media.appendUpload({
+      mediaId,
+      segmentIndex,
+      media: chunk,
+    });
+    
+    console.log(`Uploaded chunk ${segmentIndex + 1}`);
+    segmentIndex++;
+  }
+  ```
+</CodeGroup>
+
+<Info>
+  **चंकिंग के लाभ:**
+
+  * धीमे नेटवर्क पर बेहतर विश्वसनीयता
+  * अपलोड को रोककर फिर से शुरू किया जा सकता है
+  * असफल चंक्स को अलग-अलग फिर से आज़माया जा सकता है
+</Info>
+
+***
+
+<div id="step-3-finalize-upload-finalize">
+  ## चरण 3: अपलोड पूरा करें (FINALIZE)
+</div>
+
+सभी चंक भेजने के बाद अपलोड पूरा करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/media/upload" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: multipart/form-data" \
+    -F "command=FINALIZE" \
+    -F "media_id=1880028106020515840"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # अपलोड पूरा करें
+  response = client.media.finalize_upload(media_id=media_id)
+
+  print(f"Processing state: {response.data.processing_info.state}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // अपलोड पूरा करें
+  const response = await client.media.finalizeUpload({ mediaId });
+
+  console.log(`Processing state: ${response.data?.processing_info?.state}`);
+  ```
+</CodeGroup>
+
+**रिस्पॉन्स:**
+
+```json
+{
+  "data": {
+    "id": "1880028106020515840",
+    "media_key": "13_1880028106020515840",
+    "size": 1048576,
+    "expires_after_secs": 86400,
+    "processing_info": {
+      "state": "pending",
+      "check_after_secs": 1
+    }
+  }
+}
+```
+
+<Note>
+  अगर `processing_info` लौटाया जाता है, तो प्रोसेसिंग पूरी होने की प्रतीक्षा करने के लिए चरण 4 पर जाएँ। अगर नहीं, तो मीडिया इस्तेमाल के लिए तैयार है।
+</Note>
+
+***
+
+<div id="step-4-check-status-status">
+  ## चरण 4: स्थिति जाँचें (STATUS)
+</div>
+
+यदि `processing_info` लौटाया गया था, तो प्रोसेसिंग पूरी होने तक उसकी स्थिति जाँचते रहें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/media/upload?command=STATUS&media_id=1880028106020515840" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+  import time
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # प्रोसेसिंग पूरी होने की प्रतीक्षा करें
+  while True:
+      response = client.media.get_status(media_id=media_id)
+      state = response.data.processing_info.state
+      
+      if state == "succeeded":
+          print("Media ready!")
+          break
+      elif state == "failed":
+          print("Processing failed")
+          break
+      else:
+          check_after = response.data.processing_info.check_after_secs
+          print(f"Processing... checking again in {check_after}s")
+          time.sleep(check_after)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // प्रोसेसिंग पूरी होने की प्रतीक्षा करें
+  while (true) {
+    const response = await client.media.getStatus({ mediaId });
+    const state = response.data?.processing_info?.state;
+    
+    if (state === "succeeded") {
+      console.log("Media ready!");
+      break;
+    } else if (state === "failed") {
+      console.log("Processing failed");
+      break;
+    } else {
+      const checkAfter = response.data?.processing_info?.check_after_secs ?? 1;
+      console.log(`Processing... checking again in ${checkAfter}s`);
+      await new Promise((r) => setTimeout(r, checkAfter * 1000));
+    }
+  }
+  ```
+</CodeGroup>
+
+**प्रोसेसिंग की अवस्थाएँ:** `pending` → `in_progress` → `succeeded` या `failed`
+
+***
+
+<div id="step-5-create-post-with-media">
+  ## चरण 5: मीडिया के साथ पोस्ट बनाएँ
+</div>
+
+प्रोसेसिंग पूरी होने के बाद, मीडिया के साथ एक पोस्ट बनाएँ:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl -X POST "https://api.x.com/2/tweets" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "text": "Check out this video!",
+      "media": {
+        "media_ids": ["1880028106020515840"]
+      }
+    }'
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # मीडिया के साथ पोस्ट बनाएँ
+  response = client.posts.create(
+      text="Check out this video!",
+      media={"media_ids": [media_id]}
+  )
+
+  print(f"Posted: {response.data.id}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  // मीडिया के साथ पोस्ट बनाएँ
+  const response = await client.posts.create({
+    text: "Check out this video!",
+    media: { mediaIds: [mediaId] },
+  });
+
+  console.log(`Posted: ${response.data?.id}`);
+  ```
+</CodeGroup>
+
+***
+
+<div id="media-categories">
+  ## मीडिया श्रेणियाँ
+</div>
+
+| Category        | Description               |
+| :-------------- | :------------------------ |
+| `tweet_image`   | पोस्ट के लिए इमेज         |
+| `tweet_gif`     | पोस्ट के लिए एनिमेटेड GIF |
+| `tweet_video`   | पोस्ट के लिए वीडियो       |
+| `amplify_video` | Amplify वीडियो            |
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="सर्वोत्तम प्रथाएँ" icon="book" href="/hi/x-api/media/quickstart/best-practices">
+    फ़ाइल सीमाएँ और आवश्यकताएँ
+  </Card>
+
+  <Card title="पोस्ट्स बनाएँ" icon="message" href="/hi/x-api/posts/manage-tweets/quickstart">
+    मीडिया के साथ पोस्ट करें
+  </Card>
+
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/media/media-upload-init">
+    एंडपॉइंट का संपूर्ण दस्तावेज़ीकरण
+  </Card>
+</CardGroup>

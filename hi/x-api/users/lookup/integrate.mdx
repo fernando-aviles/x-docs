@@ -1,0 +1,399 @@
+---
+title: एकीकरण मार्गदर्शिका
+sidebarTitle: एकीकरण मार्गदर्शिका
+description: User लुकअप ko एकीकृत करने के लिए प्रमुख अवधारणाएँ और सर्वोत्तम प्रथाएँ
+keywords: ["user लुकअप एकीकरण", "users के लिए एकीकरण मार्गदर्शिका", "user लुकअप कार्यान्वयन"]
+---
+
+import { Button } from '/snippets/hi/button.mdx';
+
+यह मार्गदर्शिका उन मुख्य अवधारणाओं को समझाती है जिनकी आपको User लुकअप एंडपॉइंट्स को अपने ऐप में एकीकृत करने के लिए आवश्यकता है।
+
+***
+
+<div id="authentication">
+  ## प्रमाणीकरण
+</div>
+
+सभी X API v2 एंडपॉइंट के लिए प्रमाणीकरण आवश्यक है। अपने उपयोग के अनुरूप विधि चुनें:
+
+| विधि                                                                                                                             | इनके लिए सबसे उपयुक्त          | क्या निजी मेट्रिक्स तक पहुँच मिल सकती है? |
+| :------------------------------------------------------------------------------------------------------------------------------- | :----------------------------- | :---------------------------------------- |
+| [OAuth 2.0 App-Only](/hi/resources/fundamentals/authentication#oauth-2-0)                                                           | सर्वर-टू-सर्वर, सार्वजनिक डेटा | नहीं                                      |
+| [PKCE के साथ OAuth 2.0 Authorization Code](/hi/resources/fundamentals/authentication#oauth-2-0-authorization-code-flow-with-pkce-2) | उपयोगकर्ता-उन्मुख ऐप्स         | हाँ (अधिकृत उपयोगकर्ता के डेटा के लिए)    |
+| [OAuth 1.0a User Context](/hi/resources/fundamentals/authentication)                                                                | लेगेसी इंटीग्रेशन              | हाँ (अधिकृत उपयोगकर्ता के डेटा के लिए)    |
+
+<div id="app-only-authentication">
+  ### App-Only प्रमाणीकरण
+</div>
+
+सार्वजनिक उपयोगकर्ता डेटा के लिए, बेयरर टोकन का उपयोग करें:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # उपयोगकर्ता नाम से उपयोगकर्ता प्राप्त करें
+  response = client.users.get_by_username("XDevelopers")
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers");
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<div id="user-context-authentication">
+  ### User Context प्रमाणीकरण
+</div>
+
+प्रमाणीकृत उपयोगकर्ता एंडपॉइंट (`/2/users/me`) के लिए आवश्यक:
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/me" \
+    -H "Authorization: Bearer $USER_ACCESS_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  # OAuth 2.0 उपयोगकर्ता एक्सेस टोकन का उपयोग
+  client = Client(bearer_token="YOUR_USER_ACCESS_TOKEN")
+
+  # प्रमाणीकृत उपयोगकर्ता की प्रोफ़ाइल प्राप्त करें
+  response = client.users.get_me()
+  print(response.data)
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  // OAuth 2.0 उपयोगकर्ता एक्सेस टोकन का उपयोग
+  const client = new Client({ accessToken: "YOUR_USER_ACCESS_TOKEN" });
+
+  const response = await client.users.getMe();
+  console.log(response.data);
+  ```
+</CodeGroup>
+
+<Warning>
+  `/2/users/me` एंडपॉइंट केवल User Context प्रमाणीकरण के साथ काम करता है। App-Only टोकन त्रुटि लौटाएँगे।
+</Warning>
+
+***
+
+<div id="fields-and-expansions">
+  ## फ़ील्ड्स और expansions
+</div>
+
+X API v2 डिफ़ॉल्ट रूप से न्यूनतम डेटा लौटाता है। अपनी आवश्यकतानुसार ठीक वही डेटा प्राप्त करने के लिए `fields` और `expansions` का उपयोग करें।
+
+<div id="default-response">
+  ### डिफ़ॉल्ट रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers"
+  }
+}
+```
+
+<div id="available-fields">
+  ### उपलब्ध फ़ील्ड्स
+</div>
+
+<Accordion title="user.fields">
+  | फ़ील्ड              | विवरण                                |
+  | :------------------ | :----------------------------------- |
+  | `created_at`        | खाता बनाए जाने का टाइमस्टैम्प        |
+  | `description`       | उपयोगकर्ता का बायो                   |
+  | `entities`          | बायो में पार्स किए गए URL            |
+  | `location`          | उपयोगकर्ता द्वारा सेट किया गया स्थान |
+  | `pinned_tweet_id`   | पिन की गई पोस्ट की ID                |
+  | `profile_image_url` | प्रोफ़ाइल इमेज का URL                |
+  | `protected`         | क्या खाता सुरक्षित है                |
+  | `public_metrics`    | फ़ॉलोअर/फ़ॉलोइंग की संख्या           |
+  | `url`               | वेबसाइट का URL                       |
+  | `verified`          | सत्यापन की स्थिति                    |
+  | `withheld`          | रोक संबंधी जानकारी                   |
+</Accordion>
+
+<Accordion title="tweet.fields (इसके लिए pinned_tweet_id expansion आवश्यक है)">
+  | फ़ील्ड           | विवरण                          |
+  | :--------------- | :----------------------------- |
+  | `created_at`     | पोस्ट बनाए जाने का टाइमस्टैम्प |
+  | `text`           | पोस्ट की सामग्री               |
+  | `public_metrics` | एंगेजमेंट की संख्या            |
+  | `entities`       | हैशटैग, मेंशन, URL             |
+</Accordion>
+
+<div id="example-with-fields">
+  ### फ़ील्ड्स के साथ उदाहरण
+</div>
+
+<CodeGroup dropdown>
+  ```bash cURL
+  curl "https://api.x.com/2/users/by/username/XDevelopers?\
+  user.fields=created_at,description,public_metrics,verified&\
+  expansions=pinned_tweet_id&\
+  tweet.fields=created_at,public_metrics" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # अतिरिक्त फ़ील्ड्स और expansions के साथ उपयोगकर्ता प्राप्त करें
+  response = client.users.get_by_username(
+      "XDevelopers",
+      user_fields=["created_at", "description", "public_metrics", "verified"],
+      expansions=["pinned_tweet_id"],
+      tweet_fields=["created_at", "public_metrics"]
+  )
+
+  print(response.data)
+  print(response.includes)  # विस्तारित पिन किया हुआ Tweet शामिल है
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  const response = await client.users.getByUsername("XDevelopers", {
+    userFields: ["created_at", "description", "public_metrics", "verified"],
+    expansions: ["pinned_tweet_id"],
+    tweetFields: ["created_at", "public_metrics"],
+  });
+
+  console.log(response.data);
+  console.log(response.includes); // विस्तारित पिन किया हुआ Tweet शामिल है
+  ```
+</CodeGroup>
+
+<div id="response-with-expansions">
+  ### expansions सहित रिस्पॉन्स
+</div>
+
+```json
+{
+  "data": {
+    "id": "2244994945",
+    "name": "X Developers",
+    "username": "XDevelopers",
+    "created_at": "2013-12-14T04:35:55.000Z",
+    "verified": true,
+    "pinned_tweet_id": "1234567890",
+    "public_metrics": {
+      "followers_count": 583423,
+      "following_count": 2048,
+      "tweet_count": 14052
+    }
+  },
+  "includes": {
+    "tweets": [
+      {
+        "id": "1234567890",
+        "text": "Welcome to the X Developer Platform!",
+        "created_at": "2024-01-15T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+<Card title="फ़ील्ड्स और expansions गाइड" icon="sliders" href="/hi/x-api/fundamentals/fields">
+  रिस्पॉन्स को कस्टमाइज़ करने के बारे में और जानें
+</Card>
+
+***
+
+<div id="batch-lookups">
+  ## बैच लुकअप
+</div>
+
+एक ही अनुरोध में कई उपयोगकर्ताओं की जानकारी प्राप्त करें:
+
+<CodeGroup dropdown>
+  ```bash cURL (ID के आधार पर)
+  curl "https://api.x.com/2/users?ids=2244994945,783214,6253282&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```bash cURL (यूज़रनेम के आधार पर)
+  curl "https://api.x.com/2/users/by?usernames=XDevelopers,X,XAPI&\
+  user.fields=username,verified" \
+    -H "Authorization: Bearer $BEARER_TOKEN"
+  ```
+
+  ```python Python SDK
+  from xdk import Client
+
+  client = Client(bearer_token="YOUR_BEARER_TOKEN")
+
+  # ID के आधार पर कई उपयोगकर्ता प्राप्त करें
+  response = client.users.get_users(
+      ids=["2244994945", "783214", "6253282"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+
+  # यूज़रनेम के आधार पर कई उपयोगकर्ता प्राप्त करें
+  response = client.users.get_users_by_usernames(
+      usernames=["XDevelopers", "X", "XAPI"],
+      user_fields=["username", "verified"]
+  )
+  for user in response.data:
+      print(f"{user.username}: {user.verified}")
+  ```
+
+  ```javascript JavaScript SDK
+  import { Client } from "@xdevplatform/xdk";
+
+  const client = new Client({ bearerToken: "YOUR_BEARER_TOKEN" });
+
+  // ID के आधार पर कई उपयोगकर्ता प्राप्त करें
+  const byIds = await client.users.getUsers({
+    ids: ["2244994945", "783214", "6253282"],
+    userFields: ["username", "verified"],
+  });
+  byIds.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+
+  // यूज़रनेम के आधार पर कई उपयोगकर्ता प्राप्त करें
+  const byUsernames = await client.users.getUsersByUsernames({
+    usernames: ["XDevelopers", "X", "XAPI"],
+    userFields: ["username", "verified"],
+  });
+  byUsernames.data.forEach((user) => {
+    console.log(`${user.username}: ${user.verified}`);
+  });
+  ```
+</CodeGroup>
+
+<Tip>
+  बैच अनुरोधों में अधिकतम 100 उपयोगकर्ता शामिल हो सकते हैं। बड़े डेटासेट के लिए कई अनुरोधों का उपयोग करें।
+</Tip>
+
+***
+
+<div id="error-handling">
+  ## त्रुटि प्रबंधन
+</div>
+
+<div id="common-errors">
+  ### सामान्य त्रुटियाँ
+</div>
+
+| स्थिति | त्रुटि           | समाधान                                                   |
+| :----- | :--------------- | :------------------------------------------------------- |
+| 400    | अमान्य अनुरोध    | पैरामीटर के फ़ॉर्मैट की जाँच करें                        |
+| 401    | अनधिकृत          | प्रमाणीकरण क्रेडेंशियल्स सत्यापित करें                   |
+| 403    | निषिद्ध          | ऐप अनुमतियों की जाँच करें                                |
+| 404    | नहीं मिला        | उपयोगकर्ता मौजूद नहीं है या उसे निलंबित कर दिया गया है   |
+| 429    | बहुत अधिक अनुरोध | प्रतीक्षा करें और फिर से प्रयास करें (रेट लिमिट्स देखें) |
+
+<div id="suspended-or-deleted-users">
+  ### निलंबित या हटाए गए उपयोगकर्ता
+</div>
+
+यदि कोई उपयोगकर्ता निलंबित है या हटा दिया गया है:
+
+* Single user लुकअप `404` लौटाता है
+* Multi-user लुकअप परिणामों में उस उपयोगकर्ता को शामिल नहीं करता और `errors` array लौटाता है
+
+```json
+{
+  "data": [
+    { "id": "2244994945", "username": "XDevelopers" }
+  ],
+  "errors": [
+    {
+      "resource_id": "1234567890",
+      "resource_type": "user",
+      "title": "Not Found Error",
+      "detail": "Could not find user with id: [1234567890]."
+    }
+  ]
+}
+```
+
+<div id="protected-users">
+  ### संरक्षित उपयोगकर्ता
+</div>
+
+उन संरक्षित खातों के लिए जिन्हें आप फ़ॉलो नहीं करते हैं:
+
+* मूल जानकारी (id, नाम, उपयोगकर्ता नाम) उपलब्ध होती है
+* संरक्षित सामग्री (पिन की गई पोस्ट) तक पहुंच सीमित हो सकती है
+* `protected: true` खाते की स्थिति को दर्शाता है
+
+***
+
+<div id="best-practices">
+  ## सर्वोत्तम अभ्यास
+</div>
+
+<CardGroup cols={2}>
+  <Card title="बैच अनुरोध" icon="layer-group">
+    एक बार में अधिकतम 100 उपयोगकर्ताओं को फ़ेच करने के लिए multi-user एंडपॉइंट्स का उपयोग करें, जिससे API कॉल कम होती हैं।
+  </Card>
+
+  <Card title="केवल आवश्यक फ़ील्ड्स का अनुरोध करें" icon="filter">
+    रिस्पॉन्स का आकार कम रखने के लिए केवल वही फ़ील्ड्स निर्दिष्ट करें जिनकी आपको आवश्यकता है।
+  </Card>
+
+  <Card title="उपयोगकर्ता डेटा कैश करें" icon="database">
+    बार-बार किए जाने वाले अनुरोधों को कम करने के लिए उपयोगकर्ता प्रोफ़ाइलों को लोकल रूप से कैश करें।
+  </Card>
+
+  <Card title="त्रुटियों को सहजता से संभालें" icon="triangle-exclamation">
+    बैच रिस्पॉन्स में आंशिक त्रुटियों की जाँच करें।
+  </Card>
+</CardGroup>
+
+***
+
+<div id="next-steps">
+  ## अगले चरण
+</div>
+
+<CardGroup cols={2}>
+  <Card title="API संदर्भ" icon="code" href="/hi/x-api/users/get-user-by-id">
+    एंडपॉइंट का संपूर्ण दस्तावेज़ीकरण
+  </Card>
+
+  <Card title="डेटा शब्दकोश" icon="book" href="/hi/x-api/fundamentals/data-dictionary">
+    सभी उपलब्ध ऑब्जेक्ट और फ़ील्ड्स
+  </Card>
+
+  <Card title="नमूना कोड" icon="github" href="https://github.com/xdevplatform/Twitter-API-v2-sample-code">
+    काम करने वाले कोड उदाहरण
+  </Card>
+
+  <Card title="त्रुटि प्रबंधन" icon="triangle-exclamation" href="/hi/x-api/fundamentals/response-codes-and-errors">
+    त्रुटियों को आसानी से संभालें
+  </Card>
+</CardGroup>
